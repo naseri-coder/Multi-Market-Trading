@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
 from app.modules.paper_runtime.entities import PaperPublishPayload
@@ -41,12 +42,15 @@ class TelegramPaperPublisher:
 
     async def publish(self, payload: PaperPublishPayload) -> str:
         chart = Path(payload.chart_path)
-        if not chart.is_file():
+        if not await asyncio.to_thread(chart.is_file):
             raise ValueError("chart file does not exist")
-        with chart.open("rb") as photo:
+        photo = await asyncio.to_thread(chart.open, "rb")
+        try:
             message = await self.bot.send_photo(
                 chat_id=self.private_test_channel_id,
                 photo=photo,
                 caption=self._caption(payload),
             )
+        finally:
+            await asyncio.to_thread(photo.close)
         return str(message.message_id)
