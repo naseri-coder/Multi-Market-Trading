@@ -27,5 +27,6 @@ ast.parse(Path('production_checks/verify_historical_probability_regression.py').
 print('SOURCE_SHA256_PASS entries=348; PYTHON_AST_PASS count='+str(parsed))
 PY
 bash -n scripts/install.sh scripts/verify.sh
+python3 -m py_compile scripts/bootstrap_env.py scripts/check_env.py
 test -f Dockerfile.production && test -f compose.yaml && test -f requirements.lock
 echo STAGED_STATIC_VERIFICATION_PASS
