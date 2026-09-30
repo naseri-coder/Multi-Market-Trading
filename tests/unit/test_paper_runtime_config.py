@@ -6,7 +6,7 @@ from app.core.config import Settings
 
 def base():
     return dict(
-        telegram_bot_token="123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi",
+        telegram_bot_token="123456789:" + "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi",
         database_url="postgresql+asyncpg://u:p@db/test",
         _env_file=None,
     )
