@@ -25,6 +25,18 @@ jobs:
         run: bash scripts/verify.sh
       - name: Check tracked publication content
         run: python3 scripts/check_publication_safety.py
+      - name: Verify installer bootstrap behavior
+        run: |
+          set -Eeuo pipefail
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          cp .env.example "$work/.env.example"
+          if python3 scripts/bootstrap_env.py "$work/.env" "$work/.env.example" </dev/null; then
+            echo "BOOTSTRAP_NONINTERACTIVE_REFUSAL_FAIL" >&2
+            exit 1
+          fi
+          test ! -e "$work/.env"
+          echo "BOOTSTRAP_NONINTERACTIVE_REFUSAL_PASS"
       - name: Verify Python package discovery
         run: |
           python3 -m pip install --disable-pip-version-check --no-deps .
