@@ -2,9 +2,24 @@
 set -Eeuo pipefail
 
 if [[ "${1:-}" != "--check" ]]; then
-  echo "Usage: $0 --check" >&2
+  echo "Usage: $0 --check [--output PATH]" >&2
   exit 2
 fi
+
+output=""
+case "${2:-}" in
+  "")
+    ;;
+  --output)
+    [[ -n "${3:-}" ]] || { echo "--output requires a path" >&2; exit 2; }
+    [[ -z "${4:-}" ]] || { echo "Usage: $0 --check [--output PATH]" >&2; exit 2; }
+    output="$3"
+    ;;
+  *)
+    echo "Usage: $0 --check [--output PATH]" >&2
+    exit 2
+    ;;
+esac
 
 command -v python3 >/dev/null || { echo "python3 is required" >&2; exit 1; }
 
