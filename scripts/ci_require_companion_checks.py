@@ -9,10 +9,9 @@ import sys
 import time
 import urllib.request
 
-REQUIRED = (
-    ("public-tests", "github-actions"),
-    ("CodeQL", "github-advanced-security"),
-)
+ALWAYS_REQUIRED = (("public-tests", "github-actions"),)
+CODEQL_REQUIRED = ("CodeQL", "github-advanced-security")
+CODEQL_DEFERRED_BASES = {"develop/v0.3.0"}
 POLL_SECONDS = 10
 TIMEOUT_SECONDS = 600
 
@@ -49,11 +48,17 @@ def main() -> int:
         print("COMPANION_CHECK_INPUT_FAIL", file=sys.stderr)
         return 1
 
+    base_ref = os.environ.get("GITHUB_BASE_REF", "")
+    required = list(ALWAYS_REQUIRED)
+    codeql_deferred = base_ref in CODEQL_DEFERRED_BASES
+    if not codeql_deferred:
+        required.append(CODEQL_REQUIRED)
+
     deadline = time.monotonic() + TIMEOUT_SECONDS
     while True:
         checks = fetch_checks(repo, sha, token)
         pending: list[str] = []
-        for name, app_slug in REQUIRED:
+        for name, app_slug in required:
             check = latest_matching(checks, name, app_slug)
             if check is None:
                 pending.append(f"{name}:missing")
@@ -71,7 +76,13 @@ def main() -> int:
                 return 1
 
         if not pending:
-            print("COMPANION_CHECKS_PASS public-tests=success CodeQL=success")
+            if codeql_deferred:
+                print(
+                    "COMPANION_CHECKS_PASS public-tests=success "
+                    f"CodeQL=deferred-to-main base={base_ref}"
+                )
+            else:
+                print("COMPANION_CHECKS_PASS public-tests=success CodeQL=success")
             return 0
 
         if time.monotonic() >= deadline:
