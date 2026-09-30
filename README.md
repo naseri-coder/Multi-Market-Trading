@@ -19,43 +19,168 @@ The original development `app/` tree is excluded. The historical image digest in
 `scripts/verify.sh`: offline hash and AST verification, no Docker daemon use.
 `scripts/install.sh`: --check is offline; --install is interactive and fresh-host-only.
 
-## Installation
+## Installation / نصب
 
-This repository includes a guarded installer for a **new, separate host only**. It is not an upgrade path for an existing deployment.
+The installer in this repository is intended **only for a new, separate host**. It is not an upgrade or migration path for an existing deployment.
 
-### Prerequisites
+اسکریپت نصب این مخزن **فقط برای یک سرور جدید و جداگانه** طراحی شده است. از آن برای ارتقا یا مهاجرت یک نصب یا پایگاه‌داده عملیاتی موجود استفاده نکنید.
 
-Install Docker Engine with Compose v2, Bash, Python 3, and `sha256sum`. Clone this repository and enter its directory.
+### English Installation Guide
 
-### 1. Verify the frozen source
+#### 1. Prerequisites
+
+Install these tools on the new host:
+
+- Git
+- Docker Engine
+- Docker Compose v2
+- Bash
+- Python 3
+- `sha256sum`
+
+Then clone the repository and enter its directory:
+
+```bash
+git clone https://github.com/naseri-coder/crypto-price-action.git
+cd crypto-price-action
+```
+
+#### 2. Verify the frozen source before installation
+
+Run:
 
 ```bash
 bash scripts/install.sh --check
 ```
 
-This check is offline and performs no Docker, network, migration, or service changes.
+A successful check verifies the frozen source and installation files. This mode does **not** call Docker, access the network, run database migrations, or start/modify services.
 
-### 2. Create the environment file
+Do not continue to installation if this check fails.
+
+#### 3. Create and protect the environment file
+
+Run:
 
 ```bash
 cp .env.example .env
 chmod 600 .env
 ```
 
-Edit `.env` locally. Set a private numeric `ADMIN_IDS`, generate a fresh URL-safe password of at least 24 characters, and use the same password in `POSTGRES_PASSWORD` and the matching `DATABASE_URL`. Never commit the populated `.env`.
+Open `.env` locally and configure it before installation:
 
-### 3. Install on a new host
+- Replace `ADMIN_IDS` with the private numeric administrator ID.
+- Generate a new URL-safe database password of at least 24 characters.
+- Put that same password in `POSTGRES_PASSWORD` and in the password portion of `DATABASE_URL`.
+- Keep `TELEGRAM_RUNTIME_ENABLED=false`.
+- Keep `BROOKS_RUNTIME_ENABLED=false`.
+- Keep `BROOKS_OPERATIONS_ENABLED=false`.
+- Keep `PAPER_RUNTIME_ENABLED=false`.
+- Keep `PERFORMANCE_REPORTS_ENABLED=false`.
+- Never commit or upload the populated `.env` file.
+
+#### 4. Install on the new host
+
+Run:
 
 ```bash
 bash scripts/install.sh --install
 ```
 
-The installer validates the frozen source and environment, refuses the original project host and an existing install volume, requires interactive confirmation, builds the image, creates a dedicated PostgreSQL volume, applies migrations, and starts the bot with trading and Telegram runtime features disabled.
+The installer performs its safety checks and then asks for interactive confirmation. To continue, type exactly:
 
-### Installation safety
+```text
+INSTALL-NEW-HOST
+```
 
+The installer then builds the application image, creates a dedicated PostgreSQL volume, starts PostgreSQL, applies the database migrations, and starts the bot. Trading-related and Telegram runtime features remain disabled by default.
 
-Keep Telegram, paper, Brooks runtime, operations, and performance reporting disabled unless they are separately validated and intentionally enabled. Do not use this installer as an upgrade or migration pathway for an existing operational database.
+The installer deliberately refuses to proceed if it detects the original project path or an existing installation volume. It is not an in-place upgrade tool.
+
+#### 5. Important safety notes
+
+Do not enable Telegram, paper trading, Brooks runtime, Brooks operations, performance reporting, or live-trading-related behavior until those capabilities have been separately validated and you intentionally choose to enable them.
+
+Do not use real secrets from another deployment. Create fresh credentials for this installation.
+
+---
+
+### راهنمای نصب فارسی
+
+#### ۱. پیش‌نیازها
+
+این ابزارها را روی **سرور جدید و جداگانه** نصب کنید:
+
+- Git
+- Docker Engine
+- Docker Compose v2
+- Bash
+- Python 3
+- `sha256sum`
+
+سپس مخزن را دریافت کنید و وارد پوشه پروژه شوید:
+
+```bash
+git clone https://github.com/naseri-coder/crypto-price-action.git
+cd crypto-price-action
+```
+
+#### ۲. بررسی فایل‌ها قبل از نصب
+
+ابتدا این دستور را اجرا کنید:
+
+```bash
+bash scripts/install.sh --check
+```
+
+اگر بررسی موفق باشد، فایل‌های frozen source و فایل‌های لازم برای نصب تأیید شده‌اند. حالت `--check` هیچ سرویس Docker را اجرا یا تغییر نمی‌دهد، به شبکه دسترسی نمی‌زند، migration پایگاه‌داده را اجرا نمی‌کند و هیچ سرویسی را راه‌اندازی نمی‌کند.
+
+**اگر این مرحله خطا داد، نصب را ادامه ندهید.**
+
+#### ۳. ساخت و تنظیم فایل محیطی
+
+این دو دستور را اجرا کنید:
+
+```bash
+cp .env.example .env
+chmod 600 .env
+```
+
+سپس فایل `.env` را روی همان سرور به‌صورت محلی ویرایش کنید:
+
+- مقدار `ADMIN_IDS` را با شناسه عددی خصوصی مدیر جایگزین کنید.
+- یک رمز جدید، تصادفی و URL-safe با حداقل ۲۴ کاراکتر برای پایگاه‌داده بسازید.
+- همان رمز را در `POSTGRES_PASSWORD` و قسمت رمزِ `DATABASE_URL` قرار دهید.
+- `TELEGRAM_RUNTIME_ENABLED=false` باقی بماند.
+- `BROOKS_RUNTIME_ENABLED=false` باقی بماند.
+- `BROOKS_OPERATIONS_ENABLED=false` باقی بماند.
+- `PAPER_RUNTIME_ENABLED=false` باقی بماند.
+- `PERFORMANCE_REPORTS_ENABLED=false` باقی بماند.
+- فایل تکمیل‌شده `.env` را هرگز commit یا upload نکنید.
+
+#### ۴. اجرای نصب
+
+فقط روی همان **سرور جدید و جداگانه** اجرا کنید:
+
+```bash
+bash scripts/install.sh --install
+```
+
+اسکریپت ابتدا کنترل‌های ایمنی را انجام می‌دهد و سپس برای ادامه، تأیید تعاملی می‌خواهد. برای تأیید باید دقیقاً عبارت زیر را وارد کنید:
+
+```text
+INSTALL-NEW-HOST
+```
+
+پس از تأیید، اسکریپت image برنامه را می‌سازد، یک volume اختصاصی PostgreSQL ایجاد می‌کند، PostgreSQL را بالا می‌آورد، migrationهای پایگاه‌داده را اعمال می‌کند و سپس bot را اجرا می‌کند. قابلیت‌های مربوط به معامله و Telegram به‌صورت پیش‌فرض غیرفعال باقی می‌مانند.
+
+اگر مسیر پروژه اصلی یا volume مربوط به یک نصب قبلی تشخیص داده شود، installer عمداً متوقف می‌شود. این اسکریپت برای ارتقای نصب موجود طراحی نشده است.
+
+#### ۵. نکات مهم ایمنی
+
+تا زمانی که هر قابلیت به‌صورت جداگانه بررسی و تأیید نشده است، Telegram، paper trading، Brooks runtime، Brooks operations، performance reporting و قابلیت‌های مرتبط با معامله زنده را فعال نکنید.
+
+برای این نصب credential و رمزهای جدید بسازید و از secretهای یک نصب یا سرور دیگر استفاده نکنید.
+
 
 ## Open-source publication status
 This repository is the public open-source snapshot. The curated source snapshot remains frozen: publication-hardening documentation and CI changes do not alter the 348-file `production_source/SHA256SUMS` identity.
