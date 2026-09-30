@@ -52,7 +52,7 @@ def test_env_example_is_valid(valid_token: str) -> None:
 
     assert settings.app_env == "development"
     assert settings.log_format == "console"
-    assert settings.telegram_bot_token.get_secret_value() != valid_token
+    assert settings.telegram_bot_token is None
 
 
 def test_missing_token_is_rejected(
