@@ -25,6 +25,8 @@ jobs:
         run: bash scripts/verify.sh
       - name: Check tracked publication content
         run: python3 scripts/check_publication_safety.py
+      - name: Verify pinned production image builds
+        run: docker build --file Dockerfile.production --tag crypto-price-action:ci .
       - name: Verify installer bootstrap behavior
         run: |
           set -Eeuo pipefail
