@@ -25,7 +25,12 @@ This repository includes a guarded installer for a **new, separate host only**. 
 
 ### Prerequisites
 
-Install Docker Engine with Compose v2, Bash, Python 3, and `sha256sum`. Clone this repository and enter its directory.
+Install Docker Engine with Compose v2, Git, Bash, Python 3, and `sha256sum`. Then clone this repository and enter its directory:
+
+```bash
+git clone https://github.com/naseri-coder/crypto-price-action.git
+cd crypto-price-action
+```
 
 ### 1. Verify the frozen source
 
@@ -53,7 +58,6 @@ bash scripts/install.sh --install
 The installer validates the frozen source and environment, refuses the original project host and an existing install volume, requires interactive confirmation, builds the image, creates a dedicated PostgreSQL volume, applies migrations, and starts the bot with trading and Telegram runtime features disabled.
 
 ### Installation safety
-
 
 Keep Telegram, paper, Brooks runtime, operations, and performance reporting disabled unless they are separately validated and intentionally enabled. Do not use this installer as an upgrade or migration pathway for an existing operational database.
 
