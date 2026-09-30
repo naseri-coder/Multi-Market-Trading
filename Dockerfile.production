@@ -12,8 +12,10 @@ FROM python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4d
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
-RUN addgroup --system --gid 10001 bot \
-    && adduser --system --uid 10001 --ingroup bot --home /home/bot bot
+RUN addgroup --gid 10001 bot \
+    && adduser --disabled-password --gecos "" --uid 10001 --ingroup bot --home /home/bot --shell /usr/sbin/nologin bot \
+    && test "$(id -u bot)" = "10001" \
+    && test "$(id -g bot)" = "10001"
 
 COPY --from=builder /install /usr/local/lib/python3.12/site-packages
 WORKDIR /opt/crypto-signal-bot
