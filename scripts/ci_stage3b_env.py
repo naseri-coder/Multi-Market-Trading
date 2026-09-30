@@ -20,6 +20,7 @@ template = (ROOT / '.env.example').read_text()
 assert template.count('REPLACE_WITH_NEW_RANDOM_URLSAFE_PASSWORD') == 2
 source = template.replace('REPLACE_WITH_NEW_RANDOM_URLSAFE_PASSWORD', password)
 source = source.replace('REPLACE_WITH_NUMERIC_ADMIN_ID', '123456789')
+source = source.replace('ADMIN_IDS=1', 'ADMIN_IDS=123456789')
 # The public example is intentionally development-safe; Stage3B validates the
 # stricter fresh-host production contract using a runner-only synthetic file.
 source = source.replace('APP_ENV=development', 'APP_ENV=production')
