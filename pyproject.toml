@@ -16,7 +16,7 @@ dependencies = [
     "pydantic-settings==2.15.0",
     "python-telegram-bot==22.8",
     "SQLAlchemy[asyncio]==2.0.54",
-    "tzdata==2026.3",
+    "tzdata==2026.4",
 ]
 
 [project.optional-dependencies]
