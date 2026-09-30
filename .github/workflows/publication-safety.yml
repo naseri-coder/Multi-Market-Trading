@@ -28,7 +28,14 @@ jobs:
       - name: Verify pinned production image builds
         run: docker build --file Dockerfile.production --tag crypto-price-action:ci .
       - name: Verify reproducible dependency hash lock
-        run: bash scripts/verify_hashed_lock.sh --check
+        run: bash scripts/verify_hashed_lock.sh --check --output requirements.hashed.lock
+      - name: Upload generated dependency hash lock
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: requirements-hashed-lock
+          path: requirements.hashed.lock
+          if-no-files-found: error
+          retention-days: 1
       - name: Verify installer bootstrap behavior
         run: |
           set -Eeuo pipefail
