@@ -1,6 +1,7 @@
 """Telegram publisher restricted to the configured VIP channel."""
 from __future__ import annotations
 
+import asyncio
 from decimal import Decimal
 from pathlib import Path
 
@@ -178,14 +179,17 @@ class TelegramLiveVipPublisher:
 
     async def publish(self, payload: LiveVipPublishPayload) -> str:
         chart = Path(payload.chart_path)
-        if not chart.is_file():
+        if not await asyncio.to_thread(chart.is_file):
             raise ValueError("chart file does not exist")
 
-        with chart.open("rb") as photo:
+        photo = await asyncio.to_thread(chart.open, "rb")
+        try:
             message = await self.bot.send_photo(
                 chat_id=self.vip_channel_id,
                 photo=photo,
                 caption=self._caption(payload),
             )
+        finally:
+            await asyncio.to_thread(photo.close)
 
         return str(message.message_id)

@@ -87,7 +87,11 @@ async def _run(args: argparse.Namespace) -> int:
 
     payload = report_to_json(report)
     if args.output:
-        Path(args.output).write_text(payload + "\n", encoding="utf-8")
+        await asyncio.to_thread(
+            Path(args.output).write_text,
+            payload + "\n",
+            encoding="utf-8",
+        )
     else:
         print(payload)
 
