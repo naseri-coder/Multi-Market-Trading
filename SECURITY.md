@@ -1,16 +1,20 @@
 # Security Policy
 
+## Supported status
+
+This repository is a public development snapshot. It is intended for source review, testing, and isolated installation. It is not approved for production or live trading.
+
 ## Reporting a vulnerability
 
-Please do not open a public issue for suspected vulnerabilities, leaked credentials, private operational data, or other security-sensitive findings.
+Do **not** open a public issue for suspected vulnerabilities, leaked credentials, private operational data, or other security-sensitive findings.
 
-Until a dedicated private reporting channel is published, repository maintainers should handle security reports through GitHub's private security reporting facilities when enabled.
+Use GitHub private vulnerability reporting when it is enabled for this repository. If private reporting is unavailable, do not publish sensitive details in an issue or pull request; contact the repository owner through a private channel first.
 
 ## Sensitive data
 
-Do not commit or publish:
+Never commit, attach, or publish:
 
-- `.env` files or live credentials
+- populated `.env` files or live credentials
 - Telegram bot tokens or administrator identifiers
 - database passwords, dumps, or SQLite data
 - private keys, certificates, or access tokens
@@ -18,8 +22,10 @@ Do not commit or publish:
 - realized-trade datasets or private market datasets
 - production host details or deployment secrets
 
-The checked-in `.env.example` is intended to contain placeholders only.
+The checked-in `.env.example` must contain placeholders only.
 
-## Scope
+## Security boundaries
 
-This repository is a source release candidate. A security review does not constitute approval for live trading or production deployment.
+The publication CI performs conservative tracked-file and credential-pattern checks, but those checks are not a substitute for GitHub secret scanning, dependency review, code scanning, or a dedicated security assessment.
+
+A successful CI run does not constitute approval for production deployment, live trading, or the handling of real credentials and funds.
