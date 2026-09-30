@@ -29,7 +29,7 @@ echo "STAGE3B_0021_ROLLBACK_REUPGRADE_PASS"
 "${compose[@]}" run --rm --no-deps bot python -m app --check-config
 "${compose[@]}" run --rm --no-deps bot python -m app --check-db
 echo "STAGE3B_APP_CONFIG_DB_CHECKS_PASS"
-"${compose[@]}" run --rm --no-deps --volume "${GITHUB_WORKSPACE}/production_checks:/ci_checks:ro" bot python /ci_checks/verify_historical_probability_regression.py
+"${compose[@]}" run --rm --no-deps --volume "${GITHUB_WORKSPACE}/production_checks:/ci_checks:ro" -e PYTHONPATH=/opt/crypto-signal-bot bot python /ci_checks/verify_historical_probability_regression.py
 echo "STAGE3B_HP_REGRESSION_PASS"
 "${compose[@]}" up -d --no-deps bot
 ready=0
