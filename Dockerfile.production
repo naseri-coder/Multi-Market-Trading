@@ -5,8 +5,8 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR /build
-COPY requirements.lock ./
-RUN python -m pip install --target=/install --requirement requirements.lock
+COPY requirements.hashed.lock ./
+RUN python -m pip install --require-hashes --target=/install --requirement requirements.hashed.lock
 
 FROM python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f AS runtime
 ENV PYTHONUNBUFFERED=1 \
