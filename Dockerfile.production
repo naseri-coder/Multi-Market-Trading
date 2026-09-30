@@ -1,0 +1,30 @@
+FROM python:3.12-slim AS builder
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+WORKDIR /build
+COPY requirements.lock ./
+RUN python -m pip install --target=/install --requirement requirements.lock
+
+FROM python:3.12-slim AS runtime
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+RUN addgroup --system --gid 10001 bot \
+    && adduser --system --uid 10001 --ingroup bot --home /home/bot bot
+
+COPY --from=builder /install /usr/local/lib/python3.12/site-packages
+WORKDIR /opt/crypto-signal-bot
+COPY production_source/SHA256SUMS ./PRODUCTION_SOURCE_SHA256SUMS
+COPY production_source/app ./app
+COPY production_source/migrations ./migrations
+COPY production_source/alembic.ini ./alembic.ini
+COPY production_checks/verify_historical_probability_regression.py /tmp/verify_hp.py
+RUN sha256sum -c PRODUCTION_SOURCE_SHA256SUMS >/tmp/source-check && \
+    PYTHONPATH=/opt/crypto-signal-bot python /tmp/verify_hp.py && rm /tmp/verify_hp.py && \
+    chown -R bot:bot /opt/crypto-signal-bot
+
+USER bot
+CMD ["python", "-m", "app"]

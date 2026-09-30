@@ -1,0 +1,3 @@
+Alembic migrations for the crypto signal Telegram bot database.
+
+Create revisions only after importing all ORM models through app.db.models.

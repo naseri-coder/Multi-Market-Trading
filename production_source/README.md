@@ -1,0 +1,8 @@
+# Production source boundary
+
+This directory is a curated, hash-verified RELEASE CANDIDATE, not a claim that all files were extracted from one historical production image. It is NOT published or approved for deployment.
+The immutable source-of-record manifest held by the original project has 361 entries and SHA256 `aacbb49f28d87cce9135b3d43c568d0c11cfb95cd469f627327cd52a4dc202ef`; an unchanged evidence copy is retained at `../../evidence/FROZEN_SOURCE_SHA256SUMS_361.txt` in the staging workspace (not shipped in the candidate).
+The source-of-record includes migration `20260928_0021_ch6_ii_opportunity_identity.py` with SHA256 `7428d542628f32ec1b3df4749a19ec16474f7b24b1b00fc784b600132634bf8f`, whose predecessor is `20260914_0020`. A historical September 14 image reference (`sha256:67c26704f1bed37f4221a876b5d54c6edb7a37b48ca18d9642e5500e024eacd9`) cannot establish that all 361 entries originated from that image.
+The curated `SHA256SUMS` contains 348 original hash-identical files and has SHA256 `8bb1e75b35fb333925a4c6ec1595fb9dfc273cc854203e577c4ed19e4bbc21b0`; thirteen historical entries were excluded from release (one `.bak`, one empty `.tmp`, eleven archived migration copies). The original source tree and original 361-entry manifest were not changed.
+`Dockerfile.production` checks the curated allowlist and runs the frozen Historical Probability regression guard during build. The separate original development `app/` tree is not promoted.
+Future production promotion requires explicit source reconciliation, authorized isolated build/migration checks, test-suite alignment, release approval, and a separate deployment authorization.

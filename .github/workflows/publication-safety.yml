@@ -1,0 +1,45 @@
+name: Publication safety
+
+on:
+  pull_request:
+  merge_group:
+    types: [checks_requested]
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  static-publication-gates:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout immutable workflow revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify frozen release
+        run: bash scripts/verify.sh
+      - name: Check tracked publication content
+        run: python3 scripts/check_publication_safety.py
+      - name: Verify Python package discovery
+        run: |
+          python3 -m pip install --disable-pip-version-check --no-deps .
+          python3 - <<'PY'
+          import app
+          import importlib.util
+          assert importlib.util.find_spec("app.main") is not None
+          print("PACKAGE_DISCOVERY_PASS")
+          PY
+      - name: Verify OSS metadata
+        run: |
+          set -Eeuo pipefail
+          test -s LICENSE
+          grep -Fq 'Apache License' LICENSE
+          test -s SECURITY.md
+          test -s CONTRIBUTING.md
+          test -s CODE_OF_CONDUCT.md
+          test -s docs/OSS_PUBLICATION_REVIEW.md

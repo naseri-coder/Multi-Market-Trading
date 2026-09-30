@@ -1,0 +1,52 @@
+name: Isolated install verification (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: albrooks-stage3b-manual
+  cancel-in-progress: false
+
+jobs:
+  isolated-install:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      TEST_PROJECT: stage3b-${{ github.run_id }}-${{ github.run_attempt }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout immutable workflow revision
+        id: checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Frozen-release and capacity preflight
+        run: |
+          set -Eeuo pipefail
+          test ! -e .env
+          test "$(wc -l < production_source/SHA256SUMS)" -eq 348
+          expected='8bb1e75b35fb333925a4c6ec1595fb9dfc273cc854203e577c4ed19e4bbc21b0'
+          actual="$(sha256sum production_source/SHA256SUMS | cut -d' ' -f1)"
+          test "$actual" = "$expected"
+          bash scripts/install.sh --check
+          grep -Fq 'revision = "20260928_0021"' production_source/migrations/versions/20260928_0021_ch6_ii_opportunity_identity.py
+          available_kb="$(df -Pk . | awk 'NR==2 {print $4}')"
+          test "$available_kb" -ge 6000000
+          docker compose version
+          echo 'PREFLIGHT_PASS: curated manifest, migration and disk capacity'
+      - name: Generate synthetic credentials and test accepted/rejected environment cases
+        run: python3 scripts/ci_stage3b_env.py
+      - name: Validate Compose isolation before resource creation
+        run: python3 scripts/ci_stage3b_compose.py
+      - name: Build, migrate disposable database, test offline startup and rollback
+        run: bash scripts/ci_stage3b.sh
+      - name: Clean owned disposable resources and synthetic environment
+        if: ${{ always() && steps.checkout.outcome == 'success' }}
+        run: bash scripts/ci_stage3b_cleanup.sh
