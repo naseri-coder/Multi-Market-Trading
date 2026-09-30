@@ -25,6 +25,8 @@ jobs:
         run: bash scripts/verify.sh
       - name: Check tracked publication content
         run: python3 scripts/check_publication_safety.py
+      - name: Install locked runtime dependencies for regression harness
+        run: python3 -m pip install --disable-pip-version-check --require-hashes -r requirements.hashed.lock
       - name: Verify async I/O behavior regression baseline
         run: PYTHONPATH=production_source python3 production_checks/verify_async_io_behavior_regression.py
       - name: Verify pinned production image builds
