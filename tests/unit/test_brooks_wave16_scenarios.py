@@ -1,0 +1,31 @@
+import os,sys
+sys.path.insert(0,os.path.dirname(__file__))
+import test_brooks_wave16_semantics as s
+import test_brooks_wave15_semantics as w15
+import test_brooks_wave14_semantics as w14
+import test_brooks_wave12_semantics as w12
+import test_brooks_wave11_semantics as w11
+import test_brooks_wave08_semantics as w08
+
+def test_s01_072_parent_identity(): s.test_072_native_pattern_links_to_specific_htf_parent_identity()
+def test_s02_072_wrong_direction_near_miss(): s.test_072_opposite_direction_parent_is_not_false_parent()
+def test_s03_072_prefix_causal(): s.test_072_future_parent_pattern_is_not_backdated()
+def test_s04_074_failed_breakout_origin(): s.test_074_failed_breakout_origin_is_directionally_available()
+def test_s05_074_wrong_direction_near_miss(): s.test_074_opposite_failed_breakout_is_not_linked_to_candidate()
+def test_s06_074_prefix_causal(): s.test_074_future_failed_breakout_context_not_backdated()
+def test_s07_073_nested_mtr(): s.test_073_nested_htf_mtr_episode_is_available_by_reversal_direction()
+def test_s08_073_wrong_direction_near_miss(): s.test_073_opposite_mtr_direction_does_not_attach()
+def test_s09_073_prefix_causal(): s.test_073_future_htf_mtr_state_not_backdated()
+def test_s10_wave15_long_bullish_preserved(): w15.test_070_long_with_bullish_htf_is_aligned()
+def test_s11_wave15_long_bearish_preserved(): w15.test_070_long_with_bearish_htf_is_opposed()
+def test_s12_wave15_short_bearish_preserved(): w15.test_070_short_with_bearish_htf_is_aligned()
+def test_s13_wave15_short_bullish_preserved(): w15.test_070_short_with_bullish_htf_is_opposed()
+def test_s14_wave15_incomplete_htf_preserved(): w15.test_070_incomplete_future_htf_candle_is_not_used()
+def test_s15_wave15_mixed_not_positive(): w15.test_070_mixed_htf_is_not_silently_positive()
+def test_s16_wave14_range_entry_preserved(): w14.test_045_valid_broad_range_lower_edge_long_limit_fade()
+def test_s17_wave14_entry_method_preserved(): w14.test_068_micro_double_anticipatory_variant_before_confirmation()
+def test_s18_wave14_economic_identity_preserved(): w14.test_068_same_micro_double_economic_identity_across_entry_methods()
+def test_s19_minor_reversal_not_always_in(): w12.test_062_single_opposite_bar_not_full_identity()
+def test_s20_local_enclosing_range_preserved(): w11.test_038_local_breakout_inside_enclosing_range_is_context_not_new_trend()
+def test_s21_mtr_gt12_preserved(): w08.test_059_retest_beyond_old_12_bar_ceiling_is_still_valid()
+def test_s22_final_flag_gt6_preserved(): w08.test_069_active_structural_final_flag_beyond_six_bars_is_recognized()

@@ -1,0 +1,33 @@
+import os,sys
+sys.path.insert(0,os.path.dirname(__file__))
+import test_brooks_wave12_semantics as s
+import test_brooks_wave11_semantics as w11
+import test_brooks_wave10_semantics as w10
+import test_brooks_wave08_semantics as w08
+import test_brooks_wave09_semantics as w09
+
+def test_scenario_01_002_positive(): s.test_002_strong_trend_bar_direct_candidate()
+def test_scenario_02_002_negative(): s.test_002_not_without_established_always_in()
+def test_scenario_03_003_positive(): s.test_003_always_in_participation_without_fresh_pattern()
+def test_scenario_04_003_negative(): s.test_003_opposite_current_bar_fails_closed()
+def test_scenario_05_007_positive(): s.test_007_micro_channel_allows_one_small_pullback()
+def test_scenario_06_007_negative(): s.test_007_two_countertrend_bars_near_miss()
+def test_scenario_07_008_positive(): s.test_008_strong_trend_composite_positive()
+def test_scenario_08_008_negative(): s.test_008_sideways_overlap_negative()
+def test_scenario_09_009_t1_t2(): s.test_009_t1_spike_precedes_channel_state()
+def test_scenario_10_009_negative(): s.test_009_no_spike_no_lifecycle()
+def test_scenario_11_010_evolution(): s.test_010_channel_overlap_state()
+def test_scenario_12_010_prefix(): s.test_010_prefix_state_uses_only_prefix()
+def test_scenario_13_025_positive(): s.test_025_small_pullback_active_positive()
+def test_scenario_14_025_large_pullback_negative(): s.test_025_substantial_single_countertrend_bar_not_small_pullback_trend()
+def test_scenario_15_061_scalp(): s.test_061_old_trend_intact_is_countertrend_scalp()
+def test_scenario_16_061_reversal(): s.test_061_always_in_flip_is_reversal_trade()
+def test_scenario_17_062_positive(): s.test_062_bull_trend_minor_reversal_requires_developed_swing()
+def test_scenario_18_062_single_bar_negative(): s.test_062_single_opposite_bar_not_full_identity()
+def test_scenario_19_w11_overlap_not_barbwire(): w11.test_028_high_overlap_alone_insufficient()
+def test_scenario_20_w11_local_inside_parent(): w11.test_038_local_breakout_inside_enclosing_range_is_context_not_new_trend()
+def test_scenario_21_w10_failure_of_failure(): w10.test_035_genuine_failure_of_failure_requires_trigger_then_later_failure()
+def test_scenario_22_w10_attempt_not_breakout(): w10.test_037_wick_only_attempt_is_explicit_state_not_successful_breakout()
+def test_scenario_23_w08_mtr_gt12(): w08.test_059_retest_beyond_old_12_bar_ceiling_is_still_valid()
+def test_scenario_24_w08_final_flag_gt6(): w08.test_069_active_structural_final_flag_beyond_six_bars_is_recognized()
+def test_scenario_25_w09_large_bar_not_exhaustion(): w09.test_063_identical_large_bar_without_late_trend_is_not_exhaustion()

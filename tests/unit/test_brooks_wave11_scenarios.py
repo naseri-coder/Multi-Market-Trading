@@ -1,0 +1,25 @@
+import os,sys
+sys.path.insert(0,os.path.dirname(__file__))
+import test_brooks_wave11_semantics as s
+import test_brooks_wave10_semantics as w10
+import test_brooks_wave08_semantics as w08
+
+def test_scenario_01_027_positive(): s.test_027_source_components_identify_ttr()
+def test_scenario_02_027_negative(): s.test_027_broad_range_is_not_ttr()
+def test_scenario_03_027_prefix(): s.test_027_prefix_future_two_sided_evidence_not_backdated()
+def test_scenario_04_028_positive(): s.test_028_canonical_barbwire_positive()
+def test_scenario_05_028_overlap_only_false(): s.test_028_high_overlap_alone_insufficient()
+def test_scenario_06_028_prefix(): s.test_028_requires_three_bars_causally()
+def test_scenario_07_029_lower_edge(): s.test_029_lower_range_edge_uses_one_canonical_range_geometry()
+def test_scenario_08_029_middle_negative(): s.test_029_middle_is_not_edge()
+def test_scenario_09_029_prefix(): s.test_029_future_edge_does_not_relabel_middle_prefix()
+def test_scenario_10_032_positive(): s.test_032_broad_horizontal_range_has_room()
+def test_scenario_11_032_tight_negative(): s.test_032_tight_range_not_broad()
+def test_scenario_12_032_identity(): s.test_032_room_components_are_inspectable_not_score()
+def test_scenario_13_038_local_inside_parent(): s.test_038_local_breakout_inside_enclosing_range_is_context_not_new_trend()
+def test_scenario_14_038_enclosing_departure(): s.test_038_actual_enclosing_breakout_is_distinct()
+def test_scenario_15_038_prefix(): s.test_038_future_departure_does_not_relabel_local_breakout_state()
+def test_scenario_16_wave10_failed_breakout_preserved(): w10.test_034_weak_breakout_strong_reversal_confirms_failure()
+def test_scenario_17_wave10_failure_of_failure_preserved(): w10.test_035_genuine_failure_of_failure_requires_trigger_then_later_failure()
+def test_scenario_18_wave10_attempt_not_breakout_preserved(): w10.test_037_wick_only_attempt_is_explicit_state_not_successful_breakout()
+def test_scenario_19_wave08_active_parent_flag_preserved(): w08.test_024_active_late_bull_trend_has_final_flag_context()
