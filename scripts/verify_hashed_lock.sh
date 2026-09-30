@@ -6,6 +6,11 @@ if [[ "${1:-}" != "--check" ]]; then
   exit 2
 fi
 
+[[ -s requirements.hashed.lock ]] || {
+  echo "HASH_LOCK_COMMITTED_FILE_MISSING_FAIL" >&2
+  exit 1
+}
+
 output=""
 case "${2:-}" in
   "")
@@ -72,6 +77,14 @@ if "--hash=sha256:" not in "\n".join(generated):
 
 print("HASH_LOCK_VALIDATION_PASS")
 PY
+
+if ! cmp -s requirements.hashed.lock "$work/requirements.hashed.lock"; then
+  echo "HASH_LOCK_STALE_FAIL: committed requirements.hashed.lock differs from regenerated lock" >&2
+  diff -u requirements.hashed.lock "$work/requirements.hashed.lock" >&2 || true
+  exit 1
+fi
+
+echo "HASH_LOCK_COMMITTED_MATCH_PASS"
 
 if [[ -n "$output" ]]; then
   install -m 0644 "$work/requirements.hashed.lock" "$output"
