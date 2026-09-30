@@ -21,9 +21,31 @@ The original development `app/` tree is excluded. The historical image digest in
 
 ## Installation / نصب
 
-The installer in this repository is intended **only for a new, separate host**. It is not an upgrade or migration path for an existing deployment.
+**Choose your guide / راهنمای خود را انتخاب کنید:**
 
-اسکریپت نصب این مخزن **فقط برای یک سرور جدید و جداگانه** طراحی شده است. از آن برای ارتقا یا مهاجرت یک نصب یا پایگاه‌داده عملیاتی موجود استفاده نکنید.
+[🇮🇷 **راهنمای نصب فارسی**](#راهنمای-نصب-فارسی) &nbsp;&nbsp; | &nbsp;&nbsp; [🇬🇧 **English Installation Guide**](#english-installation-guide)
+
+### Quick install / نصب یک‌باره
+
+For a **new, separate host only**, after Git, Docker Engine + Compose v2, Bash, Python 3, and `sha256sum` are available:
+
+فقط روی یک **سرور جدید و جداگانه** و پس از موجود بودن Git، Docker Engine + Compose v2، Bash، Python 3 و `sha256sum`:
+
+```bash
+git clone https://github.com/naseri-coder/crypto-price-action.git && cd crypto-price-action && bash scripts/install.sh --install
+```
+
+This is the actual one-command installation path. If `.env` does not exist, the installer creates it with mode `600`, asks for the numeric `ADMIN_IDS`, generates a fresh database password without displaying it, validates the configuration, and then asks for the final `INSTALL-NEW-HOST` confirmation.
+
+این دستور، مسیر واقعی نصب یک‌باره است. اگر فایل `.env` وجود نداشته باشد، installer آن را با دسترسی `600` می‌سازد، شناسه عددی `ADMIN_IDS` را از شما می‌پرسد، رمز جدید پایگاه‌داده را بدون نمایش آن تولید می‌کند، تنظیمات را بررسی می‌کند و در پایان برای شروع نصب عبارت `INSTALL-NEW-HOST` را جهت تأیید درخواست می‌کند.
+
+> The three-line command ending in `bash scripts/install.sh --check` is a **verification command only**; it does not install the application.
+>
+> دستور سه‌خطی که به `bash scripts/install.sh --check` ختم می‌شود **فقط برای بررسی است** و برنامه را نصب نمی‌کند.
+
+The installer is not an upgrade or migration path for an existing deployment.
+
+این installer برای ارتقا یا مهاجرت نصب موجود طراحی نشده است.
 
 ### English Installation Guide
 
@@ -66,7 +88,7 @@ cp .env.example .env
 chmod 600 .env
 ```
 
-Open `.env` locally and configure it before installation:
+For the manual path, open `.env` locally and configure it before installation. The quick-install path can create this file automatically:
 
 - Replace `ADMIN_IDS` with the private numeric administrator ID.
 - Generate a new URL-safe database password of at least 24 characters.
@@ -145,7 +167,7 @@ cp .env.example .env
 chmod 600 .env
 ```
 
-سپس فایل `.env` را روی همان سرور به‌صورت محلی ویرایش کنید:
+در روش دستی، فایل `.env` را روی همان سرور ویرایش کنید. در روش نصب یک‌باره، installer می‌تواند این فایل را به‌صورت خودکار و امن ایجاد کند:
 
 - مقدار `ADMIN_IDS` را با شناسه عددی خصوصی مدیر جایگزین کنید.
 - یک رمز جدید، تصادفی و URL-safe با حداقل ۲۴ کاراکتر برای پایگاه‌داده بسازید.
