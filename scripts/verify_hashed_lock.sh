@@ -38,6 +38,7 @@ CUSTOM_COMPILE_COMMAND="scripts/verify_hashed_lock.sh --check" \
   "$work/venv/bin/pip-compile" \
   --generate-hashes \
   --resolver=backtracking \
+  --no-strip-extras \
   --output-file "$work/requirements.hashed.lock" \
   requirements.lock
 
