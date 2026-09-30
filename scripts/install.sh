@@ -29,14 +29,14 @@ done
 command -v docker >/dev/null || { echo "Install Docker Engine and Compose v2 first" >&2; exit 3; }
 docker compose version >/dev/null
 docker info >/dev/null
-if docker volume inspect albrooks-installable_postgres_data >/dev/null 2>&1; then
+if docker volume inspect crypto-price-action_postgres_data >/dev/null 2>&1; then
   echo "REFUSED: install volume exists; no overwrite/upgrade through installer" >&2; exit 3
 fi
-docker compose -p albrooks-installable -f compose.yaml --env-file .env config --quiet
+docker compose -p crypto-price-action -f compose.yaml --env-file .env config --quiet
 echo "NEW HOST ONLY. Creates dedicated DB, runs migrations, starts bot with runtime disabled."
 read -r -p "Type INSTALL-NEW-HOST to continue: " consent
 if [[ "$consent" != "INSTALL-NEW-HOST" ]]; then echo "CANCELLED"; exit 3; fi
-compose=(docker compose -p albrooks-installable -f compose.yaml --env-file .env)
+compose=(docker compose -p crypto-price-action -f compose.yaml --env-file .env)
 "${compose[@]}" build bot
 "${compose[@]}" up -d --wait postgres
 "${compose[@]}" run --rm --no-deps bot python -m alembic -c alembic.ini upgrade head
