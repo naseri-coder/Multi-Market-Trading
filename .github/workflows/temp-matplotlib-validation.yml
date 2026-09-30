@@ -1,0 +1,60 @@
+name: Temporary Matplotlib validation
+on:
+  push:
+    branches:
+      - matplotlib-3.11.2-coordinated
+permissions:
+  contents: write
+jobs:
+  validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true
+      - name: Generate and validate hash lock
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          work="$(mktemp -d)"
+          python3 -m venv "$work/venv"
+          "$work/venv/bin/python" -m pip install --disable-pip-version-check "pip-tools==7.6.1"
+          CUSTOM_COMPILE_COMMAND="scripts/verify_hashed_lock.sh --check" \
+            "$work/venv/bin/pip-compile" --generate-hashes --resolver=backtracking \
+            --output-file requirements.hashed.lock requirements.lock
+          "$work/venv/bin/python" -m pip install --disable-pip-version-check \
+            --require-hashes --requirement requirements.hashed.lock
+          MPLBACKEND=Agg "$work/venv/bin/python" - <<'PY'
+          from pathlib import Path
+          import matplotlib
+          matplotlib.use("Agg")
+          import matplotlib.dates as mdates
+          import matplotlib.pyplot as plt
+          from matplotlib.patches import Rectangle
+          from datetime import datetime, timezone
+          x = mdates.date2num(datetime.now(timezone.utc))
+          fig, ax = plt.subplots(figsize=(4, 3), dpi=100)
+          ax.vlines(x, 1, 3)
+          ax.add_patch(Rectangle((x-0.01, 1.5), 0.02, 1.0))
+          ax.plot([x-0.02, x], [1.5, 2.0], label="EMA20")
+          ax.scatter([x], [2.0], marker="^", s=38)
+          ax.annotate("LONG", xy=(x, 2.0), xytext=(0, 9), textcoords="offset points")
+          ax.axhspan(1.0, 1.2, alpha=0.075)
+          ax.axhline(2.2, linestyle="--")
+          ax.fill_between([x-0.02, x], 1.0, 1.5, alpha=0.05)
+          ax.legend()
+          fig.tight_layout()
+          out = Path("/tmp/matplotlib-smoke.png")
+          fig.savefig(out)
+          plt.close(fig)
+          assert out.is_file() and out.stat().st_size > 0
+          print("MATPLOTLIB_3_11_2_RENDER_SMOKE_PASS")
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add requirements.hashed.lock
+          git diff --cached --quiet && exit 0
+          git commit -m "Regenerate hash lock for Matplotlib 3.11.2"
+          git push origin HEAD:matplotlib-3.11.2-coordinated
