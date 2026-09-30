@@ -1,6 +1,6 @@
 # OSS Publication Review
 
-Status: pre-publication hardening. This document records review boundaries; it is not legal advice and does not itself authorize publication or production deployment.
+Status: public development snapshot. This document records publication-review boundaries; it is not legal advice and does not authorize production deployment or live trading.
 
 ## Frozen source boundary
 
@@ -24,12 +24,12 @@ The review goal is to keep independently implemented algorithms and necessary id
 
 ## Branding and affiliation
 
-Before public launch, the README should clearly state that the project is independent and is not affiliated with or endorsed by Al Brooks or the publishers of the referenced books.
+The public README states that the project is independent and is not affiliated with, sponsored by, or endorsed by Al Brooks or the publishers of the referenced books.
 
 ## Secrets and operational data
 
-The current candidate uses placeholder values in `.env.example` and ignores common secret/data file classes. A final publication gate should still inspect the complete reachable Git history and release tree for credentials, private operational identifiers, dumps, logs, keys, and private datasets.
+The current candidate uses placeholder values in `.env.example` and ignores common secret/data file classes. The tracked public tree is checked by publication CI. Complete reachable-history review, GitHub-native secret scanning, and release-artifact review remain separate security gates.
 
 ## Remaining gates
 
-The repository owner selected Apache License 2.0 for the project. A public release still requires completion of the targeted source-expression review, a final secret/history scan, verification of public-compatible CI, and an owner decision to change repository visibility.
+The repository is public and uses Apache License 2.0 for project-owned code. Before an official tagged release, complete the targeted source-expression review, reachable-history/privacy review, GitHub-native security checks, public CI verification, and release-artifact review.
