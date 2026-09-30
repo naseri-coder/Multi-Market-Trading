@@ -52,7 +52,7 @@ def isolate_settings(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
 @pytest.fixture
 def valid_token() -> str:
     """Return a syntactically valid, non-functional Telegram token."""
-    return "123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi"
+    return "123456789:" + "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi"
 
 
 @pytest.fixture
