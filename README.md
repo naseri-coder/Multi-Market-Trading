@@ -1,6 +1,6 @@
-# Al Brooks Crypto Signal Bot — frozen-source install candidate
+# Al Brooks Crypto Signal Bot — frozen-source public snapshot
 
-> PRE-PUBLICATION RELEASE CANDIDATE. NOT APPROVED FOR PRODUCTION OR LIVE TRADING.
+> PUBLIC SOURCE SNAPSHOT. NOT APPROVED FOR PRODUCTION OR LIVE TRADING.
 >
 > Independent software project. It is not affiliated with, sponsored by, or endorsed by Al Brooks or the publishers of the referenced books.
 
@@ -32,18 +32,16 @@ and starts the bot with all trading and Telegram runtime features disabled.
 This is not an upgrade/migration pathway for any existing operational database.
 
 ## Open-source publication status
-The repository is being prepared for a possible public open-source release. The curated source snapshot remains frozen: publication-hardening documentation and CI changes do not alter the 348-file `production_source/SHA256SUMS` identity.
+This repository is the public open-source snapshot. The curated source snapshot remains frozen: publication-hardening documentation and CI changes do not alter the 348-file `production_source/SHA256SUMS` identity.
 
 See `docs/OSS_PUBLICATION_REVIEW.md` for the current source-expression and publication review boundary. Security reporting guidance is in `SECURITY.md`; contribution guidance is in `CONTRIBUTING.md`.
 
-The project is licensed under the Apache License 2.0. See `LICENSE`. This license choice does not change the separate pre-publication source-expression, security, and release-integrity gates.
+The project is licensed under the Apache License 2.0. See `LICENSE`. This license choice does not change the separate source-expression, security, release-integrity, and operational-validation boundaries.
 
-## Publication gates still open
-- Review the curated candidate for sensitive publication content and independently approve the release checkpoint; historical .bak/.tmp entries are excluded.
+## Operational validation still open
 - Original 361-entry source manifest and curated 348-entry release manifest are distinct and documented, including migration 0021; historical image equivalence is not independently established.
 - Run Docker build and disposable-db migration/test only on a separately authorized isolated host.
 - Reconcile test suite against the selected immutable source; document support and rollback.
-- Obtain explicit owner approval before creating/pushing GitHub content.
 
 Never upload `.env`, backup archives, SQLite data, DB dumps, operational logs, keys,
 realized trades or private market datasets. No source, Docker service or database
