@@ -57,3 +57,8 @@ if "--hash=sha256:" not in "\n".join(generated):
 
 print("HASH_LOCK_VALIDATION_PASS")
 PY
+
+if [[ -n "$output" ]]; then
+  install -m 0644 "$work/requirements.hashed.lock" "$output"
+  echo "HASH_LOCK_ARTIFACT_READY: $output"
+fi
