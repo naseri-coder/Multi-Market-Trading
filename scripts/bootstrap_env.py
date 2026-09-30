@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Create a private fresh-host .env without printing generated secrets."""
 from pathlib import Path
+import os
 import re
 import secrets
-import stat
 import sys
 
 target = Path(sys.argv[1] if len(sys.argv) > 1 else ".env")
@@ -28,7 +28,11 @@ text = text.replace("REPLACE_WITH_NEW_RANDOM_URLSAFE_PASSWORD", password)
 if "REPLACE_" in text:
     raise SystemExit("ENV_BOOTSTRAP_REFUSED: unresolved placeholder")
 
-with target.open("x") as fd:
-    fd.write(text)
-target.chmod(stat.S_IRUSR | stat.S_IWUSR)
+fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+try:
+    with os.fdopen(fd, "w") as stream:
+        stream.write(text)
+except BaseException:
+    target.unlink(missing_ok=True)
+    raise
 print("ENV_BOOTSTRAP_PASS: private .env created; generated database password not displayed")
