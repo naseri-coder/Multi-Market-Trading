@@ -1,4 +1,4 @@
-# Al Brooks Crypto Signal Bot — frozen-source public snapshot
+# Crypto Price Action — frozen-source public snapshot
 
 > PUBLIC SOURCE SNAPSHOT. NOT APPROVED FOR PRODUCTION OR LIVE TRADING.
 >
@@ -19,17 +19,43 @@ The original development `app/` tree is excluded. The historical image digest in
 `scripts/verify.sh`: offline hash and AST verification, no Docker daemon use.
 `scripts/install.sh`: --check is offline; --install is interactive and fresh-host-only.
 
-## On a NEW, separate host (not the original Brooks VPS)
-Preinstall supported Docker Engine + Compose v2, Bash, Python 3, and sha256sum.
-Copy `.env.example` to `.env`, then `chmod 600 .env` and edit locally.
-Set a private numeric `ADMIN_IDS`, generate a fresh URL-safe password (24+ characters),
-put that password in `POSTGRES_PASSWORD` and in the matching `DATABASE_URL`.
-Keep Telegram, paper, Brooks runtime, operations, and performance reporting disabled.
-Run `bash scripts/install.sh --check`; inspect the output before any deployment.
-Then, only on the NEW host, `bash scripts/install.sh --install` and confirm interactively.
-That command builds the frozen image, creates a NEW dedicated DB volume, applies migrations,
-and starts the bot with all trading and Telegram runtime features disabled.
-This is not an upgrade/migration pathway for any existing operational database.
+## Installation
+
+This repository includes a guarded installer for a **new, separate host only**. It is not an upgrade path for an existing deployment.
+
+### Prerequisites
+
+Install Docker Engine with Compose v2, Bash, Python 3, and `sha256sum`. Clone this repository and enter its directory.
+
+### 1. Verify the frozen source
+
+```bash
+bash scripts/install.sh --check
+```
+
+This check is offline and performs no Docker, network, migration, or service changes.
+
+### 2. Create the environment file
+
+```bash
+cp .env.example .env
+chmod 600 .env
+```
+
+Edit `.env` locally. Set a private numeric `ADMIN_IDS`, generate a fresh URL-safe password of at least 24 characters, and use the same password in `POSTGRES_PASSWORD` and the matching `DATABASE_URL`. Never commit the populated `.env`.
+
+### 3. Install on a new host
+
+```bash
+bash scripts/install.sh --install
+```
+
+The installer validates the frozen source and environment, refuses the original project host and an existing install volume, requires interactive confirmation, builds the image, creates a dedicated PostgreSQL volume, applies migrations, and starts the bot with trading and Telegram runtime features disabled.
+
+### Installation safety
+
+
+Keep Telegram, paper, Brooks runtime, operations, and performance reporting disabled unless they are separately validated and intentionally enabled. Do not use this installer as an upgrade or migration pathway for an existing operational database.
 
 ## Open-source publication status
 This repository is the public open-source snapshot. The curated source snapshot remains frozen: publication-hardening documentation and CI changes do not alter the 348-file `production_source/SHA256SUMS` identity.
