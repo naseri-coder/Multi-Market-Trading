@@ -4,6 +4,9 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "23 * * * *"
+  push:
+    branches:
+      - main
   delete:
 
 permissions:
