@@ -6,6 +6,9 @@ MODE="${1:---check}"
 if [[ "$MODE" != "--check" && "$MODE" != "--install" ]]; then
   echo "Usage: bash scripts/install.sh --check | --install" >&2; exit 2
 fi
+for cmd in bash python3 sha256sum; do
+  command -v "$cmd" >/dev/null || { echo "MISSING_PREREQUISITE: $cmd" >&2; exit 3; }
+done
 bash scripts/verify.sh
 if [[ "$MODE" == "--check" ]]; then
   echo "CHECK_ONLY: no Docker calls, network, migration, or service changes performed"
@@ -18,6 +21,10 @@ fi
 if [[ ! -t 0 ]]; then
   echo "REFUSED: install requires an interactive operator" >&2; exit 3
 fi
+if [[ ! -e .env ]]; then
+  echo "No .env found; creating a private configuration for this fresh host."
+  python3 scripts/bootstrap_env.py .env .env.example
+fi
 python3 scripts/check_env.py .env
 # Compose gives inherited shell variables precedence over --env-file interpolation.
 # Refuse conflicting database overrides rather than using different bot and DB credentials.
@@ -26,9 +33,9 @@ for name in POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB; do
     echo "REFUSED: inherited Compose database override for $name (value suppressed)" >&2; exit 3
   fi
 done
-command -v docker >/dev/null || { echo "Install Docker Engine and Compose v2 first" >&2; exit 3; }
-docker compose version >/dev/null
-docker info >/dev/null
+command -v docker >/dev/null || { echo "MISSING_PREREQUISITE: Docker Engine. Install Docker Engine + Compose v2, then rerun this command." >&2; exit 3; }
+docker compose version >/dev/null 2>&1 || { echo "MISSING_PREREQUISITE: Docker Compose v2 plugin" >&2; exit 3; }
+docker info >/dev/null || { echo "DOCKER_UNAVAILABLE: Docker daemon is not reachable by this user" >&2; exit 3; }
 if docker volume inspect crypto-price-action_postgres_data >/dev/null 2>&1; then
   echo "REFUSED: install volume exists; no overwrite/upgrade through installer" >&2; exit 3
 fi
