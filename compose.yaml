@@ -1,4 +1,4 @@
-# Candidate ONLY: use on a fresh host after explicit acceptance.
+# Public snapshot: install only on a fresh, separate host after explicit acceptance.
 name: crypto-price-action
 services:
   postgres:
