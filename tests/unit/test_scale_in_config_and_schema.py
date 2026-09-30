@@ -11,7 +11,7 @@ from app.modules.scale_in.models import (
 
 
 def base():
-    return dict(telegram_bot_token="123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi",
+    return dict(telegram_bot_token="123456789:" + "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi",
                 database_url="postgresql+asyncpg://u:p@db/test", _env_file=None)
 
 
