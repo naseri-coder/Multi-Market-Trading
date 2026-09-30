@@ -36,7 +36,7 @@ def test_reconfiguration_does_not_duplicate_handlers() -> None:
 
 def test_telegram_tokens_are_redacted_from_json_logs(capsys) -> None:
     configure_logging(level="INFO", output_format="json")
-    token = "1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef_1234"
+    token = "1234567890:" + "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef_1234"
 
     logging.getLogger("test.logger").error(
         "Telegram request failed: https://api.telegram.org/bot%s/getMe",
@@ -50,7 +50,7 @@ def test_telegram_tokens_are_redacted_from_json_logs(capsys) -> None:
 
 def test_telegram_tokens_are_redacted_from_console_logs(capsys) -> None:
     configure_logging(level="INFO", output_format="console")
-    token = "1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef_1234"
+    token = "1234567890:" + "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef_1234"
 
     logging.getLogger("test.logger").error("token=%s", token)
 
