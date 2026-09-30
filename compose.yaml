@@ -1,5 +1,5 @@
 # Candidate ONLY: use on a fresh host after explicit acceptance.
-name: albrooks-installable
+name: crypto-price-action
 services:
   postgres:
     image: postgres:16-alpine
@@ -23,7 +23,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.production
-    image: albrooks-crypto-signal:${RELEASE_TAG:-candidate}
+    image: crypto-price-action:${RELEASE_TAG:-snapshot}
     env_file:
       - .env
     depends_on:
