@@ -1,19 +1,20 @@
-name: Temporary NumPy hash-lock generation
+name: Temporary NumPy hash-lock commit
 on:
   push:
     branches:
       - numpy-2.5.3-coordinated
 permissions:
-  contents: read
+  contents: write
 jobs:
-  generate:
+  commit-lock:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          persist-credentials: false
-      - name: Generate candidate hash lock
+          persist-credentials: true
+      - name: Generate and commit exact hash lock
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -21,20 +22,13 @@ jobs:
           python3 -m venv "$work/venv"
           "$work/venv/bin/python" -m pip install --disable-pip-version-check "pip-tools==7.6.1"
           CUSTOM_COMPILE_COMMAND="scripts/verify_hashed_lock.sh --check" \
-            "$work/venv/bin/pip-compile" \
-            --generate-hashes \
-            --resolver=backtracking \
-            --output-file requirements.hashed.generated.lock \
-            requirements.lock
-          "$work/venv/bin/python" -m pip install \
-            --disable-pip-version-check \
-            --require-hashes \
-            --dry-run \
-            --requirement requirements.hashed.generated.lock
-      - name: Upload generated lock
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: numpy-2.5.3-hash-lock
-          path: requirements.hashed.generated.lock
-          if-no-files-found: error
-          retention-days: 1
+            "$work/venv/bin/pip-compile" --generate-hashes --resolver=backtracking \
+            --output-file requirements.hashed.lock requirements.lock
+          "$work/venv/bin/python" -m pip install --disable-pip-version-check \
+            --require-hashes --dry-run --requirement requirements.hashed.lock
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add requirements.hashed.lock
+          git diff --cached --quiet && exit 0
+          git commit -m "Regenerate hash lock for NumPy 2.5.3"
+          git push origin HEAD:numpy-2.5.3-coordinated
