@@ -264,7 +264,7 @@ The release source consists of **348 unchanged, hash-verified files** selected b
 Release manifest SHA256:
 
 ```text
-8bb1e75b35fb333925a4c6ec1595fb9dfc273cc854203e577c4ed19e4bbc21b0
+769aa1757120c71ddf17579f18f1b63cd5ef3685a25287bd68d7c9bc7c341b49
 ```
 
 The original immutable 361-entry development manifest SHA256 is:
@@ -281,11 +281,12 @@ This repository is the public open-source snapshot. See `docs/OSS_PUBLICATION_RE
 
 The project is licensed under the Apache License 2.0. See `LICENSE`. The license does not change separate third-party rights, source-expression, security, release-integrity, or operational-validation boundaries.
 
-## Operational validation still open
+## Operational validation status
 
 - Historical image equivalence is not independently established.
-- Docker build and disposable-database migration/test validation should be performed only on a separately authorized isolated host.
-- The test suite still needs to be reconciled against the selected immutable public-source snapshot and documented with support/rollback procedures.
+- The public test corpus has been reconciled against the selected immutable public-source snapshot and is exercised by GitHub Actions.
+- Docker build, disposable PostgreSQL migration/rollback, offline startup, and frozen-source checks have passed the isolated Stage3B verification workflow.
+- These checks validate the public development snapshot; they do not approve production deployment or live trading.
 
 Never upload `.env`, backup archives, SQLite data, database dumps, operational logs, keys, realized trades, or private market datasets.
 
