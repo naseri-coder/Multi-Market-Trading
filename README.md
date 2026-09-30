@@ -4,61 +4,51 @@
 >
 > Independent software project. It is not affiliated with, sponsored by, or endorsed by Al Brooks or the publishers of the referenced books.
 
-**Installation guides / راهنمای نصب**
+[🇬🇧 **English documentation**](#english) &nbsp;&nbsp; | &nbsp;&nbsp; [🇮🇷 **راهنمای فارسی**](#فارسی)
 
-[🇮🇷 **فارسی — راهنمای نصب**](#راهنمای-نصب-فارسی) &nbsp;&nbsp; | &nbsp;&nbsp; [🇬🇧 **English — Installation Guide**](#english-installation-guide)
+---
+
+<a id="english"></a>
+# English
 
 ## Project overview
 
-Crypto Price Action is an open-source cryptocurrency signal-system snapshot built around rule-based price-action analysis. The published repository contains a curated, hash-verified source snapshot, Docker packaging, PostgreSQL configuration, offline verification, publication-safety checks, and a guarded fresh-host installer.
+**Crypto Price Action** is an open-source cryptocurrency signal-system snapshot built around rule-based price-action analysis. The public repository packages a curated, hash-verified source snapshot together with Docker deployment files, PostgreSQL configuration, offline integrity checks, publication-safety checks, and a guarded installer for a fresh isolated host.
 
-The project is under active validation. The public snapshot is intended for review, development, testing, and reproducible installation on an isolated new host. It is **not a claim of profitability** and is **not approved for production or live trading**.
+The project is still under development and validation. This public snapshot is intended for source review, development, testing, and reproducible installation in an isolated environment. It does **not** claim profitability and is **not approved for production or live trading**.
 
-### توضیحات پروژه
+## Quick install — one command
 
-**Crypto Price Action** یک پروژه متن‌باز برای سیستم سیگنال‌دهی ارزهای دیجیتال با تحلیل قانون‌محور Price Action است. نسخه عمومی شامل snapshot کنترل‌شده و hash-verified از سورس، بسته‌بندی Docker، PostgreSQL، بررسی آفلاین فایل‌ها، کنترل‌های ایمنی انتشار و installer محافظت‌شده برای نصب روی یک سرور جدید است.
+### Prerequisites
 
-پروژه هنوز در مرحله توسعه و اعتبارسنجی قرار دارد. این نسخه عمومی برای بررسی کد، توسعه، آزمایش و نصب قابل‌تکرار روی یک محیط جدید و ایزوله منتشر شده است و **به معنی تضمین سودآوری یا تأیید برای معامله زنده نیست**.
+The new host must already provide:
 
-## Quick install / نصب یک‌فرمانی
+- Git
+- Docker Engine with a running Docker daemon
+- Docker Compose v2
+- Bash
+- Python 3
+- `sha256sum`
 
-### Requirements / پیش‌نیازها
-
-The new host must already have **Git, Docker Engine, Docker Compose v2, Bash, Python 3, and `sha256sum`**.
-
-روی سرور جدید باید **Git، Docker Engine، Docker Compose v2، Bash، Python 3 و `sha256sum`** موجود باشند.
-
-### One command / یک فرمان
-
-Run this only on a **new, separate host**:
-
-این فرمان را فقط روی یک **سرور جدید و جداگانه** اجرا کنید:
+Run the following command on a **new, separate host only**:
 
 ```bash
 git clone https://github.com/naseri-coder/crypto-price-action.git && cd crypto-price-action && bash scripts/install.sh --install
 ```
 
-The installer verifies the frozen source first. If `.env` does not exist, it creates a private `.env` with permission `600`, asks for numeric `ADMIN_IDS`, generates a fresh URL-safe PostgreSQL password without displaying it, validates the configuration, checks Docker/Compose, and finally asks you to type:
-
-installer ابتدا frozen source را بررسی می‌کند. اگر `.env` وجود نداشته باشد، فایل خصوصی `.env` را با permission برابر `600` می‌سازد، `ADMIN_IDS` عددی را از شما می‌پرسد، یک رمز جدید و URL-safe برای PostgreSQL بدون نمایش آن تولید می‌کند، تنظیمات و Docker/Compose را بررسی می‌کند و در پایان از شما می‌خواهد دقیقاً این عبارت را وارد کنید:
+The installer first verifies the frozen source. If `.env` is missing, it creates a private file with mode `600`, asks for numeric `ADMIN_IDS`, generates a fresh URL-safe PostgreSQL password without displaying it, validates the environment, verifies Docker and Compose availability, and asks for final authorization:
 
 ```text
 INSTALL-NEW-HOST
 ```
 
-Only after that confirmation does it build the image, create the dedicated PostgreSQL volume, start PostgreSQL, apply Alembic migrations, and start the bot. Telegram and trading-related runtime features remain disabled by default.
+Only after that confirmation does the installer build the application image, create a dedicated PostgreSQL volume, start PostgreSQL, apply Alembic migrations, and start the bot.
 
-فقط بعد از این تأیید، image ساخته می‌شود، volume اختصاصی PostgreSQL ایجاد می‌شود، PostgreSQL اجرا می‌شود، migrationهای Alembic اعمال می‌شوند و bot بالا می‌آید. قابلیت‌های Telegram و runtimeهای مرتبط با معامله به‌صورت پیش‌فرض غیرفعال باقی می‌مانند.
+The installer does **not** silently install operating-system packages or modify the host package manager. If a prerequisite is missing, it stops and reports the missing requirement.
 
-> **Important:** the installer does not silently install operating-system packages or modify the host package manager. If a prerequisite is missing, it stops and reports the missing requirement.
->
-> **مهم:** installer پکیج‌های سیستم‌عامل را به‌صورت مخفیانه نصب نمی‌کند و package manager سرور را تغییر نمی‌دهد. اگر پیش‌نیازی وجود نداشته باشد، متوقف می‌شود و مورد کمبود را اعلام می‌کند.
+## Verification without installation
 
-## Verification only / فقط بررسی بدون نصب
-
-If you only want to download and verify the snapshot without installing services:
-
-اگر فقط می‌خواهید پروژه را دریافت و بدون نصب سرویس‌ها بررسی کنید:
+To download and verify the public snapshot without starting Docker services or changing a database:
 
 ```bash
 git clone https://github.com/naseri-coder/crypto-price-action.git
@@ -66,28 +56,15 @@ cd crypto-price-action
 bash scripts/install.sh --check
 ```
 
-`--check` is offline and does **not** call Docker, access the network, run database migrations, or start/modify services.
+The `--check` mode is offline. It verifies the frozen source and installation files without calling Docker, accessing the network, running migrations, or starting/modifying services.
 
-حالت `--check` آفلاین است و Docker را فراخوانی نمی‌کند، migration اجرا نمی‌کند و هیچ سرویسی را راه‌اندازی یا تغییر نمی‌دهد.
+## Step-by-step installation
 
----
+### 1. Prepare a fresh host
 
-## English Installation Guide
+This installer is strictly for a **new, separate host**. It is not an in-place upgrade mechanism and must not be used to overwrite an existing deployment or operational database.
 
-### 1. Prepare a new host
-
-This installer is strictly for a **fresh, separate host**. It is not an in-place upgrade or database-migration path for an existing deployment.
-
-Install or make available:
-
-- Git
-- Docker Engine
-- Docker Compose v2
-- Bash
-- Python 3
-- `sha256sum`
-
-Confirm that the Docker daemon is running and accessible by the account that will perform the installation.
+Install the prerequisites listed above and confirm that your account can access the Docker daemon.
 
 ### 2. Clone the repository
 
@@ -96,32 +73,32 @@ git clone https://github.com/naseri-coder/crypto-price-action.git
 cd crypto-price-action
 ```
 
-### 3. Verify before installation
+### 3. Run the offline verification
 
 ```bash
 bash scripts/install.sh --check
 ```
 
-Continue only if the verification succeeds.
+Do not continue if verification fails.
 
-### 4. Choose automatic or manual environment setup
+### 4. Configure the environment
 
-**Recommended:** simply run `--install`. If `.env` is absent, the installer securely creates it and asks for the numeric administrator ID.
+The recommended path is to let `--install` create a missing `.env` securely:
 
 ```bash
 bash scripts/install.sh --install
 ```
 
-For manual configuration instead:
+For manual configuration:
 
 ```bash
 cp .env.example .env
 chmod 600 .env
 ```
 
-Then edit `.env`. Use a numeric `ADMIN_IDS`, create a fresh URL-safe database password of 24–96 characters, and place the same password in `POSTGRES_PASSWORD` and the password portion of `DATABASE_URL`. Never commit or upload the populated `.env`.
+Then edit `.env`. `ADMIN_IDS` must contain numeric administrator IDs. Use a fresh URL-safe database password between 24 and 96 characters, and place the same password in `POSTGRES_PASSWORD` and the password component of `DATABASE_URL`. Never commit or upload a populated `.env`.
 
-Keep these safety defaults unchanged unless they have been separately validated and intentionally enabled:
+Keep these safety defaults disabled unless each capability has been separately validated and intentionally enabled:
 
 ```text
 TELEGRAM_RUNTIME_ENABLED=false
@@ -131,44 +108,81 @@ PAPER_RUNTIME_ENABLED=false
 PERFORMANCE_REPORTS_ENABLED=false
 ```
 
-### 5. Complete installation
+### 5. Authorize and complete installation
 
-If you used the manual environment path, run:
-
-```bash
-bash scripts/install.sh --install
-```
-
-Review the preflight output. When the installer asks for final authorization, type exactly:
+When prompted, review the preflight output and type exactly:
 
 ```text
 INSTALL-NEW-HOST
 ```
 
-The installer deliberately refuses to overwrite an existing installation volume or install over the original protected project path.
+The installer refuses to overwrite its existing installation volume and refuses installation on the protected original-project host path.
 
 ### 6. After installation
 
-Review container/service status before enabling any optional runtime. Do not enable Telegram, paper trading, Brooks runtime, Brooks operations, performance reporting, or live-trading-related behavior until each capability has been separately validated.
+Review container and service status before enabling optional runtime features. Telegram integration, paper trading, Brooks runtime, Brooks operations, performance reporting, and any live-trading-related behavior should remain disabled until separately validated.
 
 ---
 
-## راهنمای نصب فارسی
+<a id="فارسی"></a>
+# فارسی
 
-### ۱. آماده‌سازی سرور جدید
+## معرفی پروژه
 
-این installer فقط برای یک **سرور تازه و جداگانه** است. از آن برای ارتقای نصب موجود یا مهاجرت مستقیم یک پایگاه‌داده عملیاتی استفاده نکنید.
+**Crypto Price Action** یک پروژه متن‌باز برای توسعه یک سیستم سیگنال‌دهی ارزهای دیجیتال بر پایه تحلیل قانون‌محور Price Action است. مخزن عمومی پروژه شامل یک snapshot انتخاب‌شده و hash-verified از سورس، فایل‌های Docker، تنظیمات PostgreSQL، ابزار بررسی آفلاین یکپارچگی فایل‌ها، کنترل‌های ایمنی انتشار و installer محافظت‌شده برای راه‌اندازی روی یک سرور جدید و ایزوله است.
 
-این ابزارها باید موجود باشند:
+هدف از این نسخه عمومی این است که سورس پروژه قابل بررسی، توسعه، آزمایش و نصب تکرارپذیر باشد. پروژه همچنان در حال توسعه و اعتبارسنجی است؛ بنابراین انتشار این مخزن **به معنی تضمین سودآوری، آماده‌بودن برای محیط عملیاتی یا تأیید برای معامله زنده نیست**.
+
+## نصب سریع با یک فرمان
+
+### پیش‌نیازها
+
+روی سرور جدید باید موارد زیر از قبل موجود و قابل استفاده باشند:
 
 - Git
-- Docker Engine
+- Docker Engine و Docker daemon فعال
 - Docker Compose v2
 - Bash
 - Python 3
 - `sha256sum`
 
-همچنین مطمئن شوید Docker daemon فعال است و کاربری که نصب را انجام می‌دهد اجازه استفاده از Docker را دارد.
+سپس فقط روی یک **سرور جدید و جداگانه** این فرمان را اجرا کنید:
+
+```bash
+git clone https://github.com/naseri-coder/crypto-price-action.git && cd crypto-price-action && bash scripts/install.sh --install
+```
+
+این فرمان مخزن را دریافت می‌کند، وارد پوشه پروژه می‌شود و installer را اجرا می‌کند. installer ابتدا frozen source را بررسی می‌کند. اگر فایل `.env` وجود نداشته باشد، آن را با permission برابر `600` ایجاد می‌کند، شناسه عددی مدیر یا مدیران را در `ADMIN_IDS` از شما می‌پرسد و یک رمز جدید و URL-safe برای PostgreSQL تولید می‌کند. رمز تولیدشده در خروجی نمایش داده نمی‌شود.
+
+پس از اعتبارسنجی `.env` و بررسی Docker/Compose، installer برای مجوز نهایی از شما می‌خواهد دقیقاً عبارت زیر را وارد کنید:
+
+```text
+INSTALL-NEW-HOST
+```
+
+فقط پس از این تأیید، image برنامه ساخته می‌شود، volume اختصاصی PostgreSQL ایجاد می‌شود، PostgreSQL بالا می‌آید، migrationهای Alembic اعمال می‌شوند و bot اجرا می‌شود.
+
+installer پکیج‌های سیستم‌عامل را به‌صورت خودکار و مخفیانه نصب نمی‌کند و package manager سرور را تغییر نمی‌دهد. اگر پیش‌نیازی موجود نباشد، نصب متوقف می‌شود و مورد کمبود اعلام می‌شود.
+
+## بررسی پروژه بدون نصب
+
+اگر فقط می‌خواهید سورس عمومی را دریافت و صحت آن را بررسی کنید و نمی‌خواهید هیچ سرویس یا پایگاه‌داده‌ای راه‌اندازی شود:
+
+```bash
+git clone https://github.com/naseri-coder/crypto-price-action.git
+cd crypto-price-action
+bash scripts/install.sh --check
+```
+
+حالت `--check` آفلاین است. این حالت frozen source و فایل‌های نصب را بررسی می‌کند، اما Docker را فراخوانی نمی‌کند، migration پایگاه‌داده را اجرا نمی‌کند و هیچ سرویسی را راه‌اندازی یا تغییر نمی‌دهد.
+
+## راهنمای نصب مرحله‌به‌مرحله
+
+### ۱. آماده‌سازی یک سرور جدید
+
+installer فقط برای یک **سرور تازه، جداگانه و ایزوله** طراحی شده است. از آن برای overwrite کردن نصب موجود، ارتقای مستقیم یک deployment عملیاتی یا مهاجرت یک پایگاه‌داده فعال استفاده نکنید.
+
+پیش‌نیازهای بالا را نصب کنید و مطمئن شوید کاربری که نصب را انجام می‌دهد به Docker daemon دسترسی دارد.
 
 ### ۲. دریافت پروژه
 
@@ -177,32 +191,34 @@ git clone https://github.com/naseri-coder/crypto-price-action.git
 cd crypto-price-action
 ```
 
-### ۳. بررسی پروژه قبل از نصب
+### ۳. بررسی آفلاین قبل از نصب
 
 ```bash
 bash scripts/install.sh --check
 ```
 
-فقط اگر این مرحله با موفقیت تمام شد، نصب را ادامه دهید.
+اگر این مرحله با خطا تمام شد، نصب را ادامه ندهید.
 
-### ۴. انتخاب تنظیم خودکار یا دستی `.env`
+### ۴. تنظیم محیط و فایل `.env`
 
-**روش پیشنهادی:** مستقیماً `--install` را اجرا کنید. اگر `.env` وجود نداشته باشد، installer آن را به‌صورت امن می‌سازد و فقط شناسه عددی مدیر را از شما می‌پرسد.
+روش پیشنهادی این است که اجازه دهید installer در صورت نبود `.env` آن را به‌صورت خودکار و امن بسازد:
 
 ```bash
 bash scripts/install.sh --install
 ```
 
-اگر می‌خواهید `.env` را دستی تنظیم کنید:
+در این روش فقط `ADMIN_IDS` عددی از شما خواسته می‌شود و رمز PostgreSQL به‌صورت خودکار تولید می‌شود.
+
+اگر می‌خواهید تنظیمات را دستی انجام دهید:
 
 ```bash
 cp .env.example .env
 chmod 600 .env
 ```
 
-سپس `.env` را ویرایش کنید. `ADMIN_IDS` باید عددی باشد. یک رمز جدید و URL-safe با طول ۲۴ تا ۹۶ کاراکتر بسازید و همان رمز را هم در `POSTGRES_PASSWORD` و هم در قسمت password از `DATABASE_URL` قرار دهید. فایل تکمیل‌شده `.env` را هرگز commit یا upload نکنید.
+سپس فایل `.env` را ویرایش کنید. مقدار `ADMIN_IDS` باید شامل شناسه عددی مدیر یا مدیران باشد. برای PostgreSQL یک رمز جدید، تصادفی و URL-safe با طول ۲۴ تا ۹۶ کاراکتر بسازید و دقیقاً همان رمز را در `POSTGRES_PASSWORD` و بخش password از `DATABASE_URL` قرار دهید. فایل تکمیل‌شده `.env` را هرگز commit یا upload نکنید.
 
-تا زمانی که هر قابلیت جداگانه اعتبارسنجی و عمداً فعال نشده است، این مقادیر را تغییر ندهید:
+تا زمانی که هر قابلیت جداگانه آزمایش و عمداً فعال نشده است، تنظیمات زیر باید غیرفعال باقی بمانند:
 
 ```text
 TELEGRAM_RUNTIME_ENABLED=false
@@ -212,25 +228,21 @@ PAPER_RUNTIME_ENABLED=false
 PERFORMANCE_REPORTS_ENABLED=false
 ```
 
-### ۵. تکمیل نصب
+### ۵. تأیید نهایی و اجرای نصب
 
-اگر روش دستی `.env` را انتخاب کرده‌اید، این دستور را اجرا کنید:
-
-```bash
-bash scripts/install.sh --install
-```
-
-خروجی preflight را بررسی کنید. وقتی installer تأیید نهایی خواست، دقیقاً عبارت زیر را وارد کنید:
+پس از اجرای `--install`، خروجی preflight را بررسی کنید. وقتی installer مجوز نهایی خواست، دقیقاً عبارت زیر را وارد کنید:
 
 ```text
 INSTALL-NEW-HOST
 ```
 
-installer عمداً از overwrite کردن volume نصب قبلی یا نصب روی مسیر محافظت‌شده پروژه اصلی جلوگیری می‌کند.
+installer عمداً در صورت تشخیص volume نصب قبلی متوقف می‌شود و همچنین اجازه نصب روی مسیر محافظت‌شده پروژه اصلی را نمی‌دهد.
 
-### ۶. بعد از نصب
+### ۶. بعد از نصب چه کار کنیم؟
 
-قبل از فعال‌کردن هر runtime اختیاری، وضعیت containerها و سرویس‌ها را بررسی کنید. Telegram، paper trading، Brooks runtime، Brooks operations، performance reporting و قابلیت‌های مرتبط با معامله زنده را فقط پس از اعتبارسنجی جداگانه فعال کنید.
+بعد از پایان نصب، ابتدا وضعیت containerها و سرویس‌ها را بررسی کنید. قابلیت‌های Telegram، paper trading، Brooks runtime، Brooks operations، performance reporting و هر قابلیت مرتبط با معامله زنده را تا قبل از اعتبارسنجی جداگانه فعال نکنید.
+
+اگر installer به دلیل نبود پیش‌نیاز متوقف شد، ابتدا همان پیش‌نیاز اعلام‌شده را روی سیستم نصب یا فعال کنید و سپس فرمان نصب را دوباره اجرا کنید. اگر `.env` قبلاً ایجاد شده باشد، installer از همان فایل موجود استفاده می‌کند و آن را بدون اجازه بازنویسی نمی‌کند.
 
 ---
 
