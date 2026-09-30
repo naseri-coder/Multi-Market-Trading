@@ -1,0 +1,27 @@
+name: Release baseline guard
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 * * * *"
+  delete:
+
+permissions:
+  contents: write
+
+jobs:
+  protect-v020:
+    if: github.event_name != 'delete' || (github.event.ref_type == 'tag' && github.event.ref == 'v0.2.0')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout current default branch guard
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Verify or restore v0.2.0 release baseline
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/ci_release_baseline.py --repair
