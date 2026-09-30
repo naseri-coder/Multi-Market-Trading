@@ -26,4 +26,5 @@ jobs:
       - name: Run reviewed public unit corpus
         env:
           PYTHONPATH: ${{ github.workspace }}
+          PTB_TIMEDELTA: "1"
         run: python -m pytest -q tests/unit
