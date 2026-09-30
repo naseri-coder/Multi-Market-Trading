@@ -1,0 +1,34 @@
+name: Temporary SQLAlchemy hash-lock commit
+on:
+  push:
+    branches:
+      - sqlalchemy-2.0.54-coordinated
+permissions:
+  contents: write
+jobs:
+  commit-lock:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true
+      - name: Generate, validate, and commit exact hash lock
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          work="$(mktemp -d)"
+          python3 -m venv "$work/venv"
+          "$work/venv/bin/python" -m pip install --disable-pip-version-check "pip-tools==7.6.1"
+          CUSTOM_COMPILE_COMMAND="scripts/verify_hashed_lock.sh --check" \
+            "$work/venv/bin/pip-compile" --generate-hashes --resolver=backtracking \
+            --output-file requirements.hashed.lock requirements.lock
+          "$work/venv/bin/python" -m pip install --disable-pip-version-check \
+            --require-hashes --dry-run --requirement requirements.hashed.lock
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add requirements.hashed.lock
+          git diff --cached --quiet && exit 0
+          git commit -m "Regenerate hash lock for SQLAlchemy 2.0.54"
+          git push origin HEAD:sqlalchemy-2.0.54-coordinated
