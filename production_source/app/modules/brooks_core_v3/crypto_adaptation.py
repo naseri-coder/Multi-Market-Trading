@@ -90,7 +90,7 @@ def _volatility_state(
 
     ranges = tuple(
         _true_range_fraction(current, previous)
-        for previous, current in zip(candles, candles[1:])
+        for previous, current in zip(candles, candles[1:], strict=False)
     )
     recent = ranges[-policy.volatility_recent_bars :]
     baseline = ranges[
