@@ -457,7 +457,11 @@ def scan_generic_breakout_attempt_observations(
         if not matches:
             continue
         swing = matches[-1]
-        level = candles[swing.candle_index].high if kind == "HIGH" else candles[swing.candle_index].low
+        level = (
+            candles[swing.candle_index].high
+            if kind == "HIGH"
+            else candles[swing.candle_index].low
+        )
         extended = final.high > level if direction == "LONG" else final.low < level
         if not extended:
             continue
