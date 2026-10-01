@@ -69,7 +69,10 @@ class BrooksFullCorePolicy:
         )
         if any(x <= 0 or x >= 1 for x in fractions):
             raise ValueError("fraction policies must be between 0 and 1")
-        if self.tight_channel_window_bars < 4 or self.spike_channel_scan_bars < self.tight_channel_window_bars:
+        if (
+            self.tight_channel_window_bars < 4
+            or self.spike_channel_scan_bars < self.tight_channel_window_bars
+        ):
             raise ValueError("invalid tight/spike channel windows")
         if self.climax_range_multiple_of_recent_median <= 1:
             raise ValueError("climax range multiple must be > 1")
