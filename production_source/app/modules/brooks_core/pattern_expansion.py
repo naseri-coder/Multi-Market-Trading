@@ -954,7 +954,11 @@ def detect_moving_average_pullback_setups(
                 "ma_slope_aligned_with_active_trend",
                 "with_trend_reversal_from_first_gap_for_test_of_extreme",
             ),
-            source_rule_ids=("BB-RNG-14-FIRST-MA-GAP", "BB-TRD-19-TREND-STRENGTH", "BB-RNG-26-TWO-REASONS"),
+            source_rule_ids=(
+                "BB-RNG-14-FIRST-MA-GAP",
+                "BB-TRD-19-TREND-STRENGTH",
+                "BB-RNG-26-TWO-REASONS",
+            ),
             taxonomy="SOURCE_INTERPRETATION", priority=11, context_required=context.regime,
             metadata=(
                 ("ema20", str(ema[end])),
