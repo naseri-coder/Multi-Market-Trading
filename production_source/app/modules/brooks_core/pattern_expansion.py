@@ -517,7 +517,11 @@ def detect_candle_pattern_breakouts(
     out: list[BrooksPatternCandidate] = []
     for direction in ("LONG", "SHORT"):
         triggered = final.close > signal.high if direction == "LONG" else final.close < signal.low
-        strong = is_strong_bull_bar(final, policy.context) if direction == "LONG" else is_strong_bear_bar(final, policy.context)
+        strong = (
+            is_strong_bull_bar(final, policy.context)
+            if direction == "LONG"
+            else is_strong_bear_bar(final, policy.context)
+        )
         if not (triggered and strong):
             continue
         out.append(BrooksPatternCandidate(
