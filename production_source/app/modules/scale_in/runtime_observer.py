@@ -18,7 +18,7 @@ from app.modules.signals.models import Signal, SignalEvent
 from .entities import EntryFill
 from .repository import PositionRepository
 from .shadow_runtime import (
-    INITIAL_RISK_ALLOCATION, NORMALIZED_RISK_BUDGET, QTY_STEP,
+    INITIAL_RISK_ALLOCATION, NORMALIZED_RISK_BUDGET,
     ShadowPositionState, _unit_qty, evaluate_shadow_candidate,
 )
 
