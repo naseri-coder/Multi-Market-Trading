@@ -349,7 +349,10 @@ def scan_signal_bar_observations(
         out.append(_obs(
             "BODIES_ONLY_II", "Bodies-only ii", "BREAKOUT_MODE", last,
             rule_ids=("BB-RNG-BODIES-ONLY-II",),
-            metadata=(("semantic", "SOURCE_VARIANT_TAILS_IGNORED_LESS_RELIABLE"), ("trade_eligible", "false")),
+            metadata=(
+                ("semantic", "SOURCE_VARIANT_TAILS_IGNORED_LESS_RELIABLE"),
+                ("trade_eligible", "false"),
+            ),
         ))
 
     direction = "LONG" if final.close > final.open else "SHORT" if final.close < final.open else "UNRESOLVED"
