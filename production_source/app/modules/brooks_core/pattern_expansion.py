@@ -982,7 +982,11 @@ def detect_moving_average_pullback_setups(
                 "price_moved_away_after_first_attempt",
                 "second_reversal_toward_ma",
             ),
-            source_rule_ids=("BB-RNG-14-SECOND-MA-GAP", "BB-TRD-19-TREND-STRENGTH", "BB-RNG-26-TWO-REASONS"),
+            source_rule_ids=(
+                "BB-RNG-14-SECOND-MA-GAP",
+                "BB-TRD-19-TREND-STRENGTH",
+                "BB-RNG-26-TWO-REASONS",
+            ),
             taxonomy="BOOK_INTERPRETATION", priority=9, context_required=context.regime,
             metadata=(
                 ("ema20", str(ema[end])),
