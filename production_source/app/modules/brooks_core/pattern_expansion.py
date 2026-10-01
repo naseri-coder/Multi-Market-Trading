@@ -1354,7 +1354,11 @@ def detect_triangle_breakout(
         return ()
     if positive_price_overlap_rate(tuple(region)) < policy.context.range_min_body_overlap_rate:
         return ()
-    triangle = build_triangle_geometry(tuple(candles[:-1]), tuple(swings), evaluated_index=len(candles) - 2)
+    triangle = build_triangle_geometry(
+        tuple(candles[:-1]),
+        tuple(swings),
+        evaluated_index=len(candles) - 2,
+    )
     if triangle is None:
         return ()
     high = project_line_value(triangle.upper_boundary, len(candles) - 1)
