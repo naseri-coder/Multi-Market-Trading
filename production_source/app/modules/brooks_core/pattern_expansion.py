@@ -920,7 +920,11 @@ def detect_moving_average_pullback_setups(
                 "strong_with_trend_context",
                 "first_touch_or_limit_entry_variant_does_not_require_reversal_bar",
             ),
-            source_rule_ids=("BB-RNG-13-TWENTY-GAP", "BB-TRD-19-TREND-STRENGTH", "BB-RNG-26-TWO-REASONS"),
+            source_rule_ids=(
+                "BB-RNG-13-TWENTY-GAP",
+                "BB-TRD-19-TREND-STRENGTH",
+                "BB-RNG-26-TWO-REASONS",
+            ),
             taxonomy="SOURCE_INTERPRETATION", priority=7, context_required=context.regime,
             metadata=(
                 ("ema20", str(ema[end])),
