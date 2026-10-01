@@ -671,7 +671,10 @@ def classify_ma_gap_episode(
         (i for i in range(start, end + 1) if _gap_side(candles[i], ema[i], direction)),
         None,
     )
-    strong_index = max(start, (first_gap - 1) if first_gap is not None and first_gap > start else end - 1)
+    strong_index = max(
+        start,
+        (first_gap - 1) if first_gap is not None and first_gap > start else end - 1,
+    )
     strong = classify_strong_trend_evidence(
         candles, context, policy.context, evaluated_index=max(1, strong_index)
     )
