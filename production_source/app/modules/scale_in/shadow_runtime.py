@@ -52,7 +52,8 @@ def _unit_qty(entry: Decimal, stop: Decimal, allocation: Decimal) -> Decimal:
 
 
 def seed_shadow_position(candidate: Any, *, now: datetime | None = None) -> ShadowPositionState:
-    entry = Decimal(str(candidate.entry_price)); stop = Decimal(str(candidate.stop_loss))
+    entry = Decimal(str(candidate.entry_price))
+    stop = Decimal(str(candidate.stop_loss))
     qty = _unit_qty(entry, stop, INITIAL_RISK_ALLOCATION)
     if qty <= 0:
         raise ValueError("normalized shadow quantity rounded to zero")
