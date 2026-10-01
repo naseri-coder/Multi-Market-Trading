@@ -817,7 +817,9 @@ def scan_ma_gap_observations(
         return ()
     end = len(candles) - 1
     episode = classify_ma_gap_episode(candles, ema, context, policy, evaluated_index=end)
-    count_context = classify_ma_gap_count_context(candles, ema, context, policy, evaluated_index=end)
+    count_context = classify_ma_gap_count_context(
+        candles, ema, context, policy, evaluated_index=end
+    )
     second = _second_ma_gap_sequence(candles, ema, direction=direction)
     maturity = classify_ma_gap_maturity_context(
         episode, count_context, second, evaluated_index=end
