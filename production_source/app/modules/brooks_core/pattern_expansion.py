@@ -836,7 +836,10 @@ def scan_ma_gap_observations(
                 ("canonical_gap_id", "BROOKS-GAP-018"),
                 ("episode_id", episode.episode_id),
                 ("episode_start_index", str(episode.episode_start_index)),
-                ("first_gap_index", "" if episode.first_gap_index is None else str(episode.first_gap_index)),
+                (
+                    "first_gap_index",
+                    "" if episode.first_gap_index is None else str(episode.first_gap_index),
+                ),
                 ("ma_slope_direction", episode.ma_slope_direction),
                 ("strong_trend_supported", "true" if episode.strong_trend_supported else "false"),
                 ("state", episode.state), ("trade_eligible", "false"),
