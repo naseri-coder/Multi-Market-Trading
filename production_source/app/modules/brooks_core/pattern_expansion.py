@@ -578,7 +578,8 @@ def detect_reversal_bar_failure(
             source_rule_ids=("BB-TRD-06-REVERSAL-BAR-FAILURE", "BB-REV-09-FAILURES", "BB-RNG-26-TWO-REASONS"),
             taxonomy="SOURCE_INTERPRETATION", priority=8, context_required=context.regime,
             metadata=(("attempt_id", origin.attempt_id), ("origin_pattern_id", origin.pattern_id),
-                      ("trigger_level", str(origin.trigger_level)), ("failure_level", str(origin.failure_level)),
+                      ("trigger_level", str(origin.trigger_level)),
+                      ("failure_level", str(origin.failure_level)),
                       ("lifecycle_state", life.state)),
         ))
     return tuple(out)
@@ -1030,10 +1031,19 @@ def detect_double_top_bottom_pullback(
         if structure is None:
             continue
         between=candles[structure.second_test_index+1:-1]
-        moved_away=(bool(between) and (max(c.high for c in between)>candles[structure.second_test_index].high if side=="BOTTOM" else min(c.low for c in between)<candles[structure.second_test_index].low))
+        moved_away=(
+            bool(between)
+            and (
+                max(c.high for c in between)>candles[structure.second_test_index].high
+                if side=="BOTTOM"
+                else min(c.low for c in between)<candles[structure.second_test_index].low
+            )
+        )
         level=final.low if side=="BOTTOM" else final.high
         recent=candles[-policy.range_window_bars:]
-        engineering_tolerance=_span(tuple(recent))*policy.double_test_tolerance_fraction_of_recent_range  # ENGINEERING_TOLERANCE only
+        engineering_tolerance=(
+            _span(tuple(recent))*policy.double_test_tolerance_fraction_of_recent_range
+        )  # ENGINEERING_TOLERANCE only
         tests_zone=structure.zone_low-engineering_tolerance<=level<=structure.zone_high+engineering_tolerance
         if not (moved_away and tests_zone):
             continue
@@ -1041,7 +1051,19 @@ def detect_double_top_bottom_pullback(
         out.append(BrooksPatternCandidate(
             direction=direction,setup_type=name,family="BREAKOUT_PULLBACK",signal_index=len(candles)-1,
             reasons=("structural_double_test_established","move_away_from_second_test","later_pullback_retests_structural_zone_and_reverses"),
-            source_rule_ids=(("BB-REV-08-DOUBLE-BOTTOM-PULLBACK","BB-RNG-05-BREAKOUT-PULLBACK","BB-RNG-26-TWO-REASONS") if side=="BOTTOM" else ("BB-REV-08-DOUBLE-TOP-PULLBACK","BB-RNG-05-BREAKOUT-PULLBACK","BB-RNG-26-TWO-REASONS")),
+            source_rule_ids=(
+                (
+                    "BB-REV-08-DOUBLE-BOTTOM-PULLBACK",
+                    "BB-RNG-05-BREAKOUT-PULLBACK",
+                    "BB-RNG-26-TWO-REASONS",
+                )
+                if side=="BOTTOM"
+                else (
+                    "BB-REV-08-DOUBLE-TOP-PULLBACK",
+                    "BB-RNG-05-BREAKOUT-PULLBACK",
+                    "BB-RNG-26-TWO-REASONS",
+                )
+            ),
             taxonomy="SOURCE_INTERPRETATION",priority=6,context_required="REVERSAL_OR_RANGE_EXTREME",
             metadata=(("structure_id",structure.structure_id),("first_test_index",str(structure.first_test_index)),("second_test_index",str(structure.second_test_index)),("price_relation",structure.price_relation)),
         ))
@@ -1184,12 +1206,18 @@ def scan_structure_observations(
             ))
             tri_indices = tuple(triangle.swing_indices)
             tri_origin = CompactPatternOrigin(
-                "TRIANGLE", "TRIANGLE:" + ":".join(str(i) for i in tri_indices), min(tri_indices), max(tri_indices),
+                "TRIANGLE",
+                "TRIANGLE:" + ":".join(str(i) for i in tri_indices),
+                min(tri_indices),
+                max(tri_indices),
                 max(candles[i].high for i in tri_indices), min(candles[i].low for i in tri_indices),
             )
             tri_life = classify_compact_pattern_lifecycle(candles, tri_origin, evaluated_index=last)
             out.append(_obs(
-                "TRIANGLE_COMPACT_LIFECYCLE", "Triangle Compact Pattern Lifecycle", "STRUCTURAL_CONTEXT", last,
+                "TRIANGLE_COMPACT_LIFECYCLE",
+                "Triangle Compact Pattern Lifecycle",
+                "STRUCTURAL_CONTEXT",
+                last,
                 rule_ids=("BB-RNG-COMPACT-PATTERN-LIFECYCLE",),
                 metadata=(("structure_id", tri_origin.structure_id), ("state", tri_life.state),
                           ("breakout_direction", tri_life.breakout_direction or ""),
@@ -1204,11 +1232,18 @@ def scan_structure_observations(
         right_bars=policy.context.swing_right_bars,
     )
     # WAVE_04: expanding-triangle and H&S evolution are structural observations only.
-    expanding = build_expanding_triangle_geometry(candles, tuple(full_scan.swings), evaluated_index=last)
+    expanding = build_expanding_triangle_geometry(
+        candles,
+        tuple(full_scan.swings),
+        evaluated_index=last,
+    )
     if expanding is not None:
         lifecycle = classify_expanding_triangle_lifecycle(candles, expanding, evaluated_index=last)
         out.append(_obs(
-            "EXPANDING_TRIANGLE_STRUCTURE", "Expanding Triangle Structure", "STRUCTURAL_CONTEXT", last,
+            "EXPANDING_TRIANGLE_STRUCTURE",
+            "Expanding Triangle Structure",
+            "STRUCTURAL_CONTEXT",
+            last,
             rule_ids=("BB-RNG-EXPANDING-TRIANGLE",),
             metadata=(
                 ("swing_indices", ",".join(str(i) for i in expanding.swing_indices)),
@@ -1278,7 +1313,10 @@ def scan_structure_observations(
         if final.low > previous.high:
             out.append(_obs("PRICE_GAP_UP", "Price Gap Up", "BREAKOUT_CONTEXT", last,
                             direction="LONG", rule_ids=("BB-RNG-06-GAPS",),
-                            metadata=(("gap_low", str(previous.high)), ("gap_high", str(final.low)))))
+                            metadata=(
+                                ("gap_low", str(previous.high)),
+                                ("gap_high", str(final.low)),
+                            )))
         elif final.high < previous.low:
             out.append(_obs("PRICE_GAP_DOWN", "Price Gap Down", "BREAKOUT_CONTEXT", last,
                             direction="SHORT", rule_ids=("BB-RNG-06-GAPS",),
@@ -2139,7 +2177,11 @@ def scan_failed_hl_entry_observations(
         definitive=lifecycle.state=="FAILED_AFTER_TRIGGER_BEFORE_OBJECTIVE"
         pattern_id=f"FAILED_{event.label}" if definitive else f"{event.label}_OUTCOME_CONTEXT"
         return (_obs(
-            pattern_id, f"{event.label} Outcome Context", "FAILURE_CONTEXT", len(candles)-1, direction=opposite,
+            pattern_id,
+            f"{event.label} Outcome Context",
+            "FAILURE_CONTEXT",
+            len(candles)-1,
+            direction=opposite,
             rule_ids=("BB-REV-09-FAILURES","BB-RNG-17-HL-BAR-COUNT"),
             metadata=(("attempt_id",lifecycle.origin.attempt_id),("originating_entry",event.label),
                       ("episode_origin_index",str(recurrence.episode_origin_index)),("signal_index",str(event.index)),
