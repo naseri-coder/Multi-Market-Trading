@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from decimal import Decimal
 from typing import Any
 
 
@@ -60,6 +59,7 @@ class MarketRegimeAnalyzer:
             highs[-20:],
             lows[-20:],
             closes[-20:],
+            strict=True,
         ):
             if close:
                 volatility_values.append(
