@@ -355,7 +355,11 @@ def scan_signal_bar_observations(
             ),
         ))
 
-    direction = "LONG" if final.close > final.open else "SHORT" if final.close < final.open else "UNRESOLVED"
+    direction = (
+        "LONG"
+        if final.close > final.open
+        else ("SHORT" if final.close < final.open else "UNRESOLVED")
+    )
     if final.high == max(final.open, final.close) or final.low == min(final.open, final.close):
         out.append(_obs("SHAVED_BAR", "Shaved Bar", "CONTEXT", last,
                         direction=direction, rule_ids=("BB-TRD-06-SHAVED-BAR",)))
