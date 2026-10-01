@@ -158,6 +158,21 @@ def _new_finding_details(
     return details
 
 
+def _print_head_summary(findings: list[dict[str, Any]], *, tree: Path) -> None:
+    by_code = Counter(str(finding.get("code") or "UNKNOWN") for finding in findings)
+    by_path = Counter(
+        _relative_path(str(finding["filename"]), tree)
+        for finding in findings
+    )
+
+    code_summary = " ".join(
+        f"{code}={count}" for code, count in sorted(by_code.items())
+    )
+    print(f"RUFF_HEAD_BY_CODE {code_summary}")
+    for path, count in by_path.most_common(25):
+        print(f"RUFF_HEAD_TOP_PATH count={count} path={path}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Reject new Ruff findings relative to an exact Git base commit."
@@ -190,6 +205,7 @@ def main() -> int:
     print(f"RUFF_VERSION={version}")
     print(f"RUFF_BASE_FINDINGS={len(base_findings)}")
     print(f"RUFF_HEAD_FINDINGS={len(head_findings)}")
+    _print_head_summary(head_findings, tree=repo_root)
     print(f"RUFF_NEW_FINDINGS={new_count}")
 
     if new_count:
