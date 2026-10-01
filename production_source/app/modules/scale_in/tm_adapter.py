@@ -6,8 +6,9 @@ trade guidance without changing the existing single-entry TradeManagementPlan.
 """
 from __future__ import annotations
 
+from collections.abc import Iterable
 from decimal import Decimal
-from typing import Iterable, Protocol
+from typing import Protocol
 
 from app.modules.operations.trade_management import TradeManagementPlan
 

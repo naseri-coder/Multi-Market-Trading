@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-import hashlib
-import json
-from typing import Iterable
 
 from app.modules.market_data.errors import (
     InsufficientClosedCandlesError,

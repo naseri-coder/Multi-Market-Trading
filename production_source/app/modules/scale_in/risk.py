@@ -1,8 +1,9 @@
 """Aggregate position-risk calculations for multi-lot Scale-In."""
 from __future__ import annotations
 
-from decimal import Decimal, ROUND_DOWN
-from typing import Iterable, Protocol
+from collections.abc import Iterable
+from decimal import ROUND_DOWN, Decimal
+from typing import Protocol
 
 from .entities import AggregateRiskDecision
 
