@@ -1576,7 +1576,9 @@ def scan_extended_patterns(
     observations.extend(scan_failed_hl_entry_observations(snapshot, context, policy))
     observations.extend(scan_wave05_foundation_observations(snapshot, context, policy))
     observations.extend(scan_extended_hl_recurrence_observations(snapshot, context, policy))
-    observations.extend(scan_range_hl_context_observations(snapshot, context, policy, market_context))
+    observations.extend(
+        scan_range_hl_context_observations(snapshot, context, policy, market_context)
+    )
 
     candidates: list[BrooksPatternCandidate] = []
     candidates.extend(detect_candle_pattern_breakouts(snapshot, context, policy))
