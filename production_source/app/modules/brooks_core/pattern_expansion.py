@@ -371,7 +371,10 @@ def scan_signal_bar_observations(
 
     if len(candles) >= 2:
         previous = candles[-2]
-        two_bar_bull = is_strong_bear_bar(previous, policy.context) and is_strong_bull_bar(final, policy.context)
+        two_bar_bull = (
+            is_strong_bear_bar(previous, policy.context)
+            and is_strong_bull_bar(final, policy.context)
+        )
         two_bar_bear = is_strong_bull_bar(previous, policy.context) and is_strong_bear_bar(final, policy.context)
         if two_bar_bull or two_bar_bear:
             out.append(_obs("TWO_BAR_REVERSAL", "Two-Bar Reversal", "ENTRY_CONTEXT", last,
