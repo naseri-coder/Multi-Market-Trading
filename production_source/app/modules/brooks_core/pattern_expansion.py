@@ -1403,7 +1403,11 @@ def scan_wave05_foundation_observations(
     start=max(0, len(candles)-policy.context.pullback_window_bars)
     last=len(candles)-1
     out=[]
-    correction=classify_structural_correction(candles, trend_direction=context.regime, start_index=start)
+    correction=classify_structural_correction(
+        candles,
+        trend_direction=context.regime,
+        start_index=start,
+    )
     if correction is not None and correction.two_legged:
         out.append(_obs(
             "TWO_LEGGED_CORRECTION", "Structural Two-Legged Correction", "CORRECTION_CONTEXT", last,
