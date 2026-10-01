@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
 import logging
-from typing import Any, Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import asdict
+from typing import Any
 
 from .analytics import PerformanceAnalytics
 from .collector import PerformanceCollector
