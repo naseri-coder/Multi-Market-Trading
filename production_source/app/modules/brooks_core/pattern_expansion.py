@@ -385,7 +385,10 @@ def scan_signal_bar_observations(
                             rule_ids=("BB-TRD-05-THREE-BAR-REVERSAL",)))
 
     recent = candles[-6:]
-    tolerance = _median_range(tuple(recent)) * policy.micro_double_tolerance_fraction_of_median_range
+    tolerance = (
+        _median_range(tuple(recent))
+        * policy.micro_double_tolerance_fraction_of_median_range
+    )
     if tolerance > 0 and len(recent) >= 2:
         lows = [c.low for c in recent]
         highs = [c.high for c in recent]
