@@ -1258,7 +1258,12 @@ def scan_structure_observations(
                 ("neckline_state", hs.state),
                 ("neckline_break", "true" if hs.neckline_break else "false"),
                 ("neckline_reentry", "true" if hs.neckline_reentry else "false"),
-                ("prior_trend_line_break", "true" if hs.prior_trend_line is not None and hs.prior_trend_line.break_evidence else "false"),
+                (
+                    "prior_trend_line_break",
+                    "true"
+                    if hs.prior_trend_line is not None and hs.prior_trend_line.break_evidence
+                    else "false",
+                ),
                 ("hns_structure_id", "" if outcome is None else outcome.structure_id),
                 ("outcome_state", "UNRESOLVED" if outcome is None else outcome.state),
                 ("with_trend_direction", "" if outcome is None else outcome.with_trend_direction),
@@ -1296,7 +1301,10 @@ def scan_structure_observations(
                 direction=direction, rule_ids=("BB-RNG-19-DUELING-LINES",),
                 metadata=(
                     ("pullback_line_role", confluence.pullback_line.role),
-                    ("pullback_anchor_indices", ",".join(str(a.candle_index) for a in confluence.pullback_line.anchors)),
+                    (
+                        "pullback_anchor_indices",
+                        ",".join(str(a.candle_index) for a in confluence.pullback_line.anchors),
+                    ),
                     ("pullback_projected", str(confluence.pullback_line.projected_value)),
                     ("support_resistance_source", confluence.support_source),
                     ("support_resistance_value", str(confluence.support_value)),
@@ -1746,7 +1754,9 @@ def scan_additional_context_observations(
                       ("urgency","true" if strong.urgency else "false"),
                       ("failed_countertrend_attempts",str(strong.failed_countertrend_attempts)),
                       ("limited_pullbacks","true" if strong.limited_pullbacks else "false"),
-                      ("trade_eligible","false"),("canonical_gap_id","BROOKS-GAP-008"),("classification_policy",strong.classification_policy))
+                      ("trade_eligible","false"),
+                      ("canonical_gap_id","BROOKS-GAP-008"),
+                      ("classification_policy",strong.classification_policy))
         ))
 
     spike_lifecycle=classify_spike_channel_lifecycle(snapshot,policy,evaluated_index=last)
@@ -1768,7 +1778,8 @@ def scan_additional_context_observations(
                 "TREND_RANGE_EVOLUTION","Trend to Range Evolution","TREND_CONTEXT",last,
                 direction=evo.direction,rule_ids=("BB-TRD-22-TRENDING-RANGE",),
                 metadata=(("episode_id",evo.episode_id),("state",evo.state),
-                          ("overlap_rate",str(evo.overlap_rate)),("countertrend_fraction",str(evo.countertrend_fraction)),
+                          ("overlap_rate",str(evo.overlap_rate)),
+                          ("countertrend_fraction",str(evo.countertrend_fraction)),
                           ("trade_eligible","false"),("canonical_gap_id","BROOKS-GAP-010"))
             ))
 
@@ -1898,7 +1909,10 @@ def scan_additional_context_observations(
                 rule_ids=("BB-TRD-TREND-LINE",),
                 metadata=(
                     ("anchor_indices", ",".join(str(a.candle_index) for a in trend_line.anchors)),
-                    ("anchor_confirmed_at", ",".join(str(a.confirmed_at_index) for a in trend_line.anchors)),
+                    (
+                        "anchor_confirmed_at",
+                        ",".join(str(a.confirmed_at_index) for a in trend_line.anchors),
+                    ),
                     ("slope", str(trend_line.slope_per_bar)),
                     ("projected_value", str(trend_line.projected_value)),
                     ("relation", trend_line.current_relation),
@@ -1907,7 +1921,12 @@ def scan_additional_context_observations(
                     ("semantic", "STRUCTURAL_EVIDENCE_NOT_REVERSAL_ENTRY"),
                 ),
             ))
-        channel = build_trend_channel_geometry(candles, scan, direction=structure, evaluated_index=last)
+        channel = build_trend_channel_geometry(
+            candles,
+            scan,
+            direction=structure,
+            evaluated_index=last,
+        )
         if channel is not None:
             out.append(_obs(
                 "CHANNEL", "Canonical Trend Channel", "TREND_CONTEXT", last,
@@ -2006,7 +2025,10 @@ def scan_additional_context_observations(
                 ("slope_1", str(parabolic.first_slope)),
                 ("slope_2", str(parabolic.second_slope)),
                 ("accelerating", "true"),
-                ("canonical_channel_available", "true" if parabolic.channel is not None else "false"),
+                (
+                    "canonical_channel_available",
+                    "true" if parabolic.channel is not None else "false",
+                ),
                 ("channel_overshoot", "true" if parabolic.channel_overshoot else "false"),
                 ("reversal_signal_present", "true" if reversal_signal else "false"),
                 ("semantic", "PARABOLIC_STRUCTURE_CONTEXT_NOT_SECOND_SIGNAL_ENTRY"),
@@ -2040,7 +2062,10 @@ def scan_additional_context_observations(
         bear_reversal = structure == "BULL_TREND" and _bear_reversal(final)
         if huge_relative and (bull_reversal or bear_reversal):
             out.append(_obs(
-                "HUGE_VOLUME_DAILY_REVERSAL", "Huge-Volume Daily Reversal", "REVERSAL_CONTEXT", last,
+                "HUGE_VOLUME_DAILY_REVERSAL",
+                "Huge-Volume Daily Reversal",
+                "REVERSAL_CONTEXT",
+                last,
                 direction="LONG" if bull_reversal else "SHORT",
                 rule_ids=("BB-REV-10-HUGE-VOLUME-DAILY",),
                 metadata=(("volume_relation", "greater_than_prior_20_daily_bars"),),
