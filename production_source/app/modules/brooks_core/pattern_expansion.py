@@ -205,7 +205,11 @@ def classify_minor_reversal_identity(
         left_bars=policy.context.swing_left_bars,
         right_bars=policy.context.swing_right_bars,
     )
-    swings=[x for x in scan.swings if x.kind==kind and x.confirmed_at_index<=end and x.candle_index<=end-2]
+    swings=[
+        x
+        for x in scan.swings
+        if x.kind==kind and x.confirmed_at_index<=end and x.candle_index<=end-2
+    ]
     if not swings:
         return None
     origin=swings[-1]
@@ -946,7 +950,10 @@ def detect_moving_average_pullback_setups(
         and episode.active
         and episode.strong_trend_supported
         and episode.first_gap_index == end
-        and ((_bull_reversal(final) and direction == "LONG") or (_bear_reversal(final) and direction == "SHORT"))
+        and (
+            (_bull_reversal(final) and direction == "LONG")
+            or (_bear_reversal(final) and direction == "SHORT")
+        )
     ):
         out.append(BrooksPatternCandidate(
             direction=direction,
@@ -1231,7 +1238,15 @@ def scan_structure_observations(
             side=side, left_shoulder_index=hs.left_shoulder_index, head_index=hs.head_index,
             right_shoulder_index=hs.right_shoulder_index, neckline_state=hs.state,
         )
-        role = "ALIAS_CONTEXT" if outcome is not None and outcome.state in {"ALIAS_RANGE_OR_FLAG_CONTEXT", "WITH_TREND_CONTINUATION_CONTEXT"} else "REVERSAL_STRUCTURE_CONTEXT"
+        role = (
+            "ALIAS_CONTEXT"
+            if outcome is not None
+            and outcome.state in {
+                "ALIAS_RANGE_OR_FLAG_CONTEXT",
+                "WITH_TREND_CONTINUATION_CONTEXT",
+            }
+            else "REVERSAL_STRUCTURE_CONTEXT"
+        )
         out.append(_obs(
             pattern_id, name, role, last, direction=direction,
             rule_ids=("BB-RNG-20-HEAD-SHOULDERS-AS-RANGE", "BB-REV-HEAD-SHOULDERS"),
@@ -1847,7 +1862,10 @@ def scan_additional_context_observations(
                     ("canonical_chapter3_gap_id", "B1C03-018"),
                 ),
             ))
-    if structure in {"BULL_TREND", "BEAR_TREND"} and context.metrics.bar_overlap_rate >= policy.context.range_min_body_overlap_rate:
+    if (
+        structure in {"BULL_TREND", "BEAR_TREND"}
+        and context.metrics.bar_overlap_rate >= policy.context.range_min_body_overlap_rate
+    ):
         out.append(_obs("TRENDING_TRADING_RANGE", "Trending Trading Range", "TREND_CONTEXT", last,
                         direction="LONG" if structure == "BULL_TREND" else "SHORT",
                         rule_ids=("BB-TRD-22-TRENDING-RANGE",),
@@ -1975,7 +1993,11 @@ def scan_additional_context_observations(
         parabolic = build_parabolic_wedge_geometry(candles, scan, side=side, evaluated_index=last)
         if parabolic is None:
             continue
-        reversal_signal = _bear_reversal(candles[-1]) if side == "TOP" else _bull_reversal(candles[-1])
+        reversal_signal = (
+            _bear_reversal(candles[-1])
+            if side == "TOP"
+            else _bull_reversal(candles[-1])
+        )
         out.append(_obs(
             pattern_id, name, "REVERSAL_CONTEXT", last, direction=direction,
             rule_ids=("BB-REV-05-PARABOLIC-WEDGE",),
