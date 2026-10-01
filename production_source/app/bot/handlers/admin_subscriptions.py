@@ -336,7 +336,6 @@ async def subscription_admin_input_handler(
         return
     state = _state(context)
     action = state["action"]
-    step = state["step"]
     data = state["data"]
     if not isinstance(data, dict):
         clear_admin_input_state(context)
