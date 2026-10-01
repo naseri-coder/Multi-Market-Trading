@@ -171,10 +171,10 @@ class BrooksSignalImport:
     publication_scope: str
     counts_toward_performance: bool = False
     description: str | None = None
-    target_source_identities: tuple["TargetSourceIdentity", ...] = ()
-    stop_source_identity: "StopSourceIdentity | None" = None
-    target_plan_lifecycle: "TargetPlanLifecycle | None" = None
-    reversal_outcome_context: "ReversalOutcomeContext | None" = None
+    target_source_identities: tuple[TargetSourceIdentity, ...] = ()
+    stop_source_identity: StopSourceIdentity | None = None
+    target_plan_lifecycle: TargetPlanLifecycle | None = None
+    reversal_outcome_context: ReversalOutcomeContext | None = None
     semantic_cohort_id: str | None = None
     bootstrap_provenance: dict[str, object] | None = None
     opportunity_variant: str | None = None
