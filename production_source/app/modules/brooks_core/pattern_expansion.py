@@ -466,7 +466,11 @@ def scan_generic_breakout_attempt_observations(
         if not extended:
             continue
         closed_beyond = final.close > level if direction == "LONG" else final.close < level
-        strong = is_strong_bull_bar(final, policy.context) if direction == "LONG" else is_strong_bear_bar(final, policy.context)
+        strong = (
+            is_strong_bull_bar(final, policy.context)
+            if direction == "LONG"
+            else is_strong_bear_bar(final, policy.context)
+        )
         out.append(_obs(
             f"BREAKOUT_ATTEMPT_{direction}",
             f"Breakout Attempt {direction.title()}",
