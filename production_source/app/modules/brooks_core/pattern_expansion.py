@@ -1487,7 +1487,11 @@ def scan_breakout_lifecycle_observations(snapshot: MarketSnapshot, context, poli
     last = len(candles) - 1
     if last < 3:
         return ()
-    scan = confirm_swings_causally(candles, left_bars=policy.context.swing_left_bars, right_bars=policy.context.swing_right_bars)
+    scan = confirm_swings_causally(
+        candles,
+        left_bars=policy.context.swing_left_bars,
+        right_bars=policy.context.swing_right_bars,
+    )
     out = []
     search_start = max(1, last - 40)  # ENGINEERING_SEARCH_POLICY only.
     for direction, kind in (("LONG", "HIGH"), ("SHORT", "LOW")):
@@ -1754,9 +1758,7 @@ def scan_additional_context_observations(
                       ("urgency","true" if strong.urgency else "false"),
                       ("failed_countertrend_attempts",str(strong.failed_countertrend_attempts)),
                       ("limited_pullbacks","true" if strong.limited_pullbacks else "false"),
-                      ("trade_eligible","false"),
-                      ("canonical_gap_id","BROOKS-GAP-008"),
-                      ("classification_policy",strong.classification_policy))
+                      ("trade_eligible","false"),("canonical_gap_id","BROOKS-GAP-008"),("classification_policy",strong.classification_policy))
         ))
 
     spike_lifecycle=classify_spike_channel_lifecycle(snapshot,policy,evaluated_index=last)
@@ -1778,8 +1780,7 @@ def scan_additional_context_observations(
                 "TREND_RANGE_EVOLUTION","Trend to Range Evolution","TREND_CONTEXT",last,
                 direction=evo.direction,rule_ids=("BB-TRD-22-TRENDING-RANGE",),
                 metadata=(("episode_id",evo.episode_id),("state",evo.state),
-                          ("overlap_rate",str(evo.overlap_rate)),
-                          ("countertrend_fraction",str(evo.countertrend_fraction)),
+                          ("overlap_rate",str(evo.overlap_rate)),("countertrend_fraction",str(evo.countertrend_fraction)),
                           ("trade_eligible","false"),("canonical_gap_id","BROOKS-GAP-010"))
             ))
 
@@ -1947,7 +1948,10 @@ def scan_additional_context_observations(
             channel_event = classify_channel_boundary_event(candles, channel, evaluated_index=last)
             if channel_event is not None and channel_event.state != "INSIDE_CHANNEL":
                 out.append(_obs(
-                    channel_event.state, "Trend-Channel-Line Structural Event", "STRUCTURAL_CONTEXT", last,
+                    channel_event.state,
+                    "Trend-Channel-Line Structural Event",
+                    "STRUCTURAL_CONTEXT",
+                    last,
                     direction="LONG" if structure == "BULL_TREND" else "SHORT",
                     rule_ids=("BB-TRD-CHANNEL", "BB-REV-CHANNEL-OVERSHOOT"),
                     metadata=(
