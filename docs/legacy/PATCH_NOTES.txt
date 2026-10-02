@@ -1,0 +1,9 @@
+تغییرات:
+1- جلوگیری از ساخت Signal مخالف در زمانی که Signal فعال OPEN وجود دارد.
+2- جلوگیری از ارسال VIP برای Signalهایی که توسط Guard رد شده‌اند.
+3- حفظ رفتار Idempotency فعلی.
+
+تست مورد انتظار:
+LONG OPEN -> SHORT = BLOCK
+SHORT OPEN -> LONG = BLOCK
+DUPLICATE OPEN = BLOCK

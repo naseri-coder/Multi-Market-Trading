@@ -1,0 +1,279 @@
+{
+  "candidate_count": 14,
+  "candidates": [
+    {
+      "candidate_no": 1,
+      "configuration_version": "books-full-v3-ctx[books-v2-eng-swingL2R2-ctx40-recent20-pb24-tr6-strongBody0.60-closeExt0.25-ai2-dir0.55-disp0.12-eff0.04-ema0.55-rangeOverlap0.60-rangeDisp0.18-tightOverlap0.70-tightSmall0.35-entry0.0001-stopbuf0.02-atr14x0.40-ch29range20-normal0.50:2.00-largeMM0.70-smallSTD1.00-stopVolBuf0.10-minStructReward0.50-structTargets2-ticks[BTCUSDT:0.10.ETHUSDT:0.01.BNBUSDT:0.010.XRPUSDT:0.0001.SOLUSDT:0.0100]-targets1-2-exec0]-bp5-bscan12-rng40z0.25-dbl0.12-wedge3lb45-mtr50tl10-mtr2r0.50rt12-bw6-clx4x1.50-ff6x0.35late6.0-tc8-sc16-md0.25-reasons2-exec1-riskrr[v6-weighted-targets-runner-nearest-confirmed-beyond-t1-else-zero-full-initial-risk-v1]",
+      "direction": "SHORT",
+      "engine_version": "brooks-trilogy-full-core-v5-context-structural",
+      "entry": "76458.80",
+      "identity_sha256": "d773feeeda658ed469b8953b3035aaeb3d085cd9d13561b6d19f8c6d9371cc23",
+      "management_version": "brooks-trilogy-trade-management-v6",
+      "rule_set_version": "brooks-trilogy-full-source-catalog-v5",
+      "setup_type": "BREAKOUT_PULLBACK_SHORT",
+      "stop": "77306.9340",
+      "symbol": "BTCUSDT",
+      "targets": [
+        "76000.30",
+        "75596.20"
+      ],
+      "timeframe": "1h",
+      "timestamp": "2026-09-13T12:31:33.442+00:00"
+    },
+    {
+      "candidate_no": 2,
+      "configuration_version": "books-full-v3-ctx[books-v2-eng-swingL2R2-ctx40-recent20-pb24-tr6-strongBody0.60-closeExt0.25-ai2-dir0.55-disp0.12-eff0.04-ema0.55-rangeOverlap0.60-rangeDisp0.18-tightOverlap0.70-tightSmall0.35-entry0.0001-stopbuf0.02-atr14x0.40-ch29range20-normal0.50:2.00-largeMM0.70-smallSTD1.00-stopVolBuf0.10-minStructReward0.50-structTargets2-ticks[BTCUSDT:0.10.ETHUSDT:0.01.BNBUSDT:0.010.XRPUSDT:0.0001.SOLUSDT:0.0100]-targets1-2-exec0]-bp5-bscan12-rng40z0.25-dbl0.12-wedge3lb45-mtr50tl10-mtr2r0.50rt12-bw6-clx4x1.50-ff6x0.35late6.0-tc8-sc16-md0.25-reasons2-exec1-riskrr[v6-weighted-targets-runner-nearest-confirmed-beyond-t1-else-zero-full-initial-risk-v1]",
+      "direction": "SHORT",
+      "engine_version": "brooks-trilogy-full-core-v5-context-structural",
+      "entry": "1.3355",
+      "identity_sha256": "a6114c4cb90c990f5860618b70f00fa08f4fb0a5e87c4d7a071a247e00c52951",
+      "management_version": "brooks-trilogy-trade-management-v6",
+      "rule_set_version": "brooks-trilogy-full-source-catalog-v5",
+      "setup_type": "BULL_REVERSAL_BAR_FAILURE_SHORT",
+      "stop": "1.3437840",
+      "symbol": "XRPUSDT",
+      "targets": [
+        "1.3282",
+        "1.3153"
+      ],
+      "timeframe": "1h",
+      "timestamp": "2026-09-13T13:00:39.188+00:00"
+    },
+    {
+      "candidate_no": 3,
+      "configuration_version": "books-full-v3-ctx[books-v2-eng-swingL2R2-ctx40-recent20-pb24-tr6-strongBody0.60-closeExt0.25-ai2-dir0.55-disp0.12-eff0.04-ema0.55-rangeOverlap0.60-rangeDisp0.18-tightOverlap0.70-tightSmall0.35-entry0.0001-stopbuf0.02-atr14x0.40-ch29range20-normal0.50:2.00-largeMM0.70-smallSTD1.00-stopVolBuf0.10-minStructReward0.50-structTargets2-ticks[BTCUSDT:0.10.ETHUSDT:0.01.BNBUSDT:0.010.XRPUSDT:0.0001.SOLUSDT:0.0100]-targets1-2-exec0]-bp5-bscan12-rng40z0.25-dbl0.12-wedge3lb45-mtr50tl10-mtr2r0.50rt12-bw6-clx4x1.50-ff6x0.35late6.0-tc8-sc16-md0.25-reasons2-exec1-riskrr[v6-weighted-targets-runner-nearest-confirmed-beyond-t1-else-zero-full-initial-risk-v1]",
+      "direction": "LONG",
+      "engine_version": "brooks-trilogy-full-core-v5-context-structural",
+      "entry": "1.3406",
+      "identity_sha256": "3c8667c2ec7728eca3de00a4f5a02082d4bbeac80e9fe2088f1836ef2fe0255f",
+      "management_version": "brooks-trilogy-trade-management-v6",
+      "rule_set_version": "brooks-trilogy-full-source-catalog-v5",
+      "setup_type": "DOUBLE_BOTTOM_PULLBACK_LONG",
+      "stop": "1.3374910",
+      "symbol": "XRPUSDT",
+      "targets": [
+        "1.3432",
+        "1.3652"
+      ],
+      "timeframe": "15m",
+      "timestamp": "2026-09-13T13:15:34.902+00:00"
+    },
+    {
+      "candidate_no": 4,
+      "configuration_version": "books-full-v3-ctx[books-v2-eng-swingL2R2-ctx40-recent20-pb24-tr6-strongBody0.60-closeExt0.25-ai2-dir0.55-disp0.12-eff0.04-ema0.55-rangeOverlap0.60-rangeDisp0.18-tightOverlap0.70-tightSmall0.35-entry0.0001-stopbuf0.02-atr14x0.40-ch29range20-normal0.50:2.00-largeMM0.70-smallSTD1.00-stopVolBuf0.10-minStructReward0.50-structTargets2-ticks[BTCUSDT:0.10.ETHUSDT:0.01.BNBUSDT:0.010.XRPUSDT:0.0001.SOLUSDT:0.0100]-targets1-2-exec0]-bp5-bscan12-rng40z0.25-dbl0.12-wedge3lb45-mtr50tl10-mtr2r0.50rt12-bw6-clx4x1.50-ff6x0.35late6.0-tc8-sc16-md0.25-reasons2-exec1-riskrr[v6-weighted-targets-runner-nearest-confirmed-beyond-t1-else-zero-full-initial-risk-v1]",
+      "direction": "LONG",
+      "engine_version": "brooks-trilogy-full-core-v5-context-structural",
+      "entry": "1.3383",
+      "identity_sha256": "7b97111fac65283ea9424cfb7cdcfbe0118ffd1eb365345f5c77c57cd77f8fb4",
+      "management_version": "brooks-trilogy-trade-management-v6",
+      "rule_set_version": "brooks-trilogy-full-source-catalog-v5",
+      "setup_type": "DOUBLE_BOTTOM_PULLBACK_LONG",
+      "stop": "1.33247750",
+      "symbol": "XRPUSDT",
+      "targets": [
+        "1.3432",
+        "1.3652"
+      ],
+      "timeframe": "15m",
+      "timestamp": "2026-09-13T13:45:41.219+00:00"
+    },
+    {
+      "candidate_no": 5,
+      "configuration_version": "books-full-v3-ctx[books-v2-eng-swingL2R2-ctx40-recent20-pb24-tr6-strongBody0.60-closeExt0.25-ai2-dir0.55-disp0.12-eff0.04-ema0.55-rangeOverlap0.60-rangeDisp0.18-tightOverlap0.70-tightSmall0.35-entry0.0001-stopbuf0.02-atr14x0.40-ch29range20-normal0.50:2.00-largeMM0.70-smallSTD1.00-stopVolBuf0.10-minStructReward0.50-structTargets2-ticks[BTCUSDT:0.10.ETHUSDT:0.01.BNBUSDT:0.010.XRPUSDT:0.0001.SOLUSDT:0.0100]-targets1-2-exec0]-bp5-bscan12-rng40z0.25-dbl0.12-wedge3lb45-mtr50tl10-mtr2r0.50rt12-bw6-clx4x1.50-ff6x0.35late6.0-tc8-sc16-md0.25-reasons2-exec1-riskrr[v6-weighted-targets-runner-nearest-confirmed-beyond-t1-else-zero-full-initial-risk-v1]",
+      "direction": "SHORT",
+      "engine_version": "brooks-trilogy-full-core-v5-context-structural",
+      "entry": "76514.50",
+      "identity_sha256": "22c0680a1e6fc89316446c17625e4e073c387b34cd99d67ee549adfd7831ffa8",
+      "management_version": "brooks-trilogy-trade-management-v6",
+      "rule_set_version": "brooks-trilogy-full-source-catalog-v5",
+      "setup_type": "BREAKOUT_PULLBACK_SHORT",
+      "stop": "76778.8200",
+      "symbol": "BTCUSDT",
+      "targets": [
+        "76402.90",
+        "76000.30"
+      ],
+      "timeframe": "1h",
+      "timestamp": "2026-09-13T14:00:33.679+00:00"
+    },
+    {
+      "candidate_no": 6,
+      "configuration_version": "books-full-v3-ctx[books-v2-eng-swingL2R2-ctx40-recent20-pb24-tr6-strongBody0.60-closeExt0.25-ai2-dir0.55-disp0.12-eff0.04-ema0.55-rangeOverlap0.60-rangeDisp0.18-tightOverlap0.70-tightSmall0.35-entry0.0001-stopbuf0.02-atr14x0.40-ch29range20-normal0.50:2.00-largeMM0.70-smallSTD1.00-stopVolBuf0.10-minStructReward0.50-structTargets2-ticks[BTCUSDT:0.10.ETHUSDT:0.01.BNBUSDT:0.010.XRPUSDT:0.0001.SOLUSDT:0.0100]-targets1-2-exec0]-bp5-bscan12-rng40z0.25-dbl0.12-wedge3lb45-mtr50tl10-mtr2r0.50rt12-bw6-clx4x1.50-ff6x0.35late6.0-tc8-sc16-md0.25-reasons2-exec1-riskrr[v6-weighted-targets-runner-nearest-confirmed-beyond-t1-else-zero-full-initial-risk-v1]",
+      "direction": "SHORT",
+      "engine_version": "brooks-trilogy-full-core-v5-context-structural",
+      "entry": "713.000",
+      "identity_sha256": "d9a8badbc65cdbbe6ced29c831a3f93f23c93f48920ae245792391aeafd081b2",
+      "management_version": "brooks-trilogy-trade-management-v6",
+      "rule_set_version": "brooks-trilogy-full-source-catalog-v5",
+      "setup_type": "BREAKOUT_PULLBACK_SHORT",
+      "stop": "717.13700",
+      "symbol": "BNBUSDT",
+      "targets": [
+        "711.370",
+        "708.670"
+      ],
+      "timeframe": "1h",
+      "timestamp": "2026-09-13T14:00:42.892+00:00"
+    },
+    {
+      "candidate_no": 7,
+      "configuration_version": "books-full-v3-ctx[books-v2-eng-swingL2R2-ctx40-recent20-pb24-tr6-strongBody0.60-closeExt0.25-ai2-dir0.55-disp0.12-eff0.04-ema0.55-rangeOverlap0.60-rangeDisp0.18-tightOverlap0.70-tightSmall0.35-entry0.0001-stopbuf0.02-atr14x0.40-ch29range20-normal0.50:2.00-largeMM0.70-smallSTD1.00-stopVolBuf0.10-minStructReward0.50-structTargets2-ticks[BTCUSDT:0.10.ETHUSDT:0.01.BNBUSDT:0.010.XRPUSDT:0.0001.SOLUSDT:0.0100]-targets1-2-exec0]-bp5-bscan12-rng40z0.25-dbl0.12-wedge3lb45-mtr50tl10-mtr2r0.50rt12-bw6-clx4x1.50-ff6x0.35late6.0-tc8-sc16-md0.25-reasons2-exec1-riskrr[v6-weighted-targets-runner-nearest-confirmed-beyond-t1-else-zero-full-initial-risk-v1]",
+      "direction": "LONG",
+      "engine_version": "brooks-trilogy-full-core-v5-context-structural",
+      "entry": "2483.99",
+      "identity_sha256": "6cf7f49c8a4a3daf23ed1aba290433660e0928367befbfc77f2561439908e58b",
+      "management_version": "brooks-trilogy-trade-management-v6",
+      "rule_set_version": "brooks-trilogy-full-source-catalog-v5",
+      "setup_type": "FAILED_BREAKOUT_LONG",
+      "stop": "2459.496350",
+      "symbol": "ETHUSDT",
+      "targets": [
+        "2489.81",
+        "2519.18"
+      ],
+      "timeframe": "15m",
+      "timestamp": "2026-09-13T14:15:35.852+00:00"
+    },
+    {
+      "candidate_no": 8,
+      "configuration_version": "books-full-v3-ctx[books-v2-eng-swingL2R2-ctx40-recent20-pb24-tr6-strongBody0.60-closeExt0.25-ai2-dir0.55-disp0.12-eff0.04-ema0.55-rangeOverlap0.60-rangeDisp0.18-tightOverlap0.70-tightSmall0.35-entry0.0001-stopbuf0.02-atr14x0.40-ch29range20-normal0.50:2.00-largeMM0.70-smallSTD1.00-stopVolBuf0.10-minStructReward0.50-structTargets2-ticks[BTCUSDT:0.10.ETHUSDT:0.01.BNBUSDT:0.010.XRPUSDT:0.0001.SOLUSDT:0.0100]-targets1-2-exec0]-bp5-bscan12-rng40z0.25-dbl0.12-wedge3lb45-mtr50tl10-mtr2r0.50rt12-bw6-clx4x1.50-ff6x0.35late6.0-tc8-sc16-md0.25-reasons2-exec1-riskrr[v6-weighted-targets-runner-nearest-confirmed-beyond-t1-else-zero-full-initial-risk-v1]",
+      "direction": "LONG",
+      "engine_version": "brooks-trilogy-full-core-v5-context-structural",
+      "entry": "1.3453",
+      "identity_sha256": "b85f9906664a370468d9506e3a76f6497f47111a4a8488b795d62c5c0bc2b45c",
+      "management_version": "brooks-trilogy-trade-management-v6",
+      "rule_set_version": "brooks-trilogy-full-source-catalog-v5",
+      "setup_type": "H3_WEDGE_BULL_FLAG_LONG",
+      "stop": "1.3307820",
+      "symbol": "XRPUSDT",
+      "targets": [
+        "1.3501",
+        "1.3652"
+      ],
+      "timeframe": "15m",
+      "timestamp": "2026-09-13T14:15:40.564+00:00"
+    },
+    {
+      "candidate_no": 9,
+      "configuration_version": "books-full-v3-ctx[books-v2-eng-swingL2R2-ctx40-recent20-pb24-tr6-strongBody0.60-closeExt0.25-ai2-dir0.55-disp0.12-eff0.04-ema0.55-rangeOverlap0.60-rangeDisp0.18-tightOverlap0.70-tightSmall0.35-entry0.0001-stopbuf0.02-atr14x0.40-ch29range20-normal0.50:2.00-largeMM0.70-smallSTD1.00-stopVolBuf0.10-minStructReward0.50-structTargets2-ticks[BTCUSDT:0.10.ETHUSDT:0.01.BNBUSDT:0.010.XRPUSDT:0.0001.SOLUSDT:0.0100]-targets1-2-exec0]-bp5-bscan12-rng40z0.25-dbl0.12-wedge3lb45-mtr50tl10-mtr2r0.50rt12-bw6-clx4x1.50-ff6x0.35late6.0-tc8-sc16-md0.25-reasons2-exec1-riskrr[v6-weighted-targets-runner-nearest-confirmed-beyond-t1-else-zero-full-initial-risk-v1]",
+      "direction": "LONG",
+      "engine_version": "brooks-trilogy-full-core-v5-context-structural",
+      "entry": "100.7400",
+      "identity_sha256": "5f80c2f65a448a18005b2e0d7f1a127aca5f94955d5e3ecbbfa5d9fd935bcb86",
+      "management_version": "brooks-trilogy-trade-management-v6",
+      "rule_set_version": "brooks-trilogy-full-source-catalog-v5",
+      "setup_type": "BREAKOUT_LONG",
+      "stop": "100.415750",
+      "symbol": "SOLUSDT",
+      "targets": [
+        "100.8800",
+        "101.5600"
+      ],
+      "timeframe": "15m",
+      "timestamp": "2026-09-13T14:45:40.918+00:00"
+    },
+    {
+      "candidate_no": 10,
+      "configuration_version": "books-full-v3-ctx[books-v2-eng-swingL2R2-ctx40-recent20-pb24-tr6-strongBody0.60-closeExt0.25-ai2-dir0.55-disp0.12-eff0.04-ema0.55-rangeOverlap0.60-rangeDisp0.18-tightOverlap0.70-tightSmall0.35-entry0.0001-stopbuf0.02-atr14x0.40-ch29range20-normal0.50:2.00-largeMM0.70-smallSTD1.00-stopVolBuf0.10-minStructReward0.50-structTargets2-ticks[BTCUSDT:0.10.ETHUSDT:0.01.BNBUSDT:0.010.XRPUSDT:0.0001.SOLUSDT:0.0100]-targets1-2-exec0]-bp5-bscan12-rng40z0.25-dbl0.12-wedge3lb45-mtr50tl10-mtr2r0.50rt12-bw6-clx4x1.50-ff6x0.35late6.0-tc8-sc16-md0.25-reasons2-exec1-riskrr[v6-weighted-targets-runner-nearest-confirmed-beyond-t1-else-zero-full-initial-risk-v1]",
+      "direction": "SHORT",
+      "engine_version": "brooks-trilogy-full-core-v5-context-structural",
+      "entry": "100.1300",
+      "identity_sha256": "cb3dbb69b558a11f73b2ddaa0de83497181b072294da4e3a5f52d92209e43533",
+      "management_version": "brooks-trilogy-trade-management-v6",
+      "rule_set_version": "brooks-trilogy-full-source-catalog-v5",
+      "setup_type": "CLIMACTIC_REVERSAL_SHORT",
+      "stop": "100.691950",
+      "symbol": "SOLUSDT",
+      "targets": [
+        "99.5900",
+        "99.3800"
+      ],
+      "timeframe": "1h",
+      "timestamp": "2026-09-13T16:00:42.392+00:00"
+    },
+    {
+      "candidate_no": 11,
+      "configuration_version": "books-full-v3-ctx[books-v2-eng-swingL2R2-ctx40-recent20-pb24-tr6-strongBody0.60-closeExt0.25-ai2-dir0.55-disp0.12-eff0.04-ema0.55-rangeOverlap0.60-rangeDisp0.18-tightOverlap0.70-tightSmall0.35-entry0.0001-stopbuf0.02-atr14x0.40-ch29range20-normal0.50:2.00-largeMM0.70-smallSTD1.00-stopVolBuf0.10-minStructReward0.50-structTargets2-ticks[BTCUSDT:0.10.ETHUSDT:0.01.BNBUSDT:0.010.XRPUSDT:0.0001.SOLUSDT:0.0100]-targets1-2-exec0]-bp5-bscan12-rng40z0.25-dbl0.12-wedge3lb45-mtr50tl10-mtr2r0.50rt12-bw6-clx4x1.50-ff6x0.35late6.0-tc8-sc16-md0.25-reasons2-exec1-riskrr[v6-weighted-targets-runner-nearest-confirmed-beyond-t1-else-zero-full-initial-risk-v1]",
+      "direction": "LONG",
+      "engine_version": "brooks-trilogy-full-core-v5-context-structural",
+      "entry": "721.790",
+      "identity_sha256": "883a8d3f14440aebb613f8424b2e2c95aacd1433180aa356b6545387c719f345",
+      "management_version": "brooks-trilogy-trade-management-v6",
+      "rule_set_version": "brooks-trilogy-full-source-catalog-v5",
+      "setup_type": "BEAR_REVERSAL_BAR_FAILURE_LONG",
+      "stop": "718.99890",
+      "symbol": "BNBUSDT",
+      "targets": [
+        "722.620",
+        "726.850"
+      ],
+      "timeframe": "15m",
+      "timestamp": "2026-09-13T16:15:39.667+00:00"
+    },
+    {
+      "candidate_no": 12,
+      "configuration_version": "books-full-v3-ctx[books-v2-eng-swingL2R2-ctx40-recent20-pb24-tr6-strongBody0.60-closeExt0.25-ai2-dir0.55-disp0.12-eff0.04-ema0.55-rangeOverlap0.60-rangeDisp0.18-tightOverlap0.70-tightSmall0.35-entry0.0001-stopbuf0.02-atr14x0.40-ch29range20-normal0.50:2.00-largeMM0.70-smallSTD1.00-stopVolBuf0.10-minStructReward0.50-structTargets2-ticks[BTCUSDT:0.10.ETHUSDT:0.01.BNBUSDT:0.010.XRPUSDT:0.0001.SOLUSDT:0.0100]-targets1-2-exec0]-bp5-bscan12-rng40z0.25-dbl0.12-wedge3lb45-mtr50tl10-mtr2r0.50rt12-bw6-clx4x1.50-ff6x0.35late6.0-tc8-sc16-md0.25-reasons2-exec1-riskrr[v6-weighted-targets-runner-nearest-confirmed-beyond-t1-else-zero-full-initial-risk-v1]",
+      "direction": "LONG",
+      "engine_version": "brooks-trilogy-full-core-v5-context-structural",
+      "entry": "1.3490",
+      "identity_sha256": "ddfc224a7a4d6744429f6e192ed199a79a8c461bedac2eaf2e97d422830d3c1e",
+      "management_version": "brooks-trilogy-trade-management-v6",
+      "rule_set_version": "brooks-trilogy-full-source-catalog-v5",
+      "setup_type": "BEAR_REVERSAL_BAR_FAILURE_LONG",
+      "stop": "1.34219850",
+      "symbol": "XRPUSDT",
+      "targets": [
+        "1.3536",
+        "1.3652"
+      ],
+      "timeframe": "15m",
+      "timestamp": "2026-09-13T16:15:41.834+00:00"
+    },
+    {
+      "candidate_no": 13,
+      "configuration_version": "books-full-v3-ctx[books-v2-eng-swingL2R2-ctx40-recent20-pb24-tr6-strongBody0.60-closeExt0.25-ai2-dir0.55-disp0.12-eff0.04-ema0.55-rangeOverlap0.60-rangeDisp0.18-tightOverlap0.70-tightSmall0.35-entry0.0001-stopbuf0.02-atr14x0.40-ch29range20-normal0.50:2.00-largeMM0.70-smallSTD1.00-stopVolBuf0.10-minStructReward0.50-structTargets2-ticks[BTCUSDT:0.10.ETHUSDT:0.01.BNBUSDT:0.010.XRPUSDT:0.0001.SOLUSDT:0.0100]-targets1-2-exec0]-bp5-bscan12-rng40z0.25-dbl0.12-wedge3lb45-mtr50tl10-mtr2r0.50rt12-bw6-clx4x1.50-ff6x0.35late6.0-tc8-sc16-md0.25-reasons2-exec1-riskrr[v6-weighted-targets-runner-nearest-confirmed-beyond-t1-else-zero-full-initial-risk-v1]",
+      "direction": "LONG",
+      "engine_version": "brooks-trilogy-full-core-v5-context-structural",
+      "entry": "100.9800",
+      "identity_sha256": "9a6c6cf80e52cba3cc29daba8fa63ec9d405c938203076658ae6b6b7be825d12",
+      "management_version": "brooks-trilogy-trade-management-v6",
+      "rule_set_version": "brooks-trilogy-full-source-catalog-v5",
+      "setup_type": "BEAR_REVERSAL_BAR_FAILURE_LONG",
+      "stop": "100.434000",
+      "symbol": "SOLUSDT",
+      "targets": [
+        "101.1900",
+        "101.5600"
+      ],
+      "timeframe": "15m",
+      "timestamp": "2026-09-13T16:15:44.221+00:00"
+    },
+    {
+      "candidate_no": 14,
+      "configuration_version": "books-full-v3-ctx[books-v2-eng-swingL2R2-ctx40-recent20-pb24-tr6-strongBody0.60-closeExt0.25-ai2-dir0.55-disp0.12-eff0.04-ema0.55-rangeOverlap0.60-rangeDisp0.18-tightOverlap0.70-tightSmall0.35-entry0.0001-stopbuf0.02-atr14x0.40-ch29range20-normal0.50:2.00-largeMM0.70-smallSTD1.00-stopVolBuf0.10-minStructReward0.50-structTargets2-ticks[BTCUSDT:0.10.ETHUSDT:0.01.BNBUSDT:0.010.XRPUSDT:0.0001.SOLUSDT:0.0100]-targets1-2-exec0]-bp5-bscan12-rng40z0.25-dbl0.12-wedge3lb45-mtr50tl10-mtr2r0.50rt12-bw6-clx4x1.50-ff6x0.35late6.0-tc8-sc16-md0.25-reasons2-exec1-riskrr[v6-weighted-targets-runner-nearest-confirmed-beyond-t1-else-zero-full-initial-risk-v1]",
+      "direction": "LONG",
+      "engine_version": "brooks-trilogy-full-core-v5-context-structural",
+      "entry": "77387.10",
+      "identity_sha256": "057e836434ef0991da4e01db9296d6e709714a0c7c87be987808bf0b4f9c9db2",
+      "management_version": "brooks-trilogy-trade-management-v6",
+      "rule_set_version": "brooks-trilogy-full-source-catalog-v5",
+      "setup_type": "BREAKOUT_PULLBACK_LONG",
+      "stop": "76967.6780",
+      "symbol": "BTCUSDT",
+      "targets": [
+        "77477.40",
+        "78005.10"
+      ],
+      "timeframe": "15m",
+      "timestamp": "2026-09-13T17:15:34.404+00:00"
+    }
+  ],
+  "cohort_source": "Phase 4.2.41.83 exact retained 14-row replay command @ 2026-09-13T18:23:04.312Z",
+  "phase": "4.2.41.84",
+  "unavailable_recovered_fields": [
+    "market_snapshot_id",
+    "confirmations",
+    "reversal_strength_score",
+    "breakout_strength_score"
+  ]
+}
