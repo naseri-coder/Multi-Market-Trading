@@ -625,7 +625,11 @@ def classify_generic_reversal_attempts(
     end = len(candles) - 1 if evaluated_index is None else evaluated_index
     if start_index < 0 or end < start_index or end >= len(candles):
         return None
-    reversal = is_bear_reversal_bar_minimum if trend_direction == "BULL_TREND" else is_bull_reversal_bar_minimum
+    reversal = (
+        is_bear_reversal_bar_minimum
+        if trend_direction == "BULL_TREND"
+        else is_bull_reversal_bar_minimum
+    )
     direction = "SHORT" if trend_direction == "BULL_TREND" else "LONG"
     first = resume = second = None
     for i in range(start_index, end + 1):
@@ -641,12 +645,23 @@ def classify_generic_reversal_attempts(
         if i > resume and reversal(candles[i]):
             second = i
             break
-    state = "SECOND_REVERSAL_ATTEMPT" if second is not None else "FIRST_ATTEMPT_FAILED_RESUMPTION" if resume is not None else "FIRST_REVERSAL_ATTEMPT" if first is not None else "NO_REVERSAL_ATTEMPT"
+    state = (
+        "SECOND_REVERSAL_ATTEMPT"
+        if second is not None
+        else "FIRST_ATTEMPT_FAILED_RESUMPTION"
+        if resume is not None
+        else "FIRST_REVERSAL_ATTEMPT"
+        if first is not None
+        else "NO_REVERSAL_ATTEMPT"
+    )
     return GenericReversalAttemptLifecycle(trend_direction, direction, first, resume, second, state)
 
 
 def evaluate_reversal_pattern_lifecycle(
-    candles: tuple[Candle, ...], origin: ReversalPatternOrigin, *, evaluated_index: int | None = None
+    candles: tuple[Candle, ...],
+    origin: ReversalPatternOrigin,
+    *,
+    evaluated_index: int | None = None
 ) -> ReversalPatternLifecycle:
     end = len(candles) - 1 if evaluated_index is None else evaluated_index
     if origin.signal_index < 0 or origin.signal_index > end or end >= len(candles):
@@ -658,7 +673,11 @@ def evaluate_reversal_pattern_lifecycle(
         failure_hit = c.low < origin.failure_level if origin.direction == "LONG" else c.high > origin.failure_level
         objective_hit = False
         if origin.objective_level is not None:
-            objective_hit = c.high >= origin.objective_level if origin.direction == "LONG" else c.low <= origin.objective_level
+            objective_hit = (
+                c.high >= origin.objective_level
+                if origin.direction == "LONG"
+                else c.low <= origin.objective_level
+            )
         if trigger is None:
             if failure_hit and not trigger_hit:
                 return ReversalPatternLifecycle(origin, "SIGNAL_INVALIDATED_BEFORE_TRIGGER", None, None, i, None)
@@ -668,11 +687,25 @@ def evaluate_reversal_pattern_lifecycle(
                 trigger = i
                 if objective_hit:
                     objective = i
-                    return ReversalPatternLifecycle(origin, "OBJECTIVE_REACHED", trigger, objective, None, None)
+                    return ReversalPatternLifecycle(
+                        origin,
+                        "OBJECTIVE_REACHED",
+                        trigger,
+                        objective,
+                        None,
+                        None,
+                    )
                 continue
         else:
             if objective_hit and failure_hit:
-                return ReversalPatternLifecycle(origin, "AMBIGUOUS_OBJECTIVE_AND_FAILURE_SAME_BAR", trigger, i, i, None)
+                return ReversalPatternLifecycle(
+                    origin,
+                    "AMBIGUOUS_OBJECTIVE_AND_FAILURE_SAME_BAR",
+                    trigger,
+                    i,
+                    i,
+                    None,
+                )
             if objective_hit:
                 return ReversalPatternLifecycle(origin, "OBJECTIVE_REACHED", trigger, i, None, None)
             if failure_hit:
@@ -766,7 +799,12 @@ def classify_hl_recurrence(
                 if initial_counter_index is None:
                     initial_counter_index = i
             if event and saw_initial_countertrend:
-                events.append(HLEntryEvent(i, 1, "H1" if direction == "LONG" else "L1", initial_counter_index or i))
+                events.append(HLEntryEvent(
+                    i,
+                    1,
+                    "H1" if direction == "LONG" else "L1",
+                    initial_counter_index or i,
+                ))
                 armed_index = None
             continue
 
@@ -777,11 +815,23 @@ def classify_hl_recurrence(
         if event and armed_index is not None and i > armed_index:
             number = events[-1].number + 1
             if number <= max_events:
-                events.append(HLEntryEvent(i, number, f"H{number}" if direction == "LONG" else f"L{number}", armed_index))
+                events.append(HLEntryEvent(
+                    i,
+                    number,
+                    f"H{number}" if direction == "LONG" else f"L{number}",
+                    armed_index,
+                ))
             armed_index = None
 
     state = f"{events[-1].label}_CONFIRMED" if events else "NO_ENTRY_EVENT"
-    return HLCorrectionRecurrence(trend_direction, direction, episode_origin, tuple(events), reset_index, state)
+    return HLCorrectionRecurrence(
+        trend_direction,
+        direction,
+        episode_origin,
+        tuple(events),
+        reset_index,
+        state,
+    )
 
 
 def build_hl_attempt_origin(
@@ -822,7 +872,12 @@ def evaluate_hl_entry_attempt_lifecycle(
     to label a failure-to-objective. It still exposes trigger/failure-level state so
     consumers can fail closed instead of inventing a target.
     """
-    origin = build_hl_attempt_origin(candles, recurrence, event_number=event_number, objective_level=objective_level)
+    origin = build_hl_attempt_origin(
+        candles,
+        recurrence,
+        event_number=event_number,
+        objective_level=objective_level,
+    )
     if origin is None:
         return None
     if objective_level is not None:
