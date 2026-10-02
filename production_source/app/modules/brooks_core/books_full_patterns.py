@@ -17,7 +17,10 @@ from app.modules.brooks_core.books_full_entities import (
     BrooksPatternScan,
 )
 from app.modules.brooks_core.books_full_policy import BrooksFullCorePolicy
-from app.modules.brooks_core.causal_structure import confirm_swings_causally, evaluate_br031_structure
+from app.modules.brooks_core.causal_structure import (
+    confirm_swings_causally,
+    evaluate_br031_structure,
+)
 from app.modules.brooks_core.context_classifier import (
     body_fraction,
     close_location,
@@ -194,7 +197,12 @@ def _typed_breakout_failure_candidates(candles: tuple[Candle, ...], policy: Broo
     out: list[BrooksPatternCandidate] = []
     for breakout_index in range(max(1, last - 40), last):  # ENGINEERING_SEARCH_POLICY only.
         for breakout_direction, kind in (("LONG", "HIGH"), ("SHORT", "LOW")):
-            swing = _latest_swing_before(candles, end_exclusive=breakout_index, kind=kind, policy=policy)
+            swing = _latest_swing_before(
+                candles,
+                end_exclusive=breakout_index,
+                kind=kind,
+                policy=policy,
+            )
             if swing is None:
                 continue
             level = _swing_level(candles, swing)
@@ -202,10 +210,16 @@ def _typed_breakout_failure_candidates(candles: tuple[Candle, ...], policy: Broo
             extends = bar.high > level if breakout_direction == "LONG" else bar.low < level
             if not extends:
                 continue
-            breakout_strong = is_strong_bull_bar(bar, policy.context) if breakout_direction == "LONG" else is_strong_bear_bar(bar, policy.context)
+            breakout_strong = (
+                is_strong_bull_bar(bar, policy.context)
+                if breakout_direction == "LONG"
+                else is_strong_bear_bar(bar, policy.context)
+            )
             origin = build_breakout_attempt_identity(
                 candles, direction=breakout_direction, reference_id=f"SWING:{swing.candle_index}",
-                reference_level=level, attempt_index=breakout_index, engineering_strong=breakout_strong,
+                reference_level=level,
+                attempt_index=breakout_index,
+                engineering_strong=breakout_strong,
             )
             if origin is None:
                 continue
@@ -480,12 +494,18 @@ def detect_trading_range_fades(
                 ("range_edge_state", edge.state),
                 ("range_hierarchy_state", hierarchy_state),
                 ("edge_engineering_tolerance", str(edge.engineering_tolerance)),
-                ("edge_semantic", "CANONICAL_RANGE_BOUNDARY_WITH_ENGINEERING_TOLERANCE_NOT_UNIVERSAL_PERCENT"),
+                (
+                    "edge_semantic",
+                    "CANONICAL_RANGE_BOUNDARY_WITH_ENGINEERING_TOLERANCE_NOT_UNIVERSAL_PERCENT",
+                ),
                 ("trade_room_multiple", str(broad.room_multiple)),
                 ("entry_method", "LIMIT_OR_MARKET_FADE"),
                 ("entry_trigger_semantic", "AT_OR_NEAR_CANONICAL_RANGE_EDGE"),
                 ("entry_reference_price", str(reference_price)),
-                ("economic_opportunity_id", f"RANGE_FADE:{edge.range_id}:{direction}:{len(candles)-1}"),
+                (
+                    "economic_opportunity_id",
+                    f"RANGE_FADE:{edge.range_id}:{direction}:{len(candles)-1}",
+                ),
                 ("entry_confirmation_state", "RANGE_EDGE_LOCATION_CONFIRMED"),
             ),
         ))
@@ -496,12 +516,17 @@ def detect_double_top_bottom(snapshot: MarketSnapshot, context, policy: BrooksFu
     """BROOKS-GAP-051: structural second test, never numeric equality alone."""
     candles = snapshot.candles
     scan = confirm_swings_causally(
-        candles, left_bars=policy.context.swing_left_bars, right_bars=policy.context.swing_right_bars
+        candles,
+        left_bars=policy.context.swing_left_bars,
+        right_bars=policy.context.swing_right_bars
     )
     final = candles[-1]
     last = len(candles) - 1
     out: list[BrooksPatternCandidate] = []
-    for side, direction, reversal_ok in (("TOP", "SHORT", _bear_reversal(final)), ("BOTTOM", "LONG", _bull_reversal(final))):
+    for side, direction, reversal_ok in (
+        ("TOP", "SHORT", _bear_reversal(final)),
+        ("BOTTOM", "LONG", _bull_reversal(final)),
+    ):
         if not reversal_ok:
             continue
         structure = build_structural_second_test(candles, scan, side=side, evaluated_index=last)
@@ -510,7 +535,10 @@ def detect_double_top_bottom(snapshot: MarketSnapshot, context, policy: BrooksFu
         tested_level = final.high if side == "TOP" else final.low
         if not (structure.zone_low <= tested_level <= structure.zone_high):
             continue
-        continuation = (side == "TOP" and context.regime == "BEAR_TREND") or (side == "BOTTOM" and context.regime == "BULL_TREND")
+        continuation = (
+            (side == "TOP" and context.regime == "BEAR_TREND")
+            or (side == "BOTTOM" and context.regime == "BULL_TREND")
+        )
         name = "DOUBLE_TOP" if side == "TOP" else "DOUBLE_BOTTOM"
         out.append(BrooksPatternCandidate(
             direction=direction,
@@ -550,7 +578,10 @@ def detect_micro_double_top_bottom(snapshot: MarketSnapshot, context, policy: Br
         if not reversal_ok or blocked:
             continue
         structure = build_micro_double_structure(
-            candles, side=side, max_bar_distance=_MICRO_DOUBLE_SEARCH_MAX_BARS, engineering_tolerance=tolerance
+            candles,
+            side=side,
+            max_bar_distance=_MICRO_DOUBLE_SEARCH_MAX_BARS,
+            engineering_tolerance=tolerance
         )
         if structure is None:
             continue
