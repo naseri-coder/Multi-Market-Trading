@@ -1320,7 +1320,10 @@ def scan_structure_observations(
         elif final.high < previous.low:
             out.append(_obs("PRICE_GAP_DOWN", "Price Gap Down", "BREAKOUT_CONTEXT", last,
                             direction="SHORT", rule_ids=("BB-RNG-06-GAPS",),
-                            metadata=(("gap_low", str(final.high)), ("gap_high", str(previous.low)))))
+                            metadata=(
+                                ("gap_low", str(final.high)),
+                                ("gap_high", str(previous.low)),
+                            )))
 
     if context.regime in {"BULL_TREND", "BEAR_TREND"} and len(candles) >= 20:
         ema = _ema20(candles)
@@ -1374,12 +1377,22 @@ def scan_structure_observations(
         from app.modules.brooks_core.advanced_context import classify_small_pullback_trend
         direction = "LONG" if context.regime == "BULL_TREND" else "SHORT"
         spt=classify_small_pullback_trend(candles,direction=direction,evaluated_index=last)
-        if spt is not None and spt.state in {"ACTIVE_SMALL_PULLBACK_TREND","SMALL_PULLBACK_TREND_WITH_LATER_EXPANSION"}:
+        if (
+            spt is not None
+            and spt.state in {
+                "ACTIVE_SMALL_PULLBACK_TREND",
+                "SMALL_PULLBACK_TREND_WITH_LATER_EXPANSION",
+            }
+        ):
             out.append(_obs("SMALL_PULLBACK_TREND", "Small Pullback Trend", "TREND_CONTEXT", last,
                             direction=direction, rule_ids=("BB-TRD-23-SMALL-PULLBACK-TREND",),
                             metadata=(("episode_id",spt.episode_id),("pullback_episode_count",str(spt.pullback_episode_count)),
                                       ("max_pullback_run",str(spt.max_pullback_run)),("max_pullback_depth",str(spt.max_pullback_depth)),
-                                      ("median_bar_range",str(spt.median_bar_range)),("later_expansion","true" if spt.later_expansion else "false"),
+                                      ("median_bar_range",str(spt.median_bar_range)),
+                                      (
+                                          "later_expansion",
+                                          "true" if spt.later_expansion else "false",
+                                      ),
                                       ("state",spt.state),("trade_eligible","false"),("canonical_gap_id","BROOKS-GAP-025"),
                                       ("engineering_policy","DEPTH_DURATION_SPACING_CLASSIFICATION_NOT_BROOKS_HARD_GATE"))))
 
@@ -1392,7 +1405,10 @@ def scan_structure_observations(
         ("GAP_OPENING", "Gap Opening", "BB-REV-20-GAP-OPENING"),
     ):
         out.append(_obs(pattern_id, name, "NOT_APPLICABLE_WITHOUT_SESSION_ANCHOR", last,
-                        rule_ids=(rule_id,), metadata=(("reason", "24_7_crypto_snapshot_has_no_explicit_session_anchor"),)))
+                        rule_ids=(rule_id,),
+                        metadata=(
+                            ("reason", "24_7_crypto_snapshot_has_no_explicit_session_anchor"),
+                        )))
     return tuple(out)
 
 
@@ -1484,10 +1500,17 @@ def scan_wave05_foundation_observations(
                       ("second_leg",f"{correction.second_leg.start_index}:{correction.second_leg.end_index}"),
                       ("semantic","STRUCTURAL_CORRECTION_NOT_ENTRY_SIGNAL")),
         ))
-    reversal=classify_generic_reversal_attempts(candles, trend_direction=context.regime, start_index=start)
+    reversal=classify_generic_reversal_attempts(
+        candles,
+        trend_direction=context.regime,
+        start_index=start,
+    )
     if reversal is not None and reversal.first_attempt_index is not None:
         out.append(_obs(
-            "GENERIC_SECOND_REVERSAL_STATE", "Generic Reversal Attempt Lifecycle", "REVERSAL_CONTEXT", last,
+            "GENERIC_SECOND_REVERSAL_STATE",
+            "Generic Reversal Attempt Lifecycle",
+            "REVERSAL_CONTEXT",
+            last,
             direction=reversal.reversal_direction,
             rule_ids=("BB-REV-SECOND-REVERSAL-STATE",),
             metadata=(("state",reversal.state),
@@ -1510,16 +1533,34 @@ def _compact_origin_ending_at(candles: tuple[Candle, ...], end: int) -> CompactP
             pattern = None
         if pattern:
             block = candles[end-2:end+1]
-            return CompactPatternOrigin(pattern, f"{pattern}:{end-2}:{end}", end-2, end, max(x.high for x in block), min(x.low for x in block))
+            return CompactPatternOrigin(
+                pattern,
+                f"{pattern}:{end-2}:{end}",
+                end-2,
+                end,
+                max(x.high for x in block),
+                min(x.low for x in block),
+            )
     if end >= 3:
         a, b, c, d = candles[end-3:end+1]
         if _inside(b, a) and _outside(c, b) and _inside(d, c):
             block = candles[end-3:end+1]
-            return CompactPatternOrigin("IOI", f"IOI:{end-3}:{end}", end-3, end, max(x.high for x in block), min(x.low for x in block))
+            return CompactPatternOrigin(
+                "IOI",
+                f"IOI:{end-3}:{end}",
+                end-3,
+                end,
+                max(x.high for x in block),
+                min(x.low for x in block),
+            )
     return None
 
 
-def scan_breakout_lifecycle_observations(snapshot: MarketSnapshot, context, policy: BrooksFullCorePolicy):
+def scan_breakout_lifecycle_observations(
+    snapshot: MarketSnapshot,
+    context,
+    policy: BrooksFullCorePolicy,
+):
     """WAVE_10 034/036/037: typed breakout state; observation/context only."""
     candles = snapshot.candles
     last = len(candles) - 1
@@ -1540,7 +1581,11 @@ def scan_breakout_lifecycle_observations(snapshot: MarketSnapshot, context, poli
             if not eligible:
                 continue
             sw = eligible[-1]
-            level = candles[sw.candle_index].high if kind == "HIGH" else candles[sw.candle_index].low
+            level = (
+                candles[sw.candle_index].high
+                if kind == "HIGH"
+                else candles[sw.candle_index].low
+            )
             bar = candles[i]
             extends = bar.high > level if direction == "LONG" else bar.low < level
             if not extends:
