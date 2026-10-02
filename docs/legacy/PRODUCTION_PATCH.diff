@@ -1,0 +1,24 @@
+Historical reference only; not current release proof or runtime source.
+Original source: PRODUCTION_PATCH.diff
+Original SHA256: 2569229691399e4997ecd7a91909fc8fb18e786a7d0434a915c1153c41dba0ba
+
+--- app/modules/signal_automation/repository.py
++++ app/modules/signal_automation/repository.py
+@@
++ Add get_active_signal_context(symbol, timeframe)
++ Query latest active Signal joined with SignalAutomationMetadata
++ Return active LONG/SHORT signal for conflict checking
+
+--- app/modules/signal_automation/service.py
++++ app/modules/signal_automation/service.py
+@@
++ Import check_direction_conflict
++ Before create_signal():
++   load active signal context
++   block duplicate/opposite active direction
++   return created=False when blocked
+
+--- app/modules/live_vip_runtime/publisher.py
++++ app/modules/live_vip_runtime/publisher.py
+@@
++ Reject blocked lifecycle states before Telegram publish
