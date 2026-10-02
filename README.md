@@ -19,7 +19,6 @@
 [![Telegram Channel](https://img.shields.io/badge/Channel-%40naseri__coder-26A5E4?logo=telegram&logoColor=white)](https://t.me/naseri_coder)
 [![Developer](https://img.shields.io/badge/Developer-%40nasericoder-26A5E4?logo=telegram&logoColor=white)](https://t.me/nasericoder)
 
-**Channel:** [@naseri_coder](https://t.me/naseri_coder) · **Developer:** [@nasericoder](https://t.me/nasericoder)
 
 **Public source snapshot · Active development · Validation-first · Live Brooks execution disabled**
 
