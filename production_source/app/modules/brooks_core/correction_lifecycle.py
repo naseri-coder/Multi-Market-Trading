@@ -1225,7 +1225,9 @@ def build_exhaustion_origin(
     if not (trend.origin_index <= origin_index < len(candles)):
         return None
     bar = candles[origin_index]
-    direction: Literal["LONG", "SHORT"] = "LONG" if trend.trend_direction == "BULL_TREND" else "SHORT"
+    direction: Literal["LONG", "SHORT"] = (
+        "LONG" if trend.trend_direction == "BULL_TREND" else "SHORT"
+    )
     aligned = bar.close > bar.open if direction == "LONG" else bar.close < bar.open
     if not aligned:
         return None
@@ -1246,7 +1248,10 @@ def classify_climax_outcome(
     attempt = next((i for i in range(origin.origin_index + 1, end + 1) if reversal(candles[i])), None)
     opposite_regime = "BEAR_TREND" if origin.direction == "LONG" else "BULL_TREND"
     opposite_ai = "SHORT" if origin.direction == "LONG" else "LONG"
-    if current_regime == opposite_regime or (current_regime == "TRANSITION" and current_always_in == opposite_ai):
+    if (
+        current_regime == opposite_regime
+        or (current_regime == "TRANSITION" and current_always_in == opposite_ai)
+    ):
         return ClimaxOutcomeLifecycle(origin, "RESOLVED_OPPOSITE_TREND", end, end, attempt)
     if current_regime == "TRADING_RANGE":
         return ClimaxOutcomeLifecycle(origin, "RESOLVED_TRADING_RANGE", end, end, attempt)
@@ -1254,7 +1259,11 @@ def classify_climax_outcome(
         origin_bar = candles[origin.origin_index]
         continuation = next((
             i for i in range(attempt + 1, end + 1)
-            if (candles[i].high > origin_bar.high if origin.direction == "LONG" else candles[i].low < origin_bar.low)
+            if (
+                candles[i].high > origin_bar.high
+                if origin.direction == "LONG"
+                else candles[i].low < origin_bar.low
+            )
         ), None)
         aligned_regime = "BULL_TREND" if origin.direction == "LONG" else "BEAR_TREND"
         if continuation is not None and current_regime == aligned_regime:
@@ -1264,7 +1273,12 @@ def classify_climax_outcome(
 
 
 def classify_head_shoulders_outcome(
-    *, side: str, left_shoulder_index: int, head_index: int, right_shoulder_index: int, neckline_state: str,
+    *,
+    side: str,
+    left_shoulder_index: int,
+    head_index: int,
+    right_shoulder_index: int,
+    neckline_state: str,
 ) -> HeadShouldersOutcomeIdentity | None:
     """Consume WAVE_04 H&S lifecycle without treating the textbook shape as a trade."""
     if side not in {"TOP", "BOTTOM"}:
@@ -1281,7 +1295,18 @@ def classify_head_shoulders_outcome(
     else:
         state = "ALIAS_RANGE_OR_FLAG_CONTEXT"
     sid = f"HNS:{side}:{left_shoulder_index}:{head_index}:{right_shoulder_index}"
-    return HeadShouldersOutcomeIdentity(sid, side, left_shoulder_index, head_index, right_shoulder_index, prior, with_trend, reversal, state, False)
+    return HeadShouldersOutcomeIdentity(
+        sid,
+        side,
+        left_shoulder_index,
+        head_index,
+        right_shoulder_index,
+        prior,
+        with_trend,
+        reversal,
+        state,
+        False,
+    )
 
 
 def classify_mtr_retest_lifecycle(
@@ -1295,7 +1320,9 @@ def classify_mtr_retest_lifecycle(
     end = len(candles) - 1 if evaluated_index is None else evaluated_index
     if not (0 <= old_extreme_index < structure_break_index <= end < len(candles)):
         return None
-    direction: Literal["LONG", "SHORT"] = "SHORT" if prior_trend_direction == "BULL_TREND" else "LONG"
+    direction: Literal["LONG", "SHORT"] = (
+        "SHORT" if prior_trend_direction == "BULL_TREND" else "LONG"
+    )
     eid = f"MTR:{prior_trend_direction}:{old_extreme_index}:{structure_break_index}"
     if not episode_active:
         return MTRRetestLifecycle(prior_trend_direction, direction, eid, old_extreme_index, structure_break_index, None, None, False, "EPISODE_INACTIVE")
@@ -1303,7 +1330,11 @@ def classify_mtr_retest_lifecycle(
     retest = None
     for i in range(structure_break_index + 1, end + 1):
         c = candles[i]
-        hit = c.high >= level - engineering_test_tolerance if direction == "SHORT" else c.low <= level + engineering_test_tolerance
+        hit = (
+            c.high >= level - engineering_test_tolerance
+            if direction == "SHORT"
+            else c.low <= level + engineering_test_tolerance
+        )
         if hit:
             retest = i
             break
