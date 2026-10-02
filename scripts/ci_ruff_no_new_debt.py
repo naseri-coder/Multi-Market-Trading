@@ -8,18 +8,131 @@ configuration. Existing findings may remain temporarily, but new findings are re
 from __future__ import annotations
 
 import argparse
+import hashlib
 import io
 import json
+import re
 import subprocess
 import sys
 import tarfile
 import tempfile
 from collections import Counter
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 LINT_SCOPES = ("production_source", "production_checks", "scripts")
 CONTEXT_RADIUS = 2
+LEGACY_REGISTRY = "production_checks/ruff_legacy_path_baseline.json"
+
+
+def _unique_json_fields(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("legacy registry contains duplicate JSON fields")
+        result[key] = value
+    return result
+
+
+def _legacy_registry(tree: Path) -> dict[str, tuple[str, Counter]]:
+    """Validate every record, including inert historical records, without echoing source."""
+    data = json.loads(
+        (tree / LEGACY_REGISTRY).read_text(encoding="utf-8"),
+        object_pairs_hook=_unique_json_fields,
+    )
+    if (
+        not isinstance(data, dict)
+        or set(data) != {"schema_version", "entries"}
+        or type(data["schema_version"]) is not int
+        or data["schema_version"] != 1
+        or not isinstance(data["entries"], list)
+    ):
+        raise ValueError("invalid legacy registry schema")
+    registry: dict[str, tuple[str, Counter]] = {}
+    for entry in data["entries"]:
+        if not isinstance(entry, dict) or set(entry) != {"path", "sha256", "findings"}:
+            raise ValueError("invalid legacy registry entry fields")
+        path = entry["path"]
+        if not isinstance(path, str) or not path or "\\" in path or ":" in path:
+            raise ValueError("invalid legacy registry path")
+        parts = PurePosixPath(path).parts
+        if (
+            PurePosixPath(path).is_absolute()
+            or ".." in parts
+            or PurePosixPath(path).as_posix() != path
+            or len(parts) < 2
+            or parts[0] not in LINT_SCOPES
+            or any(ord(char) < 32 or ord(char) == 127 for char in path)
+        ):
+            raise ValueError("legacy registry path is outside canonical lint scopes")
+        if path in registry:
+            raise ValueError("duplicate legacy registry path")
+        digest = entry["sha256"]
+        if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+            raise ValueError("invalid legacy registry SHA256")
+        records = entry["findings"]
+        if not isinstance(records, list) or not records:
+            raise ValueError("legacy entry must register a nonempty finding Counter")
+        counts: Counter = Counter()
+        for record in records:
+            if not isinstance(record, dict) or set(record) != {
+                "code", "message", "context", "count"
+            }:
+                raise ValueError("invalid legacy fingerprint fields")
+            code, message, context, count = (
+                record["code"], record["message"], record["context"], record["count"]
+            )
+            if (
+                not isinstance(code, str)
+                or re.fullmatch(r"[A-Z]+[0-9]+", code) is None
+                or not isinstance(message, str)
+                or not message
+                or not isinstance(context, list)
+                or not 1 <= len(context) <= 2 * CONTEXT_RADIUS + 1
+                or any(
+                    not isinstance(line, str) or "\n" in line or "\r" in line
+                    for line in context
+                )
+                or type(count) is not int
+                or count <= 0
+            ):
+                raise ValueError("invalid legacy fingerprint values")
+            fingerprint = (path, code, message, tuple(context))
+            if fingerprint in counts:
+                raise ValueError("duplicate legacy fingerprint")
+            counts[fingerprint] = count
+        registry[path] = digest, counts
+    return registry
+
+
+def _legacy_exemptions(
+    registry: dict[str, tuple[str, Counter]],
+    *,
+    base: Path,
+    head: Path,
+    head_counts: Counter,
+) -> tuple[Counter, list[str]]:
+    exemptions: Counter = Counter()
+    applied: list[str] = []
+    for path, (digest, expected) in sorted(registry.items()):
+        base_path = base / path
+        # A historical entry is inert whenever any object exists at this base path.
+        if base_path.exists() or base_path.is_symlink():
+            continue
+        source = head / path
+        if (
+            not source.is_file()
+            or any(parent.is_symlink() for parent in (source, *source.parents))
+        ):
+            raise ValueError("new legacy path must be a regular nonsymlink file")
+        if hashlib.sha256(source.read_bytes()).hexdigest() != digest:
+            raise ValueError("new legacy path SHA256 mismatch")
+        actual = Counter({key: count for key, count in head_counts.items() if key[0] == path})
+        if actual != expected:
+            raise ValueError("new legacy path fingerprint Counter mismatch")
+        exemptions.update(expected)
+        applied.append(path)
+    return exemptions, applied
 
 
 def _run(
@@ -192,20 +305,29 @@ def main() -> int:
     ).stdout.strip()
 
     head_findings = _ruff_findings(repo_root, config)
+    head_counts = _counter(head_findings, tree=repo_root)
+    registry = _legacy_registry(repo_root)
     with tempfile.TemporaryDirectory(prefix="ruff-base-") as temporary:
         base_root = Path(temporary)
         _extract_base(repo_root, args.base_sha, base_root)
         base_findings = _ruff_findings(base_root, config)
         base_counts = _counter(base_findings, tree=base_root)
+        exemptions, applied = _legacy_exemptions(
+            registry, base=base_root, head=repo_root, head_counts=head_counts,
+        )
 
-    head_counts = _counter(head_findings, tree=repo_root)
-    new_counts = head_counts - base_counts
+    new_counts = (head_counts - base_counts) - exemptions
     new_count = sum(new_counts.values())
 
     print(f"RUFF_VERSION={version}")
     print(f"RUFF_BASE_FINDINGS={len(base_findings)}")
     print(f"RUFF_HEAD_FINDINGS={len(head_findings)}")
     _print_head_summary(head_findings, tree=repo_root)
+    print(f"RUFF_LEGACY_BASELINE_REGISTRY_ENTRIES={len(registry)}")
+    print(f"RUFF_LEGACY_BASELINE_PATHS_APPLIED={len(applied)}")
+    print(f"RUFF_LEGACY_BASELINE_FINDINGS_APPLIED={sum(exemptions.values())}")
+    for path in applied:
+        print(f"RUFF_LEGACY_BASELINE_PATH_APPLIED={path}")
     print(f"RUFF_NEW_FINDINGS={new_count}")
 
     if new_count:
