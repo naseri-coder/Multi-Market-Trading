@@ -54,7 +54,8 @@ from app.modules.market_data.entities import Candle, MarketSnapshot
 _ZERO = Decimal("0")
 _HALF = Decimal("0.5")
 _MICRO_DOUBLE_SEARCH_MAX_BARS = 3  # ENGINEERING_SEARCH_POLICY, not a Brooks universal rule.
-_FINAL_FLAG_FAILURE_SEARCH_MAX_BARS = 40  # ENGINEERING_SEARCH_POLICY only; never final-flag validity.
+# ENGINEERING_SEARCH_POLICY only; never final-flag validity.
+_FINAL_FLAG_FAILURE_SEARCH_MAX_BARS = 40
 
 
 def _span(candles: tuple[Candle, ...]) -> Decimal:
@@ -610,7 +611,8 @@ def _wedge_pushes(candles, scan, *, kind: str, policy: BrooksFullCorePolicy):
     if pushes[-1].candle_index-pushes[0].candle_index > policy.wedge_lookback_bars:
         return None
     recent_span=_span(candles[-policy.wedge_lookback_bars:])
-    eng_tol=recent_span*policy.double_test_tolerance_fraction_of_recent_range  # ENGINEERING_TOLERANCE only
+    # ENGINEERING_TOLERANCE only
+    eng_tol=recent_span*policy.double_test_tolerance_fraction_of_recent_range
     levels=[_swing_level(candles,x) for x in pushes]
     if kind=="HIGH" and levels[-1] < min(levels[:-1])-eng_tol:
         return None
@@ -647,7 +649,11 @@ def detect_wedge_reversal(snapshot: MarketSnapshot, context, policy: BrooksFullC
                 continue
             current_first=wedge.first_attempt_index==last
             current_second=wedge.second_attempt_index==last
-            first_strong=(is_strong_bull_bar(candles[wedge.first_attempt_index],policy.context) if direction=="LONG" else is_strong_bear_bar(candles[wedge.first_attempt_index],policy.context))
+            first_strong = (
+                is_strong_bull_bar(candles[wedge.first_attempt_index],policy.context)
+                if direction=="LONG"
+                else is_strong_bear_bar(candles[wedge.first_attempt_index],policy.context)
+            )
             if not (current_second or (current_first and first_strong)):
                 continue
             setup_type=f"WEDGE_REVERSAL_{direction}"; family="WEDGE_REVERSAL"; priority=28; requirement="TREND_EXTREME_OR_RANGE_EXTREME"
@@ -666,7 +672,11 @@ def detect_wedge_reversal(snapshot: MarketSnapshot, context, policy: BrooksFullC
     return tuple(out)
 
 
-def scan_wedge_failure_observations(snapshot: MarketSnapshot, context, policy: BrooksFullCorePolicy):
+def scan_wedge_failure_observations(
+    snapshot: MarketSnapshot,
+    context,
+    policy: BrooksFullCorePolicy
+):
     """BROOKS-GAP-054 context: preserve exact wedge origin; no failure-of-failure promotion."""
     candles=snapshot.candles
     scan=confirm_swings_causally(candles,left_bars=policy.context.swing_left_bars,right_bars=policy.context.swing_right_bars)
@@ -675,7 +685,12 @@ def scan_wedge_failure_observations(snapshot: MarketSnapshot, context, policy: B
         pushes=_wedge_pushes(candles,scan,kind=kind,policy=policy)
         if pushes is None:
             continue
-        wedge=classify_wedge_second_signal(candles,push_indices=tuple(x.candle_index for x in pushes),side=side,evaluated_index=last)
+        wedge = classify_wedge_second_signal(
+            candles,
+            push_indices=tuple(x.candle_index for x in pushes),
+            side=side,
+            evaluated_index=last
+        )
         if wedge is None or wedge.first_attempt_index is None:
             continue
         signal_number=2 if wedge.second_attempt_index is not None else 1
@@ -685,7 +700,9 @@ def scan_wedge_failure_observations(snapshot: MarketSnapshot, context, policy: B
         life=evaluate_wedge_attempt_lifecycle(candles,origin,evaluated_index=last)
         rl=life.reversal_lifecycle
         out.append(BrooksPatternObservation(
-            pattern_id=f"WEDGE_{side}_ATTEMPT_LIFECYCLE", pattern_name=f"Wedge {side.title()} Attempt Lifecycle", role="WEDGE_FAILURE_CONTEXT",
+            pattern_id=f"WEDGE_{side}_ATTEMPT_LIFECYCLE",
+            pattern_name=f"Wedge {side.title()} Attempt Lifecycle",
+            role="WEDGE_FAILURE_CONTEXT",
             signal_index=last,direction=wedge.reversal_direction,source_rule_ids=("BB-REV-05-WEDGE-THREE-PUSH",),taxonomy="SOURCE_INTERPRETATION",
             metadata=(("wedge_structure_id",wedge.wedge_structure_id),("push_indices",",".join(map(str,wedge.push_indices))),
                       ("signal_number",str(signal_number)),("attempt_id",origin.reversal_origin.attempt_id),
@@ -710,7 +727,9 @@ def scan_major_trend_reversal_lifecycles(
     if len(candles) < policy.mtr_lookback_bars:
         return ()
     scan = confirm_swings_causally(
-        candles, left_bars=policy.context.swing_left_bars, right_bars=policy.context.swing_right_bars
+        candles,
+        left_bars=policy.context.swing_left_bars,
+        right_bars=policy.context.swing_right_bars
     )
     highs = [x for x in scan.swings if x.kind == "HIGH"]
     lows = [x for x in scan.swings if x.kind == "LOW"]
@@ -720,7 +739,8 @@ def scan_major_trend_reversal_lifecycles(
     width = _span(recent)
     if width <= 0:
         return ()
-    test_tolerance = width * policy.double_test_tolerance_fraction_of_recent_range  # ENGINEERING_TOLERANCE only.
+    # ENGINEERING_TOLERANCE only.
+    test_tolerance = width * policy.double_test_tolerance_fraction_of_recent_range
     last = len(candles) - 1
 
     def short_episode():
@@ -850,7 +870,12 @@ def _exhaustion_origin_at(snapshot: MarketSnapshot, policy: BrooksFullCorePolicy
         for c in recent
     )
     engineering_acceleration = large and strong and aligned_strong >= policy.climax_min_strong_bars
-    return build_exhaustion_origin(prefix.candles, trend, origin_index=index, engineering_acceleration_evidence=engineering_acceleration)
+    return build_exhaustion_origin(
+        prefix.candles,
+        trend,
+        origin_index=index,
+        engineering_acceleration_evidence=engineering_acceleration
+    )
 
 
 def _latest_exhaustion_origin(snapshot: MarketSnapshot, policy: BrooksFullCorePolicy, *, before_index: int | None = None):
@@ -863,7 +888,11 @@ def _latest_exhaustion_origin(snapshot: MarketSnapshot, policy: BrooksFullCorePo
     return None
 
 
-def scan_climax_lifecycle_observations(snapshot: MarketSnapshot, context, policy: BrooksFullCorePolicy):
+def scan_climax_lifecycle_observations(
+    snapshot: MarketSnapshot,
+    context,
+    policy: BrooksFullCorePolicy
+):
     """BROOKS-GAP-063/064: one origin identity, causal outcome state."""
     if len(snapshot.candles) < 21:
         return ()
