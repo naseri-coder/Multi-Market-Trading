@@ -1,23 +1,253 @@
-# Crypto Price Action
+<div align="center">
 
-> **PUBLIC SOURCE SNAPSHOT — NOT APPROVED FOR PRODUCTION OR LIVE TRADING**
->
-> Independent software project. It is not affiliated with, sponsored by, or endorsed by Al Brooks or the publishers of the referenced books.
+# 📈 Crypto Price Action
 
-[🇬🇧 **English documentation**](#english) &nbsp;&nbsp; | &nbsp;&nbsp; [🇮🇷 **راهنمای فارسی**](#فارسی)
+**Rule-based cryptocurrency signal-system research and development**
+
+[![Publication safety](https://github.com/naseri-coder/crypto-price-action/actions/workflows/publication-safety.yml/badge.svg?branch=main)](https://github.com/naseri-coder/crypto-price-action/actions/workflows/publication-safety.yml)
+[![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-async-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Release](https://img.shields.io/badge/release-v0.2.0-8A2BE2)](https://github.com/naseri-coder/crypto-price-action)
+[![License](https://img.shields.io/badge/license-Apache%202.0-D22128?logo=apache&logoColor=white)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/naseri-coder/crypto-price-action?style=flat&logo=github)](https://github.com/naseri-coder/crypto-price-action/stargazers)
+
+**Public source snapshot · Active development · Validation-first · Not approved for live trading**
+
+</div>
+
+> [!IMPORTANT]
+> This is an **independent software project**. It is not affiliated with, sponsored by, or endorsed by **Al Brooks** or the publishers of the referenced books. The repository is published for source review, development, testing, and reproducible installation. It does **not** claim profitability and is **not approved for production or live trading**.
 
 ---
 
-<a id="english"></a>
-# English
+<details>
+<summary>🇮🇷 <strong>فارسی</strong> — معرفی، قابلیت‌ها و نصب</summary>
 
-## Project overview
+<br>
 
-**Crypto Price Action** is an open-source cryptocurrency signal-system snapshot built around rule-based price-action analysis. The public repository packages a curated, hash-verified source snapshot together with Docker deployment files, PostgreSQL configuration, offline integrity checks, publication-safety checks, and a guarded installer for a fresh isolated host.
+## معرفی پروژه
 
-The project is still under development and validation. This public snapshot is intended for source review, development, testing, and reproducible installation in an isolated environment. It does **not** claim profitability and is **not approved for production or live trading**.
+**Crypto Price Action** یک پروژه متن‌باز برای توسعه یک سیستم سیگنال‌دهی ارزهای دیجیتال بر پایه تحلیل قانون‌محور Price Action است. هسته پروژه با تمرکز بر تبدیل مفاهیم ساختاری و زمینه‌ای پرایس‌اکشن به قواعد قابل‌آزمایش، قابل‌ردیابی و قابل‌اعتبارسنجی توسعه داده می‌شود.
 
-## Quick install — one command
+این مخزن عمومی شامل یک snapshot انتخاب‌شده و hash-verified از سورس، فایل‌های Docker، تنظیمات PostgreSQL، تست‌های عمومی، کنترل‌های ایمنی انتشار، ابزارهای بررسی یکپارچگی و installer محافظت‌شده برای یک محیط جدید و ایزوله است.
+
+### ✨ نمای سریع
+
+| بخش | وضعیت / توضیح |
+| --- | --- |
+| 🧠 هسته تحلیل | تحلیل قانون‌محور ساختار، Context و الگوهای Price Action |
+| 📊 داده بازار | آداپترهای داده بازار؛ مسیر Binance USD-M Futures در سورس موجود است |
+| 🛡️ ریسک | ماژول‌های ارزیابی ریسک و lifecycle سیگنال |
+| 🧪 اعتبارسنجی | تست‌های عمومی، بررسی frozen source و کنترل‌های regression |
+| 🐘 پایگاه داده | PostgreSQL با SQLAlchemy async |
+| 🐳 اجرا | Docker / Docker Compose |
+| 📡 یکپارچه‌سازی | Telegram و گزارش‌دهی، با قابلیت‌های حساس خاموش به‌صورت پیش‌فرض |
+| 🔐 انتشار | SHA256 allowlist و publication-safety checks |
+| 📜 مجوز | Apache License 2.0 |
+
+## 🧩 ساختار کلی
+
+```text
+Market Data
+    │
+    ▼
+Price-Action Context & Pattern Analysis
+    │
+    ▼
+Signal / Probability Evaluation
+    │
+    ▼
+Risk & Lifecycle Controls
+    │
+    ├──► Paper / Shadow paths
+    ├──► PostgreSQL
+    └──► Telegram / Reporting
+```
+
+این نمودار یک نمای سطح‌بالا از معماری است؛ فعال‌بودن هر مسیر عملیاتی به تنظیمات و مرحله اعتبارسنجی آن بستگی دارد.
+
+## ✅ قابلیت‌های موجود در snapshot عمومی
+
+- هسته تحلیل Price Action با ساختار قانون‌محور و خروجی‌های قابل‌بررسی
+- تحلیل Context و اجزای ساختاری بازار در ماژول‌های پروژه
+- زیرساخت Signal، Probability، Risk و lifecycle
+- آداپتر عمومی Binance USD-M Futures در سورس
+- مسیرهای paper/shadow برای ارزیابی بدون اتکا به معامله زنده
+- PostgreSQL و migrationهای Alembic
+- Telegram integration و ماژول‌های گزارش‌دهی
+- Docker build و نصب ایزوله
+- frozen-source verification با SHA256
+- GitHub Actions برای تست و کنترل ایمنی انتشار
+
+> [!NOTE]
+> وجود یک ماژول یا مسیر در سورس به معنی فعال یا تأییدشدن آن برای استفاده عملیاتی نیست. قابلیت‌های حساس تا قبل از اعتبارسنجی مستقل باید غیرفعال بمانند.
+
+## 🚀 نصب سریع
+
+### پیش‌نیازها
+
+سرور جدید باید از قبل این موارد را داشته باشد:
+
+- Git
+- Docker Engine با Docker daemon فعال
+- Docker Compose v2
+- Bash
+- Python 3
+- `sha256sum`
+
+فقط روی یک **سرور جدید، جداگانه و ایزوله** اجرا کنید:
+
+```bash
+git clone https://github.com/naseri-coder/crypto-price-action.git && cd crypto-price-action && bash scripts/install.sh --install
+```
+
+installer ابتدا frozen source را بررسی می‌کند. اگر `.env` وجود نداشته باشد، یک فایل خصوصی با permission برابر `600` ایجاد می‌کند، `ADMIN_IDS` عددی را دریافت می‌کند، رمز URL-safe جدید برای PostgreSQL می‌سازد و پیش‌نیازها را بررسی می‌کند.
+
+برای مجوز نهایی باید دقیقاً عبارت زیر وارد شود:
+
+```text
+INSTALL-NEW-HOST
+```
+
+فقط بعد از این تأیید، image برنامه ساخته می‌شود، volume اختصاصی PostgreSQL ایجاد می‌شود، migrationهای Alembic اعمال می‌شوند و سرویس‌ها بالا می‌آیند.
+
+### بررسی بدون نصب
+
+برای دریافت و بررسی snapshot بدون راه‌اندازی Docker، migration یا سرویس:
+
+```bash
+git clone https://github.com/naseri-coder/crypto-price-action.git
+cd crypto-price-action
+bash scripts/install.sh --check
+```
+
+حالت `--check` آفلاین است و frozen source و فایل‌های انتشار را بررسی می‌کند.
+
+## 🔒 تنظیمات ایمنی پیش‌فرض
+
+تا قبل از اعتبارسنجی جداگانه، این قابلیت‌ها باید خاموش بمانند:
+
+```text
+TELEGRAM_RUNTIME_ENABLED=false
+BROOKS_RUNTIME_ENABLED=false
+BROOKS_OPERATIONS_ENABLED=false
+PAPER_RUNTIME_ENABLED=false
+PERFORMANCE_REPORTS_ENABLED=false
+```
+
+installer پکیج سیستم‌عامل را مخفیانه نصب نمی‌کند، package manager را تغییر نمی‌دهد، نصب موجود را overwrite نمی‌کند و برای جایگزینی یک deployment عملیاتی طراحی نشده است.
+
+## 📦 بخش‌های مهم مخزن
+
+- `production_source/` — snapshot عمومی انتخاب‌شده و hash-verified
+- `production_checks/` — کنترل‌های frozen-source و regression
+- `tests/` — مجموعه تست عمومی
+- `Dockerfile.production` — build تصویر انتشار
+- `compose.yaml` — PostgreSQL و سرویس‌های ایزوله
+- `scripts/verify.sh` — بررسی آفلاین hash/source
+- `scripts/install.sh` — installer محافظت‌شده
+- `scripts/check_publication_safety.py` — کنترل محتوای قابل‌انتشار
+- `.github/workflows/` — CI و publication safety
+
+## 🧾 هویت frozen source
+
+نسخه عمومی فعلی شامل **348 فایل بدون تغییر و hash-verified** است که توسط `production_source/SHA256SUMS` انتخاب شده‌اند.
+
+Release manifest SHA256:
+
+```text
+769aa1757120c71ddf17579f18f1b63cd5ef3685a25287bd68d7c9bc7c341b49
+```
+
+Original immutable 361-entry development manifest SHA256:
+
+```text
+aacbb49f28d87cce9135b3d43c568d0c11cfb95cd469f627327cd52a4dc202ef
+```
+
+در curation انتشار، ۱۳ ورودی تاریخی کنار گذاشته شده‌اند: یک `.bak`، یک `.tmp` خالی و ۱۱ نسخه آرشیوی migration. ۳۴۸ فایل باقی‌مانده به‌صورت فردی با manifest اصلی تطابق دارند.
+
+## 🛣️ تمرکز توسعه
+
+تمرکز توسعه فعلی روی افزایش پوشش قواعد، اعتبارسنجی Context، regression testing، explainability خروجی‌ها، سخت‌گیری بیشتر در risk/lifecycle و ارزیابی paper/shadow قبل از هر تصمیم درباره مسیرهای عملیاتی است.
+
+## 🤝 مشارکت و امنیت
+
+- [راهنمای مشارکت](CONTRIBUTING.md)
+- [گزارش مسائل امنیتی](SECURITY.md)
+- [مرز انتشار متن‌باز](docs/OSS_PUBLICATION_REVIEW.md)
+- [Apache License 2.0](LICENSE)
+
+هرگز فایل `.env` تکمیل‌شده، token، کلید، dump پایگاه‌داده، log عملیاتی خصوصی، realized trades یا dataset خصوصی بازار را commit یا upload نکنید.
+
+</details>
+
+---
+
+<details open>
+<summary>🇬🇧 <strong>English</strong> — overview, capabilities and installation</summary>
+
+<br>
+
+## About the project
+
+**Crypto Price Action** is an open-source cryptocurrency signal-system project built around **rule-based price-action analysis**. The development approach focuses on turning structural and contextual price-action concepts into logic that can be tested, traced, reviewed, and validated.
+
+The public repository packages a curated, hash-verified source snapshot together with Docker deployment files, PostgreSQL configuration, public tests, integrity checks, publication-safety gates, and a guarded installer for a fresh isolated host.
+
+### ✨ At a glance
+
+| Area | Status / description |
+| --- | --- |
+| 🧠 Analysis core | Rule-based market structure, context, and price-action logic |
+| 📊 Market data | Market-data adapters; a Binance USD-M Futures public adapter is present in source |
+| 🛡️ Risk | Risk assessment and signal-lifecycle modules |
+| 🧪 Validation | Public tests, frozen-source checks, and regression guards |
+| 🐘 Database | PostgreSQL with async SQLAlchemy |
+| 🐳 Runtime | Docker / Docker Compose |
+| 📡 Integrations | Telegram and reporting paths, sensitive runtimes disabled by default |
+| 🔐 Publication | SHA256 allowlist and publication-safety checks |
+| 📜 License | Apache License 2.0 |
+
+## 🧩 High-level architecture
+
+```text
+Market Data
+    │
+    ▼
+Price-Action Context & Pattern Analysis
+    │
+    ▼
+Signal / Probability Evaluation
+    │
+    ▼
+Risk & Lifecycle Controls
+    │
+    ├──► Paper / Shadow paths
+    ├──► PostgreSQL
+    └──► Telegram / Reporting
+```
+
+This is a high-level conceptual view. The presence of a path in the source does not mean that it is enabled or operationally approved.
+
+## ✅ What is present in the public snapshot
+
+- Rule-based price-action analysis components with inspectable outputs
+- Market-context and structural-analysis modules
+- Signal, probability, risk, and lifecycle infrastructure
+- A public Binance USD-M Futures adapter in source
+- Paper/shadow evaluation paths
+- PostgreSQL persistence and Alembic migrations
+- Telegram integration and reporting modules
+- Dockerized isolated deployment
+- SHA256 frozen-source verification
+- GitHub Actions for public tests and publication-safety checks
+
+> [!NOTE]
+> A module being present in source does not mean it is enabled or approved for production use. Sensitive runtime capabilities should remain disabled until they are independently validated.
+
+## 🚀 Quick install
 
 ### Prerequisites
 
@@ -30,25 +260,25 @@ The new host must already provide:
 - Python 3
 - `sha256sum`
 
-Run the following command on a **new, separate host only**:
+Run this only on a **new, separate, isolated host**:
 
 ```bash
 git clone https://github.com/naseri-coder/crypto-price-action.git && cd crypto-price-action && bash scripts/install.sh --install
 ```
 
-The installer first verifies the frozen source. If `.env` is missing, it creates a private file with mode `600`, asks for numeric `ADMIN_IDS`, generates a fresh URL-safe PostgreSQL password without displaying it, validates the environment, verifies Docker and Compose availability, and asks for final authorization:
+The installer verifies the frozen source first. If `.env` is missing, it creates a private file with mode `600`, asks for numeric `ADMIN_IDS`, generates a fresh URL-safe PostgreSQL password without displaying it, validates the environment, and checks Docker/Compose availability.
+
+Final authorization requires entering exactly:
 
 ```text
 INSTALL-NEW-HOST
 ```
 
-Only after that confirmation does the installer build the application image, create a dedicated PostgreSQL volume, start PostgreSQL, apply Alembic migrations, and start the bot.
+Only after that confirmation does the installer build the application image, create a dedicated PostgreSQL volume, apply Alembic migrations, and start the services.
 
-The installer does **not** silently install operating-system packages or modify the host package manager. If a prerequisite is missing, it stops and reports the missing requirement.
+### Verification without installation
 
-## Verification without installation
-
-To download and verify the public snapshot without starting Docker services or changing a database:
+To download and verify the public snapshot without starting Docker, running migrations, or modifying services:
 
 ```bash
 git clone https://github.com/naseri-coder/crypto-price-action.git
@@ -56,49 +286,11 @@ cd crypto-price-action
 bash scripts/install.sh --check
 ```
 
-The `--check` mode is offline. It verifies the frozen source and installation files without calling Docker, accessing the network, running migrations, or starting/modifying services.
+The `--check` mode is offline and verifies the frozen source and publication files.
 
-## Step-by-step installation
+## 🔒 Safe defaults
 
-### 1. Prepare a fresh host
-
-This installer is strictly for a **new, separate host**. It is not an in-place upgrade mechanism and must not be used to overwrite an existing deployment or operational database.
-
-Install the prerequisites listed above and confirm that your account can access the Docker daemon.
-
-### 2. Clone the repository
-
-```bash
-git clone https://github.com/naseri-coder/crypto-price-action.git
-cd crypto-price-action
-```
-
-### 3. Run the offline verification
-
-```bash
-bash scripts/install.sh --check
-```
-
-Do not continue if verification fails.
-
-### 4. Configure the environment
-
-The recommended path is to let `--install` create a missing `.env` securely:
-
-```bash
-bash scripts/install.sh --install
-```
-
-For manual configuration:
-
-```bash
-cp .env.example .env
-chmod 600 .env
-```
-
-Then edit `.env`. `ADMIN_IDS` must contain numeric administrator IDs. Use a fresh URL-safe database password between 24 and 96 characters, and place the same password in `POSTGRES_PASSWORD` and the password component of `DATABASE_URL`. Never commit or upload a populated `.env`.
-
-Keep these safety defaults disabled unless each capability has been separately validated and intentionally enabled:
+Keep these capabilities disabled until each one has been separately validated and intentionally enabled:
 
 ```text
 TELEGRAM_RUNTIME_ENABLED=false
@@ -108,158 +300,23 @@ PAPER_RUNTIME_ENABLED=false
 PERFORMANCE_REPORTS_ENABLED=false
 ```
 
-### 5. Authorize and complete installation
+The installer does not silently install operating-system packages, modify the host package manager, overwrite an existing installation, or act as an in-place production upgrade mechanism.
 
-When prompted, review the preflight output and type exactly:
+## 📦 Repository map
 
-```text
-INSTALL-NEW-HOST
-```
+- `production_source/` — curated, hash-verified public source snapshot
+- `production_checks/` — frozen-source and regression guards
+- `tests/` — reviewed public test corpus
+- `Dockerfile.production` — published-image build
+- `compose.yaml` — isolated service and PostgreSQL configuration
+- `scripts/verify.sh` — offline source/hash verification
+- `scripts/install.sh` — guarded fresh-host installer
+- `scripts/check_publication_safety.py` — tracked-file publication checks
+- `.github/workflows/` — CI and publication-safety workflows
 
-The installer refuses to overwrite its existing installation volume and refuses installation on the protected original-project host path.
+## 🧾 Frozen source identity
 
-### 6. After installation
-
-Review container and service status before enabling optional runtime features. Telegram integration, paper trading, Brooks runtime, Brooks operations, performance reporting, and any live-trading-related behavior should remain disabled until separately validated.
-
----
-
-<a id="فارسی"></a>
-# فارسی
-
-## معرفی پروژه
-
-**Crypto Price Action** یک پروژه متن‌باز برای توسعه یک سیستم سیگنال‌دهی ارزهای دیجیتال بر پایه تحلیل قانون‌محور Price Action است. مخزن عمومی پروژه شامل یک snapshot انتخاب‌شده و hash-verified از سورس، فایل‌های Docker، تنظیمات PostgreSQL، ابزار بررسی آفلاین یکپارچگی فایل‌ها، کنترل‌های ایمنی انتشار و installer محافظت‌شده برای راه‌اندازی روی یک سرور جدید و ایزوله است.
-
-هدف از این نسخه عمومی این است که سورس پروژه قابل بررسی، توسعه، آزمایش و نصب تکرارپذیر باشد. پروژه همچنان در حال توسعه و اعتبارسنجی است؛ بنابراین انتشار این مخزن **به معنی تضمین سودآوری، آماده‌بودن برای محیط عملیاتی یا تأیید برای معامله زنده نیست**.
-
-## نصب سریع با یک فرمان
-
-### پیش‌نیازها
-
-روی سرور جدید باید موارد زیر از قبل موجود و قابل استفاده باشند:
-
-- Git
-- Docker Engine و Docker daemon فعال
-- Docker Compose v2
-- Bash
-- Python 3
-- `sha256sum`
-
-سپس فقط روی یک **سرور جدید و جداگانه** این فرمان را اجرا کنید:
-
-```bash
-git clone https://github.com/naseri-coder/crypto-price-action.git && cd crypto-price-action && bash scripts/install.sh --install
-```
-
-این فرمان مخزن را دریافت می‌کند، وارد پوشه پروژه می‌شود و installer را اجرا می‌کند. installer ابتدا frozen source را بررسی می‌کند. اگر فایل `.env` وجود نداشته باشد، آن را با permission برابر `600` ایجاد می‌کند، شناسه عددی مدیر یا مدیران را در `ADMIN_IDS` از شما می‌پرسد و یک رمز جدید و URL-safe برای PostgreSQL تولید می‌کند. رمز تولیدشده در خروجی نمایش داده نمی‌شود.
-
-پس از اعتبارسنجی `.env` و بررسی Docker/Compose، installer برای مجوز نهایی از شما می‌خواهد دقیقاً عبارت زیر را وارد کنید:
-
-```text
-INSTALL-NEW-HOST
-```
-
-فقط پس از این تأیید، image برنامه ساخته می‌شود، volume اختصاصی PostgreSQL ایجاد می‌شود، PostgreSQL بالا می‌آید، migrationهای Alembic اعمال می‌شوند و bot اجرا می‌شود.
-
-installer پکیج‌های سیستم‌عامل را به‌صورت خودکار و مخفیانه نصب نمی‌کند و package manager سرور را تغییر نمی‌دهد. اگر پیش‌نیازی موجود نباشد، نصب متوقف می‌شود و مورد کمبود اعلام می‌شود.
-
-## بررسی پروژه بدون نصب
-
-اگر فقط می‌خواهید سورس عمومی را دریافت و صحت آن را بررسی کنید و نمی‌خواهید هیچ سرویس یا پایگاه‌داده‌ای راه‌اندازی شود:
-
-```bash
-git clone https://github.com/naseri-coder/crypto-price-action.git
-cd crypto-price-action
-bash scripts/install.sh --check
-```
-
-حالت `--check` آفلاین است. این حالت frozen source و فایل‌های نصب را بررسی می‌کند، اما Docker را فراخوانی نمی‌کند، migration پایگاه‌داده را اجرا نمی‌کند و هیچ سرویسی را راه‌اندازی یا تغییر نمی‌دهد.
-
-## راهنمای نصب مرحله‌به‌مرحله
-
-### ۱. آماده‌سازی یک سرور جدید
-
-installer فقط برای یک **سرور تازه، جداگانه و ایزوله** طراحی شده است. از آن برای overwrite کردن نصب موجود، ارتقای مستقیم یک deployment عملیاتی یا مهاجرت یک پایگاه‌داده فعال استفاده نکنید.
-
-پیش‌نیازهای بالا را نصب کنید و مطمئن شوید کاربری که نصب را انجام می‌دهد به Docker daemon دسترسی دارد.
-
-### ۲. دریافت پروژه
-
-```bash
-git clone https://github.com/naseri-coder/crypto-price-action.git
-cd crypto-price-action
-```
-
-### ۳. بررسی آفلاین قبل از نصب
-
-```bash
-bash scripts/install.sh --check
-```
-
-اگر این مرحله با خطا تمام شد، نصب را ادامه ندهید.
-
-### ۴. تنظیم محیط و فایل `.env`
-
-روش پیشنهادی این است که اجازه دهید installer در صورت نبود `.env` آن را به‌صورت خودکار و امن بسازد:
-
-```bash
-bash scripts/install.sh --install
-```
-
-در این روش فقط `ADMIN_IDS` عددی از شما خواسته می‌شود و رمز PostgreSQL به‌صورت خودکار تولید می‌شود.
-
-اگر می‌خواهید تنظیمات را دستی انجام دهید:
-
-```bash
-cp .env.example .env
-chmod 600 .env
-```
-
-سپس فایل `.env` را ویرایش کنید. مقدار `ADMIN_IDS` باید شامل شناسه عددی مدیر یا مدیران باشد. برای PostgreSQL یک رمز جدید، تصادفی و URL-safe با طول ۲۴ تا ۹۶ کاراکتر بسازید و دقیقاً همان رمز را در `POSTGRES_PASSWORD` و بخش password از `DATABASE_URL` قرار دهید. فایل تکمیل‌شده `.env` را هرگز commit یا upload نکنید.
-
-تا زمانی که هر قابلیت جداگانه آزمایش و عمداً فعال نشده است، تنظیمات زیر باید غیرفعال باقی بمانند:
-
-```text
-TELEGRAM_RUNTIME_ENABLED=false
-BROOKS_RUNTIME_ENABLED=false
-BROOKS_OPERATIONS_ENABLED=false
-PAPER_RUNTIME_ENABLED=false
-PERFORMANCE_REPORTS_ENABLED=false
-```
-
-### ۵. تأیید نهایی و اجرای نصب
-
-پس از اجرای `--install`، خروجی preflight را بررسی کنید. وقتی installer مجوز نهایی خواست، دقیقاً عبارت زیر را وارد کنید:
-
-```text
-INSTALL-NEW-HOST
-```
-
-installer عمداً در صورت تشخیص volume نصب قبلی متوقف می‌شود و همچنین اجازه نصب روی مسیر محافظت‌شده پروژه اصلی را نمی‌دهد.
-
-### ۶. بعد از نصب چه کار کنیم؟
-
-بعد از پایان نصب، ابتدا وضعیت containerها و سرویس‌ها را بررسی کنید. قابلیت‌های Telegram، paper trading، Brooks runtime، Brooks operations، performance reporting و هر قابلیت مرتبط با معامله زنده را تا قبل از اعتبارسنجی جداگانه فعال نکنید.
-
-اگر installer به دلیل نبود پیش‌نیاز متوقف شد، ابتدا همان پیش‌نیاز اعلام‌شده را روی سیستم نصب یا فعال کنید و سپس فرمان نصب را دوباره اجرا کنید. اگر `.env` قبلاً ایجاد شده باشد، installer از همان فایل موجود استفاده می‌کند و آن را بدون اجازه بازنویسی نمی‌کند.
-
----
-
-## Repository contents
-
-- `production_source/` — curated frozen source snapshot verified by `production_source/SHA256SUMS`.
-- `production_checks/` — frozen-source guard checks.
-- `Dockerfile.production` — builds the published snapshot and runs the guard during build.
-- `compose.yaml` — isolated PostgreSQL service with no host database port and runtime flags off by default.
-- `scripts/verify.sh` — offline source/hash and syntax verification.
-- `scripts/install.sh` — guarded fresh-host installer.
-- `scripts/bootstrap_env.py` — private fresh-host environment bootstrap used by the installer.
-- `scripts/check_publication_safety.py` — tracked-file publication safety checks.
-
-## Frozen source identity
-
-The release source consists of **348 unchanged, hash-verified files** selected by the curated `production_source/SHA256SUMS` allowlist.
+The current public release source consists of **348 unchanged, hash-verified files** selected by the curated `production_source/SHA256SUMS` allowlist.
 
 Release manifest SHA256:
 
@@ -267,27 +324,35 @@ Release manifest SHA256:
 769aa1757120c71ddf17579f18f1b63cd5ef3685a25287bd68d7c9bc7c341b49
 ```
 
-The original immutable 361-entry development manifest SHA256 is:
+Original immutable 361-entry development manifest SHA256:
 
 ```text
 aacbb49f28d87cce9135b3d43c568d0c11cfb95cd469f627327cd52a4dc202ef
 ```
 
-Publication curation excluded 13 historical entries: one `.bak`, one empty `.tmp`, and 11 archived migration copies. The remaining 348 files match the original manifest individually. Publication-hardening documentation, CI, and installer changes do **not** alter the frozen `production_source` identity.
+Publication curation excluded 13 historical entries: one `.bak`, one empty `.tmp`, and 11 archived migration copies. The remaining 348 files match the original manifest individually.
 
-## Open-source publication status
+## 🛣️ Development focus
 
-This repository is the public open-source snapshot. See `docs/OSS_PUBLICATION_REVIEW.md` for the source-expression and publication-review boundary, `SECURITY.md` for security reporting, and `CONTRIBUTING.md` for contribution guidance.
+Current development focuses on broader rule coverage, stronger context validation, regression testing, output explainability, tighter risk/lifecycle controls, and paper/shadow evaluation before any operational path is considered.
 
-The project is licensed under the Apache License 2.0. See `LICENSE`. The license does not change separate third-party rights, source-expression, security, release-integrity, or operational-validation boundaries.
+## 🤝 Contributing & security
 
-## Operational validation status
+- [Contributing guide](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
+- [Open-source publication boundary](docs/OSS_PUBLICATION_REVIEW.md)
+- [Apache License 2.0](LICENSE)
 
-- Historical image equivalence is not independently established.
-- The public test corpus has been reconciled against the selected immutable public-source snapshot and is exercised by GitHub Actions.
-- Docker build, disposable PostgreSQL migration/rollback, offline startup, and frozen-source checks have passed the isolated Stage3B verification workflow.
-- These checks validate the public development snapshot; they do not approve production deployment or live trading.
+Never commit or upload populated `.env` files, credentials, tokens, keys, database dumps, private operational logs, realized trades, or private market datasets.
 
-Never upload `.env`, backup archives, SQLite data, database dumps, operational logs, keys, realized trades, or private market datasets.
+</details>
 
-No source, Docker service, or database in the original `/opt/crypto-signal-telegram-bot` development tree was modified by these publication changes.
+---
+
+<div align="center">
+
+**Built for reproducible research, review, testing, and disciplined validation.**
+
+[Repository](https://github.com/naseri-coder/crypto-price-action) · [Issues](https://github.com/naseri-coder/crypto-price-action/issues) · [Actions](https://github.com/naseri-coder/crypto-price-action/actions) · [Security](SECURITY.md)
+
+</div>
