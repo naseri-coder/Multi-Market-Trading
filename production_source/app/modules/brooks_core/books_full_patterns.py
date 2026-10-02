@@ -755,7 +755,9 @@ def scan_major_trend_reversal_lifecycles(
                 continue
             breaks = [
                 i for i in range(old_high.candle_index + 1, last + 1)
-                if candles[i].close < projected_value_from_swings(support_lows[-2], support_lows[-1], i)
+                if candles[i].close < projected_value_from_swings(
+                    support_lows[-2], support_lows[-1], i
+                )
                 and is_strong_bear_bar(candles[i], policy.context)
             ]
             if breaks:
@@ -774,7 +776,9 @@ def scan_major_trend_reversal_lifecycles(
                 continue
             breaks = [
                 i for i in range(old_low.candle_index + 1, last + 1)
-                if candles[i].close > projected_value_from_swings(resistance_highs[-2], resistance_highs[-1], i)
+                if candles[i].close > projected_value_from_swings(
+                    resistance_highs[-2], resistance_highs[-1], i
+                )
                 and is_strong_bull_bar(candles[i], policy.context)
             ]
             if breaks:
@@ -933,13 +937,20 @@ def detect_climactic_reversal(snapshot: MarketSnapshot, context, policy: BrooksF
         return ()
     final = candles[last]
     direction = "SHORT" if origin.direction == "LONG" else "LONG"
-    strong = is_strong_bear_bar(final, policy.context) if direction == "SHORT" else is_strong_bull_bar(final, policy.context)
+    strong = (
+        is_strong_bear_bar(final, policy.context)
+        if direction == "SHORT"
+        else is_strong_bull_bar(final, policy.context)
+    )
     if not strong:
         return ()
     setup = "CLIMACTIC_REVERSAL_SHORT" if direction == "SHORT" else "CLIMACTIC_REVERSAL_LONG"
     return (BrooksPatternCandidate(
         direction=direction, setup_type=setup, family="CLIMACTIC_REVERSAL", signal_index=last,
-        reasons=("mature_active_trend_exhaustion_origin", "later_reversal_attempt_same_climax_origin"),
+        reasons=(
+            "mature_active_trend_exhaustion_origin",
+            "later_reversal_attempt_same_climax_origin",
+        ),
         source_rule_ids=("BB-REV-04-CLIMACTIC-REVERSAL", "BB-RNG-26-TWO-REASONS"),
         taxonomy="SOURCE_INTERPRETATION", priority=35, context_required="CLIMAX_AT_EXTREME",
         metadata=(("climax_confirmed", "true"), ("extreme_confirmed", "true"),
@@ -960,12 +971,21 @@ def _overlap(a: Candle, b: Candle) -> Decimal:
 def _snapshot_prefix(snapshot: MarketSnapshot, end_index: int) -> MarketSnapshot:
     items = snapshot.candles[:end_index + 1]
     return MarketSnapshot(
-        exchange=snapshot.exchange, market_type=snapshot.market_type, symbol=snapshot.symbol, timeframe=snapshot.timeframe,
+        exchange=snapshot.exchange,
+        market_type=snapshot.market_type,
+        symbol=snapshot.symbol,
+        timeframe=snapshot.timeframe,
         candles=items, captured_at=items[-1].close_time, source=snapshot.source,
     )
 
 
-def _active_trend_episode(snapshot: MarketSnapshot, context, policy: BrooksFullCorePolicy, *, evaluated_index: int):
+def _active_trend_episode(
+    snapshot: MarketSnapshot,
+    context,
+    policy: BrooksFullCorePolicy,
+    *,
+    evaluated_index: int
+):
     direction = getattr(context, "regime", "AMBIGUOUS")
     if direction not in {"BULL_TREND", "BEAR_TREND"}:
         return None
@@ -974,7 +994,11 @@ def _active_trend_episode(snapshot: MarketSnapshot, context, policy: BrooksFullC
     if always_in in {"LONG", "SHORT"} and always_in != aligned:
         return None
     candles = snapshot.candles[:evaluated_index + 1]
-    scan = confirm_swings_causally(candles, left_bars=policy.context.swing_left_bars, right_bars=policy.context.swing_right_bars)
+    scan = confirm_swings_causally(
+        candles,
+        left_bars=policy.context.swing_left_bars,
+        right_bars=policy.context.swing_right_bars
+    )
     structure = evaluate_br031_structure(scan)
     if structure.direction == direction and structure.supporting_swing_indices:
         origin = min(structure.supporting_swing_indices)
@@ -1023,10 +1047,19 @@ def _structural_final_flag(snapshot: MarketSnapshot, context, policy: BrooksFull
             chosen=(flag_end,flag_end)
     if chosen is None:
         return None
-    return build_final_flag_lifecycle(candles, trend, flag_origin_index=chosen[0], flag_end_index=chosen[1])
+    return build_final_flag_lifecycle(
+        candles,
+        trend,
+        flag_origin_index=chosen[0],
+        flag_end_index=chosen[1]
+    )
 
 
-def scan_final_flag_context_observations(snapshot: MarketSnapshot, context, policy: BrooksFullCorePolicy):
+def scan_final_flag_context_observations(
+    snapshot: MarketSnapshot,
+    context,
+    policy: BrooksFullCorePolicy
+):
     flag = _structural_final_flag(snapshot, context, policy)
     if flag is None:
         return ()
@@ -1128,7 +1161,11 @@ def detect_direct_trend_participation(
     if not strong.is_strong:
         return ()
     aligned_final=final.close>final.open if direction=="LONG" else final.close<final.open
-    direct_strong=is_strong_bull_bar(final,policy.context) if direction=="LONG" else is_strong_bear_bar(final,policy.context)
+    direct_strong = (
+        is_strong_bull_bar(final,policy.context)
+        if direction=="LONG"
+        else is_strong_bear_bar(final,policy.context)
+    )
     out=[]
     if direct_strong:
         out.append(BrooksPatternCandidate(
