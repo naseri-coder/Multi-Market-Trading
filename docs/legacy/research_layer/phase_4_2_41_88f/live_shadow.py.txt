@@ -1,0 +1,132 @@
+Historical reference only; not current release proof or runtime source.
+Historical dependencies/APIs may be superseded; do not import or execute this reference.
+Original source: research_layer/phase_4_2_41_88f/live_shadow.py
+Original SHA256: d932afdc9d16de3781747c0c53a3e085e4720a41fd4d5dde41ae3add6d169b3b
+
+from __future__ import annotations
+import asyncio, dataclasses, hashlib, json, re, sys, time
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal as D
+from pathlib import Path
+from app.modules.market_data.binance_futures import BinanceFuturesMarketDataProvider,_dt
+from app.modules.brooks_core.books_full_engine import BrooksTrilogyFullCoreEngine
+from app.modules.brooks_core.books_full_policy import BrooksFullCorePolicy,RISK_RR_CONFIGURATION
+from app.modules.paper_runtime.entities import PaperSignalCandidate
+from app.modules.ai_council.service import AICouncilService
+from app.modules.risk_engine.service import RiskEngineService
+from app.modules.risk_engine.plan_reward import evaluate_plan_reward
+from app.modules.operations.trade_management import POLICY_VERSION
+from .contract import *
+from .statistics import evaluate
+from .store import ShadowStore
+from .lifecycle import new_state,advance
+ROOT=Path('<historical-project-root>')
+def iso(x): return x.astimezone(UTC).isoformat()
+def parse_dt(s): return datetime.fromisoformat(s)
+def one_minute_query_start(floor):
+ return floor.astimezone(UTC).replace(second=0,microsecond=0)
+def evidence_json(x): return {'rule_id':x.rule_id,'status':x.status,'source_pages':list(x.source_pages),'evidence':[list(i) for i in x.evidence],'failed_conditions':list(x.failed_conditions),'confidence_components':[list(i) for i in x.confidence_components]}
+def always_in(rule_evidence):
+    for e in rule_evidence:
+        if e.rule_id=='BB-REV-15-ALWAYS-IN':
+            for k,v in e.evidence:
+                if k=='always_in': return str(v)
+    return 'UNRESOLVED'
+class ForwardShadow:
+ def __init__(self,manifest):
+  self.manifest_path=Path(manifest); self.m=json.loads(self.manifest_path.read_text()); assert_contract(); self._verify_manifest()
+  self.store=ShadowStore(self.m['shadow_store_path']); self.policy=BrooksFullCorePolicy(enable_trade_decisions=True); self.engine=BrooksTrilogyFullCoreEngine(policy=self.policy); self.life_sem=None
+  assert self.policy.configuration_version==self.m['configuration_version']; assert RISK_RR_CONFIGURATION==RISKRR; assert POLICY_VERSION==MGMT; assert self.engine.engine_version==ENGINE and self.engine.rule_set_version==RULES
+  self.start=parse_dt(self.m['horizon_utc']['start']); self.end=parse_dt(self.m['horizon_utc']['end']); self.scan_grace_seconds=int(self.m['scan_grace_seconds']); self._init_store()
+ def _verify_manifest(self):
+  assert self.m['phase']=='4.2.41.88F'
+  assert self.m['statistics_contract_version']==STAT and self.m['source_frozen_contract_sha']==CONTRACT_SHA and self.m['duration_days']==7
+  assert tuple(self.m['symbols'])==SYMBOLS and tuple(self.m['timeframes'])==TIMEFRAMES
+  assert self.m['no_backfill'] is True and self.m['rules']['backfill'] is False and self.m['no_economic_analysis_before_end'] is True
+  assert 30 <= int(self.m['scan_grace_seconds']) <= 180
+  for rel,sha in self.m['source_hashes'].items(): assert hashlib.sha256((ROOT/rel).read_bytes()).hexdigest()==sha,(rel,'SOURCE_HASH_MISMATCH')
+  init=ROOT/self.m['initialization']['path']; assert hashlib.sha256(init.read_bytes()).hexdigest()==self.m['initialization']['sha256']; assert self.m['initialization']['role']=='MODEL_DEVELOPMENT_INITIALIZATION' and self.m['initialization']['case_count']==72
+ def _init_store(self):
+  if self.store.get_meta('initialized'): return
+  init=json.loads((ROOT/self.m['initialization']['path']).read_text());
+  for c in init['cases']: self.store.add_history(c,'MODEL_DEVELOPMENT_INITIALIZATION')
+  self.store.set_meta('initialized',True); self.store.set_meta('manifest_sha256',hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()); self.store.set_meta('initial_history_count',len(init['cases'])); self.store.set_meta('production_history_imported',False); self.store.set_meta('telegram_publication_enabled',False); self.store.set_meta('no_backfill',True); self.store.set_meta('scan_grace_seconds',self.scan_grace_seconds)
+ async def candidate_one(self,symbol,tf,clock):
+  p=BinanceFuturesMarketDataProvider(clock=lambda:clock)
+  try:
+   snap=await p.get_snapshot(symbol=symbol,timeframe=tf,limit=120,market_type='futures'); snap=dataclasses.replace(snap,captured_at=snap.candles[-1].close_time,source='PHASE88F_FORWARD_SHADOW')
+   r=await self.engine.evaluate(snap)
+   if r.decision not in {'LONG','SHORT'}: return None,'CORE_NO_SIGNAL'
+   fields={f.name:getattr(r,f.name) for f in dataclasses.fields(PaperSignalCandidate) if hasattr(r,f.name)}; fields.update(source_signal_id='PHASE88F_'+snap.snapshot_hash,symbol=snap.symbol,timeframe=snap.timeframe,direction=r.decision,exchange=snap.exchange,market_type=snap.market_type,market_snapshot_id=snap.snapshot_id,market_snapshot_hash=snap.snapshot_hash,chart_path='NO_PUBLICATION',snapshot=snap); c=PaperSignalCandidate(**fields)
+   council=AICouncilService().evaluate(c)
+   if not council.approved:return None,'AI_REJECTED'
+   risk=RiskEngineService().evaluate(c)
+   if not risk.approved:return None,'RISK_REJECTED'
+   plan=evaluate_plan_reward(c); rp=(risk.metadata or {}).get('plan_reward'); assert rp and str(rp['weighted_reward_r'])==str(plan.metadata['weighted_reward_r'])
+   cand={'candidate_identity':c.market_snapshot_hash,'snapshot_hash':c.market_snapshot_hash,'snapshot_id':c.market_snapshot_id,'candidate_timestamp':iso(clock),'snapshot_captured_at':iso(snap.captured_at),'symbol':c.symbol,'timeframe':c.timeframe,'direction':c.direction,'setup_type':c.setup_type,'engine_version':c.engine_version,'rule_set_version':c.rule_set_version,'configuration_version':c.configuration_version,'exchange':c.exchange,'market_type':c.market_type,'management_version':MGMT,'statistics_contract_version':STAT,'source_frozen_contract_sha':CONTRACT_SHA,'entry':str(c.entry_price),'initial_stop':str(c.stop_loss),'targets':[str(x) for x in c.targets],'management_plan':plan.metadata['trade_management_plan'],'target_exit_fractions':plan.metadata['trade_management_plan']['target_exit_fractions'],'runner_fraction':plan.metadata['trade_management_plan']['runner_fraction'],'v6_planned_reward_r':str(plan.reward_r),'risk_planned_reward_r':str(rp['weighted_reward_r']),'section_c_parity':True,'always_in':always_in(c.rule_evidence),'ai_result':{'approved':True,'score':float(council.final_score),'confidence':float(council.confidence)},'risk_result':{'approved':True,'score':float(risk.risk_score),'reasons':list(risk.reasons)},'reasoning':list(c.reasoning),'rule_ids':list(c.rule_ids),'failed_rules':list(c.failed_rules),'rule_evidence':[evidence_json(x) for x in c.rule_evidence]}
+   if self.store.has_candidate(cand['candidate_identity']): return None,'DUPLICATE_CANDIDATE'
+   dec=evaluate(cand,self.store.history(),at_time=cand['candidate_timestamp']); self.store.add_candidate(cand,dec,new_state(cand))
+   if dec['status']=='FAVORABLE' and cand['always_in']==cand['direction']:
+    self.store.add_evidence({'candidate_identity':cand['candidate_identity'],'approved_at':cand['candidate_timestamp'],'candle_closed_at':cand['snapshot_captured_at'],'symbol':cand['symbol'],'timeframe':cand['timeframe'],'direction':cand['direction'],'always_in':cand['always_in']})
+   return cand,'UPSTREAM_SURVIVOR'
+  finally: await p.aclose()
+ async def scan(self,clock):
+  detail={'scan_timestamp':iso(clock),'attempted':0,'survivors':0,'duplicates':0,'stage':{},'errors':[]}
+  combos=[(s,'15m') for s in SYMBOLS]+([(s,'1h') for s in SYMBOLS] if clock.minute==0 else [])
+  for s,tf in combos:
+   detail['attempted']+=1
+   try:
+    cand,status=await self.candidate_one(s,tf,clock); detail['stage'][status]=detail['stage'].get(status,0)+1
+    if cand: detail['survivors']+=1
+   except Exception as e: detail['errors'].append({'symbol':s,'timeframe':tf,'type':type(e).__name__,'message':str(e)[:240]})
+  self.store.record_scan(iso(clock),'PASS' if not detail['errors'] else 'ERROR',detail); return detail
+ async def fetch_1m(self,symbol,start,end):
+  p=BinanceFuturesMarketDataProvider(); out=[]; cursor=int(start.timestamp()*1000); end_ms=int(end.timestamp()*1000)
+  try:
+   while cursor<=end_ms:
+    payload=await p.http.get_json('/fapi/v1/klines',params={'symbol':symbol,'interval':'1m','startTime':cursor,'endTime':end_ms,'limit':1000})
+    if not payload: break
+    batch=[p._candle_from_row(row) for row in payload if _dt(int(row[6]))<=end]; out.extend(batch); nxt=int(payload[-1][6])+1
+    if nxt<=cursor or len(payload)<1000: break
+    cursor=nxt
+   uniq={x.open_time:x for x in out}; return tuple(uniq[k] for k in sorted(uniq))
+  finally: await p.aclose()
+ async def update_lifecycle(self,now):
+  opens=self.store.candidates(open_only=True); by={}
+  for c,d,l in opens: by.setdefault(c['symbol'],[]).append((c,d,l))
+  for symbol,items in by.items():
+   floor=min(parse_dt(l['last_processed_candle_close']) for _,_,l in items); end=now.replace(second=0,microsecond=0)-timedelta(minutes=1)
+   if end<=floor: continue
+   candles=await self.fetch_1m(symbol,one_minute_query_start(floor),end)
+   for c,d,l in items:
+    before=l['status']; poll=advance(c,l,candles,self.store.evidence(c['symbol'],c['timeframe']),cutover_at=self.start,as_of=now);
+    if poll.poll_status=='NO_NEW_ELIGIBLE_CLOSED_CANDLE': continue
+    l=poll.state; self.store.update_lifecycle(c['candidate_identity'],l)
+    if before not in {'COMPLETE','AMBIGUOUS'} and l['status']=='COMPLETE' and l.get('reconstruction_status')=='VALID_REALIZED_R':
+     case={k:c[k] for k in ('candidate_identity','candidate_timestamp','symbol','timeframe','direction','setup_type','engine_version','rule_set_version','configuration_version','exchange','market_type','management_version','statistics_contract_version')}|{'terminal_timestamp':l['terminal_timestamp'],'realized_r':l['realized_r'],'source_frozen_contract_sha':CONTRACT_SHA,'source_role':'FORWARD_SHADOW'}; self.store.add_history(case,'FORWARD_SHADOW')
+ async def process_due_scans(self,now):
+  # Prospective-only: run a due slot only inside the frozen grace window.
+  # Older missing slots are recorded as missed and never market-data backfilled.
+  t=self.start; grace=timedelta(seconds=self.scan_grace_seconds)
+  while t<=min(now,self.end):
+   key=iso(t)
+   if t.minute%15==0 and t.second==5 and self.store.db.execute('SELECT 1 FROM scan_cycles WHERE scan_timestamp=?',(key,)).fetchone() is None:
+    age=now-t
+    if timedelta(0)<=age<=grace:
+     await self.scan(t)
+    elif age>grace:
+     detail={'scan_timestamp':key,'reason':'SERVICE_NOT_AVAILABLE_WITHIN_GRACE','backfill_performed':False,'age_seconds':int(age.total_seconds())}
+     self.store.record_scan(key,'MISSED_NOT_BACKFILLED',detail); self.store.event(iso(now),'MISSED_SCAN_NOT_BACKFILLED',detail)
+   t+=timedelta(minutes=15)
+ async def run(self):
+  self.store.event(iso(datetime.now(UTC)),'SERVICE_START',{'pid':__import__('os').getpid()});
+  while True:
+   now=datetime.now(UTC)
+   if now<self.start: await asyncio.sleep(min(15,max(1,(self.start-now).total_seconds()))); continue
+   await self.process_due_scans(now); await self.update_lifecycle(now)
+   self.store.set_meta('last_heartbeat',iso(now)); self.store.set_meta('candidate_count',self.store.db.execute('SELECT count(*) FROM candidates').fetchone()[0]); self.store.set_meta('closed_forward_count',self.store.db.execute("SELECT count(*) FROM history_cases WHERE source_role='FORWARD_SHADOW'").fetchone()[0])
+   if now>self.end:
+    open_n=len(self.store.candidates(open_only=True)); self.store.set_meta('horizon_candidate_collection_complete',True); self.store.set_meta('open_after_horizon',open_n)
+    if open_n==0: self.store.set_meta('service_complete',True); self.store.event(iso(now),'SERVICE_COMPLETE',{}); break
+   await asyncio.sleep(20)
+if __name__=='__main__': asyncio.run(ForwardShadow(sys.argv[1]).run())
