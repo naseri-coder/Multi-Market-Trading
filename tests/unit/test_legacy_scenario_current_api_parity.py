@@ -1,13 +1,13 @@
 """Convergence preserves current APIs and inert research provenance."""
 
 import importlib.util
+import tomllib
 from pathlib import Path
 
 import pytest
 from app.modules.risk_engine.calculator import RiskCalculator
 from app.modules.signal_gate.service import SignalGateService
 from app.modules.signal_intelligence.probability import ProbabilityAssessment
-from setuptools import find_packages
 
 from tests.unit.test_hp_realized_r_policy import quality
 from tests.unit.test_risk_semantic_repair import candidate
@@ -32,7 +32,12 @@ def test_research_archive_is_inert_with_provenance(phase):
     assert f"Original source: {source}" in text
     assert "Original SHA256:" in text
     assert not (root / source).exists()
-    assert not any("research_layer" in p for p in find_packages(str(root / "production_source")))
+    package_contract = tomllib.loads((root / "pyproject.toml").read_text())["tool"]["setuptools"]
+    assert package_contract["packages"]["find"] == {
+        "where": ["production_source"], "include": ["app*"],
+    }
+    assert not archive.is_relative_to(root / "production_source")
+    assert archive.name.endswith(".py.txt")
     assert "<historical-project-root>" in text
 
 
