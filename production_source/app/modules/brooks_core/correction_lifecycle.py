@@ -915,7 +915,11 @@ def classify_range_hl_location(
         return RangeHLCorrectionLocation("NOT_NESTED", "NOT_NESTED", "NO_ENCLOSING_RANGE_CONTEXT")
     low, high = hierarchy.local_low, hierarchy.local_high
     if low is None or high is None or high <= low:
-        return RangeHLCorrectionLocation("LOCAL_RANGE_UNRESOLVED", hierarchy.current_relation, "NO_LOCAL_RANGE_GEOMETRY")
+        return RangeHLCorrectionLocation(
+            "LOCAL_RANGE_UNRESOLVED",
+            hierarchy.current_relation,
+            "NO_LOCAL_RANGE_GEOMETRY",
+        )
     width = high - low
     low_edge = low + width * edge_zone_fraction
     high_edge = high - width * edge_zone_fraction
@@ -932,7 +936,10 @@ def classify_range_hl_location(
         semantic = "ENCLOSING_LOW_EDGE"
     elif local == "NEAR_LOCAL_HIGH" and hierarchy.local_position == "NEAR_ENCLOSING_HIGH":
         semantic = "ENCLOSING_HIGH_EDGE"
-    elif local in {"NEAR_LOCAL_LOW", "NEAR_LOCAL_HIGH"} and hierarchy.local_position == "ENCLOSING_MIDDLE":
+    elif (
+        local in {"NEAR_LOCAL_LOW", "NEAR_LOCAL_HIGH"}
+        and hierarchy.local_position == "ENCLOSING_MIDDLE"
+    ):
         semantic = "LOCAL_EDGE_ENCLOSING_MIDDLE"
     else:
         semantic = "ENCLOSING_MIDDLE_OR_NONALIGNED_EDGE"
@@ -973,7 +980,11 @@ class WedgeAttemptLifecycle:
 
 
 def classify_wedge_second_signal(
-    candles: tuple[Candle, ...], *, push_indices: tuple[int, int, int], side: str, evaluated_index: int | None = None,
+    candles: tuple[Candle, ...],
+    *,
+    push_indices: tuple[int, int, int],
+    side: str,
+    evaluated_index: int | None = None,
 ) -> WedgeSecondSignalIdentity | None:
     """Attach generic first/fail/resume/second reversal state to one wedge structure."""
     if side not in {"TOP", "BOTTOM"} or len(push_indices) != 3:
@@ -982,7 +993,10 @@ def classify_wedge_second_signal(
         return None
     trend_direction: TrendDirection = "BULL_TREND" if side == "TOP" else "BEAR_TREND"
     generic = classify_generic_reversal_attempts(
-        candles, trend_direction=trend_direction, start_index=push_indices[-1], evaluated_index=evaluated_index
+        candles,
+        trend_direction=trend_direction,
+        start_index=push_indices[-1],
+        evaluated_index=evaluated_index
     )
     if generic is None:
         return None
@@ -995,10 +1009,20 @@ def classify_wedge_second_signal(
 
 
 def build_wedge_attempt_origin(
-    candles: tuple[Candle, ...], wedge: WedgeSecondSignalIdentity, *, signal_number: int, objective_level: Decimal | None,
+    candles: tuple[Candle, ...],
+    wedge: WedgeSecondSignalIdentity,
+    *,
+    signal_number: int,
+    objective_level: Decimal | None,
 ) -> WedgeAttemptOrigin | None:
     """Create a wedge-specific identity while reusing ReversalPatternOrigin."""
-    signal_index = wedge.first_attempt_index if signal_number == 1 else wedge.second_attempt_index if signal_number == 2 else None
+    signal_index = (
+        wedge.first_attempt_index
+        if signal_number == 1
+        else wedge.second_attempt_index
+        if signal_number == 2
+        else None
+    )
     if signal_index is None or signal_index >= len(candles):
         return None
     signal = candles[signal_index]
@@ -1007,7 +1031,9 @@ def build_wedge_attempt_origin(
     failure = signal.low if direction == "LONG" else signal.high
     origin = ReversalPatternOrigin(
         attempt_id=f"{wedge.wedge_structure_id}:S{signal_number}:{signal_index}",
-        pattern_id=f"WEDGE_{wedge.side}_SIGNAL_{signal_number}", direction=direction, signal_index=signal_index,
+        pattern_id=f"WEDGE_{wedge.side}_SIGNAL_{signal_number}",
+        direction=direction,
+        signal_index=signal_index,
         trigger_level=trigger, objective_level=objective_level, failure_level=failure,
     )
     return WedgeAttemptOrigin(wedge=wedge, signal_number=signal_number, reversal_origin=origin)
@@ -1120,7 +1146,11 @@ class MTRRetestLifecycle:
 def build_active_trend_episode(
     *, trend_direction: TrendDirection, origin_index: int, evaluated_index: int, late_trend: bool
 ) -> ActiveTrendEpisode | None:
-    if trend_direction not in {"BULL_TREND", "BEAR_TREND"} or origin_index < 0 or evaluated_index < origin_index:
+    if (
+        trend_direction not in {"BULL_TREND", "BEAR_TREND"}
+        or origin_index < 0
+        or evaluated_index < origin_index
+    ):
         return None
     episode_id = f"TREND:{trend_direction}:{origin_index}"
     return ActiveTrendEpisode(
@@ -1131,7 +1161,11 @@ def build_active_trend_episode(
 
 
 def build_final_flag_lifecycle(
-    candles: tuple[Candle, ...], trend: ActiveTrendEpisode, *, flag_origin_index: int, flag_end_index: int
+    candles: tuple[Candle, ...],
+    trend: ActiveTrendEpisode,
+    *,
+    flag_origin_index: int,
+    flag_end_index: int
 ) -> FinalFlagLifecycle | None:
     if not trend.active or not trend.late_trend or flag_origin_index < trend.origin_index:
         return None
@@ -1152,7 +1186,11 @@ def build_final_flag_attempt_origin(
     candles: tuple[Candle, ...], final_flag: FinalFlagLifecycle, *, signal_index: int,
     direction: Literal["LONG", "SHORT"], objective_level: Decimal | None = None,
 ) -> FinalFlagAttemptOrigin | None:
-    if direction not in {"LONG", "SHORT"} or signal_index <= final_flag.flag_end_index or signal_index >= len(candles):
+    if (
+        direction not in {"LONG", "SHORT"}
+        or signal_index <= final_flag.flag_end_index
+        or signal_index >= len(candles)
+    ):
         return None
     signal = candles[signal_index]
     trigger = signal.high if direction == "LONG" else signal.low
