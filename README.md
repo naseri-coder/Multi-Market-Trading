@@ -14,6 +14,12 @@
 [![Version](https://img.shields.io/badge/version-v0.2.0-7C3AED)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-D22128?logo=apache&logoColor=white)](LICENSE)
 
+### 📣 Telegram
+
+[![Telegram Channel](https://img.shields.io/badge/Channel-%40naseri__coder-26A5E4?logo=telegram&logoColor=white)](https://t.me/naseri_coder)
+[![Developer](https://img.shields.io/badge/Developer-%40nasericoder-26A5E4?logo=telegram&logoColor=white)](https://t.me/nasericoder)
+
+**Channel:** [@naseri_coder](https://t.me/naseri_coder) · **Developer:** [@nasericoder](https://t.me/nasericoder)
 **Public source snapshot · Active development · Validation-first · Live Brooks execution disabled**
 
 [Overview](#overview) · [How it works](#how-it-works) · [Current status](#current-status) · [Quick start](#quick-start) · [Verification](#verification) · [Security](#security)
