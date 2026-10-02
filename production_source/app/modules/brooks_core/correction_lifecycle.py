@@ -203,7 +203,10 @@ def build_breakout_attempt_identity(
 
 
 def classify_breakout_lifecycle(
-    candles: tuple[Candle, ...], origin: BreakoutAttemptIdentity, *, evaluated_index: int | None = None,
+    candles: tuple[Candle, ...],
+        origin: BreakoutAttemptIdentity,
+        *,
+        evaluated_index: int | None = None,
 ) -> BreakoutLifecycle:
     end = len(candles)-1 if evaluated_index is None else min(evaluated_index, len(candles)-1)
     if end < origin.attempt_index:
@@ -218,14 +221,22 @@ def classify_breakout_lifecycle(
             test = i
         if follow is None and beyond_close:
             prev = candles[i-1]
-            progressing = c.close > prev.close if origin.direction == "LONG" else c.close < prev.close
+            progressing = (
+                c.close > prev.close
+                if origin.direction == "LONG"
+                else c.close < prev.close
+            )
             if progressing:
                 follow = i
         if back_inside:
             reentry = i
             break
     if reentry is not None:
-        state = "FAILED_FOLLOW_THROUGH_REENTRY" if origin.closed_beyond else "ATTEMPT_REJECTED_REENTRY"
+        state = (
+            "FAILED_FOLLOW_THROUGH_REENTRY"
+            if origin.closed_beyond
+            else "ATTEMPT_REJECTED_REENTRY"
+        )
     elif test is not None:
         state = "BREAKOUT_TEST_HOLDING"
     elif follow is not None:
@@ -248,11 +259,17 @@ def classify_failed_breakout_confirmation(
     rev_dir: Literal["LONG", "SHORT"] = "SHORT" if origin.direction == "LONG" else "LONG"
     reversal = is_bear_reversal_bar_minimum if rev_dir == "SHORT" else is_bull_reversal_bar_minimum
     if not reversal(candles[signal_index]):
-        return FailedBreakoutConfirmation(origin, rev_dir, signal_index, "RETURN_INSIDE_NO_REVERSAL_SETUP",
+        return FailedBreakoutConfirmation(origin,
+            rev_dir,
+            signal_index,
+            "RETURN_INSIDE_NO_REVERSAL_SETUP",
             "STRONG" if origin.engineering_strong else "WEAK_OR_NEUTRAL",
             "STRONG" if reversal_is_strong else "WEAK_OR_NEUTRAL")
     if reversal_is_strong and not origin.engineering_strong:
-        return FailedBreakoutConfirmation(origin, rev_dir, signal_index, "CONFIRMED_STRONG_REVERSAL_WEAK_BREAKOUT",
+        return FailedBreakoutConfirmation(origin,
+            rev_dir,
+            signal_index,
+            "CONFIRMED_STRONG_REVERSAL_WEAK_BREAKOUT",
             "WEAK_OR_NEUTRAL", "STRONG")
     if end > signal_index:
         nxt = candles[signal_index+1]
@@ -262,7 +279,10 @@ def classify_failed_breakout_confirmation(
             return FailedBreakoutConfirmation(origin, rev_dir, signal_index, "CONFIRMED_BY_NEXT_BAR_FOLLOW_THROUGH",
                 "STRONG" if origin.engineering_strong else "WEAK_OR_NEUTRAL",
                 "STRONG" if reversal_is_strong else "WEAK_OR_NEUTRAL", signal_index+1)
-        return FailedBreakoutConfirmation(origin, rev_dir, signal_index, "NOT_CONFIRMED_BY_NEXT_BAR",
+        return FailedBreakoutConfirmation(origin,
+            rev_dir,
+            signal_index,
+            "NOT_CONFIRMED_BY_NEXT_BAR",
             "STRONG" if origin.engineering_strong else "WEAK_OR_NEUTRAL",
             "STRONG" if reversal_is_strong else "WEAK_OR_NEUTRAL", signal_index+1)
     return FailedBreakoutConfirmation(origin, rev_dir, signal_index, "AWAITING_NEXT_BAR_COMPARISON",
@@ -271,7 +291,10 @@ def classify_failed_breakout_confirmation(
 
 
 def classify_generic_failure_of_failure(
-    candles: tuple[Candle, ...], *, original_setup_id: str, original_direction: Literal["LONG", "SHORT"],
+    candles: tuple[Candle, ...],
+        *,
+        original_setup_id: str,
+        original_direction: Literal["LONG", "SHORT"],
     first_failure_origin: ReversalPatternOrigin, evaluated_index: int | None = None,
 ) -> GenericFailureOfFailureLifecycle:
     """BROOKS-GAP-035 generic adapter over the single WAVE_05 failure truth.
@@ -291,7 +314,13 @@ def classify_generic_failure_of_failure(
         state, later = "FIRST_FAILURE_ATTEMPT_TRIGGERED", None
     else:
         state, later = "FIRST_FAILURE_WAITING_FOR_TRIGGER", None
-    return GenericFailureOfFailureLifecycle(original_setup_id, original_direction, first_failure_origin, life, state, end, later)
+    return GenericFailureOfFailureLifecycle(original_setup_id,
+        original_direction,
+        first_failure_origin,
+        life,
+        state,
+        end,
+        later)
 
 
 def classify_failure_of_failure(
@@ -304,12 +333,16 @@ def classify_failure_of_failure(
     direction = first_failure.reversal_direction
     rev_origin = ReversalPatternOrigin(
         attempt_id=f"{first_failure.origin.breakout_id}:FIRST_FAILURE:{first_failure.signal_index}",
-        pattern_id="FAILED_BREAKOUT_REVERSAL", direction=direction, signal_index=first_failure.signal_index,
+        pattern_id="FAILED_BREAKOUT_REVERSAL",
+            direction=direction,
+            signal_index=first_failure.signal_index,
         trigger_level=signal.low if direction=="SHORT" else signal.high, objective_level=None,
         failure_level=signal.high if direction=="SHORT" else signal.low,
     )
     generic = classify_generic_failure_of_failure(
-        candles, original_setup_id=first_failure.origin.breakout_id, original_direction=first_failure.origin.direction,
+        candles,
+            original_setup_id=first_failure.origin.breakout_id,
+            original_direction=first_failure.origin.direction,
         first_failure_origin=rev_origin, evaluated_index=evaluated_index,
     )
     return FailureOfFailureLifecycle(
