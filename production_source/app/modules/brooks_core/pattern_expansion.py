@@ -1623,7 +1623,11 @@ def scan_breakout_lifecycle_observations(
         if bt is not None:
             structural = bt.structural_test
             out.append(_obs(
-                f"BREAKOUT_TEST_{direction}", "Breakout Test", "BREAKOUT_CONTEXT", last, direction=direction,
+                f"BREAKOUT_TEST_{direction}",
+                "Breakout Test",
+                "BREAKOUT_CONTEXT",
+                last,
+                direction=direction,
                 rule_ids=("BB-RNG-BREAKOUT-TEST",),
                 metadata=(
                     ("structure_id", bt.structure_id),
@@ -1648,7 +1652,11 @@ def scan_breakout_lifecycle_observations(
                 ),
             ))
         if last >= 1:
-            nb = classify_near_breakout_pullback(candles, direction=direction, reference_id=f"SWING:{ref.candle_index}", reference_level=chosen.reference_level,
+            nb = classify_near_breakout_pullback(
+                candles,
+                direction=direction,
+                reference_id=f"SWING:{ref.candle_index}",
+                reference_level=chosen.reference_level,
                 zone_low=zone_low, zone_high=zone_high, approach_index=last-1, evaluated_index=last)
             if nb is not None:
                 out.append(_obs(
@@ -1658,7 +1666,11 @@ def scan_breakout_lifecycle_observations(
     return tuple(out)
 
 
-def scan_compact_pattern_lifecycle_observations(snapshot: MarketSnapshot, context, policy: BrooksFullCorePolicy):
+def scan_compact_pattern_lifecycle_observations(
+    snapshot: MarketSnapshot,
+    context,
+    policy: BrooksFullCorePolicy,
+):
     """BROOKS-GAP-042/043: preserve one compact-pattern origin through later outcome."""
     candles = snapshot.candles
     last = len(candles) - 1
@@ -1742,7 +1754,11 @@ def scan_extended_hl_recurrence_observations(
     if context.regime not in {"BULL_TREND", "BEAR_TREND"}:
         return ()
     candles = snapshot.candles
-    scan = confirm_swings_causally(candles, left_bars=policy.context.swing_left_bars, right_bars=policy.context.swing_right_bars)
+    scan = confirm_swings_causally(
+        candles,
+        left_bars=policy.context.swing_left_bars,
+        right_bars=policy.context.swing_right_bars,
+    )
     kind = "HIGH" if context.regime == "BULL_TREND" else "LOW"
     anchors = [s for s in scan.swings if s.kind == kind and s.candle_index < len(candles)-1]
     if not anchors:
@@ -1763,7 +1779,11 @@ def scan_extended_hl_recurrence_observations(
     ),)
 
 
-def detect_extended_h4_l4(snapshot: MarketSnapshot, context, policy: BrooksFullCorePolicy) -> tuple[BrooksPatternCandidate, ...]:
+def detect_extended_h4_l4(
+    snapshot: MarketSnapshot,
+    context,
+    policy: BrooksFullCorePolicy,
+) -> tuple[BrooksPatternCandidate, ...]:
     """WAVE_06: H4/L4 count alone is never an autonomous trade candidate."""
     return ()
 
@@ -1790,7 +1810,10 @@ def scan_range_hl_context_observations(
             continue
         event=recurrence.events[-1]
         out.append(_obs(
-            f"RANGE_{event.label}_{direction}_CONTEXT", f"Range {event.label} {direction.title()} Context", "RANGE_LOCATION_CONTEXT", event.index,
+            f"RANGE_{event.label}_{direction}_CONTEXT",
+            f"Range {event.label} {direction.title()} Context",
+            "RANGE_LOCATION_CONTEXT",
+            event.index,
             direction=direction, rule_ids=("BB-RNG-17-HL-BAR-COUNT",),
             metadata=(("entry_number",str(event.number)),("episode_origin_index",str(recurrence.episode_origin_index)),
                       ("local_price_relation",location.local_price_relation),("enclosing_relation",location.enclosing_relation),
@@ -1851,7 +1874,12 @@ def scan_additional_context_observations(
             direction=spike_lifecycle.direction,rule_ids=("BB-TRD-SPIKE-CHANNEL",),
             metadata=(("episode_id",spike_lifecycle.episode_id),("spike_start_index",str(spike_lifecycle.spike_start_index)),
                       ("spike_end_index",str(spike_lifecycle.spike_end_index)),
-                      ("channel_start_index","" if spike_lifecycle.channel_start_index is None else str(spike_lifecycle.channel_start_index)),
+                      (
+                          "channel_start_index",
+                          ""
+                          if spike_lifecycle.channel_start_index is None
+                          else str(spike_lifecycle.channel_start_index)
+                      ),
                       ("state",spike_lifecycle.state),("trade_eligible","false"),("canonical_gap_id","BROOKS-GAP-009"))
         ))
         evo=classify_trend_range_evolution(
