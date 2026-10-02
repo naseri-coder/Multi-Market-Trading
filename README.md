@@ -20,6 +20,7 @@
 [![Developer](https://img.shields.io/badge/Developer-%40nasericoder-26A5E4?logo=telegram&logoColor=white)](https://t.me/nasericoder)
 
 **Channel:** [@naseri_coder](https://t.me/naseri_coder) · **Developer:** [@nasericoder](https://t.me/nasericoder)
+
 **Public source snapshot · Active development · Validation-first · Live Brooks execution disabled**
 
 [Overview](#overview) · [How it works](#how-it-works) · [Current status](#current-status) · [Quick start](#quick-start) · [Verification](#verification) · [Security](#security)
