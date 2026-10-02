@@ -346,12 +346,21 @@ def classify_failure_of_failure(
         first_failure_origin=rev_origin, evaluated_index=evaluated_index,
     )
     return FailureOfFailureLifecycle(
-        first_failure.origin, first_failure, rev_origin, generic.first_failure_lifecycle, generic.state, generic.later_failure_index
+        first_failure.origin,
+        first_failure,
+        rev_origin,
+        generic.first_failure_lifecycle,
+        generic.state,
+        generic.later_failure_index
     )
 
 
 def classify_breakout_test(
-    candles: tuple[Candle, ...], origin: BreakoutAttemptIdentity, *, zone_low: Decimal, zone_high: Decimal,
+    candles: tuple[Candle, ...],
+    origin: BreakoutAttemptIdentity,
+    *,
+    zone_low: Decimal,
+    zone_high: Decimal,
     evaluated_index: int | None = None,
 ) -> BreakoutTestIdentity | None:
     """Classify test occurrence first; only later bars may resolve hold/failure outcome."""
@@ -431,7 +440,11 @@ def classify_breakout_test(
 
 
 def classify_near_breakout_pullback(
-    candles: tuple[Candle, ...], *, direction: Literal["LONG", "SHORT"], reference_id: str, reference_level: Decimal,
+    candles: tuple[Candle, ...],
+    *,
+    direction: Literal["LONG", "SHORT"],
+    reference_id: str,
+    reference_level: Decimal,
     zone_low: Decimal, zone_high: Decimal, approach_index: int, evaluated_index: int | None = None,
 ) -> BreakoutTestIdentity | None:
     end=len(candles)-1 if evaluated_index is None else min(evaluated_index,len(candles)-1)
@@ -462,7 +475,10 @@ def classify_near_breakout_pullback(
 
 
 def classify_compact_pattern_lifecycle(
-    candles: tuple[Candle, ...], origin: CompactPatternOrigin, *, evaluated_index: int | None = None,
+    candles: tuple[Candle, ...],
+    origin: CompactPatternOrigin,
+    *,
+    evaluated_index: int | None = None,
 ) -> CompactPatternLifecycle:
     end=len(candles)-1 if evaluated_index is None else min(evaluated_index,len(candles)-1)
     if end <= origin.end_index:
@@ -501,10 +517,19 @@ def classify_compact_pattern_lifecycle(
     return CompactPatternLifecycle(origin,state,end,breakout_dir,breakout_i,reentry,opp,pullback)
 
 
-def correction_step(previous: Candle, current: Candle, *, trend_direction: TrendDirection) -> StepKind:
+def correction_step(
+    previous: Candle,
+    current: Candle,
+    *,
+    trend_direction: TrendDirection,
+) -> StepKind:
     """Classify one closed-bar directional step without a fixed magnitude threshold."""
     if current.close != previous.close:
-        with_trend = current.close > previous.close if trend_direction == "BULL_TREND" else current.close < previous.close
+        with_trend = (
+            current.close > previous.close
+            if trend_direction == "BULL_TREND"
+            else current.close < previous.close
+        )
         return "WITH_TREND" if with_trend else "COUNTERTREND"
     if trend_direction == "BULL_TREND":
         if current.low < previous.low and current.high <= previous.high:
@@ -520,16 +545,28 @@ def correction_step(previous: Candle, current: Candle, *, trend_direction: Trend
 
 
 def correction_reset_by_resumption(
-    candles: tuple[Candle, ...], *, trend_direction: TrendDirection, origin_index: int, evaluated_index: int
+    candles: tuple[Candle, ...],
+    *,
+    trend_direction: TrendDirection,
+    origin_index: int,
+    evaluated_index: int
 ) -> bool:
     """Use the pre-existing Core interpretation of full resumption beyond correction origin."""
     origin = candles[origin_index]
     current = candles[evaluated_index]
-    return current.high > origin.high if trend_direction == "BULL_TREND" else current.low < origin.low
+    return (
+        current.high > origin.high
+        if trend_direction == "BULL_TREND"
+        else current.low < origin.low
+    )
 
 
 def classify_structural_correction(
-    candles: tuple[Candle, ...], *, trend_direction: TrendDirection, start_index: int, evaluated_index: int | None = None
+    candles: tuple[Candle, ...],
+    *,
+    trend_direction: TrendDirection,
+    start_index: int,
+    evaluated_index: int | None = None
 ) -> CorrectionEpisode | None:
     if trend_direction not in {"BULL_TREND", "BEAR_TREND"} or not candles:
         return None
@@ -577,7 +614,11 @@ def classify_structural_correction(
 
 
 def classify_generic_reversal_attempts(
-    candles: tuple[Candle, ...], *, trend_direction: TrendDirection, start_index: int = 0, evaluated_index: int | None = None
+    candles: tuple[Candle, ...],
+    *,
+    trend_direction: TrendDirection,
+    start_index: int = 0,
+    evaluated_index: int | None = None
 ) -> GenericReversalAttemptLifecycle | None:
     if not candles or trend_direction not in {"BULL_TREND", "BEAR_TREND"}:
         return None
