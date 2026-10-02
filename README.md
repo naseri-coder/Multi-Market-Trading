@@ -2,21 +2,21 @@
 
 # 📈 Crypto Price Action
 
-### Rule-based crypto signal research with traceable price-action logic
+### Turning price-action concepts into explicit, testable crypto signal rules
 
-**پژوهش و توسعه سیستم سیگنال‌دهی کریپتو با منطق پرایس‌اکشن قانون‌محور**
+**تبدیل مفاهیم پرایس‌اکشن البروکس به قواعد صریح، قابل‌آزمایش و قابل‌ردیابی برای سیگنال‌های کریپتو**
 
 [![Publication safety](https://github.com/naseri-coder/crypto-price-action/actions/workflows/publication-safety.yml/badge.svg?branch=main)](https://github.com/naseri-coder/crypto-price-action/actions/workflows/publication-safety.yml)
 [![Public tests](https://github.com/naseri-coder/crypto-price-action/actions/workflows/public-test-corpus.yml/badge.svg)](https://github.com/naseri-coder/crypto-price-action/actions/workflows/public-test-corpus.yml)
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-async-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Release](https://img.shields.io/badge/release-v0.2.0-7C3AED)](https://github.com/naseri-coder/crypto-price-action)
+[![Version](https://img.shields.io/badge/version-v0.2.0-7C3AED)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-D22128?logo=apache&logoColor=white)](LICENSE)
 
-**Public snapshot · Active development · Validation-first · Live trading disabled**
+**Public source snapshot · Active development · Validation-first · Live Brooks execution disabled**
 
-[Overview](#overview) · [Architecture](#architecture) · [Quick Start](#quick-start) · [Verification](#verification) · [Security](#security)
+[Overview](#overview) · [How it works](#how-it-works) · [Current status](#current-status) · [Quick start](#quick-start) · [Verification](#verification) · [Security](#security)
 
 </div>
 
@@ -28,27 +28,26 @@
 <a id="overview"></a>
 ## ✨ Overview
 
-**Crypto Price Action** turns price-action concepts into explicit, testable software rules for market context, signal evaluation, probability, risk, and lifecycle handling.
+**Crypto Price Action** is a rule-based cryptocurrency signal-system project focused on converting documented price-action concepts into inspectable software logic.
 
-| | |
-| --- | --- |
-| 🧠 **Analysis** | Rule-based market structure, context, and pattern logic |
-| 📊 **Signal intelligence** | Signal, probability, evidence, and decision infrastructure |
-| 🛡️ **Risk & lifecycle** | Risk assessment, signal lifecycle, paper/shadow evaluation paths |
-| ⚙️ **Reproducible ops** | PostgreSQL, Docker, Alembic, integrity checks, guarded installation |
-| 📡 **Integrations** | Telegram and reporting modules, disabled by default where sensitive |
-| 🔐 **Publication safety** | SHA256 allowlist, frozen-source verification, CI safety gates |
+Instead of treating a setup as a single pattern match, the project evaluates the setup together with its surrounding **market context, structural evidence, probability assessment, and risk/lifecycle constraints**.
+
+### What the engine evaluates
+
+`Trend direction & relative strength` · `Follow-through` · `Bar overlap` · `Pullbacks & second entries` · `Breakouts & failed breakouts` · `Trading ranges & tight ranges` · `Setup location vs. market context`
 
 <details open>
 <summary><strong>🇮🇷 فارسی — پروژه در ۳۰ ثانیه</strong></summary>
 
 <br>
 
-این پروژه یک سیستم متن‌باز برای توسعه و ارزیابی **سیگنال‌های کریپتو بر پایه پرایس‌اکشن قانون‌محور** است. هدف، تبدیل مفاهیم تحلیلی به قواعدی است که بتوان آن‌ها را تست، ردیابی، توضیح و دوباره اعتبارسنجی کرد.
+**Crypto Price Action** یک پروژه متن‌باز برای توسعه سیستم سیگنال‌دهی کریپتو با هسته پرایس‌اکشن قانون‌محور است. تمرکز پروژه بر این است که مفاهیم پرایس‌اکشن البروکس به قواعدی تبدیل شوند که بتوان آن‌ها را **تست، ردیابی، توضیح و دوباره اعتبارسنجی** کرد.
 
-در snapshot عمومی فعلی، زیرساخت تحلیل ساختار و Context بازار، Signal/Probability، Risk، lifecycle، مسیرهای paper/shadow، PostgreSQL، Docker، Telegram integration و کنترل‌های یکپارچگی سورس وجود دارد.
+سیستم فقط به پیدا کردن یک Pattern اکتفا نمی‌کند؛ بلکه **Context بازار، ساختار، Follow-through، Overlap، Pullback، Breakout / Failed Breakout، Trading Range، Probability و Risk** را در کنار یکدیگر بررسی می‌کند.
 
-**نکته مهم:** وجود یک قابلیت در سورس به معنی فعال یا تأییدشدن آن برای استفاده عملیاتی نیست. مسیرهای حساس به‌صورت پیش‌فرض غیرفعال نگه داشته می‌شوند.
+در snapshot عمومی فعلی، زیرساخت تحلیل، Signal/Probability، Risk و lifecycle، مسیرهای paper/shadow، PostgreSQL، Docker، Telegram integration و کنترل‌های یکپارچگی سورس وجود دارد.
+
+**وجود یک قابلیت در سورس به معنی فعال یا تأییدشدن آن برای استفاده عملیاتی نیست.**
 
 </details>
 
@@ -57,39 +56,59 @@
 
 <br>
 
-This project is an open-source system for developing and evaluating **rule-based cryptocurrency price-action signals**. The goal is to convert analytical concepts into software rules that can be tested, traced, explained, and revalidated.
+The project develops a **rule-based crypto signal engine** around explicit, testable interpretations of price-action concepts documented in Al Brooks' published work.
 
-The current public snapshot includes market-structure and context analysis, signal/probability infrastructure, risk and lifecycle modules, paper/shadow evaluation paths, PostgreSQL, Docker, Telegram integration, and frozen-source integrity controls.
+A candidate setup is evaluated in context rather than as an isolated pattern: market structure, follow-through, overlap, pullbacks, breakout behavior, probability evidence, and risk/lifecycle controls all contribute to the decision pipeline.
 
-**Important:** a capability being present in source does not mean it is enabled or approved for operational use. Sensitive runtime paths remain disabled by default.
+The public snapshot contains analysis, signal/probability, risk/lifecycle, paper/shadow, PostgreSQL, Docker, Telegram integration, and source-integrity infrastructure.
+
+**A capability being present in source does not mean it is enabled or approved for operational use.**
 
 </details>
-
-<a id="architecture"></a>
-## 🧩 Architecture
+<a id="how-it-works"></a>
+## 🧠 How It Works
 
 ```text
 Market Data
-    │
-    ▼
+   ↓
 Context & Structure
-    │
-    ▼
-Pattern / Signal Evaluation
-    │
-    ▼
-Probability & Evidence
-    │
-    ▼
-Risk & Lifecycle Controls
-    │
-    ├──► Paper / Shadow evaluation
-    ├──► PostgreSQL
-    └──► Telegram / Reporting
+   ↓
+Pattern / Setup Evidence
+   ↓
+Probability & Decision Evidence
+   ↓
+Risk & Lifecycle Gates
+   ↓
+Paper / Shadow / Reporting paths
 ```
 
-The public source contains market-data adapters, including a Binance USD-M Futures adapter. Runtime selection and operational approval are separate concerns.
+**1. Context first** — identify market regime, direction, structure, range/trend behavior, overlap, and related context.
 
+**2. Setup evidence** — evaluate candidate patterns such as pullbacks, breakouts, failed breakouts, second entries, ranges, and other supported structures.
+
+**3. Probability & evidence** — carry explicit rule evidence and probability-related state instead of reducing the decision to a single opaque score.
+
+**4. Risk & lifecycle** — apply risk checks and lifecycle controls before downstream handling.
+
+**5. Controlled outputs** — paper/shadow, persistence, Telegram, and reporting paths remain subject to configuration and validation gates.
+
+The public source includes market-data adapters, including **Binance USD-M Futures**. Runtime selection and operational approval are separate concerns.
+
+<a id="current-status"></a>
+## 🚦 Current Status
+
+| Area | Status |
+| --- | --- |
+| Rule-based analysis core | 🟡 Active development & validation |
+| Context / pattern coverage | 🟡 Expanding and regression-tested |
+| Public source integrity | 🟢 SHA256-verified snapshot |
+| Public test corpus | 🟢 GitHub Actions |
+| Paper / shadow paths | 🟡 Present; controlled by runtime flags |
+| Live Brooks execution | 🔴 Disabled / not production-approved |
+| PostgreSQL / Docker installation | 🟢 Reproducible isolated-host path |
+
+> [!NOTE]
+> This table describes the public repository state, not trading performance or profitability.
 <a id="quick-start"></a>
 ## 🚀 Quick Start
 
@@ -180,9 +199,11 @@ Publication curation excluded 13 historical entries: one `.bak`, one empty `.tmp
 
 </details>
 
-## 🛣️ Development Focus
+## 🛣️ Development Direction
 
-Current work is centered on broader rule coverage, stronger context validation, regression testing, explainable outputs, tighter risk/lifecycle controls, and paper/shadow evaluation before operational use is considered.
+**Broader rule coverage → stronger context validation → regression & explainability → paper/shadow evaluation → operational review**
+
+This sequence is a development direction, not a promise of production or live-trading readiness.
 
 <a id="security"></a>
 ## 🤝 Contributing, Security & License
