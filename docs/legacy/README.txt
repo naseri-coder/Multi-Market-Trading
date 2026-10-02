@@ -1,0 +1,1 @@
+Real code patch: active OPEN signal lifecycle guard + VIP publish suppression.
