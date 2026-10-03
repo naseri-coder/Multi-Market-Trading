@@ -19,6 +19,7 @@ jobs:
     timeout-minutes: 35
     env:
       PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
       PTB_TIMEDELTA: "1"
       APP_ENV: test
       TELEGRAM_RUNTIME_ENABLED: "false"
@@ -91,17 +92,21 @@ jobs:
 
           docker run -d --rm --name "${CH6_PG_CONTAINER}" --security-opt no-new-privileges:true -e "POSTGRES_USER=${pg_user}" -e "POSTGRES_PASSWORD=${pg_password}" -e "POSTGRES_DB=${ch6_db}" -v "${CH6_SOCKET_DIR}:/var/run/postgresql" postgres:16-alpine -c unix_socket_directories=/var/run/postgresql -c listen_addresses=''
 
-          ready=0
-          for _ in {1..60}; do
-            if docker exec "${CH6_PG_CONTAINER}" pg_isready -U "${pg_user}" -d "${ch6_db}" >/dev/null 2>&1; then
-              ready=1
-              break
+          consecutive=0
+          for _ in {1..90}; do
+            if docker exec "${CH6_PG_CONTAINER}" pg_isready -h /var/run/postgresql -U "${pg_user}" -d "${ch6_db}" >/dev/null 2>&1; then
+              consecutive=$((consecutive + 1))
+              if [ "${consecutive}" -ge 3 ]; then
+                break
+              fi
+            else
+              consecutive=0
             fi
             sleep 1
           done
-          test "${ready}" = "1"
+          test "${consecutive}" -ge 3
 
-          docker exec "${CH6_PG_CONTAINER}" createdb -U "${pg_user}" "${general_db}"
+          docker exec "${CH6_PG_CONTAINER}" createdb -h /var/run/postgresql -U "${pg_user}" "${general_db}"
 
           ch6_url="postgresql+asyncpg://${pg_user}:${pg_password}@localhost/${ch6_db}?host=${CH6_SOCKET_DIR}"
           general_url="postgresql+asyncpg://${pg_user}:${pg_password}@localhost/${general_db}?host=${CH6_SOCKET_DIR}"
@@ -140,6 +145,13 @@ jobs:
           test "${ch6_current}" = "20260928_0021"
           test "${general_current}" = "20260928_0021"
           echo "BOTH_DATABASES_MIGRATION_0021_PASS"
+
+      - name: Remove migration bytecode before parity tests
+        run: |
+          set -Eeuo pipefail
+          cd "${CH6_ISOLATED_SOURCE}"
+          find migrations production_source/migrations -type d -name __pycache__ -prune -exec rm -rf {} +
+          test -z "$(find migrations production_source/migrations -type f -name '*.py[co]' -print -quit)"
 
       - name: Run complete tracked corpus
         run: |
