@@ -1,4 +1,6 @@
-"""Offline current-contract regression checks for 4.2.41.88E-current-contract; no production inputs."""
+"""Offline current-contract regression checks for
+4.2.41.88E-current-contract; no production inputs.
+"""
 
 from __future__ import annotations
 
