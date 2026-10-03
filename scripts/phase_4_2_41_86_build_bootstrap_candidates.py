@@ -194,9 +194,7 @@ async def main(*, phase84, phase85, output, allow_network):
                 risk = RiskEngineService().evaluate(candidate)
                 if not council.approved or not risk.approved:
                     return None
-                view = read_current_risk(
-                    candidate, assessment=risk, need_trade_plan=True
-                )
+                view = read_current_risk(candidate, assessment=risk, need_trade_plan=True)
                 current_geometry = (
                     candidate.symbol,
                     candidate.timeframe,
@@ -215,9 +213,7 @@ async def main(*, phase84, phase85, output, allow_network):
                 ):
                     raise RuntimeError("FORENSIC_DATASET_OVERLAP")
                 probability = HistoricalProbabilityEngine(()).assess(candidate)
-                row = serialize_candidate(
-                    candidate, snapshot, clock, council, risk, view
-                )
+                row = serialize_candidate(candidate, snapshot, clock, council, risk, view)
                 row["empty_history_diagnostic"] = {
                     "hp_outcome_policy_id": probability.outcome_policy_id,
                     "hp_statistics_contract_id": probability.statistics_contract_id,
