@@ -8,10 +8,9 @@ from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
 
-import pytest
-
 from app.modules.brooks_core.engine_contract import TargetPlanLifecycle
 from app.modules.risk_engine.service import RiskEngineService
+
 from research_layer.current_risk_contract import read_current_risk
 from research_layer.phase_4_2_41_88d.contract import *
 from research_layer.phase_4_2_41_88d.statistics import evaluate
@@ -46,17 +45,19 @@ def history_rows(count, *, prefix="h", start=datetime(2026, 1, 1, tzinfo=UTC)):
     for index in range(count):
         terminal = start + timedelta(hours=index)
         realized = Decimal("1.0") if index % 3 else Decimal("-0.35")
-        rows.append({
-            **{key: base[key] for key in COHORT_FIELDS},
-            "candidate_identity": f"{prefix}{index:03d}",
-            "candidate_timestamp": (terminal - timedelta(minutes=30)).isoformat(),
-            "terminal_timestamp": terminal.isoformat(),
-            "symbol": "BTCUSDT",
-            "timeframe": "15m",
-            "direction": "LONG",
-            "setup_type": "FAILED_BREAKOUT_LONG",
-            "realized_r": str(realized),
-        })
+        rows.append(
+            {
+                **{key: base[key] for key in COHORT_FIELDS},
+                "candidate_identity": f"{prefix}{index:03d}",
+                "candidate_timestamp": (terminal - timedelta(minutes=30)).isoformat(),
+                "terminal_timestamp": terminal.isoformat(),
+                "symbol": "BTCUSDT",
+                "timeframe": "15m",
+                "direction": "LONG",
+                "setup_type": "FAILED_BREAKOUT_LONG",
+                "realized_r": str(realized),
+            }
+        )
     return rows
 
 
@@ -73,9 +74,7 @@ def current_risk_candidate(monkeypatch):
         entry_price=Decimal("100"),
         stop_loss=Decimal("99"),
         targets=(Decimal("100.5"), Decimal("103")),
-        target_plan_lifecycle=TargetPlanLifecycle(
-            "synthetic-plan", "TREND_TRADE", "LONG", 0
-        ),
+        target_plan_lifecycle=TargetPlanLifecycle("synthetic-plan", "TREND_TRADE", "LONG", 0),
         snapshot=SimpleNamespace(
             candles=(SimpleNamespace(high=Decimal("99.5"), low=Decimal("98.5")),)
         ),
@@ -106,8 +105,11 @@ def test_causality_uses_only_terminal_cases_strictly_before_admission():
     rows = history_rows(20)
     admission = datetime(2026, 1, 10, tzinfo=UTC)
     result = evaluate(candidate(at=admission.isoformat()), rows)
-    selected = {row["candidate_identity"] for row in rows
-                if datetime.fromisoformat(row["terminal_timestamp"]) < admission}
+    selected = {
+        row["candidate_identity"]
+        for row in rows
+        if datetime.fromisoformat(row["terminal_timestamp"]) < admission
+    }
     assert set(result["history_case_ids"]) == selected
 
 

@@ -15,13 +15,11 @@ from app.modules.brooks_core.books_full_policy import BrooksFullCorePolicy
 from app.modules.market_data.entities import Candle, MarketSnapshot
 from app.modules.paper_runtime.entities import PaperSignalCandidate
 from app.modules.risk_engine.service import RiskEngineService
-from app.modules.signal_automation.entities import BrooksRuleEvidence
-from app.modules.signal_gate.service import SignalGateService
 from app.modules.signal_intelligence.cold_start_integration import (
     evaluate_offline_cold_start_integration,
 )
 from app.modules.signal_intelligence.probability import HistoricalProbabilityEngine
-from app.modules.signal_intelligence.service import SignalIntelligenceService
+
 from research_layer.current_risk_contract import read_current_risk
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -83,13 +81,11 @@ def candidate_from_engine_result(result, snapshot, source_signal_id):
 
 def geometry_valid(candidate):
     if candidate.direction == "LONG":
-        return (
-            candidate.stop_loss < candidate.entry_price
-            and all(target > candidate.entry_price for target in candidate.targets)
+        return candidate.stop_loss < candidate.entry_price and all(
+            target > candidate.entry_price for target in candidate.targets
         )
-    return (
-        candidate.stop_loss > candidate.entry_price
-        and all(target < candidate.entry_price for target in candidate.targets)
+    return candidate.stop_loss > candidate.entry_price and all(
+        target < candidate.entry_price for target in candidate.targets
     )
 
 
@@ -107,11 +103,7 @@ def current_parity(candidate, risk=None):
     ) + dec(reward["runner_fraction"])
     residual = allocation_sum - Decimal("1")
     checks = dict(view["invariants"])
-    passed = (
-        all(checks.values())
-        and contribution_sum == view["plan_rr"]
-        and residual == 0
-    )
+    passed = all(checks.values()) and contribution_sum == view["plan_rr"] and residual == 0
     return {
         "current_plan_rr": str(view["plan_rr"]),
         "v6_planned_reward_r": str(view["plan_rr"]),
@@ -127,14 +119,13 @@ def current_parity(candidate, risk=None):
 
 async def regenerate_from_snapshot(row, *, source_signal_id):
     snapshot = snapshot_from_row(row)
-    engine = BrooksTrilogyFullCoreEngine(
-        policy=BrooksFullCorePolicy(enable_trade_decisions=True)
-    )
+    engine = BrooksTrilogyFullCoreEngine(policy=BrooksFullCorePolicy(enable_trade_decisions=True))
     result = await engine.evaluate(snapshot)
     if result.decision not in {"LONG", "SHORT"}:
         raise RuntimeError("current engine produced no tradeable decision")
     candidate = candidate_from_engine_result(result, snapshot, source_signal_id)
     return candidate
+
 
 async def main(*, fixture, output):
     document = json.loads(fixture.read_text(encoding="utf-8"))
@@ -160,28 +151,30 @@ async def main(*, fixture, output):
             closed_native_compatible_count=0,
         )
         parity = current_parity(candidate, risk)
-        rows.append({
-            "candidate_no": number,
-            "historical_identity": historical["identity_sha256"],
-            "historical_candidate_timestamp": historical["candidate_timestamp"],
-            "current_snapshot_hash": candidate.market_snapshot_hash,
-            "current_configuration_version": candidate.configuration_version,
-            "symbol": candidate.symbol,
-            "timeframe": candidate.timeframe,
-            "direction": candidate.direction,
-            "setup_type": candidate.setup_type,
-            "hp_outcome_policy_id": probability.outcome_policy_id,
-            "hp_statistics_contract_id": probability.statistics_contract_id,
-            "hp_readiness_state": probability.readiness_state,
-            "compatible_case_count": probability.compatible_case_count,
-            "required_sample_size": probability.required_sample_size,
-            "raw_final_failures": list(result.final_gate.metadata.get("failures", ())),
-            "cold_start_pass": result.cold_start.approved,
-            "cold_start_reason": result.cold_start.reason,
-            "effective_approved": result.effective_approved,
-            "admission_metadata": result.admission_metadata,
-            "current_plan_parity": parity,
-        })
+        rows.append(
+            {
+                "candidate_no": number,
+                "historical_identity": historical["identity_sha256"],
+                "historical_candidate_timestamp": historical["candidate_timestamp"],
+                "current_snapshot_hash": candidate.market_snapshot_hash,
+                "current_configuration_version": candidate.configuration_version,
+                "symbol": candidate.symbol,
+                "timeframe": candidate.timeframe,
+                "direction": candidate.direction,
+                "setup_type": candidate.setup_type,
+                "hp_outcome_policy_id": probability.outcome_policy_id,
+                "hp_statistics_contract_id": probability.statistics_contract_id,
+                "hp_readiness_state": probability.readiness_state,
+                "compatible_case_count": probability.compatible_case_count,
+                "required_sample_size": probability.required_sample_size,
+                "raw_final_failures": list(result.final_gate.metadata.get("failures", ())),
+                "cold_start_pass": result.cold_start.approved,
+                "cold_start_reason": result.cold_start.reason,
+                "effective_approved": result.effective_approved,
+                "admission_metadata": result.admission_metadata,
+                "current_plan_parity": parity,
+            }
+        )
     report = {
         "phase": "4.2.41.85-current-contract",
         "historical_fixture_sha256": hashlib.sha256(fixture.read_bytes()).hexdigest(),

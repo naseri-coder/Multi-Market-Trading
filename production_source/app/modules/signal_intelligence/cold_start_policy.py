@@ -4,6 +4,7 @@ This module is not wired into production publication. It may substitute only for
 an unavailable current realized-R evidence gate while compatible native history
 is insufficient; every other Brooks/AI/Risk/Final-Gate failure remains binding.
 """
+
 from __future__ import annotations
 
 import math
@@ -17,10 +18,7 @@ from app.modules.signal_automation.entities import (
 
 COLD_START_LABEL = "COLD_START_QUALITATIVE_GATE"
 POLICY_VERSION = "COLD_START_QUALITATIVE_POLICY_V2"
-CONFIGURATION_TAG = (
-    "coldq2-hp-realized-r-unbootstrapped-maturing-"
-    "s75-c75-e90-r85-bc0.80-exit20"
-)
+CONFIGURATION_TAG = "coldq2-hp-realized-r-unbootstrapped-maturing-s75-c75-e90-r85-bc0.80-exit20"
 EXIT_CLOSED_NATIVE_COMPATIBLE = 20
 ALLOWED_READINESS_STATES = frozenset({"UNBOOTSTRAPPED", "MATURING"})
 MIN_STRUCTURE = 75.0
@@ -147,19 +145,11 @@ def persistence_metadata(
         "cold_start_policy_version": decision.policy_version,
         "cold_start_configuration_tag": decision.configuration_tag,
         "statistically_calibrated_at_admission": False,
-        "compatible_case_count_at_admission": getattr(
-            probability, "compatible_case_count", None
-        ),
-        "required_sample_size_at_admission": getattr(
-            probability, "required_sample_size", None
-        ),
-        "hp_outcome_policy_id_at_admission": getattr(
-            probability, "outcome_policy_id", None
-        ),
+        "compatible_case_count_at_admission": getattr(probability, "compatible_case_count", None),
+        "required_sample_size_at_admission": getattr(probability, "required_sample_size", None),
+        "hp_outcome_policy_id_at_admission": getattr(probability, "outcome_policy_id", None),
         "hp_statistics_contract_id_at_admission": getattr(
             probability, "statistics_contract_id", None
         ),
-        "hp_readiness_state_at_admission": getattr(
-            probability, "readiness_state", None
-        ),
+        "hp_readiness_state_at_admission": getattr(probability, "readiness_state", None),
     }

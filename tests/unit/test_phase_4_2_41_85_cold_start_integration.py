@@ -1,7 +1,6 @@
 from types import SimpleNamespace as NS
 
 import pytest
-
 from app.modules.signal_automation.entities import (
     BROOKS_HP_OUTCOME_POLICY_EVENT_PLUS_REALIZED_R_V1,
     BROOKS_HP_STATISTICS_CONTRACT_ID,

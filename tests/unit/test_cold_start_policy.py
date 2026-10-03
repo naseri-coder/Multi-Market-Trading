@@ -1,7 +1,6 @@
 from types import SimpleNamespace as NS
 
 import pytest
-
 from app.modules.signal_automation.entities import (
     BROOKS_HP_OUTCOME_POLICY_EVENT_PLUS_REALIZED_R_V1,
     BROOKS_HP_STATISTICS_CONTRACT_ID,
@@ -9,7 +8,6 @@ from app.modules.signal_automation.entities import (
 from app.modules.signal_intelligence.cold_start_policy import (
     COLD_START_LABEL,
     CONFIGURATION_TAG,
-    EXIT_CLOSED_NATIVE_COMPATIBLE,
     POLICY_VERSION,
     evaluate_cold_start_fallback,
     persistence_metadata,
@@ -55,8 +53,17 @@ def objects(
 
 def decide(**kwargs):
     object_keys = {
-        "policy", "statistics", "readiness", "calibrated", "failures",
-        "structure", "context", "entry", "risk", "certainty", "conflicts",
+        "policy",
+        "statistics",
+        "readiness",
+        "calibrated",
+        "failures",
+        "structure",
+        "context",
+        "entry",
+        "risk",
+        "certainty",
+        "conflicts",
         "compatible",
     }
     object_args = {key: kwargs.pop(key) for key in list(kwargs) if key in object_keys}

@@ -15,13 +15,13 @@ from app.modules.brooks_core.books_full_policy import BrooksFullCorePolicy
 from app.modules.market_data.entities import Candle, MarketSnapshot
 from app.modules.paper_runtime.entities import PaperSignalCandidate
 from app.modules.risk_engine.service import RiskEngineService
-from app.modules.signal_automation.entities import BrooksRuleEvidence
 from app.modules.signal_gate.service import SignalGateService
 from app.modules.signal_intelligence.cold_start_integration import (
     evaluate_offline_cold_start_integration,
 )
 from app.modules.signal_intelligence.probability import HistoricalProbabilityEngine
 from app.modules.signal_intelligence.service import SignalIntelligenceService
+
 from research_layer.current_risk_contract import read_current_risk
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -83,13 +83,11 @@ def candidate_from_engine_result(result, snapshot, source_signal_id):
 
 def geometry_valid(candidate):
     if candidate.direction == "LONG":
-        return (
-            candidate.stop_loss < candidate.entry_price
-            and all(target > candidate.entry_price for target in candidate.targets)
+        return candidate.stop_loss < candidate.entry_price and all(
+            target > candidate.entry_price for target in candidate.targets
         )
-    return (
-        candidate.stop_loss > candidate.entry_price
-        and all(target < candidate.entry_price for target in candidate.targets)
+    return candidate.stop_loss > candidate.entry_price and all(
+        target < candidate.entry_price for target in candidate.targets
     )
 
 
@@ -107,11 +105,7 @@ def current_parity(candidate, risk=None):
     ) + dec(reward["runner_fraction"])
     residual = allocation_sum - Decimal("1")
     checks = dict(view["invariants"])
-    passed = (
-        all(checks.values())
-        and contribution_sum == view["plan_rr"]
-        and residual == 0
-    )
+    passed = all(checks.values()) and contribution_sum == view["plan_rr"] and residual == 0
     return {
         "current_plan_rr": str(view["plan_rr"]),
         "v6_planned_reward_r": str(view["plan_rr"]),
@@ -127,18 +121,19 @@ def current_parity(candidate, risk=None):
 
 async def regenerate_from_snapshot(row, *, source_signal_id):
     snapshot = snapshot_from_row(row)
-    engine = BrooksTrilogyFullCoreEngine(
-        policy=BrooksFullCorePolicy(enable_trade_decisions=True)
-    )
+    engine = BrooksTrilogyFullCoreEngine(policy=BrooksFullCorePolicy(enable_trade_decisions=True))
     result = await engine.evaluate(snapshot)
     if result.decision not in {"LONG", "SHORT"}:
         raise RuntimeError("current engine produced no tradeable decision")
     candidate = candidate_from_engine_result(result, snapshot, source_signal_id)
     return candidate
 
+
 async def regenerate_exact14(row, *, allow_network):
     if not allow_network:
-        raise RuntimeError("exact14 requires explicit --allow-network because the historical fixture has no snapshot")
+        raise RuntimeError(
+            "exact14 requires explicit --allow-network because the historical fixture has no snapshot"
+        )
     from app.modules.market_data.binance_futures import BinanceFuturesMarketDataProvider
 
     clock = dt(row["timestamp"])
@@ -212,9 +207,14 @@ async def validate_one(row, *, allow_network):
         "qualitative": {
             key: metadata.get(key)
             for key in (
-                "structure_quality", "context_quality", "entry_quality",
-                "risk_quality", "brooks_certainty", "ai_score",
-                "council_confidence", "evidence_conflicts",
+                "structure_quality",
+                "context_quality",
+                "entry_quality",
+                "risk_quality",
+                "brooks_certainty",
+                "ai_score",
+                "council_confidence",
+                "evidence_conflicts",
             )
         },
         "current_plan_parity": parity,
@@ -231,8 +231,7 @@ async def validate_one(row, *, allow_network):
 async def main(*, fixture, output, allow_network):
     document = json.loads(fixture.read_text(encoding="utf-8"))
     results = [
-        await validate_one(row, allow_network=allow_network)
-        for row in document["candidates"]
+        await validate_one(row, allow_network=allow_network) for row in document["candidates"]
     ]
     report = {
         "phase": "4.2.41.84-current-contract",

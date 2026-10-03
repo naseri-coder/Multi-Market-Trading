@@ -7,9 +7,8 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal as D
 from pathlib import Path
 
-import pytest
-
 from app.modules.market_data.entities import Candle
+
 from research_layer.phase_4_2_41_88d.contract import *
 from research_layer.phase_4_2_41_88d.lifecycle import advance, new_state
 from research_layer.phase_4_2_41_88d.statistics import evaluate
@@ -85,17 +84,19 @@ def test_version_mismatch_fails_closed():
     candidate = cand()
     history = []
     for i in range(25):
-        history.append({
-            **{key: candidate[key] for key in COHORT_FIELDS},
-            "candidate_identity": f"h{i}",
-            "candidate_timestamp": "2025-12-01T00:00:00+00:00",
-            "terminal_timestamp": "2025-12-02T00:00:00+00:00",
-            "symbol": "BTCUSDT",
-            "timeframe": "15m",
-            "direction": "LONG",
-            "setup_type": "FAILED_BREAKOUT_LONG",
-            "realized_r": "1",
-        })
+        history.append(
+            {
+                **{key: candidate[key] for key in COHORT_FIELDS},
+                "candidate_identity": f"h{i}",
+                "candidate_timestamp": "2025-12-01T00:00:00+00:00",
+                "terminal_timestamp": "2025-12-02T00:00:00+00:00",
+                "symbol": "BTCUSDT",
+                "timeframe": "15m",
+                "direction": "LONG",
+                "setup_type": "FAILED_BREAKOUT_LONG",
+                "realized_r": "1",
+            }
+        )
     history[0]["statistics_contract_version"] = "WRONG"
     assert evaluate(candidate, history)["compatible_n"] == 24
     for row in history:
@@ -113,7 +114,8 @@ def test_initial_stop_realized_r():
 def test_partial_then_breakeven_realized_r():
     c = cand()
     state = advance(
-        c, new_state(c),
+        c,
+        new_state(c),
         [candle(1, 99, 101, 99, 100), candle(2, 105, 111, 101, 108), candle(3, 103, 105, 99, 100)],
         [],
     )
@@ -124,7 +126,8 @@ def test_partial_then_breakeven_realized_r():
 def test_staged_completion_realized_r():
     c = cand()
     state = advance(
-        c, new_state(c),
+        c,
+        new_state(c),
         [candle(1, 99, 101, 99, 100), candle(2, 105, 111, 101, 108), candle(3, 115, 121, 111, 120)],
         [],
     )
@@ -165,7 +168,8 @@ def test_runner_reversal_realized_r():
         },
     ]
     state = advance(
-        c, new_state(c),
+        c,
+        new_state(c),
         [candle(1, 99, 101, 99, 100), candle(2, 105, 111, 101, 108), candle(3, 107, 109, 104, 105)],
         evidence,
     )
@@ -192,11 +196,17 @@ def test_store_decision_immutable_and_isolated():
 
 def test_no_production_writer_imports_or_publication():
     raw = ARCHIVE.read_text().lower()
-    assert "original sha256: b86371185450d9d51e4349bca4244f592ef131e1aa53ed720b343dfe0750192d" in raw
+    assert (
+        "original sha256: b86371185450d9d51e4349bca4244f592ef131e1aa53ed720b343dfe0750192d" in raw
+    )
     forbidden = (
-        "from app.db", "import app.db", "app.modules.signal_intelligence",
-        "app.modules.signal_gate", "app.modules.operations.telegram",
-        "app.modules.signals.repository", "app.modules.signals.service",
+        "from app.db",
+        "import app.db",
+        "app.modules.signal_intelligence",
+        "app.modules.signal_gate",
+        "app.modules.operations.telegram",
+        "app.modules.signals.repository",
+        "app.modules.signals.service",
     )
     assert not any(item in raw for item in forbidden)
     assert ".send_message(" not in raw and ".publish(" not in raw
@@ -211,4 +221,6 @@ def test_section_c_frozen_parity_all_pass():
     for name, count in expected.items():
         assert parity["groups"][name]["expected_rows"] == count
         assert parity["groups"][name]["passed_rows"] == count
-    assert all(row["pass"] and all(row["checks"].values()) for row in parity["detailed_synthetic_checks"])
+    assert all(
+        row["pass"] and all(row["checks"].values()) for row in parity["detailed_synthetic_checks"]
+    )

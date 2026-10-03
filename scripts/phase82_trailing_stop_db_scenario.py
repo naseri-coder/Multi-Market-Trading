@@ -1,4 +1,5 @@
 """Disposable-PostgreSQL-only trailing-stop integration scenario."""
+
 from __future__ import annotations
 
 import argparse
@@ -6,8 +7,6 @@ import asyncio
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from urllib.parse import urlsplit
-
-from sqlalchemy import select
 
 from app.core.config import Settings
 from app.db.session import DatabaseManager
@@ -18,6 +17,7 @@ from app.modules.signals.errors import SignalStateError
 from app.modules.signals.models import Signal, SignalEvent, SignalTarget
 from app.modules.signals.repository import SQLAlchemySignalRepository
 from app.modules.signals.service import SignalService
+from sqlalchemy import select
 
 BASE = datetime(2026, 1, 2, tzinfo=UTC)
 _ALLOWED_HOSTS = {"localhost", "127.0.0.1", "::1", "postgres", "db"}
@@ -46,10 +46,21 @@ def bar(i: int, high: str, low: str, close: str | None = None) -> Candle:
 
 def structural_bull_candles() -> tuple[Candle, ...]:
     values = [
-        ("101", "100"), ("103", "101"), ("105", "102"), ("104", "100"),
-        ("103", "99"), ("104", "100"), ("106", "102"), ("108", "104"),
-        ("107", "103"), ("106", "102"), ("107", "103"), ("109", "105"),
-        ("111", "107"), ("110", "106"), ("109", "105"),
+        ("101", "100"),
+        ("103", "101"),
+        ("105", "102"),
+        ("104", "100"),
+        ("103", "99"),
+        ("104", "100"),
+        ("106", "102"),
+        ("108", "104"),
+        ("107", "103"),
+        ("106", "102"),
+        ("107", "103"),
+        ("109", "105"),
+        ("111", "107"),
+        ("110", "106"),
+        ("109", "105"),
     ]
     return tuple(bar(i, high, low) for i, (high, low) in enumerate(values))
 

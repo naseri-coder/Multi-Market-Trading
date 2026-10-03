@@ -3,25 +3,17 @@ from __future__ import annotations
 import argparse
 import asyncio
 import dataclasses
-import hashlib
 import json
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 
-from app.modules.ai_council.service import AICouncilService
 from app.modules.brooks_core.books_full_engine import BrooksTrilogyFullCoreEngine
 from app.modules.brooks_core.books_full_policy import BrooksFullCorePolicy
 from app.modules.market_data.entities import Candle, MarketSnapshot
 from app.modules.paper_runtime.entities import PaperSignalCandidate
 from app.modules.risk_engine.service import RiskEngineService
-from app.modules.signal_automation.entities import BrooksRuleEvidence
-from app.modules.signal_gate.service import SignalGateService
-from app.modules.signal_intelligence.cold_start_integration import (
-    evaluate_offline_cold_start_integration,
-)
-from app.modules.signal_intelligence.probability import HistoricalProbabilityEngine
-from app.modules.signal_intelligence.service import SignalIntelligenceService
+
 from research_layer.current_risk_contract import read_current_risk
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -83,13 +75,11 @@ def candidate_from_engine_result(result, snapshot, source_signal_id):
 
 def geometry_valid(candidate):
     if candidate.direction == "LONG":
-        return (
-            candidate.stop_loss < candidate.entry_price
-            and all(target > candidate.entry_price for target in candidate.targets)
+        return candidate.stop_loss < candidate.entry_price and all(
+            target > candidate.entry_price for target in candidate.targets
         )
-    return (
-        candidate.stop_loss > candidate.entry_price
-        and all(target < candidate.entry_price for target in candidate.targets)
+    return candidate.stop_loss > candidate.entry_price and all(
+        target < candidate.entry_price for target in candidate.targets
     )
 
 
@@ -107,11 +97,7 @@ def current_parity(candidate, risk=None):
     ) + dec(reward["runner_fraction"])
     residual = allocation_sum - Decimal("1")
     checks = dict(view["invariants"])
-    passed = (
-        all(checks.values())
-        and contribution_sum == view["plan_rr"]
-        and residual == 0
-    )
+    passed = all(checks.values()) and contribution_sum == view["plan_rr"] and residual == 0
     return {
         "current_plan_rr": str(view["plan_rr"]),
         "v6_planned_reward_r": str(view["plan_rr"]),
@@ -127,14 +113,13 @@ def current_parity(candidate, risk=None):
 
 async def regenerate_from_snapshot(row, *, source_signal_id):
     snapshot = snapshot_from_row(row)
-    engine = BrooksTrilogyFullCoreEngine(
-        policy=BrooksFullCorePolicy(enable_trade_decisions=True)
-    )
+    engine = BrooksTrilogyFullCoreEngine(policy=BrooksFullCorePolicy(enable_trade_decisions=True))
     result = await engine.evaluate(snapshot)
     if result.decision not in {"LONG", "SHORT"}:
         raise RuntimeError("current engine produced no tradeable decision")
     candidate = candidate_from_engine_result(result, snapshot, source_signal_id)
     return candidate
+
 
 async def exact14_rows(fixture, *, allow_network):
     if not allow_network:
@@ -143,9 +128,7 @@ async def exact14_rows(fixture, *, allow_network):
 
     document = json.loads(fixture.read_text(encoding="utf-8"))
     rows = []
-    engine = BrooksTrilogyFullCoreEngine(
-        policy=BrooksFullCorePolicy(enable_trade_decisions=True)
-    )
+    engine = BrooksTrilogyFullCoreEngine(policy=BrooksFullCorePolicy(enable_trade_decisions=True))
     for historical in document["candidates"]:
         clock = dt(historical["timestamp"])
         provider = BinanceFuturesMarketDataProvider(clock=lambda: clock)
@@ -162,9 +145,7 @@ async def exact14_rows(fixture, *, allow_network):
                 source="CURRENT_PARITY_EXPLICIT_NETWORK",
             )
             result = await engine.evaluate(snapshot)
-            candidate = candidate_from_engine_result(
-                result, snapshot, "CURRENT_PARITY_EXACT14"
-            )
+            candidate = candidate_from_engine_result(result, snapshot, "CURRENT_PARITY_EXACT14")
             row = current_parity(candidate)
             row["historical_identity"] = historical["identity_sha256"]
             row["current_snapshot_hash"] = candidate.market_snapshot_hash
@@ -178,9 +159,7 @@ async def frozen_rows(fixture, source):
     document = json.loads(fixture.read_text(encoding="utf-8"))
     rows = []
     for historical in document["candidates"]:
-        candidate = await regenerate_from_snapshot(
-            historical, source_signal_id=source
-        )
+        candidate = await regenerate_from_snapshot(historical, source_signal_id=source)
         row = current_parity(candidate)
         row["historical_identity"] = historical["identity_sha256"]
         row["current_snapshot_hash"] = candidate.market_snapshot_hash
@@ -193,10 +172,7 @@ async def main(*, exact14, holdout, bootstrap, output, allow_network):
     hrows = await frozen_rows(holdout, "CURRENT_PARITY_HOLDOUT")
     brows = await frozen_rows(bootstrap, "CURRENT_PARITY_BOOTSTRAP")
     groups = {"exact14": exact, "holdout67": hrows, "bootstrap86": brows}
-    summary = {
-        name: [sum(row["pass"] for row in rows), len(rows)]
-        for name, rows in groups.items()
-    }
+    summary = {name: [sum(row["pass"] for row in rows), len(rows)] for name, rows in groups.items()}
     report = {
         "phase": "4.2.41.88D-R1-current-contract",
         "assertion_contract": "CURRENT_PLAN_ALLOCATION_INVARIANTS",
@@ -217,10 +193,12 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--allow-network", action="store_true")
     args = parser.parse_args()
-    asyncio.run(main(
-        exact14=args.exact14,
-        holdout=args.holdout,
-        bootstrap=args.bootstrap,
-        output=args.output,
-        allow_network=args.allow_network,
-    ))
+    asyncio.run(
+        main(
+            exact14=args.exact14,
+            holdout=args.holdout,
+            bootstrap=args.bootstrap,
+            output=args.output,
+            allow_network=args.allow_network,
+        )
+    )

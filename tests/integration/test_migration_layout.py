@@ -21,40 +21,22 @@ SIGNAL_REVISION = (
     / "20260901_0005_create_signal_database_architecture.py"
 )
 SIGNAL_SERVICE_REVISION = (
-    PROJECT_ROOT
-    / "migrations"
-    / "versions"
-    / "20260901_0006_relax_signal_stop_loss_constraint.py"
+    PROJECT_ROOT / "migrations" / "versions" / "20260901_0006_relax_signal_stop_loss_constraint.py"
 )
 FAVORITES_REVISION = (
-    PROJECT_ROOT
-    / "migrations"
-    / "versions"
-    / "20260901_0007_create_user_favorites.py"
+    PROJECT_ROOT / "migrations" / "versions" / "20260901_0007_create_user_favorites.py"
 )
 NOTIFICATION_SETTINGS_REVISION = (
-    PROJECT_ROOT
-    / "migrations"
-    / "versions"
-    / "20260902_0008_create_user_notification_settings.py"
+    PROJECT_ROOT / "migrations" / "versions" / "20260902_0008_create_user_notification_settings.py"
 )
 SUBSCRIPTIONS_REVISION = (
-    PROJECT_ROOT
-    / "migrations"
-    / "versions"
-    / "20260902_0009_create_subscription_architecture.py"
+    PROJECT_ROOT / "migrations" / "versions" / "20260902_0009_create_subscription_architecture.py"
 )
 PAYMENTS_REVISION = (
-    PROJECT_ROOT
-    / "migrations"
-    / "versions"
-    / "20260902_0010_create_payment_architecture.py"
+    PROJECT_ROOT / "migrations" / "versions" / "20260902_0010_create_payment_architecture.py"
 )
 REFERRALS_REVISION = (
-    PROJECT_ROOT
-    / "migrations"
-    / "versions"
-    / "20260902_0011_create_referral_system.py"
+    PROJECT_ROOT / "migrations" / "versions" / "20260902_0011_create_referral_system.py"
 )
 
 

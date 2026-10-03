@@ -1,4 +1,5 @@
 """Deterministic V5 robustness run: 300 random OHLCV charts plus scale twins."""
+
 from __future__ import annotations
 
 import asyncio
@@ -9,7 +10,6 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import numpy as np
-
 from app.modules.brooks_core.advanced_context import assess_advanced_context
 from app.modules.brooks_core.books_full_engine import BrooksTrilogyFullCoreEngine
 from app.modules.brooks_core.books_full_patterns import scan_full_brooks_patterns
@@ -26,8 +26,17 @@ SCALE_CHOICES = (Decimal("0.01"), Decimal("1"), Decimal("1000"))
 def _path(regime: str, rng: np.random.Generator, bars: int) -> np.ndarray:
     scale = float(rng.lognormal(mean=0.0, sigma=0.65))
     if regime.startswith("MTR_"):
-        anchors = ((0, 100), (10, 106), (18, 103), (30, 111), (42, 107),
-                   (60, 118), (110, 95), (119, 116), (120, 105))
+        anchors = (
+            (0, 100),
+            (10, 106),
+            (18, 103),
+            (30, 111),
+            (42, 107),
+            (60, 118),
+            (110, 95),
+            (119, 116),
+            (120, 105),
+        )
         values = np.interp(np.arange(bars + 1), *zip(*anchors))
         if regime == "MTR_BOTTOM":
             values = 200 - values
@@ -57,7 +66,7 @@ def make_snapshot(regime: str, seed: int, factor: Decimal = Decimal("1")) -> Mar
     for i in range(bars):
         o = path[i]
         c = path[i + 1]
-        recent_steps = np.diff(path[max(0, i - 20):i + 1])
+        recent_steps = np.diff(path[max(0, i - 20) : i + 1])
         observed = float(np.std(recent_steps)) if len(recent_steps) else abs(c - o)
         usual = max(observed, 0.15)
         wick_up = abs(rng.normal(0.20 * usual, 0.12 * usual))
@@ -66,14 +75,25 @@ def make_snapshot(regime: str, seed: int, factor: Decimal = Decimal("1")) -> Mar
             c += rng.choice((-1, 1)) * rng.uniform(1.5, 3.5) * usual
         vals = [Decimal(str(x)) * factor for x in (o, max(o, c) + wick_up, min(o, c) - wick_dn, c)]
         opened = BASE + timedelta(minutes=15 * i)
-        candles.append(Candle(
-            open_time=opened, close_time=opened + timedelta(minutes=15),
-            open=vals[0], high=vals[1], low=vals[2], close=vals[3],
-            volume=Decimal(str(rng.lognormal(3.0, 0.6))),
-        ))
+        candles.append(
+            Candle(
+                open_time=opened,
+                close_time=opened + timedelta(minutes=15),
+                open=vals[0],
+                high=vals[1],
+                low=vals[2],
+                close=vals[3],
+                volume=Decimal(str(rng.lognormal(3.0, 0.6))),
+            )
+        )
     return MarketSnapshot(
-        exchange="synthetic", market_type="futures", symbol="BTCUSDT", timeframe="15m",
-        candles=tuple(candles), captured_at=candles[-1].close_time, source="V5_SYNTHETIC",
+        exchange="synthetic",
+        market_type="futures",
+        symbol="BTCUSDT",
+        timeframe="15m",
+        candles=tuple(candles),
+        captured_at=candles[-1].close_time,
+        source="V5_SYNTHETIC",
     )
 
 
@@ -83,7 +103,8 @@ def analyze_snapshot(snapshot: MarketSnapshot, engine: BrooksTrilogyFullCoreEngi
     market = build_market_context(snapshot, policy=engine.policy)
     scan = scan_full_brooks_patterns(snapshot, context, engine.policy)
     context_pass = tuple(
-        item for item in scan.candidates
+        item
+        for item in scan.candidates
         if engine._context_contract_status(item, context, market)[0] == "PASS"
     )
     vetoed = tuple(
@@ -97,7 +118,8 @@ def analyze_snapshot(snapshot: MarketSnapshot, engine: BrooksTrilogyFullCoreEngi
         "eligible": tuple(x.setup_type for x in eligible),
         "barbwire_vetoed": tuple(x.setup_type for x in vetoed),
         "rejections": tuple(
-            engine._context_contract_status(x, context, market)[1] for x in scan.candidates
+            engine._context_contract_status(x, context, market)[1]
+            for x in scan.candidates
             if engine._context_contract_status(x, context, market)[0] != "PASS"
         ),
     }
@@ -134,7 +156,9 @@ async def main() -> None:
             rejection_reasons.update(analysis["rejections"])
             family_seen.update(x.split("_", 1)[0] for x in analysis["eligible"])
             if (analysis["context"], analysis["raw"], analysis["eligible"]) != (
-                twin_analysis["context"], twin_analysis["raw"], twin_analysis["eligible"]
+                twin_analysis["context"],
+                twin_analysis["raw"],
+                twin_analysis["eligible"],
             ):
                 scale_mismatches += 1
         except Exception as exc:
@@ -149,7 +173,10 @@ async def main() -> None:
         "scenarios": total,
         "regimes": {k: dict(v) for k, v in counts.items()},
         "raw_activation": {"count": raw_active, "pct": round(100 * raw_active / total, 2)},
-        "eligible_activation": {"count": eligible_active, "pct": round(100 * eligible_active / total, 2)},
+        "eligible_activation": {
+            "count": eligible_active,
+            "pct": round(100 * eligible_active / total, 2),
+        },
         "trade_activation": {"count": trade_active, "pct": round(100 * trade_active / total, 2)},
         "barbwire_veto_candidates": sum(x["barbwire_veto_candidates"] for x in counts.values()),
         "top_raw_setups": raw_types.most_common(12),

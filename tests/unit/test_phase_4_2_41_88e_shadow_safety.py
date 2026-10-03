@@ -22,7 +22,9 @@ def archived_source():
         "d90134653bc6ea317b98ffc4f75ed86b281f526f5d05ed364d165f9b38ebd3c4"
     )
     text = raw.decode()
-    assert "Original SHA256: 4fa03bb9fc2ac42046a2dd971955f9c472cda4b72116459b77dfdf400c68b34c" in text
+    assert (
+        "Original SHA256: 4fa03bb9fc2ac42046a2dd971955f9c472cda4b72116459b77dfdf400c68b34c" in text
+    )
     return text
 
 
@@ -57,9 +59,13 @@ def test_statistics_contract_unchanged_and_module_hash_same_as_88d():
 def test_no_production_writers_or_publication_imports():
     src = archived_source().lower()
     forbidden = (
-        "from app.db", "import app.db", "app.modules.signal_intelligence",
-        "app.modules.signal_gate", "app.modules.operations.telegram",
-        "app.modules.signals.repository", "app.modules.signals.service",
+        "from app.db",
+        "import app.db",
+        "app.modules.signal_intelligence",
+        "app.modules.signal_gate",
+        "app.modules.operations.telegram",
+        "app.modules.signals.repository",
+        "app.modules.signals.service",
     )
     assert not any(item in src for item in forbidden)
     assert ".send_message(" not in src and ".publish(" not in src
@@ -78,17 +84,19 @@ def test_version_mismatch_remains_fail_closed():
     candidate = current_candidate()
     history = []
     for i in range(20):
-        history.append({
-            **{key: candidate[key] for key in COHORT_FIELDS},
-            "candidate_identity": f"h{i}",
-            "candidate_timestamp": "2026-01-01T00:00:00+00:00",
-            "terminal_timestamp": "2026-01-02T00:00:00+00:00",
-            "symbol": "BTCUSDT",
-            "timeframe": "15m",
-            "direction": "LONG",
-            "setup_type": "FAILED_BREAKOUT_LONG",
-            "realized_r": "1",
-        })
+        history.append(
+            {
+                **{key: candidate[key] for key in COHORT_FIELDS},
+                "candidate_identity": f"h{i}",
+                "candidate_timestamp": "2026-01-01T00:00:00+00:00",
+                "terminal_timestamp": "2026-01-02T00:00:00+00:00",
+                "symbol": "BTCUSDT",
+                "timeframe": "15m",
+                "direction": "LONG",
+                "setup_type": "FAILED_BREAKOUT_LONG",
+                "realized_r": "1",
+            }
+        )
     history[0]["statistics_contract_version"] = "WRONG"
     result = evaluate(candidate, history)
     assert result["compatible_n"] == 19

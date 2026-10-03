@@ -3,7 +3,6 @@ from pathlib import Path
 from types import SimpleNamespace as NS
 
 import pytest
-
 from app.modules.signal_automation.entities import (
     BROOKS_HP_OUTCOME_POLICY_EVENT_PLUS_REALIZED_R_V1,
     BROOKS_HP_STATISTICS_CONTRACT_ID,
@@ -89,9 +88,15 @@ def test_exit20_transition_is_monotonic_and_never_reactivates():
         assert decision.reason == "COLD_START_EXIT_THRESHOLD_REACHED"
 
 
-@pytest.mark.parametrize("readiness,expected", [("UNBOOTSTRAPPED", True), ("MATURING", True),
-                                                ("CALIBRATED_UNFAVORABLE", False),
-                                                ("STATISTICAL_ASSESSMENT_INVALID", False)])
+@pytest.mark.parametrize(
+    "readiness,expected",
+    [
+        ("UNBOOTSTRAPPED", True),
+        ("MATURING", True),
+        ("CALIBRATED_UNFAVORABLE", False),
+        ("STATISTICAL_ASSESSMENT_INVALID", False),
+    ],
+)
 def test_synthetic_holdout_contains_non_vacuous_accept_and_reject_cases(readiness, expected):
     decision, probability = evaluate_case(readiness=readiness)
     assert decision.approved is expected
@@ -104,7 +109,9 @@ def test_synthetic_holdout_contains_non_vacuous_accept_and_reject_cases(readines
         assert metadata["hp_outcome_policy_id_at_admission"] == (
             BROOKS_HP_OUTCOME_POLICY_EVENT_PLUS_REALIZED_R_V1
         )
-        assert metadata["hp_statistics_contract_id_at_admission"] == BROOKS_HP_STATISTICS_CONTRACT_ID
+        assert (
+            metadata["hp_statistics_contract_id_at_admission"] == BROOKS_HP_STATISTICS_CONTRACT_ID
+        )
         assert metadata["hp_readiness_state_at_admission"] == readiness
         assert "calibration_status_at_admission" not in metadata
         assert include_in_calibrated_at_admission_reporting(metadata) is False

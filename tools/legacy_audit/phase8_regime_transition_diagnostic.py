@@ -45,12 +45,12 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
+import json
 from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from decimal import Decimal
-import hashlib
-import json
 from pathlib import Path
 from statistics import median
 
@@ -61,7 +61,6 @@ from app.modules.brooks_core.causal_structure import (
 from app.modules.brooks_core.fundamentals_policy import FundamentalsExecutionPolicy
 from app.modules.market_data.entities import Candle, MarketSnapshot
 from app.modules.shadow_replay.historical import BinanceHistoricalCandleSource
-
 
 LABELS_PATH: Path | None = None
 MAPPING_PATH: Path | None = None
@@ -168,8 +167,7 @@ def segment_evidence(
     adjusted = signed if candidate_structure == "BULL_TREND" else -signed
 
     path = sum(
-        abs(current.close - previous.close)
-        for previous, current in zip(candles, candles[1:])
+        abs(current.close - previous.close) for previous, current in zip(candles, candles[1:])
     )
     efficiency = Decimal("0") if path == 0 else abs(net) / path
 
@@ -199,8 +197,7 @@ def ten_bar_sequence(
 
     chunks = tuple(last40[i : i + 10] for i in (0, 10, 20, 30))
     evidences = tuple(
-        segment_evidence(chunk, candidate_structure=candidate_structure)
-        for chunk in chunks
+        segment_evidence(chunk, candidate_structure=candidate_structure) for chunk in chunks
     )
     classes = tuple(e.direction_class for e in evidences)
     values = tuple(e.adjusted_displacement for e in evidences)
@@ -215,9 +212,8 @@ def body_relation(candle: Candle, candidate_structure: str) -> str:
     if candle.close == candle.open:
         return "DOJI"
     bullish = candle.close > candle.open
-    aligned = (
-        (candidate_structure == "BULL_TREND" and bullish)
-        or (candidate_structure == "BEAR_TREND" and not bullish)
+    aligned = (candidate_structure == "BULL_TREND" and bullish) or (
+        candidate_structure == "BEAR_TREND" and not bullish
     )
     return "ALIGNED" if aligned else "OPPOSITE"
 
@@ -273,11 +269,7 @@ def range_compression_evidence(
 
     prev20_med_bar = med(tuple(c.high - c.low for c in previous20))
     rec10_med_bar = med(tuple(c.high - c.low for c in recent10))
-    med_ratio = (
-        Decimal("0")
-        if prev20_med_bar == 0
-        else rec10_med_bar / prev20_med_bar
-    )
+    med_ratio = Decimal("0") if prev20_med_bar == 0 else rec10_med_bar / prev20_med_bar
 
     rec10_eff = segment_evidence(
         recent10,
@@ -395,11 +387,19 @@ def feature_summary(rows: list[CandidateDiagnostic]) -> dict:
         "shock_range_ratio": lambda r: r.shock.largest_range_ratio_vs_median40,
         "shock_offset": lambda r: Decimal(r.shock.shock_offset_from_signal_bars),
         "post_shock_adjusted_displacement": lambda r: r.shock.post_shock_adjusted_displacement,
-        "recent10_range_vs_previous20": lambda r: r.range_compression.recent10_range_vs_previous20_range,
-        "recent10_median_bar_range_ratio": lambda r: r.range_compression.recent10_median_bar_range_vs_previous20,
+        "recent10_range_vs_previous20": lambda r: (
+            r.range_compression.recent10_range_vs_previous20_range
+        ),
+        "recent10_median_bar_range_ratio": lambda r: (
+            r.range_compression.recent10_median_bar_range_vs_previous20
+        ),
         "recent10_efficiency": lambda r: r.range_compression.recent10_close_path_efficiency,
-        "body_sign_flip_fraction_recent20": lambda r: r.range_compression.body_sign_flip_fraction_recent20,
-        "directional_close_location_40": lambda r: r.range_compression.directional_close_location_in_40bar_range,
+        "body_sign_flip_fraction_recent20": lambda r: (
+            r.range_compression.body_sign_flip_fraction_recent20
+        ),
+        "directional_close_location_40": lambda r: (
+            r.range_compression.directional_close_location_in_40bar_range
+        ),
     }
 
     features = {}
@@ -413,9 +413,7 @@ def feature_summary(rows: list[CandidateDiagnostic]) -> dict:
 
     return {
         "count": len(rows),
-        "transition_classes": dict(
-            sorted(Counter(r.transition_class for r in rows).items())
-        ),
+        "transition_classes": dict(sorted(Counter(r.transition_class for r in rows).items())),
         "shock_body_relations": dict(
             sorted(Counter(r.shock.shock_body_relation for r in rows).items())
         ),
@@ -423,9 +421,7 @@ def feature_summary(rows: list[CandidateDiagnostic]) -> dict:
             sorted(Counter(r.shock.post_shock_direction_class for r in rows).items())
         ),
         "ten_bar_sequences": dict(
-            sorted(
-                Counter(">".join(r.ten_bar_sequence) for r in rows).items()
-            )
+            sorted(Counter(">".join(r.ten_bar_sequence) for r in rows).items())
         ),
         "features": features,
     }
@@ -445,29 +441,22 @@ async def main() -> None:
     if labels_manifest.get("mapping_seen") is not False:
         raise RuntimeError("blind-label lock does not assert mapping_seen=false")
 
-    label_lookup = {
-        item["blind_id"]: item["label"]
-        for item in labels_manifest["items"]
-    }
+    label_lookup = {item["blind_id"]: item["label"] for item in labels_manifest["items"]}
     mapping_items = mapping_manifest["items"]
     mapping_ids = {item["blind_id"] for item in mapping_items}
 
     if set(label_lookup) != mapping_ids:
         raise RuntimeError(
             f"blind/mapping id mismatch: "
-            f"labels_only={sorted(set(label_lookup)-mapping_ids)} "
-            f"mapping_only={sorted(mapping_ids-set(label_lookup))}"
+            f"labels_only={sorted(set(label_lookup) - mapping_ids)} "
+            f"mapping_only={sorted(mapping_ids - set(label_lookup))}"
         )
 
     if len(mapping_items) != 24:
         raise RuntimeError(f"expected 24 mapping items, got {len(mapping_items)}")
 
-    end_at = datetime.fromisoformat(
-        mapping_manifest["second_holdout"]["end_at"]
-    )
-    source_candles = int(
-        mapping_manifest["second_holdout"]["source_candles_per_dataset"]
-    )
+    end_at = datetime.fromisoformat(mapping_manifest["second_holdout"]["end_at"])
+    source_candles = int(mapping_manifest["second_holdout"]["source_candles_per_dataset"])
 
     grouped = defaultdict(list)
     for item in mapping_items:
@@ -489,25 +478,18 @@ async def main() -> None:
                 market_type=MARKET_TYPE,
                 end_at=end_at,
             )
-            by_close = {
-                c.close_time.isoformat(): i
-                for i, c in enumerate(candles)
-            }
+            by_close = {c.close_time.isoformat(): i for i, c in enumerate(candles)}
 
             for item in grouped[(symbol, timeframe)]:
                 captured_at = item["captured_at"]
                 if captured_at not in by_close:
-                    raise RuntimeError(
-                        f"cannot relocate {symbol} {timeframe} {captured_at}"
-                    )
+                    raise RuntimeError(f"cannot relocate {symbol} {timeframe} {captured_at}")
 
                 end_index = by_close[captured_at]
                 if end_index < SNAPSHOT_WINDOW - 1:
                     raise RuntimeError("candidate lacks 100-bar snapshot")
 
-                window = candles[
-                    end_index - SNAPSHOT_WINDOW + 1 : end_index + 1
-                ]
+                window = candles[end_index - SNAPSHOT_WINDOW + 1 : end_index + 1]
 
                 snapshot = MarketSnapshot(
                     exchange=EXCHANGE,
@@ -520,17 +502,10 @@ async def main() -> None:
                 )
 
                 if snapshot.snapshot_hash != item["snapshot_hash"]:
-                    raise RuntimeError(
-                        f"snapshot hash drift {item['blind_id']}"
-                    )
+                    raise RuntimeError(f"snapshot hash drift {item['blind_id']}")
                 if snapshot.captured_at.isoformat() != captured_at:
-                    raise RuntimeError(
-                        f"captured_at drift {item['blind_id']}"
-                    )
-                assert all(
-                    c.close_time <= snapshot.captured_at
-                    for c in snapshot.candles
-                )
+                    raise RuntimeError(f"captured_at drift {item['blind_id']}")
+                assert all(c.close_time <= snapshot.captured_at for c in snapshot.candles)
 
                 signal_index = int(item["signal_index"])
                 if signal_index != len(snapshot.candles) - 1:
@@ -565,9 +540,8 @@ async def main() -> None:
                 )
 
                 # Verify recomputed R40 current-run semantics against Phase 8.14.
-                if (
-                    structure_transition.r40_current_run_bars_recomputed
-                    != int(maturity["r40_current_run_bars"])
+                if structure_transition.r40_current_run_bars_recomputed != int(
+                    maturity["r40_current_run_bars"]
                 ):
                     raise RuntimeError(
                         f"R40 current-run drift {item['blind_id']}: "
@@ -589,9 +563,7 @@ async def main() -> None:
                         survives_last3=bool(item["survives_last3"]),
                         r40_alignment_stratum=maturity["alignment_stratum"],
                         r40_alignment=q(maturity["r40_alignment_last20"]),
-                        r40_current_run_from_mapping=int(
-                            maturity["r40_current_run_bars"]
-                        ),
+                        r40_current_run_from_mapping=int(maturity["r40_current_run_bars"]),
                         snapshot_hash_verified=True,
                         old20=old20,
                         recent20=recent20,
@@ -631,25 +603,18 @@ async def main() -> None:
     manifest = {
         "phase": "8.17",
         "mode": "REGIME_TRANSITION_V_REVERSAL_DIAGNOSTIC_ONLY",
-        "blind_labels_sha256": hashlib.sha256(
-            LABELS_PATH.read_bytes()
-        ).hexdigest(),
-        "mapping_manifest_sha256": hashlib.sha256(
-            MAPPING_PATH.read_bytes()
-        ).hexdigest(),
+        "blind_labels_sha256": hashlib.sha256(LABELS_PATH.read_bytes()).hexdigest(),
+        "mapping_manifest_sha256": hashlib.sha256(MAPPING_PATH.read_bytes()).hexdigest(),
         "review_item_count": len(diagnostics),
         "review_label_counts": dict(sorted(label_counts.items())),
         "transition_class_by_review_label": {
-            key: dict(sorted(value.items()))
-            for key, value in sorted(cross_transition.items())
+            key: dict(sorted(value.items())) for key, value in sorted(cross_transition.items())
         },
         "r40_stratum_by_review_label": {
-            key: dict(sorted(value.items()))
-            for key, value in sorted(cross_stratum.items())
+            key: dict(sorted(value.items())) for key, value in sorted(cross_stratum.items())
         },
         "label_summary": {
-            label: feature_summary(by_label[label])
-            for label in ("KEEP", "UNCERTAIN", "REJECT")
+            label: feature_summary(by_label[label]) for label in ("KEEP", "UNCERTAIN", "REJECT")
         },
         "candidates": [asdict(row) for row in diagnostics],
         "interpretation_constraints": [
@@ -670,13 +635,16 @@ async def main() -> None:
     }
 
     OUT.mkdir(parents=True, exist_ok=True)
-    payload = json.dumps(
-        manifest,
-        ensure_ascii=False,
-        sort_keys=True,
-        indent=2,
-        default=str,
-    ) + "\n"
+    payload = (
+        json.dumps(
+            manifest,
+            ensure_ascii=False,
+            sort_keys=True,
+            indent=2,
+            default=str,
+        )
+        + "\n"
+    )
 
     output = OUT / "phase8_regime_transition_diagnostic.json"
     output.write_text(payload, encoding="utf-8")
@@ -739,12 +707,7 @@ async def main() -> None:
             f"SHOCK_BODY={summary.get('shock_body_relations', {})}"
         )
         for feature, stats in summary.get("features", {}).items():
-            print(
-                f"  {feature}: "
-                f"min={stats['min']} "
-                f"median={stats['median']} "
-                f"max={stats['max']}"
-            )
+            print(f"  {feature}: min={stats['min']} median={stats['median']} max={stats['max']}")
 
     print()
     print(f"MANIFEST={output}")

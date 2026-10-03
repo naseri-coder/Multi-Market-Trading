@@ -26,20 +26,18 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
+import json
 from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from decimal import Decimal
-import hashlib
-import json
 from pathlib import Path
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
-
 from app.modules.brooks_core.causal_structure import (
     confirm_swings_causally,
     evaluate_br031_structure,
@@ -50,7 +48,7 @@ from app.modules.brooks_core.pullback_guard import (
 )
 from app.modules.market_data.entities import Candle, MarketSnapshot
 from app.modules.shadow_replay.historical import BinanceHistoricalCandleSource
-
+from matplotlib.patches import Rectangle
 
 INPUT: Path | None = None
 OUT: Path | None = None
@@ -87,9 +85,7 @@ class ReviewItem:
 
 
 def deterministic_rank(snapshot_hash: str) -> str:
-    return hashlib.sha256(
-        f"PHASE8.11|{snapshot_hash}".encode("utf-8")
-    ).hexdigest()
+    return hashlib.sha256(f"PHASE8.11|{snapshot_hash}".encode()).hexdigest()
 
 
 def detect_candidate(
@@ -260,11 +256,9 @@ async def main() -> None:
             selected.append(item)
 
         excluded_mh = [
-            c for c in candidates
-            if (
-                c["transition"] == "MULTIHORIZON_CONTINUATION_LIKE"
-                and not c["survives_last3"]
-            )
+            c
+            for c in candidates
+            if (c["transition"] == "MULTIHORIZON_CONTINUATION_LIKE" and not c["survives_last3"])
         ]
         for candidate in excluded_mh:
             item = dict(candidate)
@@ -303,10 +297,7 @@ async def main() -> None:
                 end_at=end_at,
             )
 
-            index_by_close = {
-                candle.close_time.isoformat(): i
-                for i, candle in enumerate(candles)
-            }
+            index_by_close = {candle.close_time.isoformat(): i for i, candle in enumerate(candles)}
 
             for item in sorted(
                 grouped[(symbol, timeframe)],
@@ -379,14 +370,9 @@ async def main() -> None:
                     raise RuntimeError("LAST3 survival drift")
 
                 review_id = hashlib.sha256(
-                    (
-                        "PHASE8.11|"
-                        + symbol
-                        + "|"
-                        + timeframe
-                        + "|"
-                        + item["snapshot_hash"]
-                    ).encode("utf-8")
+                    ("PHASE8.11|" + symbol + "|" + timeframe + "|" + item["snapshot_hash"]).encode(
+                        "utf-8"
+                    )
                 ).hexdigest()[:16]
 
                 chart_name = (
@@ -440,15 +426,11 @@ async def main() -> None:
         "mode": "UNSEEN_HOLDOUT_VISUAL_REVIEW_PACK",
         "selection": {
             "composite_pass_per_dataset": 3,
-            "composite_pass_selection": (
-                "lowest SHA256(PHASE8.11|snapshot_hash), deterministic"
-            ),
+            "composite_pass_selection": ("lowest SHA256(PHASE8.11|snapshot_hash), deterministic"),
             "include_all_multihorizon_continuation_excluded_by_last3": True,
             "selection_performed_without_outcomes": True,
         },
-        "source_holdout_manifest_sha256": hashlib.sha256(
-            INPUT.read_bytes()
-        ).hexdigest(),
+        "source_holdout_manifest_sha256": hashlib.sha256(INPUT.read_bytes()).hexdigest(),
         "review_item_count": len(review_items),
         "sample_group_counts": dict(sorted(counts.items())),
         "items": [asdict(item) for item in review_items],
@@ -462,12 +444,15 @@ async def main() -> None:
         },
     }
 
-    payload = json.dumps(
-        manifest,
-        ensure_ascii=False,
-        sort_keys=True,
-        indent=2,
-    ) + "\n"
+    payload = (
+        json.dumps(
+            manifest,
+            ensure_ascii=False,
+            sort_keys=True,
+            indent=2,
+        )
+        + "\n"
+    )
     manifest_path = OUT / "phase8_holdout_visual_review_manifest.json"
     manifest_path.write_text(payload, encoding="utf-8")
 

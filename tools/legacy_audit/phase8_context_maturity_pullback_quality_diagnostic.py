@@ -34,15 +34,15 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
+import json
 from collections import Counter, defaultdict
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from decimal import Decimal
-import hashlib
-import json
 from pathlib import Path
 from statistics import median
-from typing import Iterable
 
 from app.modules.brooks_core.causal_structure import (
     confirm_swings_causally,
@@ -54,7 +54,6 @@ from app.modules.brooks_core.pullback_guard import (
 )
 from app.modules.market_data.entities import Candle, MarketSnapshot
 from app.modules.shadow_replay.historical import BinanceHistoricalCandleSource
-
 
 VISUAL_MANIFEST: Path | None = None
 COMPOSITE_MANIFEST: Path | None = None
@@ -265,17 +264,13 @@ def maturity_metrics(
         rolling20_alignment_last20=q(
             sum(s == candidate_structure for s in last20_20) / len(last20_20)
         ),
-        rolling20_ambiguous_last20=q(
-            sum(s == "AMBIGUOUS" for s in last20_20) / len(last20_20)
-        ),
+        rolling20_ambiguous_last20=q(sum(s == "AMBIGUOUS" for s in last20_20) / len(last20_20)),
         rolling20_flip_count_last40=resolved_flip_count(last40_20),
         rolling20_current_run_bars=current_run(states20, candidate_structure),
         rolling40_alignment_last20=q(
             sum(s == candidate_structure for s in last20_40) / len(last20_40)
         ),
-        rolling40_ambiguous_last20=q(
-            sum(s == "AMBIGUOUS" for s in last20_40) / len(last20_40)
-        ),
+        rolling40_ambiguous_last20=q(sum(s == "AMBIGUOUS" for s in last20_40) / len(last20_40)),
         rolling40_flip_count_last40=resolved_flip_count(last40_40),
         rolling40_current_run_bars=current_run(states40, candidate_structure),
     )
@@ -297,15 +292,15 @@ def pullback_metrics(
     opposite_kind = "LOW" if candidate_structure == "BULL_TREND" else "HIGH"
 
     anchor_candidates = [
-        s for s in scan.swings
-        if s.kind == wanted_anchor_kind and s.candle_index <= start_index
+        s for s in scan.swings if s.kind == wanted_anchor_kind and s.candle_index <= start_index
     ]
     anchor = anchor_candidates[-1] if anchor_candidates else None
 
     prior_opposites = []
     if anchor is not None:
         prior_opposites = [
-            s for s in scan.swings
+            s
+            for s in scan.swings
             if s.kind == opposite_kind and s.candle_index < anchor.candle_index
         ]
     prior = prior_opposites[-1] if prior_opposites else None
@@ -392,16 +387,12 @@ def signal_metrics(
     if candidate_structure == "BULL_TREND":
         directional_body = signal.close > signal.open
         close_location = (
-            Decimal("0.5")
-            if bar_range == 0
-            else (signal.close - signal.low) / bar_range
+            Decimal("0.5") if bar_range == 0 else (signal.close - signal.low) / bar_range
         )
     else:
         directional_body = signal.close < signal.open
         close_location = (
-            Decimal("0.5")
-            if bar_range == 0
-            else (signal.high - signal.close) / bar_range
+            Decimal("0.5") if bar_range == 0 else (signal.high - signal.close) / bar_range
         )
 
     prior = candles[max(0, signal_index - 20) : signal_index]
@@ -452,20 +443,36 @@ def summarize_group(rows: list[CandidateDiagnostic]) -> dict:
     feature_extractors = {
         "countertrend_legs": lambda r: Decimal(r.countertrend_legs),
         "rolling20_alignment_last20": lambda r: r.structure_maturity.rolling20_alignment_last20,
-        "rolling20_flip_count_last40": lambda r: Decimal(r.structure_maturity.rolling20_flip_count_last40),
-        "rolling20_current_run_bars": lambda r: Decimal(r.structure_maturity.rolling20_current_run_bars),
+        "rolling20_flip_count_last40": lambda r: Decimal(
+            r.structure_maturity.rolling20_flip_count_last40
+        ),
+        "rolling20_current_run_bars": lambda r: Decimal(
+            r.structure_maturity.rolling20_current_run_bars
+        ),
         "rolling40_alignment_last20": lambda r: r.structure_maturity.rolling40_alignment_last20,
-        "rolling40_flip_count_last40": lambda r: Decimal(r.structure_maturity.rolling40_flip_count_last40),
-        "rolling40_current_run_bars": lambda r: Decimal(r.structure_maturity.rolling40_current_run_bars),
+        "rolling40_flip_count_last40": lambda r: Decimal(
+            r.structure_maturity.rolling40_flip_count_last40
+        ),
+        "rolling40_current_run_bars": lambda r: Decimal(
+            r.structure_maturity.rolling40_current_run_bars
+        ),
         "pullback_duration_bars": lambda r: Decimal(r.pullback_quality.duration_bars),
         "pullback_depth_ratio": lambda r: r.pullback_quality.depth_ratio_vs_prior_impulse,
         "pullback_overlap_frequency": lambda r: r.pullback_quality.overlap_frequency,
-        "pullback_countertrend_body_fraction": lambda r: r.pullback_quality.countertrend_body_fraction,
+        "pullback_countertrend_body_fraction": lambda r: (
+            r.pullback_quality.countertrend_body_fraction
+        ),
         "signal_body_fraction": lambda r: r.signal_bar_quality.body_fraction,
-        "signal_directional_close_location": lambda r: r.signal_bar_quality.directional_close_location,
+        "signal_directional_close_location": lambda r: (
+            r.signal_bar_quality.directional_close_location
+        ),
         "signal_range_vs_median_prior20": lambda r: r.signal_bar_quality.range_vs_median_prior20,
-        "signal_breakout_margin_vs_median_prior20": lambda r: r.signal_bar_quality.breakout_margin_vs_median_prior20,
-        "signal_ema20_distance_vs_median_prior20": lambda r: r.signal_bar_quality.ema20_distance_vs_median_prior20,
+        "signal_breakout_margin_vs_median_prior20": lambda r: (
+            r.signal_bar_quality.breakout_margin_vs_median_prior20
+        ),
+        "signal_ema20_distance_vs_median_prior20": lambda r: (
+            r.signal_bar_quality.ema20_distance_vs_median_prior20
+        ),
     }
 
     features = {}
@@ -486,19 +493,17 @@ def summarize_group(rows: list[CandidateDiagnostic]) -> dict:
     return {
         "count": len(rows),
         "last3_true": sum(r.survives_last3 for r in rows),
-        "directional_signal_body_true": sum(
-            r.signal_bar_quality.directional_body for r in rows
-        ),
-        "ema20_aligned_true": sum(
-            r.signal_bar_quality.ema20_directionally_aligned for r in rows
-        ),
+        "directional_signal_body_true": sum(r.signal_bar_quality.directional_body for r in rows),
+        "ema20_aligned_true": sum(r.signal_bar_quality.ema20_directionally_aligned for r in rows),
         "features": features,
     }
 
 
 async def main() -> None:
     if VISUAL_MANIFEST is None or COMPOSITE_MANIFEST is None or OUT is None:
-        raise RuntimeError("explicit --visual-manifest, --composite-manifest and --output-dir are required")
+        raise RuntimeError(
+            "explicit --visual-manifest, --composite-manifest and --output-dir are required"
+        )
     if not VISUAL_MANIFEST.is_file():
         raise FileNotFoundError(VISUAL_MANIFEST)
     if not COMPOSITE_MANIFEST.is_file():
@@ -511,8 +516,8 @@ async def main() -> None:
     review_ids = {item["review_id"] for item in items}
     if review_ids != set(REVIEW_LABELS):
         raise RuntimeError(
-            f"review-id drift: missing={sorted(set(REVIEW_LABELS)-review_ids)} "
-            f"extra={sorted(review_ids-set(REVIEW_LABELS))}"
+            f"review-id drift: missing={sorted(set(REVIEW_LABELS) - review_ids)} "
+            f"extra={sorted(review_ids - set(REVIEW_LABELS))}"
         )
 
     # Locate source holdout candidate records for snapshot hash verification.
@@ -619,9 +624,7 @@ async def main() -> None:
                     raise RuntimeError(f"source candidate missing: {source_key}")
 
                 # MarketSnapshot hash does not depend on diagnostic source string.
-                snapshot_hash_verified = (
-                    snapshot.snapshot_hash == source_candidate["snapshot_hash"]
-                )
+                snapshot_hash_verified = snapshot.snapshot_hash == source_candidate["snapshot_hash"]
                 if not snapshot_hash_verified:
                     raise RuntimeError(f"snapshot hash drift: {source_key}")
 
@@ -675,8 +678,7 @@ async def main() -> None:
         by_label[row.review_label].append(row)
 
     label_summary = {
-        label: summarize_group(by_label[label])
-        for label in ("KEEP", "UNCERTAIN", "REJECT")
+        label: summarize_group(by_label[label]) for label in ("KEEP", "UNCERTAIN", "REJECT")
     }
 
     legs_by_label = {
@@ -727,13 +729,16 @@ async def main() -> None:
         },
     }
 
-    payload = json.dumps(
-        manifest,
-        ensure_ascii=False,
-        sort_keys=True,
-        indent=2,
-        default=str,
-    ) + "\n"
+    payload = (
+        json.dumps(
+            manifest,
+            ensure_ascii=False,
+            sort_keys=True,
+            indent=2,
+            default=str,
+        )
+        + "\n"
+    )
 
     OUT.mkdir(parents=True, exist_ok=True)
     output = OUT / "phase8_context_maturity_pullback_quality_diagnostic.json"

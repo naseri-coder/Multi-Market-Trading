@@ -99,8 +99,10 @@ def read_current_risk(candidate, *, assessment=None, need_trade_plan=False):
             and reward["weighted_runner_r"] == "0"
         )
         score = sum(
-            (_decimal(breakdown[key]) for key in
-             ("rr_points", "geometry_points", "structural_points")),
+            (
+                _decimal(breakdown[key])
+                for key in ("rr_points", "geometry_points", "structural_points")
+            ),
             Decimal(0),
         )
         score = min(max(score, Decimal(0)), Decimal(100)).quantize(Decimal("0.01"))
@@ -115,13 +117,15 @@ def read_current_risk(candidate, *, assessment=None, need_trade_plan=False):
                 allocations
                 and 0 <= plan.runner_fraction <= 1
                 and sum((f for _, f in plan.target_exit_fractions), Decimal(0))
-                + plan.runner_fraction == 1
+                + plan.runner_fraction
+                == 1
                 and _decimal(reward["runner_fraction"]) == plan.runner_fraction
                 and reward["tm_context_class"] == plan.context_class
             ),
             "weighted_contribution_sum_match": (
                 contribution_sum + _decimal(reward["weighted_runner_r"])
-                == plan_rr == _decimal(reward["plan_rr"])
+                == plan_rr
+                == _decimal(reward["plan_rr"])
             ),
             "runner_zero_conservative": runner_zero,
             "typed_context_match": (
@@ -129,8 +133,7 @@ def read_current_risk(candidate, *, assessment=None, need_trade_plan=False):
                 and reward["target_plan_state"] == lifecycle.state
             ),
             "risk_score_decomposition_match": (
-                score == _decimal(breakdown["total_risk_score"])
-                == _decimal(risk.risk_score)
+                score == _decimal(breakdown["total_risk_score"]) == _decimal(risk.risk_score)
             ),
         }
     except (KeyError, TypeError, AttributeError, ArithmeticError) as exc:

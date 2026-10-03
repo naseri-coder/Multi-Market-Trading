@@ -6,11 +6,31 @@ from app.core.config import Settings
 from app.modules.brooks_core.books_policy import BrooksBooksPolicy
 
 EXPECTED_SYMBOLS = (
-    "BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "SOLUSDT",
-    "TRXUSDT", "ZECUSDT", "HYPEUSDT", "DOGEUSDT", "XMRUSDT",
-    "LINKUSDT", "ADAUSDT", "XLMUSDT", "UNIUSDT", "NEARUSDT",
-    "BCHUSDT", "AVAXUSDT", "LTCUSDT", "CCUSDT", "GRAMUSDT",
-    "HBARUSDT", "SUIUSDT", "MUSDT", "1000SHIBUSDT", "TAOUSDT",
+    "BTCUSDT",
+    "ETHUSDT",
+    "BNBUSDT",
+    "XRPUSDT",
+    "SOLUSDT",
+    "TRXUSDT",
+    "ZECUSDT",
+    "HYPEUSDT",
+    "DOGEUSDT",
+    "XMRUSDT",
+    "LINKUSDT",
+    "ADAUSDT",
+    "XLMUSDT",
+    "UNIUSDT",
+    "NEARUSDT",
+    "BCHUSDT",
+    "AVAXUSDT",
+    "LTCUSDT",
+    "CCUSDT",
+    "GRAMUSDT",
+    "HBARUSDT",
+    "SUIUSDT",
+    "MUSDT",
+    "1000SHIBUSDT",
+    "TAOUSDT",
 )
 
 EXPECTED_NEW_TICKS = {
@@ -51,7 +71,11 @@ def test_canonical_env_loads_exact_ordered_unique_universe():
 
 def test_existing_five_are_preserved_and_leo_is_excluded():
     assert EXPECTED_SYMBOLS[:5] == (
-        "BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "SOLUSDT",
+        "BTCUSDT",
+        "ETHUSDT",
+        "BNBUSDT",
+        "XRPUSDT",
+        "SOLUSDT",
     )
     assert "LEOUSDT" not in EXPECTED_SYMBOLS
     assert "1000LEOUSDT" not in EXPECTED_SYMBOLS
