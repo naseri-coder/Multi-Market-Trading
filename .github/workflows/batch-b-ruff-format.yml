@@ -27,6 +27,7 @@ jobs:
           set -Eeuo pipefail
           mapfile -t files < <(git diff --name-only "$BASE_SHA"...HEAD -- '*.py')
           test "${#files[@]}" -gt 0
+          autopep8 --in-place --aggressive --max-line-length 100 "${files[@]}"
           ruff check --fix "${files[@]}" || true
           ruff format "${files[@]}"
           ruff check "${files[@]}" || true
