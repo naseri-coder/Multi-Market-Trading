@@ -64,8 +64,7 @@ def validate_probability_report(document):
         if row.get("current_plan_rr") != row.get("v6_planned_reward_r"):
             raise ValueError("CURRENT_PLAN_COMPATIBILITY_ALIAS_MISMATCH")
     recomputed = {
-        state: sum(row["readiness_state"] == state for row in rows)
-        for state in sorted(readiness)
+        state: sum(row["readiness_state"] == state for row in rows) for state in sorted(readiness)
     }
     if document.get("decision_summary") != recomputed:
         raise ValueError("PROBABILITY_SUMMARY_MISMATCH")
