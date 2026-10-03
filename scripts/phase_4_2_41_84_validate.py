@@ -132,7 +132,8 @@ async def regenerate_from_snapshot(row, *, source_signal_id):
 async def regenerate_exact14(row, *, allow_network):
     if not allow_network:
         raise RuntimeError(
-            "exact14 requires explicit --allow-network because the historical fixture has no snapshot"
+            "exact14 requires explicit --allow-network because the historical fixture "
+            "has no snapshot"
         )
     from app.modules.market_data.binance_futures import BinanceFuturesMarketDataProvider
 
