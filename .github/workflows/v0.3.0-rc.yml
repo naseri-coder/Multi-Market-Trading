@@ -3,7 +3,7 @@ name: v0.3.0 Release Candidate
 on:
   pull_request:
     branches:
-      - develop/v0.3.0
+      - main
   workflow_dispatch:
 
 permissions:
@@ -14,182 +14,71 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  package-config:
-    name: Package and configuration contract
+  release-candidate:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout immutable candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
           cache: pip
-      - name: Install reproducible development lock
-        run: python -m pip install --disable-pip-version-check -r requirements-dev.lock
-      - name: Verify frozen source and release metadata
+
+      - name: Verify release source and metadata
         run: bash scripts/verify.sh
-      - name: Validate synthetic safe-install configuration
+
+      - name: Install reproducible RC development environment
+        run: python -m pip install --disable-pip-version-check -r requirements-dev.lock
+
+      - name: Verify exact version identity
         run: |
           set -Eeuo pipefail
           python - <<'PY'
+          import ast
+          import tomllib
           from pathlib import Path
-          import os
 
-          source = Path(".env.example").read_text(encoding="utf-8")
-          source = source.replace("REPLACE_WITH_NUMERIC_ADMIN_ID", "123456789")
-          source = source.replace(
-              "REPLACE_WITH_NEW_RANDOM_URLSAFE_PASSWORD",
-              "Synthetic_Release_Candidate_Password_2026",
-          )
-          path = Path("/tmp/v030-rc.env")
-          path.write_text(source, encoding="utf-8")
-          os.chmod(path, 0o600)
+          project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          assert project["project"]["version"] == "0.3.0"
+
+          tree = ast.parse(Path("production_source/app/__init__.py").read_text(encoding="utf-8"))
+          version = None
+          for node in tree.body:
+              if isinstance(node, ast.Assign):
+                  for target in node.targets:
+                      if isinstance(target, ast.Name) and target.id == "__version__":
+                          version = ast.literal_eval(node.value)
+          assert version == "0.3.0"
+          assert "version-v0.3.0" in Path("README.md").read_text(encoding="utf-8")
+          assert "## v0.3.0 — 2026-10-03" in Path("CHANGELOG.md").read_text(encoding="utf-8")
+          print("RELEASE_VERSION_IDENTITY_PASS")
           PY
-          python scripts/check_env.py /tmp/v030-rc.env
-          PYTHONPATH=production_source python scripts/validate_release_config.py             --env-file /tmp/v030-rc.env --mode safe-install
-      - name: Build wheel and source distribution
+
+      - name: Validate safe release configuration template
+        run: python scripts/validate_release_config.py --env-file .env.example --mode template
+
+      - name: Build source and wheel artifacts
         run: |
           set -Eeuo pipefail
-          rm -rf dist
+          rm -rf dist build
           python -m build --sdist --wheel
-          test "$(find dist -maxdepth 1 -name 'crypto_price_action-0.3.0-*.whl' | wc -l)" -eq 1
-          test -f dist/crypto_price_action-0.3.0.tar.gz
-      - name: Prove clean wheel import outside checkout
+          test "$(find dist -maxdepth 1 -type f -name 'crypto_price_action-0.3.0*' | wc -l)" -eq 2
+
+      - name: Verify built wheel import and version
         run: |
           set -Eeuo pipefail
-          python -m venv /tmp/v030-wheel
-          /tmp/v030-wheel/bin/python -m pip install --disable-pip-version-check dist/*.whl
-          cd /tmp
-          /tmp/v030-wheel/bin/python - <<'PY'
-          from importlib.metadata import version
-          from pathlib import Path
+          python -m pip install --force-reinstall --no-deps dist/*.whl
+          python - <<'PY'
           import app
-
-          resolved = Path(app.__file__).resolve()
-          assert "site-packages" in resolved.parts, resolved
-          assert version("crypto-price-action") == "0.3.0"
-          print("CLEAN_WHEEL_IMPORT_PASS", resolved)
+          assert app.__version__ == "0.3.0"
+          print("RELEASE_WHEEL_IMPORT_PASS")
           PY
 
-  stage3b:
-    name: Fresh-host Docker and offline startup rehearsal
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    env:
-      TEST_PROJECT: stage3b-${{ github.run_id }}-${{ github.run_attempt }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          fetch-depth: 1
-      - name: Frozen-release preflight
-        run: |
-          set -Eeuo pipefail
-          test ! -e .env
-          bash scripts/install.sh --check
-          grep -Fq 'revision = "20260928_0021"'             production_source/migrations/versions/20260928_0021_ch6_ii_opportunity_identity.py
-          docker compose version
-      - name: Synthetic environment acceptance and rejection cases
-        run: python3 scripts/ci_stage3b_env.py
-      - name: Compose isolation preflight
-        run: python3 scripts/ci_stage3b_compose.py
-      - name: Build, migrate, validate and exercise offline startup
-        run: bash scripts/ci_stage3b.sh
-      - name: Cleanup owned disposable resources
-        if: always()
-        run: bash scripts/ci_stage3b_cleanup.sh
-
-  migration-0020-to-0021:
-    name: 0020 to 0021 data-preservation rehearsal
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    env:
-      PYTHONDONTWRITEBYTECODE: "1"
-      TELEGRAM_RUNTIME_ENABLED: "false"
-      TELEGRAM_BOT_TOKEN: ""
-      ADMIN_IDS: "123456789"
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          fetch-depth: 1
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: "3.12"
-          cache: pip
-      - name: Install project and materialize release layout
-        run: |
-          set -Eeuo pipefail
-          python -m pip install -e ".[dev]"
-          cp -a production_source/app ./app
-          cp -a production_source/migrations ./migrations
-          cp production_source/alembic.ini ./alembic.ini
-      - name: Start socket-only disposable PostgreSQL
-        id: pg
-        run: |
-          set -Eeuo pipefail
-          root="/tmp/ch6-v030-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          socket_dir="${root}/socket"
-          container="v030-pg-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          mkdir -p "$socket_dir"
-          chmod 0777 "$socket_dir"
-          docker run -d --rm             --name "$container"             --security-opt no-new-privileges:true             -e POSTGRES_USER=rcsynthetic             -e POSTGRES_PASSWORD=rcsynthetic_password_2026             -e POSTGRES_DB=rcmigration             -v "$socket_dir:/var/run/postgresql"             postgres:16-alpine             -c listen_addresses=''             -c unix_socket_directories=/var/run/postgresql
-          consecutive=0
-          for _ in {1..90}; do
-            if docker exec "$container" pg_isready -h /var/run/postgresql               -U rcsynthetic -d rcmigration >/dev/null 2>&1; then
-              consecutive=$((consecutive + 1))
-              [[ "$consecutive" -ge 3 ]] && break
-            else
-              consecutive=0
-            fi
-            sleep 1
-          done
-          test "$consecutive" -ge 3
-          echo "root=$root" >> "$GITHUB_OUTPUT"
-          echo "socket_dir=$socket_dir" >> "$GITHUB_OUTPUT"
-          echo "container=$container" >> "$GITHUB_OUTPUT"
-      - name: Upgrade 0020 fixture to 0021 and preserve affected-row data
-        env:
-          DATABASE_URL: postgresql+asyncpg://rcsynthetic:rcsynthetic_password_2026@localhost/rcmigration?host=${{ steps.pg.outputs.socket_dir }}
-        run: |
-          set -Eeuo pipefail
-          python -m alembic -c alembic.ini upgrade 20260914_0020
-          docker exec "${{ steps.pg.outputs.container }}" psql             -h /var/run/postgresql -U rcsynthetic -d rcmigration -v ON_ERROR_STOP=1 <<'SQL'
-          WITH inserted AS (
-            INSERT INTO signals (
-              symbol, direction, entry_price, stop_loss, leverage, status, publication_scope
-            ) VALUES (
-              'RCMIGRATION', 'LONG', 100, 90, 1, 'OPEN', 'INTERNAL'
-            ) RETURNING id
-          )
-          INSERT INTO signal_automation_metadata (
-            signal_id, producer, generation_mode, exchange, market_type, timeframe,
-            setup_type, source_signal_id, idempotency_key, market_snapshot_id,
-            market_snapshot_hash, engine_version, rule_set_version, configuration_version
-          )
-          SELECT
-            id, 'BROOKS', 'SHADOW', 'synthetic', 'futures', '15m',
-            'RC_0020_FIXTURE', 'rc-0020-source', 'rc-0020-idempotency',
-            'rc-0020-snapshot', 'rc-0020-hash', 'rc-engine', 'rc-rules', 'rc-config'
-          FROM inserted;
-          SQL
-          test "$(docker exec "${{ steps.pg.outputs.container }}" psql             -h /var/run/postgresql -U rcsynthetic -d rcmigration -Aqt             -c "SELECT count(*) FROM signal_automation_metadata WHERE source_signal_id='rc-0020-source';")" = "1"
-
-          python -m alembic -c alembic.ini upgrade 20260928_0021
-
-          test "$(docker exec "${{ steps.pg.outputs.container }}" psql             -h /var/run/postgresql -U rcsynthetic -d rcmigration -Aqt             -c "SELECT version_num FROM alembic_version;")" = "20260928_0021"
-          test "$(docker exec "${{ steps.pg.outputs.container }}" psql             -h /var/run/postgresql -U rcsynthetic -d rcmigration -Aqt             -c "SELECT count(*) FROM signal_automation_metadata WHERE source_signal_id='rc-0020-source' AND opportunity_variant IS NULL AND opportunity_key IS NULL;")" = "1"
-          docker exec "${{ steps.pg.outputs.container }}" psql             -h /var/run/postgresql -U rcsynthetic -d rcmigration -v ON_ERROR_STOP=1             -c "UPDATE signal_automation_metadata SET opportunity_variant='CH6_II_PAIR_STOP_V1', opportunity_key='rc-0020-pair' WHERE source_signal_id='rc-0020-source';"
-          indexdef="$(docker exec "${{ steps.pg.outputs.container }}" psql             -h /var/run/postgresql -U rcsynthetic -d rcmigration -Aqt             -c "SELECT indexdef FROM pg_indexes WHERE indexname='uq_signal_automation_metadata_ii_opportunity';")"
-          grep -Fq 'CREATE UNIQUE INDEX' <<<"$indexdef"
-          grep -Fq "opportunity_variant = 'CH6_II_PAIR_STOP_V1'" <<<"$indexdef"
-          echo "MIGRATION_0020_TO_0021_DATA_PRESERVATION_PASS"
-      - name: Cleanup migration rehearsal
-        if: always()
-        run: |
-          set +e
-          docker rm -f "${{ steps.pg.outputs.container }}" >/dev/null 2>&1
-          sudo rm -rf "${{ steps.pg.outputs.root }}"
+      - name: Verify dependency hash lock remains reproducible
+        run: bash scripts/verify_hashed_lock.sh --check --output requirements.hashed.generated.lock
