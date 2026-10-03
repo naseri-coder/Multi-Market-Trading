@@ -104,7 +104,7 @@ def test_stale_slot_is_marked_missed_and_never_scanned():
     assert ast.unparse(overdue.test) == "age > grace"
     assert "self.scan" not in call_names(overdue)
     detail = next(n for n in overdue.body if isinstance(n, ast.Assign))
-    values = dict(zip((k.value for k in detail.value.keys), detail.value.values))
+    values = dict(zip((k.value for k in detail.value.keys), detail.value.values, strict=False))
     assert isinstance(values["backfill_performed"], ast.Constant)
     assert values["backfill_performed"].value is False
     calls = [n for n in ast.walk(overdue) if isinstance(n, ast.Call)]

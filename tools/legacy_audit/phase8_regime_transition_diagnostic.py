@@ -167,7 +167,8 @@ def segment_evidence(
     adjusted = signed if candidate_structure == "BULL_TREND" else -signed
 
     path = sum(
-        abs(current.close - previous.close) for previous, current in zip(candles, candles[1:])
+        abs(current.close - previous.close)
+        for previous, current in zip(candles, candles[1:], strict=False)
     )
     efficiency = Decimal("0") if path == 0 else abs(net) / path
 
@@ -203,7 +204,7 @@ def ten_bar_sequence(
     values = tuple(e.adjusted_displacement for e in evidences)
 
     resolved = [c for c in classes if c != "NEUTRAL"]
-    flips = sum(1 for a, b in zip(resolved, resolved[1:]) if a != b)
+    flips = sum(1 for a, b in zip(resolved, resolved[1:], strict=False) if a != b)
 
     return classes, values, flips
 
@@ -288,7 +289,7 @@ def range_compression_evidence(
     if len(nonzero) < 2:
         flip_fraction = Decimal("0")
     else:
-        flips = sum(1 for a, b in zip(nonzero, nonzero[1:]) if a != b)
+        flips = sum(1 for a, b in zip(nonzero, nonzero[1:], strict=False) if a != b)
         flip_fraction = Decimal(flips) / Decimal(len(nonzero) - 1)
 
     high40 = max(c.high for c in last40)
@@ -356,7 +357,7 @@ def structure_transition_evidence(
 
     recent40 = states[-40:]
     resolved = [s for s in recent40 if s in {"BULL_TREND", "BEAR_TREND"}]
-    flips = sum(1 for a, b in zip(resolved, resolved[1:]) if a != b)
+    flips = sum(1 for a, b in zip(resolved, resolved[1:], strict=False) if a != b)
 
     return StructureTransitionEvidence(
         r40_current_run_bars_recomputed=run,

@@ -37,7 +37,7 @@ def _path(regime: str, rng: np.random.Generator, bars: int) -> np.ndarray:
             (119, 116),
             (120, 105),
         )
-        values = np.interp(np.arange(bars + 1), *zip(*anchors))
+        values = np.interp(np.arange(bars + 1), *zip(*anchors, strict=False))
         if regime == "MTR_BOTTOM":
             values = 200 - values
         noise = rng.normal(0, 0.025 * scale, bars + 1)

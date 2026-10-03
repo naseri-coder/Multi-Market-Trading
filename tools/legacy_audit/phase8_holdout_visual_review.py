@@ -146,7 +146,7 @@ def render_chart(
 
     fig, ax = plt.subplots(figsize=(13, 7), dpi=140)
 
-    for x, c in zip(xs, candles):
+    for x, c in zip(xs, candles, strict=False):
         bullish = c.close >= c.open
         ax.vlines(x, float(c.low), float(c.high), linewidth=0.8)
         lower = min(float(c.open), float(c.close))

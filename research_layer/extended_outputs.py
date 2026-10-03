@@ -87,10 +87,10 @@ def export_distributions(con: sqlite3.Connection) -> None:
         "execution_record_delay_seconds,slippage_price,risk_pct,leverage,profit_loss FROM signal_metrics"
     )
     cols = [d[0] for d in cur.description]
-    data = list(zip(*cur.fetchall())) if cur.rowcount != 0 else []
+    data = list(zip(*cur.fetchall(), strict=False)) if cur.rowcount != 0 else []
     rows = []
     if data:
-        for name, values in zip(cols, data):
+        for name, values in zip(cols, data, strict=False):
             summary = quantile_summary([float(v) for v in values if v is not None])
             rows.append((name, *summary.values()))
     headers = ["metric", "n", "mean", "median", "std", "min", "p05", "p25", "p75", "p95", "max"]
@@ -179,7 +179,7 @@ def make_distribution_charts(con: sqlite3.Connection) -> None:
     ).fetchall()
     if not rows:
         return
-    columns = list(zip(*rows))
+    columns = list(zip(*rows, strict=False))
     specs = [
         ("realized_r", columns[0], "Realized R Distribution", "R"),
         ("mfe_r", columns[1], "MFE Distribution", "R"),
@@ -226,7 +226,7 @@ def append_report_section(con: sqlite3.Connection) -> None:
     if marker in text:
         text = text.split(marker)[0].rstrip() + "\n"
     coverage = dict(con.execute("SELECT 'signals',COUNT(*) FROM signal_metrics"))
-    total = coverage["signals"]
+    coverage["signals"]
     counts = con.execute(
         "SELECT COUNT(*),SUM(realized_r IS NOT NULL),SUM(mfe_r IS NOT NULL),SUM(mae_r IS NOT NULL),"
         "SUM(holding_seconds IS NOT NULL),SUM(slippage_price IS NOT NULL),"

@@ -1498,7 +1498,7 @@ def generate_report(db, metrics, raw, universe_snapshots, universe_findings, pat
         "SELECT * FROM pattern_stats WHERE pattern='ALL_ACTUAL_SIGNALS' AND sample_type='ACTUAL'"
     ).fetchone()
     cols = [d[0] for d in db.execute("SELECT * FROM pattern_stats LIMIT 0").description]
-    overall = dict(zip(cols, overall)) if overall else {}
+    overall = dict(zip(cols, overall, strict=False)) if overall else {}
     closed = [m for m in metrics if m.get("realized_r") is not None]
     rvals = [m["realized_r"] for m in sorted(closed, key=lambda x: x["created_at"])]
     validation = {
@@ -1779,7 +1779,7 @@ async def main(*, raw_extract: Path, market_extract: Path, output_dir: Path):
     interactions = analyse_rule_interactions(db, metrics, raw)
     failures = analyse_false_signals(db, metrics, raw)
     missed = analyse_missed_opportunities(db, raw)
-    market_rows = analyse_market_timeframes(db, series)
+    analyse_market_timeframes(db, series)
     surv, corr_names, corr_matrix = analyse_survival_and_correlations(db, metrics)
     obs_stats, obs_ctx = analyse_observational(db)
     recs = generate_recommendations(db)

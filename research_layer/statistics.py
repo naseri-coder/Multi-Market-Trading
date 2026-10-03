@@ -177,7 +177,7 @@ def kaplan_meier(
 ) -> list[dict[str, float | int]]:
     pairs = sorted(
         (float(t), bool(e))
-        for t, e in zip(durations, events)
+        for t, e in zip(durations, events, strict=False)
         if t is not None and math.isfinite(float(t))
     )
     if not pairs:

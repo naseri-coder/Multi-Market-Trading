@@ -226,7 +226,7 @@ def rolling_structure_states(
 
 def resolved_flip_count(states: tuple[str, ...]) -> int:
     resolved = [s for s in states if s in {"BULL_TREND", "BEAR_TREND"}]
-    return sum(1 for a, b in zip(resolved, resolved[1:]) if a != b)
+    return sum(1 for a, b in zip(resolved, resolved[1:], strict=False) if a != b)
 
 
 def current_run(states: tuple[str, ...], candidate_structure: str) -> int:
@@ -336,7 +336,7 @@ def pullback_metrics(
             pullback_range_ratio = (p_high - p_low) / impulse_size
 
     overlaps = 0
-    for previous, current in zip(pullback, pullback[1:]):
+    for previous, current in zip(pullback, pullback[1:], strict=False):
         if min(previous.high, current.high) >= max(previous.low, current.low):
             overlaps += 1
     overlap_frequency = Decimal(overlaps) / Decimal(len(pullback) - 1)
