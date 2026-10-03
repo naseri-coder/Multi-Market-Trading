@@ -1,12 +1,21 @@
-# v0.3.0 Installation
+# Installation — v0.3.0
 
-This document describes the supported installation path for the public v0.3.0 source release.
+This guide describes the supported **fresh isolated host** installation path. It is not an in-place production upgrade procedure and does not authorize live trading.
 
-> **Fresh isolated host only.** The installer is not an in-place upgrade mechanism and is not authorized to overwrite an existing deployment or operational database.
+## Safety boundary
+
+Use a new, separate host. Do not point this installer at an existing production database, an existing `crypto-price-action_postgres_data` volume, or the protected `/opt/crypto-signal-telegram-bot` tree.
+
+The default configuration is fail-closed:
+
+- Telegram runtime: disabled
+- Brooks runtime: disabled
+- Brooks operations: disabled
+- Paper runtime: disabled
+- Performance reporting: disabled
+- Scale-In execution: disabled
 
 ## Prerequisites
-
-Install these on the new host before running the installer:
 
 - Git
 - Docker Engine with a running daemon
@@ -15,110 +24,63 @@ Install these on the new host before running the installer:
 - Python 3
 - `sha256sum`
 
-The operator account must be able to use Docker.
-
-## 1. Clone the release
-
-After the official tag exists:
+## 1. Clone and verify
 
 ```bash
-git clone --branch v0.3.0 --depth 1 https://github.com/naseri-coder/crypto-price-action.git
+git clone https://github.com/naseri-coder/crypto-price-action.git
 cd crypto-price-action
-```
-
-Before the tag is published, release-candidate validation must use the exact reviewed commit instead of treating a moving branch as a release.
-
-## 2. Run offline verification
-
-```bash
 bash scripts/install.sh --check
 ```
 
-This mode verifies the curated source, Python syntax, package version, release configuration template, required release files, and installer shell syntax. It does not call Docker, run migrations, access a database, or start services.
+`--check` is offline. It validates the curated 348-file source manifest, Python syntax, v0.3.0 package identity, template contract, and required release files. It does not start Docker, contact a database, or run migrations.
 
-Do not continue if verification fails.
-
-## 3. Prepare the private environment
-
-The recommended path is to let the installer create a missing `.env` interactively:
+## 2. Install on a fresh host
 
 ```bash
 bash scripts/install.sh --install
 ```
 
-If `.env` does not exist, `scripts/bootstrap_env.py` creates it with private permissions, asks for numeric `ADMIN_IDS`, generates a fresh URL-safe PostgreSQL password, and does not print the password.
+If `.env` is missing, the installer creates it with mode `600`, requests numeric `ADMIN_IDS`, and generates a new URL-safe PostgreSQL password without printing it.
 
-For manual preparation:
+Before resource creation the installer performs:
 
-```bash
-cp .env.example .env
-chmod 600 .env
-```
+1. stdlib fail-closed environment preflight;
+2. Docker/Compose availability checks;
+3. Compose configuration validation;
+4. explicit operator authorization using the exact phrase `INSTALL-NEW-HOST`;
+5. image build;
+6. full typed Settings validation inside the built image.
 
-Replace every placeholder before continuing. The PostgreSQL password in `POSTGRES_PASSWORD` and the password component of `DATABASE_URL` must match.
+Only then does it create the dedicated PostgreSQL volume, upgrade the disposable/new database to Alembic head, run application configuration/database checks, and start the bot with effectful runtime disabled.
 
-## 4. Safe-install defaults
+## Configuration validation modes
 
-The release template intentionally keeps effectful runtime paths disabled:
-
-```text
-TELEGRAM_RUNTIME_ENABLED=false
-BROOKS_RUNTIME_ENABLED=false
-BROOKS_OPERATIONS_ENABLED=false
-PAPER_RUNTIME_ENABLED=false
-PERFORMANCE_REPORTS_ENABLED=false
-BROOKS_SCALE_IN_MODE=disabled
-```
-
-The public release includes Binance USD-M Futures support. Presence of runtime code does not authorize paper, Telegram, or live operation.
-
-Validate the template without exposing values:
+`scripts/validate_release_config.py` validates the complete application Settings contract without displaying secret values.
 
 ```bash
-python3 scripts/validate_release_config.py --env-file .env.example --mode template
+PYTHONPATH=production_source python scripts/validate_release_config.py \
+  --env-file .env --mode safe-install
 ```
 
-A populated safe-install environment is also validated by the installer before any service is created.
+The validator also understands `paper` and `live` configuration shapes for controlled review. Passing either mode only proves configuration consistency; it does **not** approve operational use or live trading.
 
-## 5. Explicit installation authorization
+Conditional fields such as channel IDs and cutover timestamps are documented in `.env.example` and should remain commented until the related mode is intentionally configured.
 
-The installer refuses:
+## Database configuration
 
-- a host containing the protected original project path;
-- non-interactive installation;
-- inherited PostgreSQL/Database URL overrides;
-- an existing project PostgreSQL volume;
-- invalid or unresolved environment configuration.
+The Compose database variables and application URL must describe the same isolated service:
 
-After preflight, it asks for the exact confirmation:
+- `POSTGRES_USER`
+- `POSTGRES_PASSWORD`
+- `POSTGRES_DB`
+- `DATABASE_URL=postgresql+asyncpg://...@postgres:5432/...`
 
-```text
-INSTALL-NEW-HOST
-```
+The installer rejects inherited shell overrides for these values.
 
-Only after that confirmation does it:
+## Validation evidence
 
-1. build the pinned application image;
-2. validate the safe-install runtime configuration inside the image;
-3. create and start the dedicated PostgreSQL service;
-4. apply Alembic migrations through the tracked head;
-5. run application configuration and database checks;
-6. start the bot container with effectful runtime modes still disabled.
+The release-candidate workflows use only synthetic credentials and disposable resources. PostgreSQL is not published on a host port. The complete tracked corpus runs separately in `Full Corpus - Disposable PostgreSQL`; the v0.3.0 RC workflow also performs package, Stage3B, Docker, offline-startup, and 0020→0021 migration rehearsals.
 
-No host PostgreSQL port is published by `compose.yaml`.
+## Enabling additional runtime modes
 
-## 6. Post-install review
-
-Inspect the service state before enabling anything beyond the safe defaults:
-
-```bash
-docker compose -p crypto-price-action -f compose.yaml --env-file .env ps
-```
-
-Do not enable Telegram, paper, Brooks runtime/operations, performance reporting, or any live-trading-related mode merely because installation succeeded. Those modes require separate operator review and validation.
-
-## Security boundary
-
-Never commit or upload a populated `.env`, tokens, keys, database dumps, private logs, realized trades, or private market datasets.
-
-v0.3.0 is an official source release. It is not a profitability claim and is not approval for production or live trading.
+Do not edit a running installation casually. Prepare a separate reviewed configuration, validate it with the corresponding mode, and perform an explicitly authorized rollout. The presence of a setting or runtime path in source is not operational approval.

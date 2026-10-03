@@ -1,84 +1,59 @@
-# v0.3.0 Rebuild and Restore Boundary
+# Rebuild and Restore Runbook
 
-This document separates a **clean rebuild from public source** from restoration of authorized persistent state.
+This document defines the v0.3.0 rebuild/restore procedure. It is a **runbook**, not authorization to operate on the current production server.
 
-## Clean rebuild
+## Source / secret / persistent-state boundary
 
-A clean rebuild starts from the exact official `v0.3.0` tag on a new isolated host.
+- **SOURCE** belongs in GitHub and must come from an immutable reviewed release commit/tag.
+- **SECRETS** stay outside GitHub in an access-controlled secret/configuration store.
+- **PERSISTENT DATA** includes PostgreSQL application state and any explicitly inventoried non-regenerable assets.
+- **REGENERABLE STATE** such as caches, logs, pycache, temporary build output and containers is not a backup target.
 
-1. Verify the tag and checkout identity.
-2. Run `bash scripts/install.sh --check`.
-3. Prepare a new private `.env` from the release template.
-4. Use the guarded fresh-host installation flow in `docs/INSTALLATION.md`.
-5. Keep all effectful runtime modes disabled until separately reviewed.
+## Before any destructive action
 
-The public installer deliberately refuses to overwrite an existing project volume. It is not an upgrade or recovery tool for an operational host.
+1. Establish an authorized maintenance/consistency window.
+2. Record the exact currently deployed artifact/image identity.
+3. Record PostgreSQL server/version, database names, schemas/extensions, roles required for restore, and actual Alembic revision.
+4. Record row counts for critical application tables.
+5. Inventory Docker volumes and non-regenerable filesystem assets. Do not assume one named Compose volume is the complete persistent-state inventory.
+6. Create a PostgreSQL custom-format logical dump plus required role/extension metadata.
+7. Encrypt and store backups off-host; record checksums without publishing credentials or private data.
+8. Preserve the prior application artifact and matching state snapshot for rollback.
 
-## Persistent state is separate
+## Isolated restore rehearsal
 
-Source code and persistent state have different trust boundaries.
+Restore only into isolated infrastructure first.
 
-The release repository does not contain and must not contain:
+1. Provision a compatible PostgreSQL instance with no connection to the production database.
+2. Restore the authorized dump and required roles/extensions.
+3. Verify restore exit status, checksums/inventory, row counts and constraints.
+4. Determine the restored database's actual Alembic revision; do not guess it from source files.
+5. Upgrade the restored copy to the v0.3.0 migration head using the exact release artifact.
+6. Run disposable integration/configuration checks and verify critical records remain present.
+7. Keep Telegram, Brooks runtime, operations, paper runtime and reporting disabled throughout the rehearsal.
 
-- populated `.env` files;
-- production PostgreSQL data;
-- database dumps;
-- Telegram tokens or private channel identifiers;
-- private operational logs;
-- realized private trades;
-- private market datasets.
+The RC workflow separately proves a synthetic 0020→0021 data-preservation migration against the table directly changed by revision 0021.
 
-Restoring any persistent state therefore requires a separately authorized operator procedure.
+## Rebuild
 
-## Database restoration policy
+Only after the official v0.3.0 release and a successful restore rehearsal:
 
-Do not point an unvalidated release candidate at an existing production database.
+1. provision a fresh host;
+2. verify the immutable v0.3.0 tag/commit and release artifacts;
+3. install using the supported fresh-host path;
+4. restore only the authorized persistent state;
+5. supply secrets externally;
+6. validate configuration and database health;
+7. run staged health checks with effectful runtime disabled;
+8. enable external effects only in a separately authorized cutover.
 
-Before restoring authorized data:
+## Rollback
 
-1. keep the original database unchanged;
-2. create a disposable or isolated restoration target;
-3. verify the backup independently;
-4. restore into that isolated target;
-5. confirm the Alembic revision and schema compatibility;
-6. run migration and application checks against the isolated copy;
-7. review data-specific invariants and access controls;
-8. only then decide whether a production migration is separately authorized.
+Rollback means restoring a **compatible prior application artifact together with its matching database/state snapshot**. Do not assume a destructive Alembic downgrade is safe. In particular, migrations can deliberately refuse downgrade when doing so would discard execution/accounting evidence.
 
-The public release validation uses disposable PostgreSQL resources only and publishes no database host port.
+## Explicit prohibitions
 
-## Configuration restoration policy
-
-Do not copy an old `.env` blindly into v0.3.0.
-
-Start from the v0.3.0 `.env.example`, then transfer only settings that are intentionally authorized and still supported. Validate the resulting file before use:
-
-```bash
-python3 scripts/check_env.py .env
-```
-
-For the initial safe installation, Telegram and all effectful Brooks/paper/reporting modes remain disabled.
-
-## Reproducibility records
-
-For an auditable rebuild, record at minimum:
-
-- release tag;
-- exact commit SHA;
-- `production_source/SHA256SUMS` digest;
-- migration head;
-- dependency-lock verification result;
-- container image identity produced from the release source;
-- date and operator-approved state restoration inputs.
-
-## Non-goals
-
-This document does not authorize:
-
-- modifying the current production server;
-- running migrations against an existing production database;
-- restarting or redeploying an existing production service;
-- enabling live Brooks execution;
-- enabling trading or Telegram publication.
-
-Those operations require separate explicit authorization and validation.
+- No production database is used by CI.
+- No populated `.env`, database dump, private key, Telegram token or operational dataset belongs in GitHub.
+- Do not rebuild the current production server from an untagged development branch.
+- Do not enable live/effectful modes merely because configuration validation passes.
