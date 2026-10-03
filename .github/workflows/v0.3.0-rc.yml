@@ -164,7 +164,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           python -m alembic --raiseerr -c alembic.ini upgrade 20260914_0020
-          docker exec "${{ steps.pg.outputs.container }}" psql             -h /var/run/postgresql -U rcsynthetic -d rcmigration -v ON_ERROR_STOP=1 <<'SQL'
+          docker exec -i "${{ steps.pg.outputs.container }}" psql             -h /var/run/postgresql -U rcsynthetic -d rcmigration -v ON_ERROR_STOP=1 <<'SQL'
           WITH inserted AS (
             INSERT INTO signals (
               symbol, direction, entry_price, stop_loss, leverage, status, publication_scope
