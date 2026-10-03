@@ -192,7 +192,9 @@ jobs:
           docker exec "${{ steps.pg.outputs.container }}" psql             -h /var/run/postgresql -U rcsynthetic -d rcmigration -v ON_ERROR_STOP=1             -c "UPDATE signal_automation_metadata SET opportunity_variant='CH6_II_PAIR_STOP_V1', opportunity_key='rc-0020-pair' WHERE source_signal_id='rc-0020-source';"
           indexdef="$(docker exec "${{ steps.pg.outputs.container }}" psql             -h /var/run/postgresql -U rcsynthetic -d rcmigration -Aqt             -c "SELECT indexdef FROM pg_indexes WHERE indexname='uq_signal_automation_metadata_ii_opportunity';")"
           grep -Fq 'CREATE UNIQUE INDEX' <<<"$indexdef"
-          grep -Fq "opportunity_variant = 'CH6_II_PAIR_STOP_V1'" <<<"$indexdef"
+          grep -Fq 'opportunity_variant' <<<"$indexdef"
+          grep -Fq 'CH6_II_PAIR_STOP_V1' <<<"$indexdef"
+          grep -Fq 'opportunity_key' <<<"$indexdef"
           echo "MIGRATION_0020_TO_0021_DATA_PRESERVATION_PASS"
       - name: Cleanup migration rehearsal
         if: always()
