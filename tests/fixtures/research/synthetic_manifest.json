@@ -323,5 +323,73 @@
         "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
       }
     ]
+  },
+  "current_risk_contract": {
+    "artifact_schema_version": "brooks-research-current-risk-v1",
+    "risk_semantic_model": "PLAN_WEIGHTED_PRETRADE",
+    "runner_policy": "UNDEFINED_OBJECTIVE_ZERO_CONSERVATIVE",
+    "statistics_contract_version": "brooks-research-current-risk-realized-r-bootstrap-v1"
+  },
+  "current_plan_parity": {
+    "kind": "CURRENT_PLAN_ALLOCATION_INVARIANTS",
+    "historical_counts_are_provenance_only": true,
+    "groups": {
+      "exact14": {
+        "expected_rows": 14,
+        "passed_rows": 14
+      },
+      "holdout67": {
+        "expected_rows": 67,
+        "passed_rows": 67
+      },
+      "bootstrap86": {
+        "expected_rows": 86,
+        "passed_rows": 86
+      }
+    },
+    "detailed_synthetic_checks": [
+      {
+        "case": "synthetic-current-plan-long",
+        "checks": {
+          "full_initial_risk_match": true,
+          "target_geometry_match": true,
+          "public_plan_allocations_match": true,
+          "weighted_contribution_sum_match": true,
+          "runner_zero_conservative": true,
+          "typed_context_match": true,
+          "risk_score_decomposition_match": true
+        },
+        "pass": true
+      },
+      {
+        "case": "synthetic-current-plan-short",
+        "checks": {
+          "full_initial_risk_match": true,
+          "target_geometry_match": true,
+          "public_plan_allocations_match": true,
+          "weighted_contribution_sum_match": true,
+          "runner_zero_conservative": true,
+          "typed_context_match": true,
+          "risk_score_decomposition_match": true
+        },
+        "pass": true
+      }
+    ]
+  },
+  "archive_provenance": {
+    "phase88d": {
+      "path": "docs/legacy/research_layer/phase_4_2_41_88d/live_shadow.py.txt",
+      "original_source_sha256": "b86371185450d9d51e4349bca4244f592ef131e1aa53ed720b343dfe0750192d",
+      "role": "HISTORICAL_REFERENCE_ONLY"
+    },
+    "phase88e": {
+      "path": "docs/legacy/research_layer/phase_4_2_41_88e/live_shadow.py.txt",
+      "wrapper_sha256": "d90134653bc6ea317b98ffc4f75ed86b281f526f5d05ed364d165f9b38ebd3c4",
+      "original_source_sha256": "4fa03bb9fc2ac42046a2dd971955f9c472cda4b72116459b77dfdf400c68b34c",
+      "role": "HISTORICAL_REFERENCE_ONLY",
+      "experiment_status": "OPERATIONALLY_INTERRUPTED_NOT_ECONOMICALLY_USABLE",
+      "economic_analysis_performed": false,
+      "replacement_initialization_eligible": false
+    }
   }
 }

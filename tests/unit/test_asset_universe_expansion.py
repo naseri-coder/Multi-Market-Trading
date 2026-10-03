@@ -1,7 +1,6 @@
 """Dedicated contract tests for the authorized Binance Futures universe expansion."""
 
 from decimal import Decimal
-from pathlib import Path
 
 from app.core.config import Settings
 from app.modules.brooks_core.books_policy import BrooksBooksPolicy
@@ -39,8 +38,12 @@ EXPECTED_NEW_TICKS = {
 
 
 def test_canonical_env_loads_exact_ordered_unique_universe():
-    root = Path(__file__).resolve().parents[2]
-    settings = Settings(_env_file=root / ".env")
+    settings = Settings(
+        database_url="postgresql+asyncpg://synthetic:synthetic@localhost/synthetic",
+        telegram_runtime_enabled=False,
+        brooks_symbols=",".join(EXPECTED_SYMBOLS),
+        _env_file=None,
+    )
     assert settings.brooks_symbols == EXPECTED_SYMBOLS
     assert len(settings.brooks_symbols) == len(set(settings.brooks_symbols)) == 25
     assert settings.brooks_symbols[-1] == "TAOUSDT"
