@@ -72,7 +72,7 @@ def exit_fill(key: str, position_id: int, price: str, qty: str) -> ExitFill:
 async def make_position(session, *, source: str = "pg-scalein-test"):
     repo = PositionRepository(session)
     return await repo.create_position(
-        signal_id=9000001,
+        signal_id=None,
         initial_source_signal_id=source,
         mode="SHADOW",
         symbol="BTCUSDT",
