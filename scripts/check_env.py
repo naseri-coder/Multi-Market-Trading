@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-closed checks for a fresh, isolated install. Never echo values."""
+"""Fail-closed stdlib preflight for a fresh isolated install. Never echo values."""
 
 import re
 import stat
@@ -20,53 +20,67 @@ if stat.S_IMODE(path.stat().st_mode) & 0o077:
     fail(".env must be chmod 600")
 
 env: dict[str, str] = {}
-for line in path.read_text().splitlines():
-    if not line.strip() or line.lstrip().startswith("#"):
+for raw in path.read_text(encoding="utf-8").splitlines():
+    line = raw.strip()
+    if not line or line.startswith("#"):
         continue
-    if "=" not in line:
+    if "=" not in raw:
         fail("invalid line")
-    key, value = line.split("=", 1)
+    key, value = raw.split("=", 1)
     if not re.fullmatch(r"[A-Z][A-Z0-9_]*", key) or key in env:
         fail("invalid/duplicate key")
     env[key] = value
 
-required = {
-    "APP_ENV",
-    "LOG_LEVEL",
-    "LOG_FORMAT",
-    "ADMIN_IDS",
-    "TELEGRAM_RUNTIME_ENABLED",
-    "TELEGRAM_BOT_TOKEN",
-    "BROOKS_RUNTIME_ENABLED",
-    "BROOKS_OPERATIONS_ENABLED",
-    "PAPER_RUNTIME_ENABLED",
-    "PERFORMANCE_REPORTS_ENABLED",
-    "DB_ECHO",
-    "POSTGRES_USER",
-    "POSTGRES_PASSWORD",
-    "POSTGRES_DB",
-    "DATABASE_URL",
+settings_keys = {
+    "APP_NAME", "APP_ENV", "LOG_LEVEL", "LOG_FORMAT",
+    "TELEGRAM_RUNTIME_ENABLED", "TELEGRAM_BOT_TOKEN", "TELEGRAM_POLL_TIMEOUT",
+    "TELEGRAM_DROP_PENDING_UPDATES", "ADMIN_IDS", "REPORT_TIMEZONE",
+    "BROADCAST_RATE_PER_SECOND", "BROADCAST_BATCH_SIZE", "BROADCAST_MAX_RETRIES",
+    "BROADCAST_RETRY_AFTER_CAP_SECONDS", "DATABASE_URL", "DB_ECHO",
+    "DB_POOL_SIZE", "DB_MAX_OVERFLOW", "DB_POOL_TIMEOUT_SECONDS",
+    "DB_CONNECT_TIMEOUT_SECONDS", "PAPER_RUNTIME_ENABLED",
+    "PAPER_PRIVATE_TEST_CHANNEL_ID", "PAPER_DEFAULT_LEVERAGE",
+    "PAPER_POLL_INTERVAL_SECONDS", "PERFORMANCE_INTELLIGENCE_SHADOW_MODE",
+    "PERFORMANCE_REPORTS_ENABLED", "PERFORMANCE_REPORT_CHANNEL_ID",
+    "PERFORMANCE_REPORT_PARSE_MODE", "PERFORMANCE_REPORT_TIMEZONE",
+    "PERFORMANCE_REPORT_MAX_RETRY", "PERFORMANCE_REPORT_INTERVAL",
+    "BROOKS_RUNTIME_ENABLED", "BROOKS_RUNTIME_MODE", "BROOKS_EXCHANGE",
+    "BROOKS_MARKET_TYPE", "BROOKS_SYMBOLS", "BROOKS_TIMEFRAMES",
+    "BROOKS_SNAPSHOT_LIMIT", "BROOKS_POLL_INTERVAL_SECONDS",
+    "BROOKS_LIVE_LEVERAGE", "BROOKS_VIP_CHANNEL_ID", "BROOKS_LIVE_CUTOVER_AT",
+    "BROOKS_HISTORICAL_PROBABILITY_DOMAIN", "BROOKS_SCALE_IN_MODE",
+    "BROOKS_OPERATIONS_ENABLED", "BROOKS_OPS_CUTOVER_AT",
+    "SIGNAL_LIFECYCLE_POLL_INTERVAL_SECONDS", "SIGNAL_LIFECYCLE_CANDLE_LIMIT",
+    "PAYMENT_SETTLEMENT_POLL_INTERVAL_SECONDS",
+    "VIP_ENTITLEMENT_POLL_INTERVAL_SECONDS", "VIP_INVITE_TTL_HOURS",
 }
-optional = {"BROOKS_SCALE_IN_MODE"}
-
-if set(env) - required - optional:
+compose_keys = {"POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB"}
+if set(env) - settings_keys - compose_keys:
     fail("unsupported environment variable")
+
+required = {
+    "APP_ENV", "ADMIN_IDS", "TELEGRAM_RUNTIME_ENABLED", "TELEGRAM_BOT_TOKEN",
+    "BROOKS_RUNTIME_ENABLED", "BROOKS_OPERATIONS_ENABLED", "PAPER_RUNTIME_ENABLED",
+    "PERFORMANCE_REPORTS_ENABLED", "DB_ECHO", "POSTGRES_USER",
+    "POSTGRES_PASSWORD", "POSTGRES_DB", "DATABASE_URL",
+}
 if required - set(env):
     fail("missing required environment variable")
+if any("REPLACE_" in value for value in env.values()):
+    fail("unresolved placeholder")
 if env["TELEGRAM_BOT_TOKEN"] != "":
     fail("TELEGRAM_BOT_TOKEN must be empty")
 
 
 def must(name: str) -> str:
     value = env.get(name, "")
-    if not value or "REPLACE_" in value:
+    if not value:
         fail(name)
     return value
 
 
 if must("APP_ENV") != "production":
     fail("APP_ENV")
-
 admin = must("ADMIN_IDS")
 if not all(
     re.fullmatch(r"[0-9]{1,19}", item) and 0 < int(item) <= 2**63 - 1
@@ -74,26 +88,22 @@ if not all(
 ):
     fail("ADMIN_IDS")
 
-if must("TELEGRAM_RUNTIME_ENABLED").lower() != "false":
-    fail("TELEGRAM_RUNTIME_ENABLED: staging defaults must remain off")
-
 for key in (
+    "TELEGRAM_RUNTIME_ENABLED",
     "BROOKS_RUNTIME_ENABLED",
     "BROOKS_OPERATIONS_ENABLED",
     "PAPER_RUNTIME_ENABLED",
     "PERFORMANCE_REPORTS_ENABLED",
     "DB_ECHO",
 ):
-    if env.get(key, "false").lower() != "false":
+    if env.get(key, "").lower() != "false":
         fail(key)
-
 if env.get("BROOKS_SCALE_IN_MODE", "disabled") != "disabled":
     fail("BROOKS_SCALE_IN_MODE")
 
 user = must("POSTGRES_USER")
 database = must("POSTGRES_DB")
 password = must("POSTGRES_PASSWORD")
-
 if not re.fullmatch(r"[a-z_][a-z0-9_]{0,30}", user):
     fail("POSTGRES_USER")
 if not re.fullmatch(r"[a-z_][a-z0-9_]{0,30}", database):
@@ -115,7 +125,6 @@ try:
     )
 except (TypeError, ValueError):
     valid = False
-
 if not valid:
     fail("DATABASE_URL: must match disposable postgres service")
 
