@@ -275,7 +275,8 @@ def outcome_one(x, candles, lifecycle):
             terminal_time = candle.close_time
             state = "COMPLETE"
             break
-        # Runner reversal is deliberately fail-closed: no durable final-gate-approved opposite evidence is available before stats validation.
+        # Runner reversal is deliberately fail-closed: no durable final-gate-approved
+        # opposite evidence is available before statistics validation.
         desired = None
         reason = None
         risk_side = (c.direction == "LONG" and current_stop < c.entry_price) or (
