@@ -149,7 +149,9 @@ async def test_shared_evidence_runner_lifecycle(case, valid_token):
                 from app.modules.analytics.repository import SQLAlchemyWinRateRepository
                 counts=await SQLAlchemyWinRateRepository(session).fetch_outcome_counts(
                     started_at=BASE,ended_at=BASE+timedelta(minutes=22))
-                assert counts.runner_reversal == 1
+                expected_runner_reversal = 0 if pending else 1
+                assert counts.runner_reversal == expected_runner_reversal
+                assert counts.open_trades == (1 if pending else 0)
                 assert counts.target_hit == 0 and counts.stop_hit == 0
                 remaining=open_position_fraction(plan,targets,exits[0])
                 assert remaining==(D("0.25") if pending else D("0"))
