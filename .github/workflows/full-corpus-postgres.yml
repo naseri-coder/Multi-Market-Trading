@@ -27,6 +27,7 @@ jobs:
       PAPER_RUNTIME_ENABLED: "false"
       PERFORMANCE_REPORTS_ENABLED: "false"
       DB_ECHO: "false"
+
     steps:
       - name: Checkout immutable PR revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -51,7 +52,6 @@ jobs:
           test "${root}" != "/tmp/ch6-"
           mkdir -p "${source_dir}" "${socket_dir}"
           chmod 0777 "${socket_dir}"
-
           tar --exclude=.git -cf - . | tar -xf - -C "${source_dir}"
 
           {
@@ -72,26 +72,28 @@ jobs:
 
           PYTHONPATH="${CH6_ISOLATED_SOURCE}" python - <<'PY'
           from pathlib import Path
+          import os
           import app
 
-          source = Path(__import__("os").environ["CH6_ISOLATED_SOURCE"]).resolve()
+          source = Path(os.environ["CH6_ISOLATED_SOURCE"]).resolve()
           resolved = Path(app.__file__).resolve()
           assert resolved.is_relative_to(source), (resolved, source)
           print("CH6_ISOLATED_SOURCE_PASS")
           PY
 
-      - name: Start disposable PostgreSQL on isolated Unix socket
+      - name: Start two isolated disposable PostgreSQL databases
         run: |
           set -Eeuo pipefail
           pg_user="ch6synthetic"
-          pg_db="ch6synthetic"
+          ch6_db="ch6synthetic"
+          general_db="fullcorpus"
           pg_password="ch6synthetic_ci_password_2026"
 
-          docker run -d --rm             --name "${CH6_PG_CONTAINER}"             --security-opt no-new-privileges:true             -e "POSTGRES_USER=${pg_user}"             -e "POSTGRES_PASSWORD=${pg_password}"             -e "POSTGRES_DB=${pg_db}"             -v "${CH6_SOCKET_DIR}:/var/run/postgresql"             postgres:16-alpine             -c unix_socket_directories=/var/run/postgresql             -c listen_addresses=''
+          docker run -d --rm --name "${CH6_PG_CONTAINER}" --security-opt no-new-privileges:true -e "POSTGRES_USER=${pg_user}" -e "POSTGRES_PASSWORD=${pg_password}" -e "POSTGRES_DB=${ch6_db}" -v "${CH6_SOCKET_DIR}:/var/run/postgresql" postgres:16-alpine -c unix_socket_directories=/var/run/postgresql -c listen_addresses=''
 
           ready=0
           for _ in {1..60}; do
-            if docker exec "${CH6_PG_CONTAINER}" pg_isready -U "${pg_user}" -d "${pg_db}" >/dev/null 2>&1; then
+            if docker exec "${CH6_PG_CONTAINER}" pg_isready -U "${pg_user}" -d "${ch6_db}" >/dev/null 2>&1; then
               ready=1
               break
             fi
@@ -99,31 +101,45 @@ jobs:
           done
           test "${ready}" = "1"
 
-          database_url="postgresql+asyncpg://${pg_user}:${pg_password}@localhost/${pg_db}?host=${CH6_SOCKET_DIR}"
-          case "${database_url}" in
+          docker exec "${CH6_PG_CONTAINER}" createdb -U "${pg_user}" "${general_db}"
+
+          ch6_url="postgresql+asyncpg://${pg_user}:${pg_password}@localhost/${ch6_db}?host=${CH6_SOCKET_DIR}"
+          general_url="postgresql+asyncpg://${pg_user}:${pg_password}@localhost/${general_db}?host=${CH6_SOCKET_DIR}"
+
+          case "${ch6_url}" in
             *ch6synthetic*"/tmp/ch6-"*) ;;
             *) echo "CH6_DATABASE_URL_ISOLATION_FAIL"; exit 1 ;;
           esac
+          case "${general_url}" in
+            *fullcorpus*"/tmp/ch6-"*) ;;
+            *) echo "GENERAL_DATABASE_URL_ISOLATION_FAIL"; exit 1 ;;
+          esac
 
           {
-            echo "CH6_DISPOSABLE_DATABASE_URL=${database_url}"
-            echo "DATABASE_URL=${database_url}"
+            echo "CH6_DISPOSABLE_DATABASE_URL=${ch6_url}"
+            echo "TEST_DATABASE_URL=${general_url}"
+            echo "DATABASE_URL=${ch6_url}"
           } >> "${GITHUB_ENV}"
 
           test -z "$(docker port "${CH6_PG_CONTAINER}")"
-          echo "CH6_DISPOSABLE_POSTGRES_PASS"
+          echo "DISPOSABLE_POSTGRES_TWO_DATABASES_PASS"
 
-      - name: Apply GitHub migrations to disposable database
+      - name: Apply GitHub migrations to both disposable databases
         run: |
           set -Eeuo pipefail
           cd "${CH6_ISOLATED_SOURCE}"
           export PYTHONPATH="${CH6_ISOLATED_SOURCE}"
 
           python -m alembic -c alembic.ini heads | grep -F "20260928_0021"
-          python -m alembic -c alembic.ini upgrade 20260928_0021
-          current="$(docker exec "${CH6_PG_CONTAINER}"             psql -U ch6synthetic -d ch6synthetic -Aqt             -c 'SELECT version_num FROM alembic_version;')"
-          test "${current}" = "20260928_0021"
-          echo "CH6_MIGRATION_0021_PASS"
+
+          DATABASE_URL="${CH6_DISPOSABLE_DATABASE_URL}" python -m alembic -c alembic.ini upgrade 20260928_0021
+          DATABASE_URL="${TEST_DATABASE_URL}" python -m alembic -c alembic.ini upgrade 20260928_0021
+
+          ch6_current="$(docker exec "${CH6_PG_CONTAINER}" psql -U ch6synthetic -d ch6synthetic -Aqt -c 'SELECT version_num FROM alembic_version;')"
+          general_current="$(docker exec "${CH6_PG_CONTAINER}" psql -U ch6synthetic -d fullcorpus -Aqt -c 'SELECT version_num FROM alembic_version;')"
+          test "${ch6_current}" = "20260928_0021"
+          test "${general_current}" = "20260928_0021"
+          echo "BOTH_DATABASES_MIGRATION_0021_PASS"
 
       - name: Run complete tracked corpus
         run: |
@@ -135,10 +151,16 @@ jobs:
       - name: Cleanup disposable resources
         if: ${{ always() }}
         run: |
-          set +e
+          set -Eeuo pipefail
+
           if [[ -n "${CH6_PG_CONTAINER:-}" ]]; then
             docker rm -f "${CH6_PG_CONTAINER}" >/dev/null 2>&1 || true
           fi
+
           if [[ -n "${CH6_ISOLATED_ROOT:-}" && "${CH6_ISOLATED_ROOT}" == /tmp/ch6-* ]]; then
-            rm -rf -- "${CH6_ISOLATED_ROOT}"
+            docker run --rm --entrypoint sh -v "${CH6_ISOLATED_ROOT}:/cleanup" postgres:16-alpine -c 'rm -rf /cleanup/repo /cleanup/socket'
+            rmdir -- "${CH6_ISOLATED_ROOT}"
+            test ! -e "${CH6_ISOLATED_ROOT}"
           fi
+
+          echo "DISPOSABLE_RESOURCE_CLEANUP_PASS"
