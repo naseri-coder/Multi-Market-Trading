@@ -4,6 +4,8 @@ import ast
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+MIGRATIONS_ROOT = PROJECT_ROOT / "production_source" / "migrations"
+VERSIONS = MIGRATIONS_ROOT / "versions"
 REVISION = VERSIONS / "20260901_0001_create_core_models.py"
 BROADCAST_REVISION = (
     VERSIONS / "20260901_0002_create_broadcast_models.py"
@@ -14,12 +16,7 @@ FORWARD_REVISION = (
 SUPPORT_REVISION = (
     VERSIONS / "20260901_0004_create_support_ticket_models.py"
 )
-SIGNAL_REVISION = (
-    PROJECT_ROOT
-    / "migrations"
-    / "versions"
-    / "20260901_0005_create_signal_database_architecture.py"
-)
+SIGNAL_REVISION = VERSIONS / "20260901_0005_create_signal_database_architecture.py"
 SIGNAL_SERVICE_REVISION = (
     VERSIONS / "20260901_0006_relax_signal_stop_loss_constraint.py"
 )
@@ -41,8 +38,8 @@ REFERRALS_REVISION = (
 
 
 def test_alembic_environment_and_initial_revision_exist() -> None:
-    assert (PROJECT_ROOT / "alembic.ini").is_file()
-    assert (PROJECT_ROOT / "migrations" / "env.py").is_file()
+    assert (PROJECT_ROOT / "production_source" / "alembic.ini").is_file()
+    assert (MIGRATIONS_ROOT / "env.py").is_file()
     assert REVISION.is_file()
     assert BROADCAST_REVISION.is_file()
     assert FORWARD_REVISION.is_file()
@@ -309,7 +306,7 @@ def test_no_divergent_legacy_migration_tree_is_present() -> None:
     assert mirror == canonical
 
 def test_container_includes_alembic_runtime_files() -> None:
-    dockerfile = (PROJECT_ROOT / "Dockerfile").read_text(encoding="utf-8")
+    dockerfile = (PROJECT_ROOT / "Dockerfile.production").read_text(encoding="utf-8")
 
-    assert "COPY --chown=bot:bot migrations ./migrations" in dockerfile
-    assert "COPY --chown=bot:bot alembic.ini ./alembic.ini" in dockerfile
+    assert "COPY production_source/migrations ./migrations" in dockerfile
+    assert "COPY production_source/alembic.ini ./alembic.ini" in dockerfile
