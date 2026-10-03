@@ -40,11 +40,7 @@ def validate_disposable_database_url(value: str) -> str:
 def bar(i: int, high: str, low: str, close: str | None = None) -> Candle:
     opened = BASE + timedelta(minutes=i)
     high_value, low_value = Decimal(high), Decimal(low)
-    c = (
-        Decimal(close)
-        if close is not None
-        else (high_value + low_value) / Decimal("2")
-    )
+    c = Decimal(close) if close is not None else (high_value + low_value) / Decimal("2")
     return Candle(
         opened,
         opened + timedelta(minutes=1),

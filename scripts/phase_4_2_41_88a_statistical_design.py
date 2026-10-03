@@ -240,8 +240,7 @@ result = {
     "case_count": len(cases),
     "statistics_contract_version_proposed": "brooks-v5v6-realized-r-bootstrap-lcb95-v1",
     "primary_candidate_estimator": (
-        "mean_realized_r_with_one_sided_95pct_"
-        "nonparametric_bootstrap_lower_confidence_bound"
+        "mean_realized_r_with_one_sided_95pct_nonparametric_bootstrap_lower_confidence_bound"
     ),
     "neutral_boundary_r": 0.0,
     "scope_stats": scope_stats,
