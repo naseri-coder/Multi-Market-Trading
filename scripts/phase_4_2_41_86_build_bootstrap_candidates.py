@@ -8,7 +8,7 @@ import dataclasses
 import hashlib
 import json
 from collections import Counter
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from app.modules.ai_council.service import AICouncilService
@@ -19,12 +19,13 @@ from app.modules.operations.trade_management import POLICY_VERSION as MANAGEMENT
 from app.modules.paper_runtime.entities import PaperSignalCandidate
 from app.modules.risk_engine.service import RiskEngineService
 from app.modules.signal_intelligence.probability import HistoricalProbabilityEngine
+
 from research_layer.current_risk_contract import read_current_risk
 
 ROOT = Path(__file__).resolve().parents[1]
 SYMBOLS = ("BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "SOLUSDT")
-START = datetime(2026, 9, 11, 0, 0, 5, tzinfo=timezone.utc)
-END = datetime(2026, 9, 11, 23, 59, 59, tzinfo=timezone.utc)
+START = datetime(2026, 9, 11, 0, 0, 5, tzinfo=UTC)
+END = datetime(2026, 9, 11, 23, 59, 59, tzinfo=UTC)
 
 
 def geometry(row):

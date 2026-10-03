@@ -20,6 +20,7 @@ from app.modules.market_data.entities import Candle, MarketSnapshot
 from app.modules.paper_runtime.entities import PaperSignalCandidate
 from app.modules.risk_engine.service import RiskEngineService
 from app.modules.signal_automation.entities import BrooksRuleEvidence
+
 from research_layer.current_risk_contract import read_current_risk
 
 

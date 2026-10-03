@@ -1,29 +1,30 @@
 from __future__ import annotations
+
 import argparse
 import asyncio
 import hashlib
 import json
 import time
-from collections import Counter
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace as NS
 
-from app.modules.market_data.binance_futures import BinanceFuturesMarketDataProvider, _dt
-from app.modules.market_data.entities import Candle, MarketSnapshot
-from app.modules.paper_runtime.entities import PaperSignalCandidate
-from app.modules.signal_automation.entities import BrooksRuleEvidence
-from app.modules.operations.trade_management import weighted_close_return
-from app.modules.operations.approval_evidence import open_position_fraction, open_runner_fraction
-from app.modules.operations.lifecycle import LiveSignalLifecycleService
 from app.modules.brooks_core.engine_contract import (
     ReversalOutcomeContext,
     StopSourceIdentity,
     TargetPlanLifecycle,
     TargetSourceIdentity,
 )
+from app.modules.market_data.binance_futures import BinanceFuturesMarketDataProvider, _dt
+from app.modules.market_data.entities import Candle, MarketSnapshot
+from app.modules.operations.approval_evidence import open_position_fraction
+from app.modules.operations.lifecycle import LiveSignalLifecycleService
+from app.modules.operations.trade_management import weighted_close_return
+from app.modules.paper_runtime.entities import PaperSignalCandidate
 from app.modules.risk_engine.service import RiskEngineService
+from app.modules.signal_automation.entities import BrooksRuleEvidence
+
 from research_layer.current_risk_contract import read_current_risk
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -296,10 +297,7 @@ def outcome_one(x, candles, lifecycle):
                 c.direction == "LONG"
                 and structural > current_stop
                 and (desired is None or structural > desired)
-            ):
-                desired = structural
-                reason = "STRUCTURAL_TRAIL"
-            elif (
+            ) or (
                 c.direction == "SHORT"
                 and structural < current_stop
                 and (desired is None or structural < desired)

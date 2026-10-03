@@ -18,6 +18,7 @@ from app.modules.market_data.binance_futures import BinanceFuturesMarketDataProv
 from app.modules.operations.trade_management import POLICY_VERSION as MANAGEMENT_VERSION
 from app.modules.paper_runtime.entities import PaperSignalCandidate
 from app.modules.risk_engine.service import RiskEngineService
+
 from research_layer.current_risk_contract import read_current_risk
 
 

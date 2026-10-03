@@ -1,26 +1,26 @@
 from __future__ import annotations
+
 import argparse
 import asyncio
 import dataclasses
 import hashlib
 import json
-from collections import Counter, defaultdict
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace as NS
 
-from app.modules.market_data.binance_futures import BinanceFuturesMarketDataProvider, _dt
-from app.modules.market_data.entities import Candle, MarketSnapshot
-from app.modules.paper_runtime.entities import PaperSignalCandidate
-from app.modules.signal_automation.entities import BrooksRuleEvidence
 from app.modules.brooks_core.books_full_engine import BrooksTrilogyFullCoreEngine
 from app.modules.brooks_core.books_full_policy import BrooksFullCorePolicy
 from app.modules.brooks_core.market_context import build_market_context
-from app.modules.operations.trade_management import weighted_close_return
-from research_layer.current_risk_contract import read_current_risk
+from app.modules.market_data.binance_futures import BinanceFuturesMarketDataProvider, _dt
+from app.modules.market_data.entities import Candle, MarketSnapshot
 from app.modules.operations.approval_evidence import open_position_fraction, open_runner_fraction
 from app.modules.operations.lifecycle import LiveSignalLifecycleService
+from app.modules.operations.trade_management import weighted_close_return
+from app.modules.paper_runtime.entities import PaperSignalCandidate
+
+from research_layer.current_risk_contract import read_current_risk
 
 ROOT = Path(__file__).resolve().parents[1]
 D = Decimal
@@ -305,10 +305,7 @@ def outcome_one(x, c, candles, accepted_evidence, lifecycle, policy_by):
                 c.direction == "LONG"
                 and structural > current_stop
                 and (desired is None or structural > desired)
-            ):
-                desired = structural
-                reason = "STRUCTURAL_TRAIL"
-            elif (
+            ) or (
                 c.direction == "SHORT"
                 and structural < current_stop
                 and (desired is None or structural < desired)
@@ -325,10 +322,7 @@ def outcome_one(x, c, candles, accepted_evidence, lifecycle, policy_by):
                 {"time": candle.close_time.isoformat(), "stop": str(desired), "reason": reason}
             )
     if terminal is None:
-        if entry_at is None:
-            terminal = "NEVER_ENTERED"
-        else:
-            terminal = "OPEN"
+        terminal = "NEVER_ENTERED" if entry_at is None else "OPEN"
     return {
         "identity": x["identity_sha256"],
         "timestamp": x["candidate_timestamp"],
