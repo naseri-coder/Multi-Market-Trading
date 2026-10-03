@@ -16,6 +16,7 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       PTB_TIMEDELTA: "1"
       TELEGRAM_RUNTIME_ENABLED: "false"
+      PYTHONDONTWRITEBYTECODE: "1"
       TELEGRAM_BOT_TOKEN: ""
       ADMIN_IDS: "123456789"
     steps:
@@ -86,6 +87,12 @@ jobs:
           set -Eeuo pipefail
           DATABASE_URL="$TEST_DATABASE_URL" python -m alembic -c alembic.ini upgrade head
           DATABASE_URL="$CH6_DISPOSABLE_DATABASE_URL" python -m alembic -c alembic.ini upgrade head
+
+      - name: Remove runtime bytecode before static migration parity
+        run: |
+          set -Eeuo pipefail
+          find migrations production_source/migrations -type d -name __pycache__ -prune -exec rm -rf {} +
+          test -z "$(find migrations production_source/migrations -type f -name '*.py[co]' -print -quit)"
 
       - name: Run complete tracked test corpus
         env:
