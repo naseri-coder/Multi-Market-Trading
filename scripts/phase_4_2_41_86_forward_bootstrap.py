@@ -304,18 +304,20 @@ def outcome_one(x, c, candles, accepted_evidence, lifecycle):
         structural = lifecycle._structural_trailing_stop(
             signal=signal, candles=available, candle=candle, entry_activated_at=entry_at
         )
-        if structural is not None:
-            if (
+        if structural is not None and (
+            (
                 c.direction == "LONG"
                 and structural > current_stop
                 and (desired is None or structural > desired)
-            ) or (
+            )
+            or (
                 c.direction == "SHORT"
                 and structural < current_stop
                 and (desired is None or structural < desired)
-            ):
-                desired = structural
-                reason = "STRUCTURAL_TRAIL"
+            )
+        ):
+            desired = structural
+            reason = "STRUCTURAL_TRAIL"
         if desired is not None and (
             (c.direction == "LONG" and desired > current_stop)
             or (c.direction == "SHORT" and desired < current_stop)
