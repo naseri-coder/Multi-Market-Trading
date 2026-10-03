@@ -131,7 +131,7 @@ async def exact14_rows(fixture, *, allow_network):
     engine = BrooksTrilogyFullCoreEngine(policy=BrooksFullCorePolicy(enable_trade_decisions=True))
     for historical in document["candidates"]:
         clock = dt(historical["timestamp"])
-        provider = BinanceFuturesMarketDataProvider(clock=lambda: clock)
+        provider = BinanceFuturesMarketDataProvider(clock=lambda clock=clock: clock)
         try:
             snapshot = await provider.get_snapshot(
                 symbol=historical["symbol"],
