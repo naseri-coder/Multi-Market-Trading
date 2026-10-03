@@ -4,6 +4,20 @@ All notable public changes to this project are recorded here.
 
 This project remains under active development and validation. A tagged release does not imply production or live-trading approval.
 
+## v0.3.1 — 2026-10-03
+
+Patch release for the fresh-host installer.
+
+### Fixed
+
+- Fixed the in-container release configuration validator so it can import `app.core.config.Settings` from the packaged image layout.
+- Added a regression test that executes the validator from an isolated container-like filesystem layout without relying on the repository checkout or installed site packages.
+- Updated the Docker/image, installer, source manifest, verification contract, and release documentation to the `0.3.1` patch identity.
+
+### Scope
+
+This patch does not change Brooks trading semantics, database schema, migration history, or runtime enablement defaults. Effectful runtime modes remain disabled by default.
+
 ## v0.3.0 — 2026-10-03
 
 The first official v0.3.0 open-source release.

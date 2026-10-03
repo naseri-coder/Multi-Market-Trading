@@ -32,9 +32,9 @@ for rel in entries:
 ast.parse(Path("production_checks/verify_historical_probability_regression.py").read_bytes())
 
 project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
-assert project["project"]["version"] == "0.3.0"
+assert project["project"]["version"] == "0.3.1"
 print("SOURCE_SHA256_PASS entries=348; PYTHON_AST_PASS count=" + str(parsed))
-print("PACKAGE_VERSION_PASS 0.3.0")
+print("PACKAGE_VERSION_PASS 0.3.1")
 PY
 
 bash -n scripts/install.sh scripts/verify.sh
@@ -46,6 +46,6 @@ for path in   Dockerfile.production compose.yaml requirements.lock requirements.
 done
 grep -Fxq 'ruff==0.16.9' requirements-dev.lock
 grep -Fxq 'pytest==9.1.1' requirements-dev.lock
-grep -Fq 'version-v0.3.0' README.md
+grep -Fq 'version-v0.3.1' README.md
 
 echo STAGED_STATIC_VERIFICATION_PASS
