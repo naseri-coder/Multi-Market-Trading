@@ -19,7 +19,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install exact Ruff
-        run: python -m pip install --disable-pip-version-check ruff==0.16.9
+        run: python -m pip install --disable-pip-version-check ruff==0.16.9 autopep8==2.3.2
       - name: Format and safe-fix changed Python files only
         env:
           BASE_SHA: 409fe40636929e80325bbec1bc760da2ecd7835c
