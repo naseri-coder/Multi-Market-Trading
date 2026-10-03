@@ -92,8 +92,7 @@ def serialize(candidate, snapshot, clock, council, risk, view):
         "risk_semantic_breakdown": view["breakdown"],
         "management_plan": plan.to_metadata(),
         "target_exit_fractions": {
-            str(number): str(fraction)
-            for number, fraction in plan.target_exit_fractions
+            str(number): str(fraction) for number, fraction in plan.target_exit_fractions
         },
         "runner_fraction": str(plan.runner_fraction),
         "breakeven_mode": plan.breakeven_mode,
@@ -115,9 +114,7 @@ def serialize(candidate, snapshot, clock, council, risk, view):
         "reasoning": list(candidate.reasoning),
         "rule_ids": list(candidate.rule_ids),
         "failed_rules": list(candidate.failed_rules),
-        "rule_evidence": [
-            evidence_metadata(item) for item in candidate.rule_evidence
-        ],
+        "rule_evidence": [evidence_metadata(item) for item in candidate.rule_evidence],
         "snapshot": {
             "exchange": snapshot.exchange,
             "market_type": snapshot.market_type,
@@ -165,9 +162,7 @@ async def build(
 
     async def one(symbol, timeframe, clock):
         async with semaphore:
-            provider = BinanceFuturesMarketDataProvider(
-                clock=lambda clock=clock: clock
-            )
+            provider = BinanceFuturesMarketDataProvider(clock=lambda clock=clock: clock)
             try:
                 snapshot = await provider.get_snapshot(
                     symbol=symbol,
@@ -211,9 +206,7 @@ async def build(
                 if not risk.approved:
                     stage["risk_rejected"] += 1
                     return None
-                view = read_current_risk(
-                    candidate, assessment=risk, need_trade_plan=True
-                )
+                view = read_current_risk(candidate, assessment=risk, need_trade_plan=True)
                 candidate_geometry = (
                     candidate.symbol,
                     candidate.timeframe,
@@ -229,16 +222,12 @@ async def build(
                 ):
                     raise RuntimeError("PRIOR_COHORT_OVERLAP")
                 stage["risk_approved"] += 1
-                return serialize(
-                    candidate, snapshot, clock, council, risk, view
-                )
+                return serialize(candidate, snapshot, clock, council, risk, view)
             finally:
                 await provider.aclose()
 
     results = []
-    for task in asyncio.as_completed(
-        [asyncio.create_task(one(*point)) for point in points]
-    ):
+    for task in asyncio.as_completed([asyncio.create_task(one(*point)) for point in points]):
         row = await task
         if row is not None:
             results.append(row)
@@ -257,6 +246,7 @@ async def build(
         seen.add(row["candidate_identity"])
         unique.append(row)
     return points, stage, unique
+
 
 def load_prior(paths):
     ids = set()
@@ -293,9 +283,7 @@ async def main(*, manifest_path, prior_paths, output, allow_network):
     payload = {
         "phase": "4.2.41.88C-current-contract",
         "purpose": "EXTENDED_CURRENT_CANDIDATE_UNIVERSE_BEFORE_FORWARD_REPLAY",
-        "holdout_manifest_sha256": hashlib.sha256(
-            manifest_path.read_bytes()
-        ).hexdigest(),
+        "holdout_manifest_sha256": hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
         "source_window_utc": [start.isoformat(), end.isoformat()],
         "scan_points": len(points),
         "symbols": list(symbols),
