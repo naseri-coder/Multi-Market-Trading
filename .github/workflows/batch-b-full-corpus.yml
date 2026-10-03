@@ -71,8 +71,8 @@ jobs:
 
       - name: Apply migrations to both disposable databases
         env:
-          TEST_DATABASE_URL: postgresql+asyncpg://batchb:batchb-synthetic-only@/batchbtest?host=${{ steps.pg.outputs.socket_dir }}
-          CH6_DISPOSABLE_DATABASE_URL: postgresql+asyncpg://batchb:batchb-synthetic-only@/ch6synthetic?host=${{ steps.pg.outputs.socket_dir }}
+          TEST_DATABASE_URL: postgresql+asyncpg://batchb:batchb-synthetic-only@localhost/batchbtest?host=${{ steps.pg.outputs.socket_dir }}
+          CH6_DISPOSABLE_DATABASE_URL: postgresql+asyncpg://batchb:batchb-synthetic-only@localhost/ch6synthetic?host=${{ steps.pg.outputs.socket_dir }}
         run: |
           set -Eeuo pipefail
           DATABASE_URL="$TEST_DATABASE_URL" python -m alembic -c alembic.ini upgrade head
@@ -80,8 +80,8 @@ jobs:
 
       - name: Run complete tracked test corpus
         env:
-          TEST_DATABASE_URL: postgresql+asyncpg://batchb:batchb-synthetic-only@/batchbtest?host=${{ steps.pg.outputs.socket_dir }}
-          CH6_DISPOSABLE_DATABASE_URL: postgresql+asyncpg://batchb:batchb-synthetic-only@/ch6synthetic?host=${{ steps.pg.outputs.socket_dir }}
+          TEST_DATABASE_URL: postgresql+asyncpg://batchb:batchb-synthetic-only@localhost/batchbtest?host=${{ steps.pg.outputs.socket_dir }}
+          CH6_DISPOSABLE_DATABASE_URL: postgresql+asyncpg://batchb:batchb-synthetic-only@localhost/ch6synthetic?host=${{ steps.pg.outputs.socket_dir }}
           CH6_ISOLATED_SOURCE: ${{ github.workspace }}
           RUN_PUBLIC_MARKET_DATA_SMOKE: "0"
         run: |
@@ -97,4 +97,4 @@ jobs:
         run: |
           set +e
           docker rm -f "${{ steps.pg.outputs.container }}" >/dev/null 2>&1
-          rm -rf "${{ steps.pg.outputs.socket_dir }}"
+          sudo rm -rf "${{ steps.pg.outputs.socket_dir }}"
