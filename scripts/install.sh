@@ -72,4 +72,4 @@ fi
 "${compose[@]}" run --rm --no-deps bot python -m app --check-config
 "${compose[@]}" run --rm --no-deps bot python -m app --check-db
 "${compose[@]}" up -d --no-deps bot
-echo "NEW_HOST_INSTALL_FINISHED: v0.3.1 source installed with effectful runtime disabled"
+echo "NEW_HOST_INSTALL_FINISHED: v0.3.2 source installed with effectful runtime disabled"

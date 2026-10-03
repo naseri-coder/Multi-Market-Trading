@@ -11,7 +11,7 @@
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-async-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Version](https://img.shields.io/badge/version-v0.3.1-7C3AED)](pyproject.toml)
+[![Version](https://img.shields.io/badge/version-v0.3.2-7C3AED)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-D22128?logo=apache&logoColor=white)](LICENSE)
 
 ### 📣 Telegram
@@ -20,14 +20,14 @@
 [![Developer](https://img.shields.io/badge/Developer-%40nasericoder-26A5E4?logo=telegram&logoColor=white)](https://t.me/nasericoder)
 
 
-**v0.3.1 · Validation-first · Live Brooks execution disabled**
+**v0.3.2 · Validation-first · Live Brooks execution disabled**
 
 [Overview](#overview) · [How it works](#how-it-works) · [Current status](#current-status) · [Quick start](#quick-start) · [Verification](#verification) · [Security](#security)
 
 </div>
 
 > [!IMPORTANT]
-> **v0.3.1 source release line.** This patch fixes fresh-host container configuration validation while preserving the v0.3.0 runtime and database semantics. Release tags remain authoritative. The project does **not** claim profitability and is **not approved for production or live trading**.
+> **v0.3.2 source release line.** This patch fixes fresh-host container configuration validation while preserving the v0.3.0 runtime and database semantics. Release tags remain authoritative. The project does **not** claim profitability and is **not approved for production or live trading**.
 >
 > This is an **independent software project** and is not affiliated with, sponsored by, or endorsed by **Al Brooks** or the publishers of the referenced books.
 
