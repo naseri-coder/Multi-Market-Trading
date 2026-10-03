@@ -19,8 +19,6 @@ from decimal import Decimal
 from pathlib import Path
 
 import matplotlib
-
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from app.modules.brooks_core_v3.knowledge import BrooksKnowledgeEngine
@@ -30,6 +28,7 @@ from app.modules.market_data.entities import TIMEFRAME_SECONDS, MarketSnapshot
 from research_layer.statistics import (
     bayesian_win_interval,
     binomial_two_sided_p,
+    blocked_cross_validation,
     bootstrap_interval,
     correlation_matrix,
     distribution,
@@ -43,6 +42,9 @@ from research_layer.statistics import (
     walk_forward,
     wilson_interval,
 )
+
+matplotlib.use("Agg")
+
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "research_output"
@@ -1140,7 +1142,8 @@ def generate_recommendations(db):
                     pattern,
                     "REVIEW_INCREASE_WEIGHT",
                     "HIGH",
-                    f"Positive expectancy {exp:.3f}R and Bayesian 95% lower win bound {blo:.3f} > 0.5. Research recommendation only.",
+                    f"Positive expectancy {exp:.3f}R and Bayesian 95% lower win bound {
+                        blo:.3f} > 0.5. Research recommendation only.",
                     0,
                 )
             )
@@ -1151,7 +1154,8 @@ def generate_recommendations(db):
                     pattern,
                     "REVIEW_DECREASE_WEIGHT",
                     "HIGH",
-                    f"Negative expectancy {exp:.3f}R and Bayesian 95% upper win bound {bhi:.3f} < 0.5. Research recommendation only.",
+                    f"Negative expectancy {exp:.3f}R and Bayesian 95% upper win bound {
+                        bhi:.3f} < 0.5. Research recommendation only.",
                     0,
                 )
             )
@@ -1162,7 +1166,8 @@ def generate_recommendations(db):
                     pattern,
                     "REVIEW_WEAK_PATTERN",
                     "MEDIUM",
-                    f"Negative expectancy {exp:.3f}R but uncertainty still crosses neutral; gather more data before calibration.",
+                    f"Negative expectancy {
+                        exp:.3f}R but uncertainty still crosses neutral; gather more data before calibration.",
                     0,
                 )
             )
@@ -1202,7 +1207,8 @@ def generate_recommendations(db):
                     f"{a} + {b}",
                     action,
                     "MEDIUM",
-                    f"n={n}, interaction expectancy delta={synergy:.3f}R versus mean individual expectancy.",
+                    f"n={n}, interaction expectancy delta={
+                        synergy:.3f}R versus mean individual expectancy.",
                     0,
                 )
             )
@@ -1476,9 +1482,6 @@ def generate_reliability_matrix(db):
     return len(rows)
 
 
-from research_layer.statistics import blocked_cross_validation
-
-
 def fmt(x, digits=3):
     if x is None:
         return "N/A"
@@ -1548,11 +1551,21 @@ def generate_report(db, metrics, raw, universe_snapshots, universe_findings, pat
         "## Executive Summary",
         "",
         f"- Production signals observed: **{len(raw['signals'])}**; actual closed signals with reconstructable R: **{len(closed)}**.",
-        f"- Raw market universe: **{len(SYMBOLS) * len(TIMEFRAMES) * 2 * RAW_CANDLE_LIMIT:,} candles requested** across BTC/ETH/SOL, Spot/Futures and six timeframes.",
-        f"- Knowledge replay snapshots evaluated: **{universe_snapshots:,}**; findings stored: **{universe_findings:,}**.",
+        f"- Raw market universe: **{
+            len(SYMBOLS)
+            * len(TIMEFRAMES)
+            * 2
+            * RAW_CANDLE_LIMIT:,                                    } candles requested** across BTC/ETH/SOL, Spot/Futures and six timeframes.",
+        f"- Knowledge replay snapshots evaluated: **{
+            universe_snapshots:,                                                     }**; findings stored: **{
+            universe_findings:,                                                                                                                                                       }**.",
         f"- Independent pattern research databases created: **{len(pattern_dbs)}**.",
         f"- Actual aggregate positive-outcome rate: **{fmt(overall.get('win_rate'))}**; expectancy: **{fmt(overall.get('expectancy'))} R**; profit factor: **{fmt(overall.get('profit_factor'))}**.",
-        f"- Bayesian 95% win interval: **[{fmt(overall.get('bayes_low'))}, {fmt(overall.get('bayes_high'))}]**; bootstrap expectancy interval: **[{fmt(overall.get('bootstrap_low'))}, {fmt(overall.get('bootstrap_high'))}] R**.",
+        f"- Bayesian 95% win interval: **[{fmt(overall.get('bayes_low'))}, {
+            fmt(overall.get('bayes_high'))
+        }]**; bootstrap expectancy interval: **[{fmt(overall.get('bootstrap_low'))}, {
+            fmt(overall.get('bootstrap_high'))
+        }] R**.",
         "- No production Rule, Weight, Threshold, Probability, AI, Risk, Quality, Telegram or runtime file was intentionally modified by this research pipeline.",
         "",
         "## Scientific Findings",

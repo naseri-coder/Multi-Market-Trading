@@ -45,7 +45,9 @@ for i, r in enumerate(CASES, 1):
     )
 
 
-# walk-forward exact pool selection; pool sizes here < 40 so nearest-neighbor cap does not alter scope samples materially for diagnostics.
+# walk-forward exact pool selection; pool sizes here < 40 so
+# nearest-neighbor cap does not alter scope samples materially for
+# diagnostics.
 def choose_pool(c, prior):
     setup = c["setup_type"]
     tf = c["timeframe"]

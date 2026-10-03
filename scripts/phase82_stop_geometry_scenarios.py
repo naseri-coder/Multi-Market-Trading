@@ -1,16 +1,16 @@
 import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from pathlib import Path
 
 from app.modules.brooks_core.books_full_engine import BrooksTrilogyFullCoreEngine
 from app.modules.brooks_core.books_full_entities import BrooksPatternCandidate
 from app.modules.brooks_core.books_full_policy import BrooksFullCorePolicy
 from app.modules.brooks_core.volatility import average_true_range
 from app.modules.market_data.entities import Candle, MarketSnapshot
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 
 BASE = datetime(2026, 1, 1, tzinfo=UTC)
 
@@ -78,5 +78,7 @@ for name, size in (
     entry, stop, targets = engine._execution_geometry(snap, candidate(20))
     before = old_stop(snap)
     print(
-        f"{name}|signal_range={size}|old_stop={before}|new_stop={stop}|entry={entry}|new_risk={entry - stop}|T1={targets[0]}"
+        f"{name}|signal_range={size}|old_stop={before}|new_stop={stop}|entry={entry}|new_risk={
+            entry - stop
+        }|T1={targets[0]}"
     )

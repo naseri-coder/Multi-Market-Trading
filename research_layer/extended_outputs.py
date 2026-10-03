@@ -242,9 +242,15 @@ def append_report_section(con: sqlite3.Connection) -> None:
         "",
         f"- Signal research rows: **{counts[0]}**; reconstructable realized R: **{counts[1]}**.",
         f"- MFE/MAE coverage: **{counts[2]}/{counts[0]}** and **{counts[3]}/{counts[0]}**; holding-time coverage: **{counts[4]}/{counts[0]}**.",
-        f"- Recorded/derived entry slippage coverage: **{counts[5]}/{counts[0]}**; execution-record-delay coverage: **{counts[6]}/{counts[0]}**.",
-        f"- Historical bid/ask spread coverage: **{counts[7]}/{counts[0]}**; unavailable fields are never imputed.",
-        f"- Aggregate reconstructed metrics on closed R sample: expectancy **{avg[0]:.4f} R**, mean MFE **{avg[1]:.4f} R**, mean MAE **{avg[2]:.4f} R**, mean holding time **{avg[3] / 60:.1f} minutes**.",
+        f"- Recorded/derived entry slippage coverage: **{counts[5]}/{
+            counts[0]
+        }**; execution-record-delay coverage: **{counts[6]}/{counts[0]}**.",
+        f"- Historical bid/ask spread coverage: **{counts[7]}/{
+            counts[0]
+        }**; unavailable fields are never imputed.",
+        f"- Aggregate reconstructed metrics on closed R sample: expectancy **{
+            avg[0]:.4f} R**, mean MFE **{avg[1]:.4f} R**, mean MAE **{
+            avg[2]:.4f} R**, mean holding time **{avg[3] / 60:.1f} minutes**.",
         f"- Mean initial risk fraction: **{avg[4]:.6f}**; mean leverage: **{avg[5]:.3f}x**.",
         "- Extended exports: `signal_metrics.csv`, `metric_distribution_summary.csv`, `data_collection_coverage.csv`, `outcome_distribution.csv`, and `pattern_database_manifest.csv`.",
         "- Additional distribution charts cover realized R, MFE, MAE, initial risk and holding time.",

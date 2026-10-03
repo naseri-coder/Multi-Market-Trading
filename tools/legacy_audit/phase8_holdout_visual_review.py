@@ -34,8 +34,6 @@ from datetime import datetime
 from pathlib import Path
 
 import matplotlib
-
-matplotlib.use("Agg")
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 from app.modules.brooks_core.causal_structure import (
@@ -49,6 +47,8 @@ from app.modules.brooks_core.pullback_guard import (
 from app.modules.market_data.entities import Candle, MarketSnapshot
 from app.modules.shadow_replay.historical import BinanceHistoricalCandleSource
 from matplotlib.patches import Rectangle
+
+matplotlib.use("Agg")
 
 INPUT: Path | None = None
 OUT: Path | None = None
