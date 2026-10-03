@@ -12,7 +12,17 @@ from app.modules.brooks_core.engine_contract import TargetPlanLifecycle
 from app.modules.risk_engine.service import RiskEngineService
 
 from research_layer.current_risk_contract import read_current_risk
-from research_layer.phase_4_2_41_88d.contract import *
+from research_layer.phase_4_2_41_88d.contract import (
+    ARTIFACT_SCHEMA_VERSION,
+    COHORT_FIELDS,
+    CONFIGURATION,
+    ENGINE,
+    MGMT,
+    RISK_SEMANTIC_MODEL,
+    RULES,
+    RUNNER_POLICY,
+    STAT,
+)
 from research_layer.phase_4_2_41_88d.statistics import evaluate
 
 ROOT = Path(__file__).resolve().parents[2]
