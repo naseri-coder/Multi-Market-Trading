@@ -96,23 +96,18 @@ def reconstruct(row):
         chart_path="NO_PUBLICATION",
         snapshot=snapshot,
         target_source_identities=tuple(
-            TargetSourceIdentity.from_metadata(item)
-            for item in row["target_source_identities"]
+            TargetSourceIdentity.from_metadata(item) for item in row["target_source_identities"]
         ),
         stop_source_identity=(
             None
             if row.get("stop_source_identity") is None
             else StopSourceIdentity.from_metadata(row["stop_source_identity"])
         ),
-        target_plan_lifecycle=TargetPlanLifecycle.from_metadata(
-            row["target_plan_lifecycle"]
-        ),
+        target_plan_lifecycle=TargetPlanLifecycle.from_metadata(row["target_plan_lifecycle"]),
         reversal_outcome_context=(
             None
             if row.get("reversal_outcome_context") is None
-            else ReversalOutcomeContext.from_metadata(
-                row["reversal_outcome_context"]
-            )
+            else ReversalOutcomeContext.from_metadata(row["reversal_outcome_context"])
         ),
         semantic_cohort_id=row.get("semantic_cohort_id"),
     )
@@ -208,9 +203,7 @@ def main(*, candidates_path, forward_path, canonical_output, report_output):
             "reversal_outcome_context": source["reversal_outcome_context"],
             "semantic_cohort_id": source.get("semantic_cohort_id"),
             "terminal_lifecycle_reason": outcome["terminal_lifecycle_reason"],
-            "weighted_realized_pnl_pct_unlevered": outcome[
-                "weighted_realized_pnl_pct_unlevered"
-            ],
+            "weighted_realized_pnl_pct_unlevered": outcome["weighted_realized_pnl_pct_unlevered"],
             "realized_r": outcome["realized_r"],
             "mfe_r": outcome["mfe_r"],
             "mae_r": outcome["mae_r"],
@@ -230,12 +223,8 @@ def main(*, candidates_path, forward_path, canonical_output, report_output):
     canonical = {
         "phase": "4.2.41.88B-current-contract",
         "purpose": "CANONICAL_VALID_CLOSED_REALIZED_R_CASES",
-        "candidate_fixture_sha256": hashlib.sha256(
-            candidates_path.read_bytes()
-        ).hexdigest(),
-        "forward_outcome_artifact_sha256": hashlib.sha256(
-            forward_path.read_bytes()
-        ).hexdigest(),
+        "candidate_fixture_sha256": hashlib.sha256(candidates_path.read_bytes()).hexdigest(),
+        "forward_outcome_artifact_sha256": hashlib.sha256(forward_path.read_bytes()).hexdigest(),
         "artifact_schema_version": ARTIFACT_SCHEMA_VERSION,
         "risk_semantic_model": RISK_SEMANTIC_MODEL,
         "runner_policy": RUNNER_POLICY,
@@ -279,9 +268,7 @@ def main(*, candidates_path, forward_path, canonical_output, report_output):
                 "timeframe": source["timeframe"],
                 "direction": source["direction"],
                 "setup_type": source["setup_type"],
-                "available_compatible_closed_count": (
-                    assessment.compatible_case_count
-                ),
+                "available_compatible_closed_count": (assessment.compatible_case_count),
                 "required_sample_size": assessment.required_sample_size,
                 "selected_scope": assessment.scope,
                 "calibrated": assessment.calibrated,
@@ -302,12 +289,8 @@ def main(*, candidates_path, forward_path, canonical_output, report_output):
 
     report = {
         "phase": "4.2.41.88B-current-contract",
-        "candidate_fixture_sha256": hashlib.sha256(
-            candidates_path.read_bytes()
-        ).hexdigest(),
-        "raw_forward_artifact_sha256": hashlib.sha256(
-            forward_path.read_bytes()
-        ).hexdigest(),
+        "candidate_fixture_sha256": hashlib.sha256(candidates_path.read_bytes()).hexdigest(),
+        "raw_forward_artifact_sha256": hashlib.sha256(forward_path.read_bytes()).hexdigest(),
         "canonical_closed_fixture_sha256": hashlib.sha256(
             canonical_output.read_bytes()
         ).hexdigest(),
