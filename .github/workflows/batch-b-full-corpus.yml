@@ -34,13 +34,23 @@ jobs:
       - name: Install exact project and test dependencies
         run: python -m pip install -e ".[dev]"
 
-      - name: Materialize frozen release layout
+      - name: Materialize frozen release layout and validated companion fixtures
         run: |
           set -Eeuo pipefail
+          companion=8414e87a941cefc7b19a61a7474df7502d09ff64
+          base=409fe40636929e80325bbec1bc760da2ecd7835c
+          test "$(git merge-base "$base" "$companion")" = "$base"
+          mapfile -t companion_paths < <(git diff --name-only "$base".."$companion")
+          printf '%s\n' "${companion_paths[@]}" > /tmp/companion-paths
+          diff -u <(printf '%s\n'             .github/workflows/full-corpus-postgres.yml             tests/integration/test_runner_approval_evidence.py             tests/integration/test_scale_in_postgresql.py)             /tmp/companion-paths
+          git show "$companion:tests/integration/test_runner_approval_evidence.py"             > tests/integration/test_runner_approval_evidence.py
+          git show "$companion:tests/integration/test_scale_in_postgresql.py"             > tests/integration/test_scale_in_postgresql.py
           cp -a production_source/app ./app
           cp -a production_source/migrations ./migrations
           cp production_source/alembic.ini ./alembic.ini
+          cp production_source/Dockerfile ./Dockerfile
           test -f migrations/versions/20260928_0021_ch6_ii_opportunity_identity.py
+          echo "COMPANION_FIXTURE_OVERLAY_PASS"
 
       - name: Start disposable PostgreSQL on private Unix socket only
         id: pg
@@ -87,10 +97,10 @@ jobs:
         run: |
           set -Eeuo pipefail
           python -m pytest -q 2>&1 | tee /tmp/full-corpus.log
-          if grep -Eq '(^| )([1-9][0-9]* )?skipped' /tmp/full-corpus.log; then
-            skips="$(grep -Eo '[0-9]+ skipped' /tmp/full-corpus.log | tail -1 | cut -d' ' -f1 || true)"
-            test "${skips:-0}" -le 2
-          fi
+          skips="$(grep -Eo '[0-9]+ skipped' /tmp/full-corpus.log | tail -1 | cut -d' ' -f1 || true)"
+          test "${skips:-0}" -le 2
+          grep -Eq '[0-9]+ passed' /tmp/full-corpus.log
+          ! grep -Eq '[0-9]+ failed|[0-9]+ error' /tmp/full-corpus.log
 
       - name: Clean disposable PostgreSQL
         if: always()
