@@ -6,7 +6,14 @@ import time
 
 import numpy as np
 
-from .contract import *
+from .contract import (
+    BOOTSTRAPS,
+    COHORT_FIELDS,
+    EPS,
+    MIN_N,
+    ORIG_STAT,
+    Z95,
+)
 
 
 def dt(s):
