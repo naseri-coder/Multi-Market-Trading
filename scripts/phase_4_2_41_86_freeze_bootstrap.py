@@ -61,9 +61,7 @@ def reconstruct(row):
             source_pages=tuple(item["source_pages"]),
             evidence=tuple(tuple(value) for value in item["evidence"]),
             failed_conditions=tuple(item["failed_conditions"]),
-            confidence_components=tuple(
-                tuple(value) for value in item["confidence_components"]
-            ),
+            confidence_components=tuple(tuple(value) for value in item["confidence_components"]),
         )
         for item in row["rule_evidence"]
     )
@@ -90,23 +88,18 @@ def reconstruct(row):
         chart_path="NO_PUBLICATION",
         snapshot=snapshot,
         target_source_identities=tuple(
-            TargetSourceIdentity.from_metadata(item)
-            for item in row["target_source_identities"]
+            TargetSourceIdentity.from_metadata(item) for item in row["target_source_identities"]
         ),
         stop_source_identity=(
             None
             if row.get("stop_source_identity") is None
             else StopSourceIdentity.from_metadata(row["stop_source_identity"])
         ),
-        target_plan_lifecycle=TargetPlanLifecycle.from_metadata(
-            row["target_plan_lifecycle"]
-        ),
+        target_plan_lifecycle=TargetPlanLifecycle.from_metadata(row["target_plan_lifecycle"]),
         reversal_outcome_context=(
             None
             if row.get("reversal_outcome_context") is None
-            else ReversalOutcomeContext.from_metadata(
-                row["reversal_outcome_context"]
-            )
+            else ReversalOutcomeContext.from_metadata(row["reversal_outcome_context"])
         ),
         semantic_cohort_id=row.get("semantic_cohort_id"),
     )
@@ -199,12 +192,8 @@ def main(*, candidates_path, outcomes_path, output_path):
     payload = {
         "phase": "4.2.41.86-current-contract",
         "purpose": "FROZEN_CLOSED_BOOTSTRAP_DATASET",
-        "source_candidate_fixture_sha256": hashlib.sha256(
-            candidates_path.read_bytes()
-        ).hexdigest(),
-        "forward_outcome_artifact_sha256": hashlib.sha256(
-            outcomes_path.read_bytes()
-        ).hexdigest(),
+        "source_candidate_fixture_sha256": hashlib.sha256(candidates_path.read_bytes()).hexdigest(),
+        "forward_outcome_artifact_sha256": hashlib.sha256(outcomes_path.read_bytes()).hexdigest(),
         "case_count": len(rows),
         "non_futures_cases": sum(row["market_type"] != "futures" for row in rows),
         "cases": rows,
