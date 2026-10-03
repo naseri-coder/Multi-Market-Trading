@@ -94,23 +94,18 @@ def reconstruct(row):
         "NO_PUBLICATION",
         snapshot,
         target_source_identities=tuple(
-            TargetSourceIdentity.from_metadata(item)
-            for item in row["target_source_identities"]
+            TargetSourceIdentity.from_metadata(item) for item in row["target_source_identities"]
         ),
         stop_source_identity=(
             None
             if row.get("stop_source_identity") is None
             else StopSourceIdentity.from_metadata(row["stop_source_identity"])
         ),
-        target_plan_lifecycle=TargetPlanLifecycle.from_metadata(
-            row["target_plan_lifecycle"]
-        ),
+        target_plan_lifecycle=TargetPlanLifecycle.from_metadata(row["target_plan_lifecycle"]),
         reversal_outcome_context=(
             None
             if row.get("reversal_outcome_context") is None
-            else ReversalOutcomeContext.from_metadata(
-                row["reversal_outcome_context"]
-            )
+            else ReversalOutcomeContext.from_metadata(row["reversal_outcome_context"])
         ),
         semantic_cohort_id=row.get("semantic_cohort_id"),
     )
@@ -213,8 +208,7 @@ def main(*, candidates_path, closed_path, output_path):
     candidates_doc = json.loads(candidates_path.read_text(encoding="utf-8"))
     closed_doc = json.loads(closed_path.read_text(encoding="utf-8"))
     candidate_by_id = {
-        row["identity_sha256"]: reconstruct(row)
-        for row in candidates_doc["candidates"]
+        row["identity_sha256"]: reconstruct(row) for row in candidates_doc["candidates"]
     }
     current_stream = []
     economic_stream = []
@@ -225,9 +219,7 @@ def main(*, candidates_path, closed_path, output_path):
             current_stream.append(
                 (
                     terminal,
-                    historical_case(
-                        row, candidate, index, int(row["current_hp_binary_outcome"])
-                    ),
+                    historical_case(row, candidate, index, int(row["current_hp_binary_outcome"])),
                 )
             )
         if row["economic_sign_binary_outcome"] is not None:
@@ -254,9 +246,7 @@ def main(*, candidates_path, closed_path, output_path):
     )
     payload = {
         "phase": "4.2.41.86-current-contract",
-        "bootstrap_fixture_sha256": hashlib.sha256(
-            closed_path.read_bytes()
-        ).hexdigest(),
+        "bootstrap_fixture_sha256": hashlib.sha256(closed_path.read_bytes()).hexdigest(),
         "current_repository_event_semantics": current,
         "economic_r_sign_diagnostic": economic,
     }
