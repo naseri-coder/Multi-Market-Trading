@@ -6,6 +6,7 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 import pytest_asyncio
@@ -70,7 +71,12 @@ def command(
 def isolated_database_url() -> str:
     url = os.environ["CH6_DISPOSABLE_DATABASE_URL"]
     source = Path(os.environ["CH6_ISOLATED_SOURCE"]).resolve()
-    assert "ch6synthetic" in url and "/tmp/ch6-" in url
+    parsed = urlsplit(url)
+    socket_values = parse_qs(parsed.query).get("host", [])
+    assert parsed.scheme == "postgresql+asyncpg"
+    assert parsed.hostname == "localhost"
+    assert parsed.path == "/ch6synthetic"
+    assert len(socket_values) == 1 and socket_values[0].startswith("/tmp/ch6-")
     assert Path(app.__file__).resolve().is_relative_to(source)
     return url
 

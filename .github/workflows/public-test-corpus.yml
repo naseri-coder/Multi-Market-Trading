@@ -26,6 +26,8 @@ jobs:
           cache: pip
       - name: Install public snapshot and test dependencies
         run: python -m pip install -e ".[dev]"
+      - name: Verify v0.3.0 static release contract
+        run: bash scripts/verify.sh
       - name: Reject new Ruff findings
         if: github.event_name == 'pull_request' || github.event_name == 'push'
         env:
