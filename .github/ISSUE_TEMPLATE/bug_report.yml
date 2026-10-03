@@ -1,0 +1,70 @@
+name: Bug report
+description: Report a reproducible software defect
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include credentials, tokens, private operational data, database dumps, or security-sensitive vulnerability details.
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Release version, branch, or commit SHA where the problem occurs.
+      placeholder: v0.2.0 or commit SHA
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python version, Docker/Compose versions if relevant, and installation method.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Minimal safe steps or test case that reproduces the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: dropdown
+    id: runtime
+    attributes:
+      label: Affected path
+      options:
+        - Analysis / rule engine
+        - Paper or shadow path
+        - Persistence / database
+        - Installer / Docker
+        - Telegram integration
+        - CI / tooling
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs
+      description: Optional. Remove all secrets and private data before posting.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: I removed credentials, tokens, private data, and security-sensitive details from this report.
+          required: true

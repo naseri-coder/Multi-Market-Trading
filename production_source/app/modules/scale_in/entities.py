@@ -6,11 +6,12 @@ accounting.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
-from typing import Mapping, Any
+from typing import Any
 
 
 class ScaleInMode(StrEnum):

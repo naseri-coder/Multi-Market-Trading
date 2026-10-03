@@ -97,7 +97,7 @@ class BrooksSignalIntegrationService:
                 if existing is None:
                     raise SignalAutomationConsistencyError(
                         "Unique conflict occurred but no existing signal was found"
-                    )
+                    ) from conflict
                 if (
                     command.opportunity_key is not None
                     and existing.opportunity_key != command.opportunity_key

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "crypto-price-action"
-version = "0.2.0"
+version = "0.3.0"
 description = "Public source snapshot of a rule-based cryptocurrency price action signal system"
 requires-python = ">=3.12,<3.13"
 dependencies = [
@@ -21,6 +21,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "build==1.6.1",
+    "pyproject-hooks==1.3.3",
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
     "ruff==0.16.9",

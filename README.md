@@ -11,7 +11,7 @@
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-async-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Version](https://img.shields.io/badge/version-v0.2.0-7C3AED)](pyproject.toml)
+[![Version](https://img.shields.io/badge/version-v0.3.0--rc1-7C3AED)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-D22128?logo=apache&logoColor=white)](LICENSE)
 
 ### 📣 Telegram
@@ -20,14 +20,14 @@
 [![Developer](https://img.shields.io/badge/Developer-%40nasericoder-26A5E4?logo=telegram&logoColor=white)](https://t.me/nasericoder)
 
 
-**Public source snapshot · Active development · Validation-first · Live Brooks execution disabled**
+**v0.3.0 release candidate · Validation-first · Live Brooks execution disabled**
 
 [Overview](#overview) · [How it works](#how-it-works) · [Current status](#current-status) · [Quick start](#quick-start) · [Verification](#verification) · [Security](#security)
 
 </div>
 
 > [!IMPORTANT]
-> **Development snapshot.** This repository is intended for source review, development, testing, and reproducible installation in an isolated environment. It does **not** claim profitability and is **not approved for production or live trading**.
+> **v0.3.0 release candidate.** The package version is staged at 0.3.0, but an official v0.3.0 GitHub Release/tag is created only after the exact candidate passes all release gates. This repository is intended for source review, development, testing, and reproducible installation in an isolated environment. It does **not** claim profitability and is **not approved for production or live trading**.
 >
 > This is an **independent software project** and is not affiliated with, sponsored by, or endorsed by **Al Brooks** or the publishers of the referenced books.
 
@@ -214,7 +214,7 @@ This sequence is a development direction, not a promise of production or live-tr
 <a id="security"></a>
 ## 🤝 Contributing, Security & License
 
-[Contributing guide](CONTRIBUTING.md) · [Security policy](SECURITY.md) · [Open-source publication boundary](docs/OSS_PUBLICATION_REVIEW.md) · [Apache License 2.0](LICENSE)
+[Installation](docs/INSTALLATION.md) · [Rebuild/restore](docs/REBUILD_RESTORE.md) · [Changelog](CHANGELOG.md) · [Roadmap](ROADMAP.md) · [Contributing guide](CONTRIBUTING.md) · [Security policy](SECURITY.md) · [Open-source publication boundary](docs/OSS_PUBLICATION_REVIEW.md) · [Apache License 2.0](LICENSE)
 
 > [!CAUTION]
 > Never commit or upload populated `.env` files, credentials, tokens, keys, database dumps, private operational logs, realized trades, or private market datasets.

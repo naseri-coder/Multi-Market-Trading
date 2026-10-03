@@ -1,0 +1,395 @@
+{
+  "88f_manifest": {
+    "phase": "4.2.41.88F",
+    "symbols": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "BNBUSDT",
+      "XRPUSDT",
+      "SOLUSDT",
+      "TRXUSDT",
+      "HYPEUSDT",
+      "ZECUSDT",
+      "DOGEUSDT",
+      "XMRUSDT"
+    ],
+    "scan_grace_seconds": 90,
+    "no_backfill": true,
+    "rules": {
+      "backfill": false,
+      "production_write": false,
+      "telegram_publication": false,
+      "economic_analysis_before_end": false
+    },
+    "source_hashes": {
+      "docs/legacy/research_layer/phase_4_2_41_88f/live_shadow.py.txt": "c420570012286333011a4626cfd964033000e04be2a72a8145c1047ef14cb16a"
+    },
+    "phase88e_interruption": {
+      "forward_rows_imported": 0
+    }
+  },
+  "88f_initialization": {
+    "source_role": "MODEL_DEVELOPMENT_INITIALIZATION",
+    "excluded_sources": {
+      "phase_88e_interrupted_forward": 0
+    },
+    "cases": [
+      {
+        "candidate_identity": "synthetic-development-000",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-001",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-002",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-003",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-004",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-005",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-006",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-007",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-008",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-009",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-010",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-011",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-012",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-013",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-014",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-015",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-016",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-017",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-018",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-019",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-020",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-021",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-022",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-023",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-024",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-025",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-026",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-027",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-028",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-029",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-030",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-031",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-032",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-033",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-034",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-035",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-036",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-037",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-038",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-039",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-040",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-041",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-042",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-043",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-044",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-045",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-046",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-047",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-048",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-049",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-050",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-051",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-052",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-053",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-054",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-055",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-056",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-057",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-058",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-059",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-060",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-061",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-062",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-063",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-064",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-065",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-066",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-067",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-068",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-069",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-070",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      },
+      {
+        "candidate_identity": "synthetic-development-071",
+        "source_role": "MODEL_DEVELOPMENT_INITIALIZATION"
+      }
+    ]
+  },
+  "current_risk_contract": {
+    "artifact_schema_version": "brooks-research-current-risk-v1",
+    "risk_semantic_model": "PLAN_WEIGHTED_PRETRADE",
+    "runner_policy": "UNDEFINED_OBJECTIVE_ZERO_CONSERVATIVE",
+    "statistics_contract_version": "brooks-research-current-risk-realized-r-bootstrap-v1"
+  },
+  "current_plan_parity": {
+    "kind": "CURRENT_PLAN_ALLOCATION_INVARIANTS",
+    "historical_counts_are_provenance_only": true,
+    "groups": {
+      "exact14": {
+        "expected_rows": 14,
+        "passed_rows": 14
+      },
+      "holdout67": {
+        "expected_rows": 67,
+        "passed_rows": 67
+      },
+      "bootstrap86": {
+        "expected_rows": 86,
+        "passed_rows": 86
+      }
+    },
+    "detailed_synthetic_checks": [
+      {
+        "case": "synthetic-current-plan-long",
+        "checks": {
+          "full_initial_risk_match": true,
+          "target_geometry_match": true,
+          "public_plan_allocations_match": true,
+          "weighted_contribution_sum_match": true,
+          "runner_zero_conservative": true,
+          "typed_context_match": true,
+          "risk_score_decomposition_match": true
+        },
+        "pass": true
+      },
+      {
+        "case": "synthetic-current-plan-short",
+        "checks": {
+          "full_initial_risk_match": true,
+          "target_geometry_match": true,
+          "public_plan_allocations_match": true,
+          "weighted_contribution_sum_match": true,
+          "runner_zero_conservative": true,
+          "typed_context_match": true,
+          "risk_score_decomposition_match": true
+        },
+        "pass": true
+      }
+    ]
+  },
+  "archive_provenance": {
+    "phase88d": {
+      "path": "docs/legacy/research_layer/phase_4_2_41_88d/live_shadow.py.txt",
+      "original_source_sha256": "b86371185450d9d51e4349bca4244f592ef131e1aa53ed720b343dfe0750192d",
+      "role": "HISTORICAL_REFERENCE_ONLY"
+    },
+    "phase88e": {
+      "path": "docs/legacy/research_layer/phase_4_2_41_88e/live_shadow.py.txt",
+      "wrapper_sha256": "d90134653bc6ea317b98ffc4f75ed86b281f526f5d05ed364d165f9b38ebd3c4",
+      "original_source_sha256": "4fa03bb9fc2ac42046a2dd971955f9c472cda4b72116459b77dfdf400c68b34c",
+      "role": "HISTORICAL_REFERENCE_ONLY",
+      "experiment_status": "OPERATIONALLY_INTERRUPTED_NOT_ECONOMICALLY_USABLE",
+      "economic_analysis_performed": false,
+      "replacement_initialization_eligible": false
+    }
+  }
+}

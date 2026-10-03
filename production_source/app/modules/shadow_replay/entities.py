@@ -72,7 +72,7 @@ class ShadowReplayMetrics:
     def from_observations(
         cls,
         observations: tuple[ShadowObservation, ...],
-    ) -> "ShadowReplayMetrics":
+    ) -> ShadowReplayMetrics:
         counts = {
             "H2": 0,
             "L2": 0,

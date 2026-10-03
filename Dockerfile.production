@@ -9,8 +9,13 @@ COPY requirements.hashed.lock ./
 RUN python -m pip install --root-user-action=ignore --require-hashes --target=/install --requirement requirements.hashed.lock
 
 FROM python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f AS runtime
+ARG RELEASE_VERSION=0.3.0
+LABEL org.opencontainers.image.title="Crypto Price Action" \
+      org.opencontainers.image.version="$RELEASE_VERSION" \
+      org.opencontainers.image.source="https://github.com/naseri-coder/crypto-price-action"
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    PTB_TIMEDELTA=1
 
 RUN addgroup --gid 10001 bot \
     && adduser --disabled-password --gecos "" --uid 10001 --ingroup bot --home /home/bot --shell /usr/sbin/nologin bot \
@@ -23,6 +28,7 @@ COPY production_source/SHA256SUMS ./PRODUCTION_SOURCE_SHA256SUMS
 COPY production_source/app ./app
 COPY production_source/migrations ./migrations
 COPY production_source/alembic.ini ./alembic.ini
+COPY scripts/validate_release_config.py ./release_tools/validate_release_config.py
 COPY production_checks/verify_historical_probability_regression.py /tmp/verify_hp.py
 RUN sha256sum -c PRODUCTION_SOURCE_SHA256SUMS >/tmp/source-check && \
     PYTHONPATH=/opt/crypto-signal-bot python /tmp/verify_hp.py && rm /tmp/verify_hp.py && \

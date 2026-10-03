@@ -1,4 +1,4 @@
-# Public snapshot: install only on a fresh, separate host after explicit acceptance.
+# v0.3.0 release-candidate install: fresh, separate host only.
 name: crypto-price-action
 services:
   postgres:
@@ -18,12 +18,14 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
-    # No host ports or production database access.
+    # Deliberately no host port publication.
   bot:
     build:
       context: .
       dockerfile: Dockerfile.production
-    image: crypto-price-action:${RELEASE_TAG:-snapshot}
+      args:
+        RELEASE_VERSION: "0.3.0"
+    image: crypto-price-action:${RELEASE_TAG:-v0.3.0-rc1}
     env_file:
       - .env
     depends_on:

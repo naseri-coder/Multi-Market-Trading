@@ -203,7 +203,10 @@ def build_breakout_attempt_identity(
 
 
 def classify_breakout_lifecycle(
-    candles: tuple[Candle, ...], origin: BreakoutAttemptIdentity, *, evaluated_index: int | None = None,
+    candles: tuple[Candle, ...],
+        origin: BreakoutAttemptIdentity,
+        *,
+        evaluated_index: int | None = None,
 ) -> BreakoutLifecycle:
     end = len(candles)-1 if evaluated_index is None else min(evaluated_index, len(candles)-1)
     if end < origin.attempt_index:
@@ -218,14 +221,22 @@ def classify_breakout_lifecycle(
             test = i
         if follow is None and beyond_close:
             prev = candles[i-1]
-            progressing = c.close > prev.close if origin.direction == "LONG" else c.close < prev.close
+            progressing = (
+                c.close > prev.close
+                if origin.direction == "LONG"
+                else c.close < prev.close
+            )
             if progressing:
                 follow = i
         if back_inside:
             reentry = i
             break
     if reentry is not None:
-        state = "FAILED_FOLLOW_THROUGH_REENTRY" if origin.closed_beyond else "ATTEMPT_REJECTED_REENTRY"
+        state = (
+            "FAILED_FOLLOW_THROUGH_REENTRY"
+            if origin.closed_beyond
+            else "ATTEMPT_REJECTED_REENTRY"
+        )
     elif test is not None:
         state = "BREAKOUT_TEST_HOLDING"
     elif follow is not None:
@@ -248,11 +259,17 @@ def classify_failed_breakout_confirmation(
     rev_dir: Literal["LONG", "SHORT"] = "SHORT" if origin.direction == "LONG" else "LONG"
     reversal = is_bear_reversal_bar_minimum if rev_dir == "SHORT" else is_bull_reversal_bar_minimum
     if not reversal(candles[signal_index]):
-        return FailedBreakoutConfirmation(origin, rev_dir, signal_index, "RETURN_INSIDE_NO_REVERSAL_SETUP",
+        return FailedBreakoutConfirmation(origin,
+            rev_dir,
+            signal_index,
+            "RETURN_INSIDE_NO_REVERSAL_SETUP",
             "STRONG" if origin.engineering_strong else "WEAK_OR_NEUTRAL",
             "STRONG" if reversal_is_strong else "WEAK_OR_NEUTRAL")
     if reversal_is_strong and not origin.engineering_strong:
-        return FailedBreakoutConfirmation(origin, rev_dir, signal_index, "CONFIRMED_STRONG_REVERSAL_WEAK_BREAKOUT",
+        return FailedBreakoutConfirmation(origin,
+            rev_dir,
+            signal_index,
+            "CONFIRMED_STRONG_REVERSAL_WEAK_BREAKOUT",
             "WEAK_OR_NEUTRAL", "STRONG")
     if end > signal_index:
         nxt = candles[signal_index+1]
@@ -262,7 +279,10 @@ def classify_failed_breakout_confirmation(
             return FailedBreakoutConfirmation(origin, rev_dir, signal_index, "CONFIRMED_BY_NEXT_BAR_FOLLOW_THROUGH",
                 "STRONG" if origin.engineering_strong else "WEAK_OR_NEUTRAL",
                 "STRONG" if reversal_is_strong else "WEAK_OR_NEUTRAL", signal_index+1)
-        return FailedBreakoutConfirmation(origin, rev_dir, signal_index, "NOT_CONFIRMED_BY_NEXT_BAR",
+        return FailedBreakoutConfirmation(origin,
+            rev_dir,
+            signal_index,
+            "NOT_CONFIRMED_BY_NEXT_BAR",
             "STRONG" if origin.engineering_strong else "WEAK_OR_NEUTRAL",
             "STRONG" if reversal_is_strong else "WEAK_OR_NEUTRAL", signal_index+1)
     return FailedBreakoutConfirmation(origin, rev_dir, signal_index, "AWAITING_NEXT_BAR_COMPARISON",
@@ -271,7 +291,10 @@ def classify_failed_breakout_confirmation(
 
 
 def classify_generic_failure_of_failure(
-    candles: tuple[Candle, ...], *, original_setup_id: str, original_direction: Literal["LONG", "SHORT"],
+    candles: tuple[Candle, ...],
+        *,
+        original_setup_id: str,
+        original_direction: Literal["LONG", "SHORT"],
     first_failure_origin: ReversalPatternOrigin, evaluated_index: int | None = None,
 ) -> GenericFailureOfFailureLifecycle:
     """BROOKS-GAP-035 generic adapter over the single WAVE_05 failure truth.
@@ -291,7 +314,13 @@ def classify_generic_failure_of_failure(
         state, later = "FIRST_FAILURE_ATTEMPT_TRIGGERED", None
     else:
         state, later = "FIRST_FAILURE_WAITING_FOR_TRIGGER", None
-    return GenericFailureOfFailureLifecycle(original_setup_id, original_direction, first_failure_origin, life, state, end, later)
+    return GenericFailureOfFailureLifecycle(original_setup_id,
+        original_direction,
+        first_failure_origin,
+        life,
+        state,
+        end,
+        later)
 
 
 def classify_failure_of_failure(
@@ -304,21 +333,34 @@ def classify_failure_of_failure(
     direction = first_failure.reversal_direction
     rev_origin = ReversalPatternOrigin(
         attempt_id=f"{first_failure.origin.breakout_id}:FIRST_FAILURE:{first_failure.signal_index}",
-        pattern_id="FAILED_BREAKOUT_REVERSAL", direction=direction, signal_index=first_failure.signal_index,
+        pattern_id="FAILED_BREAKOUT_REVERSAL",
+            direction=direction,
+            signal_index=first_failure.signal_index,
         trigger_level=signal.low if direction=="SHORT" else signal.high, objective_level=None,
         failure_level=signal.high if direction=="SHORT" else signal.low,
     )
     generic = classify_generic_failure_of_failure(
-        candles, original_setup_id=first_failure.origin.breakout_id, original_direction=first_failure.origin.direction,
+        candles,
+            original_setup_id=first_failure.origin.breakout_id,
+            original_direction=first_failure.origin.direction,
         first_failure_origin=rev_origin, evaluated_index=evaluated_index,
     )
     return FailureOfFailureLifecycle(
-        first_failure.origin, first_failure, rev_origin, generic.first_failure_lifecycle, generic.state, generic.later_failure_index
+        first_failure.origin,
+        first_failure,
+        rev_origin,
+        generic.first_failure_lifecycle,
+        generic.state,
+        generic.later_failure_index
     )
 
 
 def classify_breakout_test(
-    candles: tuple[Candle, ...], origin: BreakoutAttemptIdentity, *, zone_low: Decimal, zone_high: Decimal,
+    candles: tuple[Candle, ...],
+    origin: BreakoutAttemptIdentity,
+    *,
+    zone_low: Decimal,
+    zone_high: Decimal,
     evaluated_index: int | None = None,
 ) -> BreakoutTestIdentity | None:
     """Classify test occurrence first; only later bars may resolve hold/failure outcome."""
@@ -398,7 +440,11 @@ def classify_breakout_test(
 
 
 def classify_near_breakout_pullback(
-    candles: tuple[Candle, ...], *, direction: Literal["LONG", "SHORT"], reference_id: str, reference_level: Decimal,
+    candles: tuple[Candle, ...],
+    *,
+    direction: Literal["LONG", "SHORT"],
+    reference_id: str,
+    reference_level: Decimal,
     zone_low: Decimal, zone_high: Decimal, approach_index: int, evaluated_index: int | None = None,
 ) -> BreakoutTestIdentity | None:
     end=len(candles)-1 if evaluated_index is None else min(evaluated_index,len(candles)-1)
@@ -429,7 +475,10 @@ def classify_near_breakout_pullback(
 
 
 def classify_compact_pattern_lifecycle(
-    candles: tuple[Candle, ...], origin: CompactPatternOrigin, *, evaluated_index: int | None = None,
+    candles: tuple[Candle, ...],
+    origin: CompactPatternOrigin,
+    *,
+    evaluated_index: int | None = None,
 ) -> CompactPatternLifecycle:
     end=len(candles)-1 if evaluated_index is None else min(evaluated_index,len(candles)-1)
     if end <= origin.end_index:
@@ -468,10 +517,19 @@ def classify_compact_pattern_lifecycle(
     return CompactPatternLifecycle(origin,state,end,breakout_dir,breakout_i,reentry,opp,pullback)
 
 
-def correction_step(previous: Candle, current: Candle, *, trend_direction: TrendDirection) -> StepKind:
+def correction_step(
+    previous: Candle,
+    current: Candle,
+    *,
+    trend_direction: TrendDirection,
+) -> StepKind:
     """Classify one closed-bar directional step without a fixed magnitude threshold."""
     if current.close != previous.close:
-        with_trend = current.close > previous.close if trend_direction == "BULL_TREND" else current.close < previous.close
+        with_trend = (
+            current.close > previous.close
+            if trend_direction == "BULL_TREND"
+            else current.close < previous.close
+        )
         return "WITH_TREND" if with_trend else "COUNTERTREND"
     if trend_direction == "BULL_TREND":
         if current.low < previous.low and current.high <= previous.high:
@@ -487,16 +545,28 @@ def correction_step(previous: Candle, current: Candle, *, trend_direction: Trend
 
 
 def correction_reset_by_resumption(
-    candles: tuple[Candle, ...], *, trend_direction: TrendDirection, origin_index: int, evaluated_index: int
+    candles: tuple[Candle, ...],
+    *,
+    trend_direction: TrendDirection,
+    origin_index: int,
+    evaluated_index: int
 ) -> bool:
     """Use the pre-existing Core interpretation of full resumption beyond correction origin."""
     origin = candles[origin_index]
     current = candles[evaluated_index]
-    return current.high > origin.high if trend_direction == "BULL_TREND" else current.low < origin.low
+    return (
+        current.high > origin.high
+        if trend_direction == "BULL_TREND"
+        else current.low < origin.low
+    )
 
 
 def classify_structural_correction(
-    candles: tuple[Candle, ...], *, trend_direction: TrendDirection, start_index: int, evaluated_index: int | None = None
+    candles: tuple[Candle, ...],
+    *,
+    trend_direction: TrendDirection,
+    start_index: int,
+    evaluated_index: int | None = None
 ) -> CorrectionEpisode | None:
     if trend_direction not in {"BULL_TREND", "BEAR_TREND"} or not candles:
         return None
@@ -544,14 +614,22 @@ def classify_structural_correction(
 
 
 def classify_generic_reversal_attempts(
-    candles: tuple[Candle, ...], *, trend_direction: TrendDirection, start_index: int = 0, evaluated_index: int | None = None
+    candles: tuple[Candle, ...],
+    *,
+    trend_direction: TrendDirection,
+    start_index: int = 0,
+    evaluated_index: int | None = None
 ) -> GenericReversalAttemptLifecycle | None:
     if not candles or trend_direction not in {"BULL_TREND", "BEAR_TREND"}:
         return None
     end = len(candles) - 1 if evaluated_index is None else evaluated_index
     if start_index < 0 or end < start_index or end >= len(candles):
         return None
-    reversal = is_bear_reversal_bar_minimum if trend_direction == "BULL_TREND" else is_bull_reversal_bar_minimum
+    reversal = (
+        is_bear_reversal_bar_minimum
+        if trend_direction == "BULL_TREND"
+        else is_bull_reversal_bar_minimum
+    )
     direction = "SHORT" if trend_direction == "BULL_TREND" else "LONG"
     first = resume = second = None
     for i in range(start_index, end + 1):
@@ -567,12 +645,23 @@ def classify_generic_reversal_attempts(
         if i > resume and reversal(candles[i]):
             second = i
             break
-    state = "SECOND_REVERSAL_ATTEMPT" if second is not None else "FIRST_ATTEMPT_FAILED_RESUMPTION" if resume is not None else "FIRST_REVERSAL_ATTEMPT" if first is not None else "NO_REVERSAL_ATTEMPT"
+    state = (
+        "SECOND_REVERSAL_ATTEMPT"
+        if second is not None
+        else "FIRST_ATTEMPT_FAILED_RESUMPTION"
+        if resume is not None
+        else "FIRST_REVERSAL_ATTEMPT"
+        if first is not None
+        else "NO_REVERSAL_ATTEMPT"
+    )
     return GenericReversalAttemptLifecycle(trend_direction, direction, first, resume, second, state)
 
 
 def evaluate_reversal_pattern_lifecycle(
-    candles: tuple[Candle, ...], origin: ReversalPatternOrigin, *, evaluated_index: int | None = None
+    candles: tuple[Candle, ...],
+    origin: ReversalPatternOrigin,
+    *,
+    evaluated_index: int | None = None
 ) -> ReversalPatternLifecycle:
     end = len(candles) - 1 if evaluated_index is None else evaluated_index
     if origin.signal_index < 0 or origin.signal_index > end or end >= len(candles):
@@ -584,7 +673,11 @@ def evaluate_reversal_pattern_lifecycle(
         failure_hit = c.low < origin.failure_level if origin.direction == "LONG" else c.high > origin.failure_level
         objective_hit = False
         if origin.objective_level is not None:
-            objective_hit = c.high >= origin.objective_level if origin.direction == "LONG" else c.low <= origin.objective_level
+            objective_hit = (
+                c.high >= origin.objective_level
+                if origin.direction == "LONG"
+                else c.low <= origin.objective_level
+            )
         if trigger is None:
             if failure_hit and not trigger_hit:
                 return ReversalPatternLifecycle(origin, "SIGNAL_INVALIDATED_BEFORE_TRIGGER", None, None, i, None)
@@ -594,11 +687,25 @@ def evaluate_reversal_pattern_lifecycle(
                 trigger = i
                 if objective_hit:
                     objective = i
-                    return ReversalPatternLifecycle(origin, "OBJECTIVE_REACHED", trigger, objective, None, None)
+                    return ReversalPatternLifecycle(
+                        origin,
+                        "OBJECTIVE_REACHED",
+                        trigger,
+                        objective,
+                        None,
+                        None,
+                    )
                 continue
         else:
             if objective_hit and failure_hit:
-                return ReversalPatternLifecycle(origin, "AMBIGUOUS_OBJECTIVE_AND_FAILURE_SAME_BAR", trigger, i, i, None)
+                return ReversalPatternLifecycle(
+                    origin,
+                    "AMBIGUOUS_OBJECTIVE_AND_FAILURE_SAME_BAR",
+                    trigger,
+                    i,
+                    i,
+                    None,
+                )
             if objective_hit:
                 return ReversalPatternLifecycle(origin, "OBJECTIVE_REACHED", trigger, i, None, None)
             if failure_hit:
@@ -692,7 +799,12 @@ def classify_hl_recurrence(
                 if initial_counter_index is None:
                     initial_counter_index = i
             if event and saw_initial_countertrend:
-                events.append(HLEntryEvent(i, 1, "H1" if direction == "LONG" else "L1", initial_counter_index or i))
+                events.append(HLEntryEvent(
+                    i,
+                    1,
+                    "H1" if direction == "LONG" else "L1",
+                    initial_counter_index or i,
+                ))
                 armed_index = None
             continue
 
@@ -703,11 +815,23 @@ def classify_hl_recurrence(
         if event and armed_index is not None and i > armed_index:
             number = events[-1].number + 1
             if number <= max_events:
-                events.append(HLEntryEvent(i, number, f"H{number}" if direction == "LONG" else f"L{number}", armed_index))
+                events.append(HLEntryEvent(
+                    i,
+                    number,
+                    f"H{number}" if direction == "LONG" else f"L{number}",
+                    armed_index,
+                ))
             armed_index = None
 
     state = f"{events[-1].label}_CONFIRMED" if events else "NO_ENTRY_EVENT"
-    return HLCorrectionRecurrence(trend_direction, direction, episode_origin, tuple(events), reset_index, state)
+    return HLCorrectionRecurrence(
+        trend_direction,
+        direction,
+        episode_origin,
+        tuple(events),
+        reset_index,
+        state,
+    )
 
 
 def build_hl_attempt_origin(
@@ -748,7 +872,12 @@ def evaluate_hl_entry_attempt_lifecycle(
     to label a failure-to-objective. It still exposes trigger/failure-level state so
     consumers can fail closed instead of inventing a target.
     """
-    origin = build_hl_attempt_origin(candles, recurrence, event_number=event_number, objective_level=objective_level)
+    origin = build_hl_attempt_origin(
+        candles,
+        recurrence,
+        event_number=event_number,
+        objective_level=objective_level,
+    )
     if origin is None:
         return None
     if objective_level is not None:
@@ -786,7 +915,11 @@ def classify_range_hl_location(
         return RangeHLCorrectionLocation("NOT_NESTED", "NOT_NESTED", "NO_ENCLOSING_RANGE_CONTEXT")
     low, high = hierarchy.local_low, hierarchy.local_high
     if low is None or high is None or high <= low:
-        return RangeHLCorrectionLocation("LOCAL_RANGE_UNRESOLVED", hierarchy.current_relation, "NO_LOCAL_RANGE_GEOMETRY")
+        return RangeHLCorrectionLocation(
+            "LOCAL_RANGE_UNRESOLVED",
+            hierarchy.current_relation,
+            "NO_LOCAL_RANGE_GEOMETRY",
+        )
     width = high - low
     low_edge = low + width * edge_zone_fraction
     high_edge = high - width * edge_zone_fraction
@@ -803,7 +936,10 @@ def classify_range_hl_location(
         semantic = "ENCLOSING_LOW_EDGE"
     elif local == "NEAR_LOCAL_HIGH" and hierarchy.local_position == "NEAR_ENCLOSING_HIGH":
         semantic = "ENCLOSING_HIGH_EDGE"
-    elif local in {"NEAR_LOCAL_LOW", "NEAR_LOCAL_HIGH"} and hierarchy.local_position == "ENCLOSING_MIDDLE":
+    elif (
+        local in {"NEAR_LOCAL_LOW", "NEAR_LOCAL_HIGH"}
+        and hierarchy.local_position == "ENCLOSING_MIDDLE"
+    ):
         semantic = "LOCAL_EDGE_ENCLOSING_MIDDLE"
     else:
         semantic = "ENCLOSING_MIDDLE_OR_NONALIGNED_EDGE"
@@ -844,7 +980,11 @@ class WedgeAttemptLifecycle:
 
 
 def classify_wedge_second_signal(
-    candles: tuple[Candle, ...], *, push_indices: tuple[int, int, int], side: str, evaluated_index: int | None = None,
+    candles: tuple[Candle, ...],
+    *,
+    push_indices: tuple[int, int, int],
+    side: str,
+    evaluated_index: int | None = None,
 ) -> WedgeSecondSignalIdentity | None:
     """Attach generic first/fail/resume/second reversal state to one wedge structure."""
     if side not in {"TOP", "BOTTOM"} or len(push_indices) != 3:
@@ -853,7 +993,10 @@ def classify_wedge_second_signal(
         return None
     trend_direction: TrendDirection = "BULL_TREND" if side == "TOP" else "BEAR_TREND"
     generic = classify_generic_reversal_attempts(
-        candles, trend_direction=trend_direction, start_index=push_indices[-1], evaluated_index=evaluated_index
+        candles,
+        trend_direction=trend_direction,
+        start_index=push_indices[-1],
+        evaluated_index=evaluated_index
     )
     if generic is None:
         return None
@@ -866,10 +1009,20 @@ def classify_wedge_second_signal(
 
 
 def build_wedge_attempt_origin(
-    candles: tuple[Candle, ...], wedge: WedgeSecondSignalIdentity, *, signal_number: int, objective_level: Decimal | None,
+    candles: tuple[Candle, ...],
+    wedge: WedgeSecondSignalIdentity,
+    *,
+    signal_number: int,
+    objective_level: Decimal | None,
 ) -> WedgeAttemptOrigin | None:
     """Create a wedge-specific identity while reusing ReversalPatternOrigin."""
-    signal_index = wedge.first_attempt_index if signal_number == 1 else wedge.second_attempt_index if signal_number == 2 else None
+    signal_index = (
+        wedge.first_attempt_index
+        if signal_number == 1
+        else wedge.second_attempt_index
+        if signal_number == 2
+        else None
+    )
     if signal_index is None or signal_index >= len(candles):
         return None
     signal = candles[signal_index]
@@ -878,7 +1031,9 @@ def build_wedge_attempt_origin(
     failure = signal.low if direction == "LONG" else signal.high
     origin = ReversalPatternOrigin(
         attempt_id=f"{wedge.wedge_structure_id}:S{signal_number}:{signal_index}",
-        pattern_id=f"WEDGE_{wedge.side}_SIGNAL_{signal_number}", direction=direction, signal_index=signal_index,
+        pattern_id=f"WEDGE_{wedge.side}_SIGNAL_{signal_number}",
+        direction=direction,
+        signal_index=signal_index,
         trigger_level=trigger, objective_level=objective_level, failure_level=failure,
     )
     return WedgeAttemptOrigin(wedge=wedge, signal_number=signal_number, reversal_origin=origin)
@@ -991,7 +1146,11 @@ class MTRRetestLifecycle:
 def build_active_trend_episode(
     *, trend_direction: TrendDirection, origin_index: int, evaluated_index: int, late_trend: bool
 ) -> ActiveTrendEpisode | None:
-    if trend_direction not in {"BULL_TREND", "BEAR_TREND"} or origin_index < 0 or evaluated_index < origin_index:
+    if (
+        trend_direction not in {"BULL_TREND", "BEAR_TREND"}
+        or origin_index < 0
+        or evaluated_index < origin_index
+    ):
         return None
     episode_id = f"TREND:{trend_direction}:{origin_index}"
     return ActiveTrendEpisode(
@@ -1002,7 +1161,11 @@ def build_active_trend_episode(
 
 
 def build_final_flag_lifecycle(
-    candles: tuple[Candle, ...], trend: ActiveTrendEpisode, *, flag_origin_index: int, flag_end_index: int
+    candles: tuple[Candle, ...],
+    trend: ActiveTrendEpisode,
+    *,
+    flag_origin_index: int,
+    flag_end_index: int
 ) -> FinalFlagLifecycle | None:
     if not trend.active or not trend.late_trend or flag_origin_index < trend.origin_index:
         return None
@@ -1023,7 +1186,11 @@ def build_final_flag_attempt_origin(
     candles: tuple[Candle, ...], final_flag: FinalFlagLifecycle, *, signal_index: int,
     direction: Literal["LONG", "SHORT"], objective_level: Decimal | None = None,
 ) -> FinalFlagAttemptOrigin | None:
-    if direction not in {"LONG", "SHORT"} or signal_index <= final_flag.flag_end_index or signal_index >= len(candles):
+    if (
+        direction not in {"LONG", "SHORT"}
+        or signal_index <= final_flag.flag_end_index
+        or signal_index >= len(candles)
+    ):
         return None
     signal = candles[signal_index]
     trigger = signal.high if direction == "LONG" else signal.low
@@ -1058,7 +1225,9 @@ def build_exhaustion_origin(
     if not (trend.origin_index <= origin_index < len(candles)):
         return None
     bar = candles[origin_index]
-    direction: Literal["LONG", "SHORT"] = "LONG" if trend.trend_direction == "BULL_TREND" else "SHORT"
+    direction: Literal["LONG", "SHORT"] = (
+        "LONG" if trend.trend_direction == "BULL_TREND" else "SHORT"
+    )
     aligned = bar.close > bar.open if direction == "LONG" else bar.close < bar.open
     if not aligned:
         return None
@@ -1079,7 +1248,10 @@ def classify_climax_outcome(
     attempt = next((i for i in range(origin.origin_index + 1, end + 1) if reversal(candles[i])), None)
     opposite_regime = "BEAR_TREND" if origin.direction == "LONG" else "BULL_TREND"
     opposite_ai = "SHORT" if origin.direction == "LONG" else "LONG"
-    if current_regime == opposite_regime or (current_regime == "TRANSITION" and current_always_in == opposite_ai):
+    if (
+        current_regime == opposite_regime
+        or (current_regime == "TRANSITION" and current_always_in == opposite_ai)
+    ):
         return ClimaxOutcomeLifecycle(origin, "RESOLVED_OPPOSITE_TREND", end, end, attempt)
     if current_regime == "TRADING_RANGE":
         return ClimaxOutcomeLifecycle(origin, "RESOLVED_TRADING_RANGE", end, end, attempt)
@@ -1087,7 +1259,11 @@ def classify_climax_outcome(
         origin_bar = candles[origin.origin_index]
         continuation = next((
             i for i in range(attempt + 1, end + 1)
-            if (candles[i].high > origin_bar.high if origin.direction == "LONG" else candles[i].low < origin_bar.low)
+            if (
+                candles[i].high > origin_bar.high
+                if origin.direction == "LONG"
+                else candles[i].low < origin_bar.low
+            )
         ), None)
         aligned_regime = "BULL_TREND" if origin.direction == "LONG" else "BEAR_TREND"
         if continuation is not None and current_regime == aligned_regime:
@@ -1097,7 +1273,12 @@ def classify_climax_outcome(
 
 
 def classify_head_shoulders_outcome(
-    *, side: str, left_shoulder_index: int, head_index: int, right_shoulder_index: int, neckline_state: str,
+    *,
+    side: str,
+    left_shoulder_index: int,
+    head_index: int,
+    right_shoulder_index: int,
+    neckline_state: str,
 ) -> HeadShouldersOutcomeIdentity | None:
     """Consume WAVE_04 H&S lifecycle without treating the textbook shape as a trade."""
     if side not in {"TOP", "BOTTOM"}:
@@ -1114,7 +1295,18 @@ def classify_head_shoulders_outcome(
     else:
         state = "ALIAS_RANGE_OR_FLAG_CONTEXT"
     sid = f"HNS:{side}:{left_shoulder_index}:{head_index}:{right_shoulder_index}"
-    return HeadShouldersOutcomeIdentity(sid, side, left_shoulder_index, head_index, right_shoulder_index, prior, with_trend, reversal, state, False)
+    return HeadShouldersOutcomeIdentity(
+        sid,
+        side,
+        left_shoulder_index,
+        head_index,
+        right_shoulder_index,
+        prior,
+        with_trend,
+        reversal,
+        state,
+        False,
+    )
 
 
 def classify_mtr_retest_lifecycle(
@@ -1128,7 +1320,9 @@ def classify_mtr_retest_lifecycle(
     end = len(candles) - 1 if evaluated_index is None else evaluated_index
     if not (0 <= old_extreme_index < structure_break_index <= end < len(candles)):
         return None
-    direction: Literal["LONG", "SHORT"] = "SHORT" if prior_trend_direction == "BULL_TREND" else "LONG"
+    direction: Literal["LONG", "SHORT"] = (
+        "SHORT" if prior_trend_direction == "BULL_TREND" else "LONG"
+    )
     eid = f"MTR:{prior_trend_direction}:{old_extreme_index}:{structure_break_index}"
     if not episode_active:
         return MTRRetestLifecycle(prior_trend_direction, direction, eid, old_extreme_index, structure_break_index, None, None, False, "EPISODE_INACTIVE")
@@ -1136,7 +1330,11 @@ def classify_mtr_retest_lifecycle(
     retest = None
     for i in range(structure_break_index + 1, end + 1):
         c = candles[i]
-        hit = c.high >= level - engineering_test_tolerance if direction == "SHORT" else c.low <= level + engineering_test_tolerance
+        hit = (
+            c.high >= level - engineering_test_tolerance
+            if direction == "SHORT"
+            else c.low <= level + engineering_test_tolerance
+        )
         if hit:
             retest = i
             break

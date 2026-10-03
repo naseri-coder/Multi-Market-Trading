@@ -17,7 +17,10 @@ from app.modules.brooks_core.books_full_entities import (
     BrooksPatternScan,
 )
 from app.modules.brooks_core.books_full_policy import BrooksFullCorePolicy
-from app.modules.brooks_core.causal_structure import confirm_swings_causally, evaluate_br031_structure
+from app.modules.brooks_core.causal_structure import (
+    confirm_swings_causally,
+    evaluate_br031_structure,
+)
 from app.modules.brooks_core.context_classifier import (
     body_fraction,
     close_location,
@@ -51,7 +54,8 @@ from app.modules.market_data.entities import Candle, MarketSnapshot
 _ZERO = Decimal("0")
 _HALF = Decimal("0.5")
 _MICRO_DOUBLE_SEARCH_MAX_BARS = 3  # ENGINEERING_SEARCH_POLICY, not a Brooks universal rule.
-_FINAL_FLAG_FAILURE_SEARCH_MAX_BARS = 40  # ENGINEERING_SEARCH_POLICY only; never final-flag validity.
+# ENGINEERING_SEARCH_POLICY only; never final-flag validity.
+_FINAL_FLAG_FAILURE_SEARCH_MAX_BARS = 40
 
 
 def _span(candles: tuple[Candle, ...]) -> Decimal:
@@ -194,7 +198,12 @@ def _typed_breakout_failure_candidates(candles: tuple[Candle, ...], policy: Broo
     out: list[BrooksPatternCandidate] = []
     for breakout_index in range(max(1, last - 40), last):  # ENGINEERING_SEARCH_POLICY only.
         for breakout_direction, kind in (("LONG", "HIGH"), ("SHORT", "LOW")):
-            swing = _latest_swing_before(candles, end_exclusive=breakout_index, kind=kind, policy=policy)
+            swing = _latest_swing_before(
+                candles,
+                end_exclusive=breakout_index,
+                kind=kind,
+                policy=policy,
+            )
             if swing is None:
                 continue
             level = _swing_level(candles, swing)
@@ -202,10 +211,16 @@ def _typed_breakout_failure_candidates(candles: tuple[Candle, ...], policy: Broo
             extends = bar.high > level if breakout_direction == "LONG" else bar.low < level
             if not extends:
                 continue
-            breakout_strong = is_strong_bull_bar(bar, policy.context) if breakout_direction == "LONG" else is_strong_bear_bar(bar, policy.context)
+            breakout_strong = (
+                is_strong_bull_bar(bar, policy.context)
+                if breakout_direction == "LONG"
+                else is_strong_bear_bar(bar, policy.context)
+            )
             origin = build_breakout_attempt_identity(
                 candles, direction=breakout_direction, reference_id=f"SWING:{swing.candle_index}",
-                reference_level=level, attempt_index=breakout_index, engineering_strong=breakout_strong,
+                reference_level=level,
+                attempt_index=breakout_index,
+                engineering_strong=breakout_strong,
             )
             if origin is None:
                 continue
@@ -480,12 +495,18 @@ def detect_trading_range_fades(
                 ("range_edge_state", edge.state),
                 ("range_hierarchy_state", hierarchy_state),
                 ("edge_engineering_tolerance", str(edge.engineering_tolerance)),
-                ("edge_semantic", "CANONICAL_RANGE_BOUNDARY_WITH_ENGINEERING_TOLERANCE_NOT_UNIVERSAL_PERCENT"),
+                (
+                    "edge_semantic",
+                    "CANONICAL_RANGE_BOUNDARY_WITH_ENGINEERING_TOLERANCE_NOT_UNIVERSAL_PERCENT",
+                ),
                 ("trade_room_multiple", str(broad.room_multiple)),
                 ("entry_method", "LIMIT_OR_MARKET_FADE"),
                 ("entry_trigger_semantic", "AT_OR_NEAR_CANONICAL_RANGE_EDGE"),
                 ("entry_reference_price", str(reference_price)),
-                ("economic_opportunity_id", f"RANGE_FADE:{edge.range_id}:{direction}:{len(candles)-1}"),
+                (
+                    "economic_opportunity_id",
+                    f"RANGE_FADE:{edge.range_id}:{direction}:{len(candles)-1}",
+                ),
                 ("entry_confirmation_state", "RANGE_EDGE_LOCATION_CONFIRMED"),
             ),
         ))
@@ -496,12 +517,17 @@ def detect_double_top_bottom(snapshot: MarketSnapshot, context, policy: BrooksFu
     """BROOKS-GAP-051: structural second test, never numeric equality alone."""
     candles = snapshot.candles
     scan = confirm_swings_causally(
-        candles, left_bars=policy.context.swing_left_bars, right_bars=policy.context.swing_right_bars
+        candles,
+        left_bars=policy.context.swing_left_bars,
+        right_bars=policy.context.swing_right_bars
     )
     final = candles[-1]
     last = len(candles) - 1
     out: list[BrooksPatternCandidate] = []
-    for side, direction, reversal_ok in (("TOP", "SHORT", _bear_reversal(final)), ("BOTTOM", "LONG", _bull_reversal(final))):
+    for side, direction, reversal_ok in (
+        ("TOP", "SHORT", _bear_reversal(final)),
+        ("BOTTOM", "LONG", _bull_reversal(final)),
+    ):
         if not reversal_ok:
             continue
         structure = build_structural_second_test(candles, scan, side=side, evaluated_index=last)
@@ -510,7 +536,10 @@ def detect_double_top_bottom(snapshot: MarketSnapshot, context, policy: BrooksFu
         tested_level = final.high if side == "TOP" else final.low
         if not (structure.zone_low <= tested_level <= structure.zone_high):
             continue
-        continuation = (side == "TOP" and context.regime == "BEAR_TREND") or (side == "BOTTOM" and context.regime == "BULL_TREND")
+        continuation = (
+            (side == "TOP" and context.regime == "BEAR_TREND")
+            or (side == "BOTTOM" and context.regime == "BULL_TREND")
+        )
         name = "DOUBLE_TOP" if side == "TOP" else "DOUBLE_BOTTOM"
         out.append(BrooksPatternCandidate(
             direction=direction,
@@ -550,7 +579,10 @@ def detect_micro_double_top_bottom(snapshot: MarketSnapshot, context, policy: Br
         if not reversal_ok or blocked:
             continue
         structure = build_micro_double_structure(
-            candles, side=side, max_bar_distance=_MICRO_DOUBLE_SEARCH_MAX_BARS, engineering_tolerance=tolerance
+            candles,
+            side=side,
+            max_bar_distance=_MICRO_DOUBLE_SEARCH_MAX_BARS,
+            engineering_tolerance=tolerance
         )
         if structure is None:
             continue
@@ -579,7 +611,8 @@ def _wedge_pushes(candles, scan, *, kind: str, policy: BrooksFullCorePolicy):
     if pushes[-1].candle_index-pushes[0].candle_index > policy.wedge_lookback_bars:
         return None
     recent_span=_span(candles[-policy.wedge_lookback_bars:])
-    eng_tol=recent_span*policy.double_test_tolerance_fraction_of_recent_range  # ENGINEERING_TOLERANCE only
+    # ENGINEERING_TOLERANCE only
+    eng_tol=recent_span*policy.double_test_tolerance_fraction_of_recent_range
     levels=[_swing_level(candles,x) for x in pushes]
     if kind=="HIGH" and levels[-1] < min(levels[:-1])-eng_tol:
         return None
@@ -616,7 +649,11 @@ def detect_wedge_reversal(snapshot: MarketSnapshot, context, policy: BrooksFullC
                 continue
             current_first=wedge.first_attempt_index==last
             current_second=wedge.second_attempt_index==last
-            first_strong=(is_strong_bull_bar(candles[wedge.first_attempt_index],policy.context) if direction=="LONG" else is_strong_bear_bar(candles[wedge.first_attempt_index],policy.context))
+            first_strong = (
+                is_strong_bull_bar(candles[wedge.first_attempt_index],policy.context)
+                if direction=="LONG"
+                else is_strong_bear_bar(candles[wedge.first_attempt_index],policy.context)
+            )
             if not (current_second or (current_first and first_strong)):
                 continue
             setup_type=f"WEDGE_REVERSAL_{direction}"; family="WEDGE_REVERSAL"; priority=28; requirement="TREND_EXTREME_OR_RANGE_EXTREME"
@@ -635,7 +672,11 @@ def detect_wedge_reversal(snapshot: MarketSnapshot, context, policy: BrooksFullC
     return tuple(out)
 
 
-def scan_wedge_failure_observations(snapshot: MarketSnapshot, context, policy: BrooksFullCorePolicy):
+def scan_wedge_failure_observations(
+    snapshot: MarketSnapshot,
+    context,
+    policy: BrooksFullCorePolicy
+):
     """BROOKS-GAP-054 context: preserve exact wedge origin; no failure-of-failure promotion."""
     candles=snapshot.candles
     scan=confirm_swings_causally(candles,left_bars=policy.context.swing_left_bars,right_bars=policy.context.swing_right_bars)
@@ -644,7 +685,12 @@ def scan_wedge_failure_observations(snapshot: MarketSnapshot, context, policy: B
         pushes=_wedge_pushes(candles,scan,kind=kind,policy=policy)
         if pushes is None:
             continue
-        wedge=classify_wedge_second_signal(candles,push_indices=tuple(x.candle_index for x in pushes),side=side,evaluated_index=last)
+        wedge = classify_wedge_second_signal(
+            candles,
+            push_indices=tuple(x.candle_index for x in pushes),
+            side=side,
+            evaluated_index=last
+        )
         if wedge is None or wedge.first_attempt_index is None:
             continue
         signal_number=2 if wedge.second_attempt_index is not None else 1
@@ -654,7 +700,9 @@ def scan_wedge_failure_observations(snapshot: MarketSnapshot, context, policy: B
         life=evaluate_wedge_attempt_lifecycle(candles,origin,evaluated_index=last)
         rl=life.reversal_lifecycle
         out.append(BrooksPatternObservation(
-            pattern_id=f"WEDGE_{side}_ATTEMPT_LIFECYCLE", pattern_name=f"Wedge {side.title()} Attempt Lifecycle", role="WEDGE_FAILURE_CONTEXT",
+            pattern_id=f"WEDGE_{side}_ATTEMPT_LIFECYCLE",
+            pattern_name=f"Wedge {side.title()} Attempt Lifecycle",
+            role="WEDGE_FAILURE_CONTEXT",
             signal_index=last,direction=wedge.reversal_direction,source_rule_ids=("BB-REV-05-WEDGE-THREE-PUSH",),taxonomy="SOURCE_INTERPRETATION",
             metadata=(("wedge_structure_id",wedge.wedge_structure_id),("push_indices",",".join(map(str,wedge.push_indices))),
                       ("signal_number",str(signal_number)),("attempt_id",origin.reversal_origin.attempt_id),
@@ -679,7 +727,9 @@ def scan_major_trend_reversal_lifecycles(
     if len(candles) < policy.mtr_lookback_bars:
         return ()
     scan = confirm_swings_causally(
-        candles, left_bars=policy.context.swing_left_bars, right_bars=policy.context.swing_right_bars
+        candles,
+        left_bars=policy.context.swing_left_bars,
+        right_bars=policy.context.swing_right_bars
     )
     highs = [x for x in scan.swings if x.kind == "HIGH"]
     lows = [x for x in scan.swings if x.kind == "LOW"]
@@ -689,7 +739,8 @@ def scan_major_trend_reversal_lifecycles(
     width = _span(recent)
     if width <= 0:
         return ()
-    test_tolerance = width * policy.double_test_tolerance_fraction_of_recent_range  # ENGINEERING_TOLERANCE only.
+    # ENGINEERING_TOLERANCE only.
+    test_tolerance = width * policy.double_test_tolerance_fraction_of_recent_range
     last = len(candles) - 1
 
     def short_episode():
@@ -704,7 +755,9 @@ def scan_major_trend_reversal_lifecycles(
                 continue
             breaks = [
                 i for i in range(old_high.candle_index + 1, last + 1)
-                if candles[i].close < projected_value_from_swings(support_lows[-2], support_lows[-1], i)
+                if candles[i].close < projected_value_from_swings(
+                    support_lows[-2], support_lows[-1], i
+                )
                 and is_strong_bear_bar(candles[i], policy.context)
             ]
             if breaks:
@@ -723,7 +776,9 @@ def scan_major_trend_reversal_lifecycles(
                 continue
             breaks = [
                 i for i in range(old_low.candle_index + 1, last + 1)
-                if candles[i].close > projected_value_from_swings(resistance_highs[-2], resistance_highs[-1], i)
+                if candles[i].close > projected_value_from_swings(
+                    resistance_highs[-2], resistance_highs[-1], i
+                )
                 and is_strong_bull_bar(candles[i], policy.context)
             ]
             if breaks:
@@ -819,7 +874,12 @@ def _exhaustion_origin_at(snapshot: MarketSnapshot, policy: BrooksFullCorePolicy
         for c in recent
     )
     engineering_acceleration = large and strong and aligned_strong >= policy.climax_min_strong_bars
-    return build_exhaustion_origin(prefix.candles, trend, origin_index=index, engineering_acceleration_evidence=engineering_acceleration)
+    return build_exhaustion_origin(
+        prefix.candles,
+        trend,
+        origin_index=index,
+        engineering_acceleration_evidence=engineering_acceleration
+    )
 
 
 def _latest_exhaustion_origin(snapshot: MarketSnapshot, policy: BrooksFullCorePolicy, *, before_index: int | None = None):
@@ -832,7 +892,11 @@ def _latest_exhaustion_origin(snapshot: MarketSnapshot, policy: BrooksFullCorePo
     return None
 
 
-def scan_climax_lifecycle_observations(snapshot: MarketSnapshot, context, policy: BrooksFullCorePolicy):
+def scan_climax_lifecycle_observations(
+    snapshot: MarketSnapshot,
+    context,
+    policy: BrooksFullCorePolicy
+):
     """BROOKS-GAP-063/064: one origin identity, causal outcome state."""
     if len(snapshot.candles) < 21:
         return ()
@@ -873,13 +937,20 @@ def detect_climactic_reversal(snapshot: MarketSnapshot, context, policy: BrooksF
         return ()
     final = candles[last]
     direction = "SHORT" if origin.direction == "LONG" else "LONG"
-    strong = is_strong_bear_bar(final, policy.context) if direction == "SHORT" else is_strong_bull_bar(final, policy.context)
+    strong = (
+        is_strong_bear_bar(final, policy.context)
+        if direction == "SHORT"
+        else is_strong_bull_bar(final, policy.context)
+    )
     if not strong:
         return ()
     setup = "CLIMACTIC_REVERSAL_SHORT" if direction == "SHORT" else "CLIMACTIC_REVERSAL_LONG"
     return (BrooksPatternCandidate(
         direction=direction, setup_type=setup, family="CLIMACTIC_REVERSAL", signal_index=last,
-        reasons=("mature_active_trend_exhaustion_origin", "later_reversal_attempt_same_climax_origin"),
+        reasons=(
+            "mature_active_trend_exhaustion_origin",
+            "later_reversal_attempt_same_climax_origin",
+        ),
         source_rule_ids=("BB-REV-04-CLIMACTIC-REVERSAL", "BB-RNG-26-TWO-REASONS"),
         taxonomy="SOURCE_INTERPRETATION", priority=35, context_required="CLIMAX_AT_EXTREME",
         metadata=(("climax_confirmed", "true"), ("extreme_confirmed", "true"),
@@ -900,12 +971,21 @@ def _overlap(a: Candle, b: Candle) -> Decimal:
 def _snapshot_prefix(snapshot: MarketSnapshot, end_index: int) -> MarketSnapshot:
     items = snapshot.candles[:end_index + 1]
     return MarketSnapshot(
-        exchange=snapshot.exchange, market_type=snapshot.market_type, symbol=snapshot.symbol, timeframe=snapshot.timeframe,
+        exchange=snapshot.exchange,
+        market_type=snapshot.market_type,
+        symbol=snapshot.symbol,
+        timeframe=snapshot.timeframe,
         candles=items, captured_at=items[-1].close_time, source=snapshot.source,
     )
 
 
-def _active_trend_episode(snapshot: MarketSnapshot, context, policy: BrooksFullCorePolicy, *, evaluated_index: int):
+def _active_trend_episode(
+    snapshot: MarketSnapshot,
+    context,
+    policy: BrooksFullCorePolicy,
+    *,
+    evaluated_index: int
+):
     direction = getattr(context, "regime", "AMBIGUOUS")
     if direction not in {"BULL_TREND", "BEAR_TREND"}:
         return None
@@ -914,7 +994,11 @@ def _active_trend_episode(snapshot: MarketSnapshot, context, policy: BrooksFullC
     if always_in in {"LONG", "SHORT"} and always_in != aligned:
         return None
     candles = snapshot.candles[:evaluated_index + 1]
-    scan = confirm_swings_causally(candles, left_bars=policy.context.swing_left_bars, right_bars=policy.context.swing_right_bars)
+    scan = confirm_swings_causally(
+        candles,
+        left_bars=policy.context.swing_left_bars,
+        right_bars=policy.context.swing_right_bars
+    )
     structure = evaluate_br031_structure(scan)
     if structure.direction == direction and structure.supporting_swing_indices:
         origin = min(structure.supporting_swing_indices)
@@ -963,10 +1047,19 @@ def _structural_final_flag(snapshot: MarketSnapshot, context, policy: BrooksFull
             chosen=(flag_end,flag_end)
     if chosen is None:
         return None
-    return build_final_flag_lifecycle(candles, trend, flag_origin_index=chosen[0], flag_end_index=chosen[1])
+    return build_final_flag_lifecycle(
+        candles,
+        trend,
+        flag_origin_index=chosen[0],
+        flag_end_index=chosen[1]
+    )
 
 
-def scan_final_flag_context_observations(snapshot: MarketSnapshot, context, policy: BrooksFullCorePolicy):
+def scan_final_flag_context_observations(
+    snapshot: MarketSnapshot,
+    context,
+    policy: BrooksFullCorePolicy
+):
     flag = _structural_final_flag(snapshot, context, policy)
     if flag is None:
         return ()
@@ -1068,7 +1161,11 @@ def detect_direct_trend_participation(
     if not strong.is_strong:
         return ()
     aligned_final=final.close>final.open if direction=="LONG" else final.close<final.open
-    direct_strong=is_strong_bull_bar(final,policy.context) if direction=="LONG" else is_strong_bear_bar(final,policy.context)
+    direct_strong = (
+        is_strong_bull_bar(final,policy.context)
+        if direction=="LONG"
+        else is_strong_bear_bar(final,policy.context)
+    )
     out=[]
     if direct_strong:
         out.append(BrooksPatternCandidate(

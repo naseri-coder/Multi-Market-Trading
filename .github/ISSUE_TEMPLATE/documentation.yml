@@ -1,0 +1,22 @@
+name: Documentation improvement
+description: Report missing, unclear, or outdated documentation
+title: "[Docs] "
+labels: ["documentation"]
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Documentation location
+      description: File, section, command, or URL that needs improvement.
+    validations:
+      required: true
+  - type: textarea
+    id: issue
+    attributes:
+      label: What is unclear or missing?
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested improvement

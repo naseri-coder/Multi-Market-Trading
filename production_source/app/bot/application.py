@@ -16,8 +16,8 @@ from app.bot.handlers.notification_settings_user import (
 )
 from app.bot.handlers.referrals_user import register_referrals_user_handlers
 from app.bot.handlers.signals_user import register_signal_user_handlers
-from app.bot.handlers.support_users import register_support_user_handlers
 from app.bot.handlers.subscriptions_user import register_subscription_user_handlers
+from app.bot.handlers.support_users import register_support_user_handlers
 from app.bot.handlers.users import register_user_handlers
 from app.bot.handlers.winrate_user import register_win_rate_user_handlers
 from app.core.config import Settings

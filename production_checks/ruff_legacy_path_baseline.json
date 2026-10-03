@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "entries": [
+    {
+      "path": "production_source/app/modules/signal_intelligence/cold_start_integration.py",
+      "sha256": "0be746a515737316621742eda8142528f3c0d57fd6c7e29798323530cf4524be",
+      "findings": [
+        {
+          "code": "I001",
+          "message": "Import block is un-sorted or un-formatted",
+          "context": [
+            "for PROBABILITY_UNCALIBRATED.",
+            "\"\"\"",
+            "from __future__ import annotations",
+            "from dataclasses import dataclass",
+            "from typing import Any"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
+      "path": "production_source/app/modules/signal_intelligence/cold_start_reporting.py",
+      "sha256": "2f373d1f68f708adb907f5b5b4497565cf8449b78eed0b73c9e4daf54d8b8bb3",
+      "findings": [
+        {
+          "code": "I001",
+          "message": "Import block is un-sorted or un-formatted",
+          "context": [
+            "This module is not wired into production reporting in Phase 4.2.41.85.",
+            "\"\"\"",
+            "from __future__ import annotations",
+            "from typing import Any",
+            "from app.modules.signal_intelligence.cold_start_policy import COLD_START_LABEL"
+          ],
+          "count": 1
+        },
+        {
+          "code": "SIM103",
+          "message": "Return the negated condition directly",
+          "context": [
+            "    if metadata.get('admission_gate')==COLD_START_LABEL:",
+            "        return False",
+            "    if metadata.get('statistically_calibrated_at_admission') is False:",
+            "        return False",
+            "    return True"
+          ],
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

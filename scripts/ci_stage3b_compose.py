@@ -2,8 +2,8 @@
 """Check future runner Compose plan without printing resolved environment values."""
 import json
 import os
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 if os.environ.get('GITHUB_ACTIONS') != 'true':

@@ -11,6 +11,7 @@ from app.modules.signal_automation.entities import (
 )
 from app.modules.signal_automation.errors import (
     DuplicateAutomatedSignalError,
+    SignalAutomationConsistencyError,
     SignalAutomationRepositoryError,
 )
 from app.modules.signal_automation.service import BrooksSignalIntegrationService
@@ -168,6 +169,36 @@ async def test_duplicate_race_rolls_back_then_resolves_winner() -> None:
     assert result.disposition == "SKIPPED_DUPLICATE"
     assert session.rollbacks == 1
     assert session.commits == 1
+    assert session.begins == 2
+
+
+@pytest.mark.asyncio
+async def test_duplicate_race_without_winner_chains_original_conflict() -> None:
+    session = FakeSession()
+    first = AsyncMock()
+    second = AsyncMock()
+    first.get_by_idempotency_key.return_value = None
+    first.get_signal_conflict_contexts.return_value = ()
+    conflict = DuplicateAutomatedSignalError("duplicate")
+    first.create_metadata.side_effect = conflict
+    second.get_by_idempotency_key.return_value = None
+    repos = iter((first, second))
+
+    signal_service = AsyncMock()
+    signal_service.create_signal.return_value = SimpleNamespace(id=123)
+
+    service = BrooksSignalIntegrationService(
+        session,
+        automation_repository_factory=lambda _: next(repos),
+        signal_service_factory=lambda _: signal_service,
+    )
+
+    with pytest.raises(SignalAutomationConsistencyError) as captured:
+        await service.import_signal(command())
+
+    assert captured.value.__cause__ is conflict
+    assert session.rollbacks == 2
+    assert session.commits == 0
     assert session.begins == 2
 
 

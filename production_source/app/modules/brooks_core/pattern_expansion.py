@@ -205,7 +205,11 @@ def classify_minor_reversal_identity(
         left_bars=policy.context.swing_left_bars,
         right_bars=policy.context.swing_right_bars,
     )
-    swings=[x for x in scan.swings if x.kind==kind and x.confirmed_at_index<=end and x.candle_index<=end-2]
+    swings=[
+        x
+        for x in scan.swings
+        if x.kind==kind and x.confirmed_at_index<=end and x.candle_index<=end-2
+    ]
     if not swings:
         return None
     origin=swings[-1]
@@ -349,10 +353,17 @@ def scan_signal_bar_observations(
         out.append(_obs(
             "BODIES_ONLY_II", "Bodies-only ii", "BREAKOUT_MODE", last,
             rule_ids=("BB-RNG-BODIES-ONLY-II",),
-            metadata=(("semantic", "SOURCE_VARIANT_TAILS_IGNORED_LESS_RELIABLE"), ("trade_eligible", "false")),
+            metadata=(
+                ("semantic", "SOURCE_VARIANT_TAILS_IGNORED_LESS_RELIABLE"),
+                ("trade_eligible", "false"),
+            ),
         ))
 
-    direction = "LONG" if final.close > final.open else "SHORT" if final.close < final.open else "UNRESOLVED"
+    direction = (
+        "LONG"
+        if final.close > final.open
+        else ("SHORT" if final.close < final.open else "UNRESOLVED")
+    )
     if final.high == max(final.open, final.close) or final.low == min(final.open, final.close):
         out.append(_obs("SHAVED_BAR", "Shaved Bar", "CONTEXT", last,
                         direction=direction, rule_ids=("BB-TRD-06-SHAVED-BAR",)))
@@ -368,8 +379,14 @@ def scan_signal_bar_observations(
 
     if len(candles) >= 2:
         previous = candles[-2]
-        two_bar_bull = is_strong_bear_bar(previous, policy.context) and is_strong_bull_bar(final, policy.context)
-        two_bar_bear = is_strong_bull_bar(previous, policy.context) and is_strong_bear_bar(final, policy.context)
+        two_bar_bull = (
+            is_strong_bear_bar(previous, policy.context)
+            and is_strong_bull_bar(final, policy.context)
+        )
+        two_bar_bear = (
+            is_strong_bull_bar(previous, policy.context)
+            and is_strong_bear_bar(final, policy.context)
+        )
         if two_bar_bull or two_bar_bear:
             out.append(_obs("TWO_BAR_REVERSAL", "Two-Bar Reversal", "ENTRY_CONTEXT", last,
                             direction="LONG" if two_bar_bull else "SHORT",
@@ -385,7 +402,10 @@ def scan_signal_bar_observations(
                             rule_ids=("BB-TRD-05-THREE-BAR-REVERSAL",)))
 
     recent = candles[-6:]
-    tolerance = _median_range(tuple(recent)) * policy.micro_double_tolerance_fraction_of_median_range
+    tolerance = (
+        _median_range(tuple(recent))
+        * policy.micro_double_tolerance_fraction_of_median_range
+    )
     if tolerance > 0 and len(recent) >= 2:
         lows = [c.low for c in recent]
         highs = [c.high for c in recent]
@@ -441,12 +461,20 @@ def scan_generic_breakout_attempt_observations(
         if not matches:
             continue
         swing = matches[-1]
-        level = candles[swing.candle_index].high if kind == "HIGH" else candles[swing.candle_index].low
+        level = (
+            candles[swing.candle_index].high
+            if kind == "HIGH"
+            else candles[swing.candle_index].low
+        )
         extended = final.high > level if direction == "LONG" else final.low < level
         if not extended:
             continue
         closed_beyond = final.close > level if direction == "LONG" else final.close < level
-        strong = is_strong_bull_bar(final, policy.context) if direction == "LONG" else is_strong_bear_bar(final, policy.context)
+        strong = (
+            is_strong_bull_bar(final, policy.context)
+            if direction == "LONG"
+            else is_strong_bear_bar(final, policy.context)
+        )
         out.append(_obs(
             f"BREAKOUT_ATTEMPT_{direction}",
             f"Breakout Attempt {direction.title()}",
@@ -493,7 +521,11 @@ def detect_candle_pattern_breakouts(
     out: list[BrooksPatternCandidate] = []
     for direction in ("LONG", "SHORT"):
         triggered = final.close > signal.high if direction == "LONG" else final.close < signal.low
-        strong = is_strong_bull_bar(final, policy.context) if direction == "LONG" else is_strong_bear_bar(final, policy.context)
+        strong = (
+            is_strong_bull_bar(final, policy.context)
+            if direction == "LONG"
+            else is_strong_bear_bar(final, policy.context)
+        )
         if not (triggered and strong):
             continue
         out.append(BrooksPatternCandidate(
@@ -546,7 +578,8 @@ def detect_reversal_bar_failure(
             source_rule_ids=("BB-TRD-06-REVERSAL-BAR-FAILURE", "BB-REV-09-FAILURES", "BB-RNG-26-TWO-REASONS"),
             taxonomy="SOURCE_INTERPRETATION", priority=8, context_required=context.regime,
             metadata=(("attempt_id", origin.attempt_id), ("origin_pattern_id", origin.pattern_id),
-                      ("trigger_level", str(origin.trigger_level)), ("failure_level", str(origin.failure_level)),
+                      ("trigger_level", str(origin.trigger_level)),
+                      ("failure_level", str(origin.failure_level)),
                       ("lifecycle_state", life.state)),
         ))
     return tuple(out)
@@ -647,7 +680,10 @@ def classify_ma_gap_episode(
         (i for i in range(start, end + 1) if _gap_side(candles[i], ema[i], direction)),
         None,
     )
-    strong_index = max(start, (first_gap - 1) if first_gap is not None and first_gap > start else end - 1)
+    strong_index = max(
+        start,
+        (first_gap - 1) if first_gap is not None and first_gap > start else end - 1,
+    )
     strong = classify_strong_trend_evidence(
         candles, context, policy.context, evaluated_index=max(1, strong_index)
     )
@@ -793,7 +829,9 @@ def scan_ma_gap_observations(
         return ()
     end = len(candles) - 1
     episode = classify_ma_gap_episode(candles, ema, context, policy, evaluated_index=end)
-    count_context = classify_ma_gap_count_context(candles, ema, context, policy, evaluated_index=end)
+    count_context = classify_ma_gap_count_context(
+        candles, ema, context, policy, evaluated_index=end
+    )
     second = _second_ma_gap_sequence(candles, ema, direction=direction)
     maturity = classify_ma_gap_maturity_context(
         episode, count_context, second, evaluated_index=end
@@ -807,7 +845,10 @@ def scan_ma_gap_observations(
                 ("canonical_gap_id", "BROOKS-GAP-018"),
                 ("episode_id", episode.episode_id),
                 ("episode_start_index", str(episode.episode_start_index)),
-                ("first_gap_index", "" if episode.first_gap_index is None else str(episode.first_gap_index)),
+                (
+                    "first_gap_index",
+                    "" if episode.first_gap_index is None else str(episode.first_gap_index),
+                ),
                 ("ma_slope_direction", episode.ma_slope_direction),
                 ("strong_trend_supported", "true" if episode.strong_trend_supported else "false"),
                 ("state", episode.state), ("trade_eligible", "false"),
@@ -888,7 +929,11 @@ def detect_moving_average_pullback_setups(
                 "strong_with_trend_context",
                 "first_touch_or_limit_entry_variant_does_not_require_reversal_bar",
             ),
-            source_rule_ids=("BB-RNG-13-TWENTY-GAP", "BB-TRD-19-TREND-STRENGTH", "BB-RNG-26-TWO-REASONS"),
+            source_rule_ids=(
+                "BB-RNG-13-TWENTY-GAP",
+                "BB-TRD-19-TREND-STRENGTH",
+                "BB-RNG-26-TWO-REASONS",
+            ),
             taxonomy="SOURCE_INTERPRETATION", priority=7, context_required=context.regime,
             metadata=(
                 ("ema20", str(ema[end])),
@@ -906,7 +951,10 @@ def detect_moving_average_pullback_setups(
         and episode.active
         and episode.strong_trend_supported
         and episode.first_gap_index == end
-        and ((_bull_reversal(final) and direction == "LONG") or (_bear_reversal(final) and direction == "SHORT"))
+        and (
+            (_bull_reversal(final) and direction == "LONG")
+            or (_bear_reversal(final) and direction == "SHORT")
+        )
     ):
         out.append(BrooksPatternCandidate(
             direction=direction,
@@ -918,7 +966,11 @@ def detect_moving_average_pullback_setups(
                 "ma_slope_aligned_with_active_trend",
                 "with_trend_reversal_from_first_gap_for_test_of_extreme",
             ),
-            source_rule_ids=("BB-RNG-14-FIRST-MA-GAP", "BB-TRD-19-TREND-STRENGTH", "BB-RNG-26-TWO-REASONS"),
+            source_rule_ids=(
+                "BB-RNG-14-FIRST-MA-GAP",
+                "BB-TRD-19-TREND-STRENGTH",
+                "BB-RNG-26-TWO-REASONS",
+            ),
             taxonomy="SOURCE_INTERPRETATION", priority=11, context_required=context.regime,
             metadata=(
                 ("ema20", str(ema[end])),
@@ -942,7 +994,11 @@ def detect_moving_average_pullback_setups(
                 "price_moved_away_after_first_attempt",
                 "second_reversal_toward_ma",
             ),
-            source_rule_ids=("BB-RNG-14-SECOND-MA-GAP", "BB-TRD-19-TREND-STRENGTH", "BB-RNG-26-TWO-REASONS"),
+            source_rule_ids=(
+                "BB-RNG-14-SECOND-MA-GAP",
+                "BB-TRD-19-TREND-STRENGTH",
+                "BB-RNG-26-TWO-REASONS",
+            ),
             taxonomy="BOOK_INTERPRETATION", priority=9, context_required=context.regime,
             metadata=(
                 ("ema20", str(ema[end])),
@@ -975,10 +1031,19 @@ def detect_double_top_bottom_pullback(
         if structure is None:
             continue
         between=candles[structure.second_test_index+1:-1]
-        moved_away=(bool(between) and (max(c.high for c in between)>candles[structure.second_test_index].high if side=="BOTTOM" else min(c.low for c in between)<candles[structure.second_test_index].low))
+        moved_away=(
+            bool(between)
+            and (
+                max(c.high for c in between)>candles[structure.second_test_index].high
+                if side=="BOTTOM"
+                else min(c.low for c in between)<candles[structure.second_test_index].low
+            )
+        )
         level=final.low if side=="BOTTOM" else final.high
         recent=candles[-policy.range_window_bars:]
-        engineering_tolerance=_span(tuple(recent))*policy.double_test_tolerance_fraction_of_recent_range  # ENGINEERING_TOLERANCE only
+        engineering_tolerance=(
+            _span(tuple(recent))*policy.double_test_tolerance_fraction_of_recent_range
+        )  # ENGINEERING_TOLERANCE only
         tests_zone=structure.zone_low-engineering_tolerance<=level<=structure.zone_high+engineering_tolerance
         if not (moved_away and tests_zone):
             continue
@@ -986,7 +1051,19 @@ def detect_double_top_bottom_pullback(
         out.append(BrooksPatternCandidate(
             direction=direction,setup_type=name,family="BREAKOUT_PULLBACK",signal_index=len(candles)-1,
             reasons=("structural_double_test_established","move_away_from_second_test","later_pullback_retests_structural_zone_and_reverses"),
-            source_rule_ids=(("BB-REV-08-DOUBLE-BOTTOM-PULLBACK","BB-RNG-05-BREAKOUT-PULLBACK","BB-RNG-26-TWO-REASONS") if side=="BOTTOM" else ("BB-REV-08-DOUBLE-TOP-PULLBACK","BB-RNG-05-BREAKOUT-PULLBACK","BB-RNG-26-TWO-REASONS")),
+            source_rule_ids=(
+                (
+                    "BB-REV-08-DOUBLE-BOTTOM-PULLBACK",
+                    "BB-RNG-05-BREAKOUT-PULLBACK",
+                    "BB-RNG-26-TWO-REASONS",
+                )
+                if side=="BOTTOM"
+                else (
+                    "BB-REV-08-DOUBLE-TOP-PULLBACK",
+                    "BB-RNG-05-BREAKOUT-PULLBACK",
+                    "BB-RNG-26-TWO-REASONS",
+                )
+            ),
             taxonomy="SOURCE_INTERPRETATION",priority=6,context_required="REVERSAL_OR_RANGE_EXTREME",
             metadata=(("structure_id",structure.structure_id),("first_test_index",str(structure.first_test_index)),("second_test_index",str(structure.second_test_index)),("price_relation",structure.price_relation)),
         ))
@@ -1129,12 +1206,18 @@ def scan_structure_observations(
             ))
             tri_indices = tuple(triangle.swing_indices)
             tri_origin = CompactPatternOrigin(
-                "TRIANGLE", "TRIANGLE:" + ":".join(str(i) for i in tri_indices), min(tri_indices), max(tri_indices),
+                "TRIANGLE",
+                "TRIANGLE:" + ":".join(str(i) for i in tri_indices),
+                min(tri_indices),
+                max(tri_indices),
                 max(candles[i].high for i in tri_indices), min(candles[i].low for i in tri_indices),
             )
             tri_life = classify_compact_pattern_lifecycle(candles, tri_origin, evaluated_index=last)
             out.append(_obs(
-                "TRIANGLE_COMPACT_LIFECYCLE", "Triangle Compact Pattern Lifecycle", "STRUCTURAL_CONTEXT", last,
+                "TRIANGLE_COMPACT_LIFECYCLE",
+                "Triangle Compact Pattern Lifecycle",
+                "STRUCTURAL_CONTEXT",
+                last,
                 rule_ids=("BB-RNG-COMPACT-PATTERN-LIFECYCLE",),
                 metadata=(("structure_id", tri_origin.structure_id), ("state", tri_life.state),
                           ("breakout_direction", tri_life.breakout_direction or ""),
@@ -1149,11 +1232,18 @@ def scan_structure_observations(
         right_bars=policy.context.swing_right_bars,
     )
     # WAVE_04: expanding-triangle and H&S evolution are structural observations only.
-    expanding = build_expanding_triangle_geometry(candles, tuple(full_scan.swings), evaluated_index=last)
+    expanding = build_expanding_triangle_geometry(
+        candles,
+        tuple(full_scan.swings),
+        evaluated_index=last,
+    )
     if expanding is not None:
         lifecycle = classify_expanding_triangle_lifecycle(candles, expanding, evaluated_index=last)
         out.append(_obs(
-            "EXPANDING_TRIANGLE_STRUCTURE", "Expanding Triangle Structure", "STRUCTURAL_CONTEXT", last,
+            "EXPANDING_TRIANGLE_STRUCTURE",
+            "Expanding Triangle Structure",
+            "STRUCTURAL_CONTEXT",
+            last,
             rule_ids=("BB-RNG-EXPANDING-TRIANGLE",),
             metadata=(
                 ("swing_indices", ",".join(str(i) for i in expanding.swing_indices)),
@@ -1183,7 +1273,15 @@ def scan_structure_observations(
             side=side, left_shoulder_index=hs.left_shoulder_index, head_index=hs.head_index,
             right_shoulder_index=hs.right_shoulder_index, neckline_state=hs.state,
         )
-        role = "ALIAS_CONTEXT" if outcome is not None and outcome.state in {"ALIAS_RANGE_OR_FLAG_CONTEXT", "WITH_TREND_CONTINUATION_CONTEXT"} else "REVERSAL_STRUCTURE_CONTEXT"
+        role = (
+            "ALIAS_CONTEXT"
+            if outcome is not None
+            and outcome.state in {
+                "ALIAS_RANGE_OR_FLAG_CONTEXT",
+                "WITH_TREND_CONTINUATION_CONTEXT",
+            }
+            else "REVERSAL_STRUCTURE_CONTEXT"
+        )
         out.append(_obs(
             pattern_id, name, role, last, direction=direction,
             rule_ids=("BB-RNG-20-HEAD-SHOULDERS-AS-RANGE", "BB-REV-HEAD-SHOULDERS"),
@@ -1195,7 +1293,12 @@ def scan_structure_observations(
                 ("neckline_state", hs.state),
                 ("neckline_break", "true" if hs.neckline_break else "false"),
                 ("neckline_reentry", "true" if hs.neckline_reentry else "false"),
-                ("prior_trend_line_break", "true" if hs.prior_trend_line is not None and hs.prior_trend_line.break_evidence else "false"),
+                (
+                    "prior_trend_line_break",
+                    "true"
+                    if hs.prior_trend_line is not None and hs.prior_trend_line.break_evidence
+                    else "false",
+                ),
                 ("hns_structure_id", "" if outcome is None else outcome.structure_id),
                 ("outcome_state", "UNRESOLVED" if outcome is None else outcome.state),
                 ("with_trend_direction", "" if outcome is None else outcome.with_trend_direction),
@@ -1210,11 +1313,17 @@ def scan_structure_observations(
         if final.low > previous.high:
             out.append(_obs("PRICE_GAP_UP", "Price Gap Up", "BREAKOUT_CONTEXT", last,
                             direction="LONG", rule_ids=("BB-RNG-06-GAPS",),
-                            metadata=(("gap_low", str(previous.high)), ("gap_high", str(final.low)))))
+                            metadata=(
+                                ("gap_low", str(previous.high)),
+                                ("gap_high", str(final.low)),
+                            )))
         elif final.high < previous.low:
             out.append(_obs("PRICE_GAP_DOWN", "Price Gap Down", "BREAKOUT_CONTEXT", last,
                             direction="SHORT", rule_ids=("BB-RNG-06-GAPS",),
-                            metadata=(("gap_low", str(final.high)), ("gap_high", str(previous.low)))))
+                            metadata=(
+                                ("gap_low", str(final.high)),
+                                ("gap_high", str(previous.low)),
+                            )))
 
     if context.regime in {"BULL_TREND", "BEAR_TREND"} and len(candles) >= 20:
         ema = _ema20(candles)
@@ -1233,7 +1342,10 @@ def scan_structure_observations(
                 direction=direction, rule_ids=("BB-RNG-19-DUELING-LINES",),
                 metadata=(
                     ("pullback_line_role", confluence.pullback_line.role),
-                    ("pullback_anchor_indices", ",".join(str(a.candle_index) for a in confluence.pullback_line.anchors)),
+                    (
+                        "pullback_anchor_indices",
+                        ",".join(str(a.candle_index) for a in confluence.pullback_line.anchors),
+                    ),
                     ("pullback_projected", str(confluence.pullback_line.projected_value)),
                     ("support_resistance_source", confluence.support_source),
                     ("support_resistance_value", str(confluence.support_value)),
@@ -1265,12 +1377,22 @@ def scan_structure_observations(
         from app.modules.brooks_core.advanced_context import classify_small_pullback_trend
         direction = "LONG" if context.regime == "BULL_TREND" else "SHORT"
         spt=classify_small_pullback_trend(candles,direction=direction,evaluated_index=last)
-        if spt is not None and spt.state in {"ACTIVE_SMALL_PULLBACK_TREND","SMALL_PULLBACK_TREND_WITH_LATER_EXPANSION"}:
+        if (
+            spt is not None
+            and spt.state in {
+                "ACTIVE_SMALL_PULLBACK_TREND",
+                "SMALL_PULLBACK_TREND_WITH_LATER_EXPANSION",
+            }
+        ):
             out.append(_obs("SMALL_PULLBACK_TREND", "Small Pullback Trend", "TREND_CONTEXT", last,
                             direction=direction, rule_ids=("BB-TRD-23-SMALL-PULLBACK-TREND",),
                             metadata=(("episode_id",spt.episode_id),("pullback_episode_count",str(spt.pullback_episode_count)),
                                       ("max_pullback_run",str(spt.max_pullback_run)),("max_pullback_depth",str(spt.max_pullback_depth)),
-                                      ("median_bar_range",str(spt.median_bar_range)),("later_expansion","true" if spt.later_expansion else "false"),
+                                      ("median_bar_range",str(spt.median_bar_range)),
+                                      (
+                                          "later_expansion",
+                                          "true" if spt.later_expansion else "false",
+                                      ),
                                       ("state",spt.state),("trade_eligible","false"),("canonical_gap_id","BROOKS-GAP-025"),
                                       ("engineering_policy","DEPTH_DURATION_SPACING_CLASSIFICATION_NOT_BROOKS_HARD_GATE"))))
 
@@ -1283,7 +1405,10 @@ def scan_structure_observations(
         ("GAP_OPENING", "Gap Opening", "BB-REV-20-GAP-OPENING"),
     ):
         out.append(_obs(pattern_id, name, "NOT_APPLICABLE_WITHOUT_SESSION_ANCHOR", last,
-                        rule_ids=(rule_id,), metadata=(("reason", "24_7_crypto_snapshot_has_no_explicit_session_anchor"),)))
+                        rule_ids=(rule_id,),
+                        metadata=(
+                            ("reason", "24_7_crypto_snapshot_has_no_explicit_session_anchor"),
+                        )))
     return tuple(out)
 
 
@@ -1310,7 +1435,11 @@ def detect_triangle_breakout(
         return ()
     if positive_price_overlap_rate(tuple(region)) < policy.context.range_min_body_overlap_rate:
         return ()
-    triangle = build_triangle_geometry(tuple(candles[:-1]), tuple(swings), evaluated_index=len(candles) - 2)
+    triangle = build_triangle_geometry(
+        tuple(candles[:-1]),
+        tuple(swings),
+        evaluated_index=len(candles) - 2,
+    )
     if triangle is None:
         return ()
     high = project_line_value(triangle.upper_boundary, len(candles) - 1)
@@ -1355,7 +1484,11 @@ def scan_wave05_foundation_observations(
     start=max(0, len(candles)-policy.context.pullback_window_bars)
     last=len(candles)-1
     out=[]
-    correction=classify_structural_correction(candles, trend_direction=context.regime, start_index=start)
+    correction=classify_structural_correction(
+        candles,
+        trend_direction=context.regime,
+        start_index=start,
+    )
     if correction is not None and correction.two_legged:
         out.append(_obs(
             "TWO_LEGGED_CORRECTION", "Structural Two-Legged Correction", "CORRECTION_CONTEXT", last,
@@ -1367,10 +1500,17 @@ def scan_wave05_foundation_observations(
                       ("second_leg",f"{correction.second_leg.start_index}:{correction.second_leg.end_index}"),
                       ("semantic","STRUCTURAL_CORRECTION_NOT_ENTRY_SIGNAL")),
         ))
-    reversal=classify_generic_reversal_attempts(candles, trend_direction=context.regime, start_index=start)
+    reversal=classify_generic_reversal_attempts(
+        candles,
+        trend_direction=context.regime,
+        start_index=start,
+    )
     if reversal is not None and reversal.first_attempt_index is not None:
         out.append(_obs(
-            "GENERIC_SECOND_REVERSAL_STATE", "Generic Reversal Attempt Lifecycle", "REVERSAL_CONTEXT", last,
+            "GENERIC_SECOND_REVERSAL_STATE",
+            "Generic Reversal Attempt Lifecycle",
+            "REVERSAL_CONTEXT",
+            last,
             direction=reversal.reversal_direction,
             rule_ids=("BB-REV-SECOND-REVERSAL-STATE",),
             metadata=(("state",reversal.state),
@@ -1393,22 +1533,44 @@ def _compact_origin_ending_at(candles: tuple[Candle, ...], end: int) -> CompactP
             pattern = None
         if pattern:
             block = candles[end-2:end+1]
-            return CompactPatternOrigin(pattern, f"{pattern}:{end-2}:{end}", end-2, end, max(x.high for x in block), min(x.low for x in block))
+            return CompactPatternOrigin(
+                pattern,
+                f"{pattern}:{end-2}:{end}",
+                end-2,
+                end,
+                max(x.high for x in block),
+                min(x.low for x in block),
+            )
     if end >= 3:
         a, b, c, d = candles[end-3:end+1]
         if _inside(b, a) and _outside(c, b) and _inside(d, c):
             block = candles[end-3:end+1]
-            return CompactPatternOrigin("IOI", f"IOI:{end-3}:{end}", end-3, end, max(x.high for x in block), min(x.low for x in block))
+            return CompactPatternOrigin(
+                "IOI",
+                f"IOI:{end-3}:{end}",
+                end-3,
+                end,
+                max(x.high for x in block),
+                min(x.low for x in block),
+            )
     return None
 
 
-def scan_breakout_lifecycle_observations(snapshot: MarketSnapshot, context, policy: BrooksFullCorePolicy):
+def scan_breakout_lifecycle_observations(
+    snapshot: MarketSnapshot,
+    context,
+    policy: BrooksFullCorePolicy,
+):
     """WAVE_10 034/036/037: typed breakout state; observation/context only."""
     candles = snapshot.candles
     last = len(candles) - 1
     if last < 3:
         return ()
-    scan = confirm_swings_causally(candles, left_bars=policy.context.swing_left_bars, right_bars=policy.context.swing_right_bars)
+    scan = confirm_swings_causally(
+        candles,
+        left_bars=policy.context.swing_left_bars,
+        right_bars=policy.context.swing_right_bars,
+    )
     out = []
     search_start = max(1, last - 40)  # ENGINEERING_SEARCH_POLICY only.
     for direction, kind in (("LONG", "HIGH"), ("SHORT", "LOW")):
@@ -1419,7 +1581,11 @@ def scan_breakout_lifecycle_observations(snapshot: MarketSnapshot, context, poli
             if not eligible:
                 continue
             sw = eligible[-1]
-            level = candles[sw.candle_index].high if kind == "HIGH" else candles[sw.candle_index].low
+            level = (
+                candles[sw.candle_index].high
+                if kind == "HIGH"
+                else candles[sw.candle_index].low
+            )
             bar = candles[i]
             extends = bar.high > level if direction == "LONG" else bar.low < level
             if not extends:
@@ -1457,7 +1623,11 @@ def scan_breakout_lifecycle_observations(snapshot: MarketSnapshot, context, poli
         if bt is not None:
             structural = bt.structural_test
             out.append(_obs(
-                f"BREAKOUT_TEST_{direction}", "Breakout Test", "BREAKOUT_CONTEXT", last, direction=direction,
+                f"BREAKOUT_TEST_{direction}",
+                "Breakout Test",
+                "BREAKOUT_CONTEXT",
+                last,
+                direction=direction,
                 rule_ids=("BB-RNG-BREAKOUT-TEST",),
                 metadata=(
                     ("structure_id", bt.structure_id),
@@ -1482,7 +1652,11 @@ def scan_breakout_lifecycle_observations(snapshot: MarketSnapshot, context, poli
                 ),
             ))
         if last >= 1:
-            nb = classify_near_breakout_pullback(candles, direction=direction, reference_id=f"SWING:{ref.candle_index}", reference_level=chosen.reference_level,
+            nb = classify_near_breakout_pullback(
+                candles,
+                direction=direction,
+                reference_id=f"SWING:{ref.candle_index}",
+                reference_level=chosen.reference_level,
                 zone_low=zone_low, zone_high=zone_high, approach_index=last-1, evaluated_index=last)
             if nb is not None:
                 out.append(_obs(
@@ -1492,7 +1666,11 @@ def scan_breakout_lifecycle_observations(snapshot: MarketSnapshot, context, poli
     return tuple(out)
 
 
-def scan_compact_pattern_lifecycle_observations(snapshot: MarketSnapshot, context, policy: BrooksFullCorePolicy):
+def scan_compact_pattern_lifecycle_observations(
+    snapshot: MarketSnapshot,
+    context,
+    policy: BrooksFullCorePolicy,
+):
     """BROOKS-GAP-042/043: preserve one compact-pattern origin through later outcome."""
     candles = snapshot.candles
     last = len(candles) - 1
@@ -1532,7 +1710,9 @@ def scan_extended_patterns(
     observations.extend(scan_failed_hl_entry_observations(snapshot, context, policy))
     observations.extend(scan_wave05_foundation_observations(snapshot, context, policy))
     observations.extend(scan_extended_hl_recurrence_observations(snapshot, context, policy))
-    observations.extend(scan_range_hl_context_observations(snapshot, context, policy, market_context))
+    observations.extend(
+        scan_range_hl_context_observations(snapshot, context, policy, market_context)
+    )
 
     candidates: list[BrooksPatternCandidate] = []
     candidates.extend(detect_candle_pattern_breakouts(snapshot, context, policy))
@@ -1574,7 +1754,11 @@ def scan_extended_hl_recurrence_observations(
     if context.regime not in {"BULL_TREND", "BEAR_TREND"}:
         return ()
     candles = snapshot.candles
-    scan = confirm_swings_causally(candles, left_bars=policy.context.swing_left_bars, right_bars=policy.context.swing_right_bars)
+    scan = confirm_swings_causally(
+        candles,
+        left_bars=policy.context.swing_left_bars,
+        right_bars=policy.context.swing_right_bars,
+    )
     kind = "HIGH" if context.regime == "BULL_TREND" else "LOW"
     anchors = [s for s in scan.swings if s.kind == kind and s.candle_index < len(candles)-1]
     if not anchors:
@@ -1595,7 +1779,11 @@ def scan_extended_hl_recurrence_observations(
     ),)
 
 
-def detect_extended_h4_l4(snapshot: MarketSnapshot, context, policy: BrooksFullCorePolicy) -> tuple[BrooksPatternCandidate, ...]:
+def detect_extended_h4_l4(
+    snapshot: MarketSnapshot,
+    context,
+    policy: BrooksFullCorePolicy,
+) -> tuple[BrooksPatternCandidate, ...]:
     """WAVE_06: H4/L4 count alone is never an autonomous trade candidate."""
     return ()
 
@@ -1622,7 +1810,10 @@ def scan_range_hl_context_observations(
             continue
         event=recurrence.events[-1]
         out.append(_obs(
-            f"RANGE_{event.label}_{direction}_CONTEXT", f"Range {event.label} {direction.title()} Context", "RANGE_LOCATION_CONTEXT", event.index,
+            f"RANGE_{event.label}_{direction}_CONTEXT",
+            f"Range {event.label} {direction.title()} Context",
+            "RANGE_LOCATION_CONTEXT",
+            event.index,
             direction=direction, rule_ids=("BB-RNG-17-HL-BAR-COUNT",),
             metadata=(("entry_number",str(event.number)),("episode_origin_index",str(recurrence.episode_origin_index)),
                       ("local_price_relation",location.local_price_relation),("enclosing_relation",location.enclosing_relation),
@@ -1683,7 +1874,12 @@ def scan_additional_context_observations(
             direction=spike_lifecycle.direction,rule_ids=("BB-TRD-SPIKE-CHANNEL",),
             metadata=(("episode_id",spike_lifecycle.episode_id),("spike_start_index",str(spike_lifecycle.spike_start_index)),
                       ("spike_end_index",str(spike_lifecycle.spike_end_index)),
-                      ("channel_start_index","" if spike_lifecycle.channel_start_index is None else str(spike_lifecycle.channel_start_index)),
+                      (
+                          "channel_start_index",
+                          ""
+                          if spike_lifecycle.channel_start_index is None
+                          else str(spike_lifecycle.channel_start_index)
+                      ),
                       ("state",spike_lifecycle.state),("trade_eligible","false"),("canonical_gap_id","BROOKS-GAP-009"))
         ))
         evo=classify_trend_range_evolution(
@@ -1789,7 +1985,10 @@ def scan_additional_context_observations(
                     ("canonical_chapter3_gap_id", "B1C03-018"),
                 ),
             ))
-    if structure in {"BULL_TREND", "BEAR_TREND"} and context.metrics.bar_overlap_rate >= policy.context.range_min_body_overlap_rate:
+    if (
+        structure in {"BULL_TREND", "BEAR_TREND"}
+        and context.metrics.bar_overlap_rate >= policy.context.range_min_body_overlap_rate
+    ):
         out.append(_obs("TRENDING_TRADING_RANGE", "Trending Trading Range", "TREND_CONTEXT", last,
                         direction="LONG" if structure == "BULL_TREND" else "SHORT",
                         rule_ids=("BB-TRD-22-TRENDING-RANGE",),
@@ -1822,7 +2021,10 @@ def scan_additional_context_observations(
                 rule_ids=("BB-TRD-TREND-LINE",),
                 metadata=(
                     ("anchor_indices", ",".join(str(a.candle_index) for a in trend_line.anchors)),
-                    ("anchor_confirmed_at", ",".join(str(a.confirmed_at_index) for a in trend_line.anchors)),
+                    (
+                        "anchor_confirmed_at",
+                        ",".join(str(a.confirmed_at_index) for a in trend_line.anchors),
+                    ),
                     ("slope", str(trend_line.slope_per_bar)),
                     ("projected_value", str(trend_line.projected_value)),
                     ("relation", trend_line.current_relation),
@@ -1831,7 +2033,12 @@ def scan_additional_context_observations(
                     ("semantic", "STRUCTURAL_EVIDENCE_NOT_REVERSAL_ENTRY"),
                 ),
             ))
-        channel = build_trend_channel_geometry(candles, scan, direction=structure, evaluated_index=last)
+        channel = build_trend_channel_geometry(
+            candles,
+            scan,
+            direction=structure,
+            evaluated_index=last,
+        )
         if channel is not None:
             out.append(_obs(
                 "CHANNEL", "Canonical Trend Channel", "TREND_CONTEXT", last,
@@ -1852,7 +2059,10 @@ def scan_additional_context_observations(
             channel_event = classify_channel_boundary_event(candles, channel, evaluated_index=last)
             if channel_event is not None and channel_event.state != "INSIDE_CHANNEL":
                 out.append(_obs(
-                    channel_event.state, "Trend-Channel-Line Structural Event", "STRUCTURAL_CONTEXT", last,
+                    channel_event.state,
+                    "Trend-Channel-Line Structural Event",
+                    "STRUCTURAL_CONTEXT",
+                    last,
                     direction="LONG" if structure == "BULL_TREND" else "SHORT",
                     rule_ids=("BB-TRD-CHANNEL", "BB-REV-CHANNEL-OVERSHOOT"),
                     metadata=(
@@ -1917,7 +2127,11 @@ def scan_additional_context_observations(
         parabolic = build_parabolic_wedge_geometry(candles, scan, side=side, evaluated_index=last)
         if parabolic is None:
             continue
-        reversal_signal = _bear_reversal(candles[-1]) if side == "TOP" else _bull_reversal(candles[-1])
+        reversal_signal = (
+            _bear_reversal(candles[-1])
+            if side == "TOP"
+            else _bull_reversal(candles[-1])
+        )
         out.append(_obs(
             pattern_id, name, "REVERSAL_CONTEXT", last, direction=direction,
             rule_ids=("BB-REV-05-PARABOLIC-WEDGE",),
@@ -1926,7 +2140,10 @@ def scan_additional_context_observations(
                 ("slope_1", str(parabolic.first_slope)),
                 ("slope_2", str(parabolic.second_slope)),
                 ("accelerating", "true"),
-                ("canonical_channel_available", "true" if parabolic.channel is not None else "false"),
+                (
+                    "canonical_channel_available",
+                    "true" if parabolic.channel is not None else "false",
+                ),
                 ("channel_overshoot", "true" if parabolic.channel_overshoot else "false"),
                 ("reversal_signal_present", "true" if reversal_signal else "false"),
                 ("semantic", "PARABOLIC_STRUCTURE_CONTEXT_NOT_SECOND_SIGNAL_ENTRY"),
@@ -1960,7 +2177,10 @@ def scan_additional_context_observations(
         bear_reversal = structure == "BULL_TREND" and _bear_reversal(final)
         if huge_relative and (bull_reversal or bear_reversal):
             out.append(_obs(
-                "HUGE_VOLUME_DAILY_REVERSAL", "Huge-Volume Daily Reversal", "REVERSAL_CONTEXT", last,
+                "HUGE_VOLUME_DAILY_REVERSAL",
+                "Huge-Volume Daily Reversal",
+                "REVERSAL_CONTEXT",
+                last,
                 direction="LONG" if bull_reversal else "SHORT",
                 rule_ids=("BB-REV-10-HUGE-VOLUME-DAILY",),
                 metadata=(("volume_relation", "greater_than_prior_20_daily_bars"),),
@@ -2030,7 +2250,11 @@ def scan_failed_hl_entry_observations(
         definitive=lifecycle.state=="FAILED_AFTER_TRIGGER_BEFORE_OBJECTIVE"
         pattern_id=f"FAILED_{event.label}" if definitive else f"{event.label}_OUTCOME_CONTEXT"
         return (_obs(
-            pattern_id, f"{event.label} Outcome Context", "FAILURE_CONTEXT", len(candles)-1, direction=opposite,
+            pattern_id,
+            f"{event.label} Outcome Context",
+            "FAILURE_CONTEXT",
+            len(candles)-1,
+            direction=opposite,
             rule_ids=("BB-REV-09-FAILURES","BB-RNG-17-HL-BAR-COUNT"),
             metadata=(("attempt_id",lifecycle.origin.attempt_id),("originating_entry",event.label),
                       ("episode_origin_index",str(recurrence.episode_origin_index)),("signal_index",str(event.index)),
