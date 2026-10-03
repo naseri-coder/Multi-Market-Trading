@@ -1,4 +1,4 @@
-# Installation — v0.3.1
+# Installation — v0.3.2
 
 This guide describes the supported **fresh isolated host** installation path. It is not an in-place production upgrade procedure and does not authorize live trading.
 
@@ -32,7 +32,7 @@ cd crypto-price-action
 bash scripts/install.sh --check
 ```
 
-`--check` is offline. It validates the curated 348-file source manifest, Python syntax, v0.3.1 package identity, template contract, and required release files. It does not start Docker, contact a database, or run migrations.
+`--check` is offline. It validates the curated 348-file source manifest, Python syntax, v0.3.2 package identity, template contract, and required release files. It does not start Docker, contact a database, or run migrations.
 
 ## 2. Install on a fresh host
 
@@ -79,8 +79,20 @@ The installer rejects inherited shell overrides for these values.
 
 ## Validation evidence
 
-The release-candidate workflows use only synthetic credentials and disposable resources. PostgreSQL is not published on a host port. The complete tracked corpus runs separately in `Full Corpus - Disposable PostgreSQL`; the v0.3.1 RC workflow also performs package, Stage3B, Docker, offline-startup, and 0020→0021 migration rehearsals.
+The release-candidate workflows use only synthetic credentials and disposable resources. PostgreSQL is not published on a host port. The complete tracked corpus runs separately in `Full Corpus - Disposable PostgreSQL`; the v0.3.2 RC workflow also performs package, Stage3B, Docker, offline-startup, and 0020→0021 migration rehearsals.
 
 ## Enabling additional runtime modes
 
 Do not edit a running installation casually. Prepare a separate reviewed configuration, validate it with the corresponding mode, and perform an explicitly authorized rollout. The presence of a setting or runtime path in source is not operational approval.
+
+
+## Paper cold-start bootstrap
+
+On a fresh database, Historical Probability remains fail-closed until enough compatible
+realized-R evidence exists. In v0.3.2, Paper mode may persist only otherwise-qualified
+stop-trigger candidates as internal `SHADOW` observations and advance them with the same
+causal one-minute lifecycle semantics used by the existing lifecycle engine.
+
+These bootstrap observations are not delivered to public/VIP channels, do not count
+toward production performance, and do not require
+`BROOKS_OPERATIONS_ENABLED=true`.

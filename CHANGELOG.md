@@ -4,6 +4,22 @@ All notable public changes to this project are recorded here.
 
 This project remains under active development and validation. A tagged release does not imply production or live-trading approval.
 
+## v0.3.2 — 2026-10-03
+
+Paper cold-start bootstrap patch.
+
+### Fixed
+
+- Removed the fresh-database Paper-mode deadlock where Historical Probability remained `UNBOOTSTRAPPED` because Paper candidates could not create the causal evidence needed to mature the cohort.
+- Allowed only otherwise-qualified, final-cohort stop-trigger candidates whose sole gate blocker is Historical Probability evidence to persist as `SHADOW/INTERNAL` bootstrap observations in Paper mode.
+- Added a shadow-only lifecycle service that reuses the causal one-minute entry/exit and realized-R semantics while excluding LIVE/VIP rows and Telegram message update work.
+- Kept `BROOKS_OPERATIONS_ENABLED=false`, LIVE publication, and exchange order execution outside the Paper bootstrap path.
+- Added regression coverage for Paper/live bootstrap collection, shadow-only lifecycle selection, no Telegram retry work, and Paper runtime lifecycle wiring.
+
+### Safety boundary
+
+Cold-start observations remain internal, do not count toward production performance, and cannot bypass AI Council, Risk, structure/context, entry-method, cohort-isolation, or final Historical Probability gates.
+
 ## v0.3.1 — 2026-10-03
 
 Patch release for the fresh-host installer.

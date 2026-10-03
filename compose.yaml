@@ -1,4 +1,4 @@
-# v0.3.1 fresh-host install: fresh, separate host only.
+# v0.3.2 fresh-host install: fresh, separate host only.
 name: crypto-price-action
 services:
   postgres:
@@ -24,8 +24,8 @@ services:
       context: .
       dockerfile: Dockerfile.production
       args:
-        RELEASE_VERSION: "0.3.1"
-    image: crypto-price-action:${RELEASE_TAG:-v0.3.1}
+        RELEASE_VERSION: "0.3.2"
+    image: crypto-price-action:${RELEASE_TAG:-v0.3.2}
     env_file:
       - .env
     depends_on:

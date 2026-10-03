@@ -1974,3 +1974,79 @@ class LiveSignalLifecycleService:
         if signal.direction == "LONG":
             return candle.low <= signal.stop_loss
         return candle.high >= signal.stop_loss
+
+class ColdStartBootstrapLifecycleService(LiveSignalLifecycleService):
+    """Track only authorized HP cold-start SHADOW observations.
+
+    This service deliberately excludes LIVE/VIP rows and disables Telegram
+    message retry/update work. It reuses the causal 1m lifecycle machinery so
+    bootstrap realized-R evidence has the same entry/exit semantics as the
+    production lifecycle without enabling production operations.
+    """
+
+    def __init__(
+        self,
+        *,
+        database,
+        provider,
+        bot: Bot,
+        candle_limit: int,
+    ) -> None:
+        super().__init__(
+            database=database,
+            provider=provider,
+            bot=bot,
+            vip_channel_id=0,
+            cutover_at=datetime(1970, 1, 1, tzinfo=UTC),
+            candle_limit=candle_limit,
+        )
+
+    async def _retry_pending_message_updates(self) -> int:
+        return 0
+
+    async def _load_items(self) -> tuple[LifecycleItem, ...]:
+        async with self.database.session() as session:
+            bootstrap = SignalAutomationMetadata.analysis_metadata["hp_cold_start_bootstrap"]
+            statement = (
+                select(Signal, SignalAutomationMetadata, SignalDelivery)
+                .join(
+                    SignalAutomationMetadata,
+                    SignalAutomationMetadata.signal_id == Signal.id,
+                )
+                .outerjoin(
+                    SignalDelivery,
+                    SignalDelivery.signal_id == Signal.id,
+                )
+                .where(
+                    Signal.status == "OPEN",
+                    SignalAutomationMetadata.producer == "BROOKS",
+                    Signal.publication_scope == "INTERNAL",
+                    SignalAutomationMetadata.generation_mode == "SHADOW",
+                    SignalAutomationMetadata.counts_toward_performance.is_(False),
+                    bootstrap["bootstrap"].astext == "true",
+                    bootstrap["policy_id"].astext == HP_COLD_START_BOOTSTRAP_POLICY_ID,
+                )
+                .order_by(Signal.id)
+            )
+            rows = (await session.execute(statement)).all()
+            result: list[LifecycleItem] = []
+            for signal, metadata, delivery in rows:
+                targets = tuple(
+                    (
+                        await session.scalars(
+                            select(SignalTarget)
+                            .where(SignalTarget.signal_id == signal.id)
+                            .order_by(SignalTarget.target_number)
+                        )
+                    ).all()
+                )
+                result.append(
+                    LifecycleItem(
+                        signal=signal,
+                        metadata=metadata,
+                        delivery=delivery,
+                        targets=targets,
+                    )
+                )
+            return tuple(result)
+
