@@ -1,0 +1,11 @@
+{
+  "artifact_schema_version": "brooks-research-current-risk-v1",
+  "risk_semantic_model": "PLAN_WEIGHTED_PRETRADE",
+  "runner_policy": "UNDEFINED_OBJECTIVE_ZERO_CONSERVATIVE",
+  "current_dataset_contract_id": "brooks-research-current-risk-realized-r-bootstrap-v1",
+  "minimum_sample_size": 20,
+  "bootstrap_iterations": 100000,
+  "epsilon": 1e-15,
+  "z95": 1.959963984540054,
+  "historical_source_contract_sha": "4b8daf0c6cd4d92ee8e56f9ace8ece2367f950a7bb0a013bcc470b7e36ad4def"
+}
