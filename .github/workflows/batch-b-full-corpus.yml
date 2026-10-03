@@ -48,7 +48,6 @@ jobs:
           cp -a production_source/app ./app
           cp -a production_source/migrations ./migrations
           cp production_source/alembic.ini ./alembic.ini
-          cp production_source/Dockerfile ./Dockerfile
           test -f migrations/versions/20260928_0021_ch6_ii_opportunity_identity.py
           echo "COMPANION_FIXTURE_OVERLAY_PASS"
 
