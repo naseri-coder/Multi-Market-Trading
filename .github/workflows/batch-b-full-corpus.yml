@@ -51,14 +51,21 @@ jobs:
           mkdir -p "$socket_dir"
           chmod 0777 "$socket_dir"
           docker run -d --rm             --name "$container"             -e POSTGRES_USER=batchb             -e POSTGRES_PASSWORD=batchb-synthetic-only             -e POSTGRES_DB=batchbtest             -v "$socket_dir:/var/run/postgresql"             postgres:16-alpine             -c listen_addresses=''             -c unix_socket_directories=/var/run/postgresql
-          for i in $(seq 1 60); do
-            if docker exec "$container" pg_isready -U batchb -d batchbtest >/dev/null 2>&1; then
-              break
+          consecutive=0
+          for i in $(seq 1 90); do
+            if docker exec "$container" pg_isready -h /var/run/postgresql -U batchb -d batchbtest >/dev/null 2>&1; then
+              consecutive=$((consecutive + 1))
+              if [ "$consecutive" -ge 3 ]; then
+                break
+              fi
+            else
+              consecutive=0
             fi
             sleep 1
           done
-          docker exec "$container" pg_isready -U batchb -d batchbtest
-          docker exec "$container" createdb -U batchb ch6synthetic
+          test "$consecutive" -ge 3
+          docker exec "$container" pg_isready -h /var/run/postgresql -U batchb -d batchbtest
+          docker exec "$container" createdb -h /var/run/postgresql -U batchb ch6synthetic
           echo "socket_dir=$socket_dir" >> "$GITHUB_OUTPUT"
           echo "container=$container" >> "$GITHUB_OUTPUT"
 
