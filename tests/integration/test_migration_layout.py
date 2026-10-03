@@ -4,15 +4,15 @@ import ast
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-REVISION = PROJECT_ROOT / "migrations" / "versions" / "20260901_0001_create_core_models.py"
+REVISION = VERSIONS / "20260901_0001_create_core_models.py"
 BROADCAST_REVISION = (
-    PROJECT_ROOT / "migrations" / "versions" / "20260901_0002_create_broadcast_models.py"
+    VERSIONS / "20260901_0002_create_broadcast_models.py"
 )
 FORWARD_REVISION = (
-    PROJECT_ROOT / "migrations" / "versions" / "20260901_0003_add_forward_broadcast.py"
+    VERSIONS / "20260901_0003_add_forward_broadcast.py"
 )
 SUPPORT_REVISION = (
-    PROJECT_ROOT / "migrations" / "versions" / "20260901_0004_create_support_ticket_models.py"
+    VERSIONS / "20260901_0004_create_support_ticket_models.py"
 )
 SIGNAL_REVISION = (
     PROJECT_ROOT
@@ -21,22 +21,22 @@ SIGNAL_REVISION = (
     / "20260901_0005_create_signal_database_architecture.py"
 )
 SIGNAL_SERVICE_REVISION = (
-    PROJECT_ROOT / "migrations" / "versions" / "20260901_0006_relax_signal_stop_loss_constraint.py"
+    VERSIONS / "20260901_0006_relax_signal_stop_loss_constraint.py"
 )
 FAVORITES_REVISION = (
-    PROJECT_ROOT / "migrations" / "versions" / "20260901_0007_create_user_favorites.py"
+    VERSIONS / "20260901_0007_create_user_favorites.py"
 )
 NOTIFICATION_SETTINGS_REVISION = (
-    PROJECT_ROOT / "migrations" / "versions" / "20260902_0008_create_user_notification_settings.py"
+    VERSIONS / "20260902_0008_create_user_notification_settings.py"
 )
 SUBSCRIPTIONS_REVISION = (
-    PROJECT_ROOT / "migrations" / "versions" / "20260902_0009_create_subscription_architecture.py"
+    VERSIONS / "20260902_0009_create_subscription_architecture.py"
 )
 PAYMENTS_REVISION = (
-    PROJECT_ROOT / "migrations" / "versions" / "20260902_0010_create_payment_architecture.py"
+    VERSIONS / "20260902_0010_create_payment_architecture.py"
 )
 REFERRALS_REVISION = (
-    PROJECT_ROOT / "migrations" / "versions" / "20260902_0011_create_referral_system.py"
+    VERSIONS / "20260902_0011_create_referral_system.py"
 )
 
 
@@ -252,6 +252,61 @@ def test_referrals_revision_extends_payments_with_one_table_and_user_code() -> N
     assert '"uq_referrals_referred_user_id"' in source
     assert '"ck_referrals_reward_disabled"' in source
 
+
+
+
+def _revision_pair(path: Path) -> tuple[str, str | None]:
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    values: dict[str, object] = {}
+    for node in tree.body:
+        if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            if node.target.id in {"revision", "down_revision"}:
+                values[node.target.id] = ast.literal_eval(node.value)
+        elif isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id in {"revision", "down_revision"}:
+                    values[target.id] = ast.literal_eval(node.value)
+    return str(values["revision"]), (
+        None if values["down_revision"] is None else str(values["down_revision"])
+    )
+
+
+def test_canonical_migration_tree_is_one_linear_chain_through_0021() -> None:
+    files = sorted(VERSIONS.glob("*.py"))
+    assert len(files) == 21
+    pairs = [_revision_pair(path) for path in files]
+    revisions = {revision for revision, _ in pairs}
+    assert len(revisions) == 21
+    assert sum(parent is None for _, parent in pairs) == 1
+
+    children: dict[str | None, list[str]] = {}
+    for revision, parent in pairs:
+        children.setdefault(parent, []).append(revision)
+    assert children[None] == ["20260901_0001"]
+    for revision, parent in pairs:
+        if parent is not None:
+            assert parent in revisions
+            assert len(children.get(parent, ())) <= 1
+
+    heads = revisions - {parent for _, parent in pairs if parent is not None}
+    assert heads == {"20260928_0021"}
+
+
+def test_no_divergent_legacy_migration_tree_is_present() -> None:
+    runtime_mirror = PROJECT_ROOT / "migrations"
+    if not runtime_mirror.exists():
+        return
+    canonical = {
+        path.relative_to(MIGRATIONS_ROOT): path.read_bytes()
+        for path in MIGRATIONS_ROOT.rglob("*")
+        if path.is_file()
+    }
+    mirror = {
+        path.relative_to(runtime_mirror): path.read_bytes()
+        for path in runtime_mirror.rglob("*")
+        if path.is_file()
+    }
+    assert mirror == canonical
 
 def test_container_includes_alembic_runtime_files() -> None:
     dockerfile = (PROJECT_ROOT / "Dockerfile").read_text(encoding="utf-8")
