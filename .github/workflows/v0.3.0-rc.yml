@@ -1,4 +1,4 @@
-name: v0.3.1 Release Candidate
+name: v0.3.2 Release Candidate
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: v031-rc-${{ github.ref }}-${{ github.run_id }}
+  group: v032-rc-${{ github.ref }}-${{ github.run_id }}
   cancel-in-progress: false
 
 jobs:
@@ -44,33 +44,33 @@ jobs:
               "REPLACE_WITH_NEW_RANDOM_URLSAFE_PASSWORD",
               "Synthetic_Release_Candidate_Password_2026",
           )
-          path = Path("/tmp/v031-rc.env")
+          path = Path("/tmp/v032-rc.env")
           path.write_text(source, encoding="utf-8")
           os.chmod(path, 0o600)
           PY
-          python scripts/check_env.py /tmp/v031-rc.env
-          PYTHONPATH=production_source python scripts/validate_release_config.py             --env-file /tmp/v031-rc.env --mode safe-install
+          python scripts/check_env.py /tmp/v032-rc.env
+          PYTHONPATH=production_source python scripts/validate_release_config.py             --env-file /tmp/v032-rc.env --mode safe-install
       - name: Build wheel and source distribution
         run: |
           set -Eeuo pipefail
           rm -rf dist
           python -m build --sdist --wheel
-          test "$(find dist -maxdepth 1 -name 'crypto_price_action-0.3.1-*.whl' | wc -l)" -eq 1
-          test -f dist/crypto_price_action-0.3.1.tar.gz
+          test "$(find dist -maxdepth 1 -name 'crypto_price_action-0.3.2-*.whl' | wc -l)" -eq 1
+          test -f dist/crypto_price_action-0.3.2.tar.gz
       - name: Prove clean wheel import outside checkout
         run: |
           set -Eeuo pipefail
-          python -m venv /tmp/v031-wheel
-          /tmp/v031-wheel/bin/python -m pip install --disable-pip-version-check dist/*.whl
+          python -m venv /tmp/v032-wheel
+          /tmp/v032-wheel/bin/python -m pip install --disable-pip-version-check dist/*.whl
           cd /tmp
-          /tmp/v031-wheel/bin/python - <<'PY'
+          /tmp/v032-wheel/bin/python - <<'PY'
           from importlib.metadata import version
           from pathlib import Path
           import app
 
           resolved = Path(app.__file__).resolve()
           assert "site-packages" in resolved.parts, resolved
-          assert version("crypto-price-action") == "0.3.1"
+          assert version("crypto-price-action") == "0.3.2"
           print("CLEAN_WHEEL_IMPORT_PASS", resolved)
           PY
 
@@ -138,9 +138,9 @@ jobs:
         id: pg
         run: |
           set -Eeuo pipefail
-          root="/tmp/ch6-v031-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          root="/tmp/ch6-v032-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           socket_dir="${root}/socket"
-          container="v031-pg-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          container="v032-pg-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           mkdir -p "$socket_dir"
           chmod 0777 "$socket_dir"
           docker run -d --rm             --name "$container"             --security-opt no-new-privileges:true             -e POSTGRES_USER=rcsynthetic             -e POSTGRES_PASSWORD=rcsynthetic_password_2026             -e POSTGRES_DB=rcmigration             -v "$socket_dir:/var/run/postgresql"             postgres:16-alpine             -c listen_addresses=''             -c unix_socket_directories=/var/run/postgresql
