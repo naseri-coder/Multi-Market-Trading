@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "crypto-price-action"
-version = "0.3.0"
+version = "0.3.1"
 description = "Public source snapshot of a rule-based cryptocurrency price action signal system"
 requires-python = ">=3.12,<3.13"
 dependencies = [

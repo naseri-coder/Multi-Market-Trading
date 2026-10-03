@@ -65,9 +65,10 @@ def validate_template(path: Path) -> None:
 
 
 def settings_class():
-    source = ROOT / "production_source"
-    if source.is_dir():
-        sys.path.insert(0, str(source))
+    for source in (ROOT / "production_source", ROOT):
+        if (source / "app").is_dir():
+            sys.path.insert(0, str(source))
+            break
     try:
         from app.core.config import Settings
     except Exception as exc:

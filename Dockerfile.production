@@ -9,7 +9,7 @@ COPY requirements.hashed.lock ./
 RUN python -m pip install --root-user-action=ignore --require-hashes --target=/install --requirement requirements.hashed.lock
 
 FROM python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f AS runtime
-ARG RELEASE_VERSION=0.3.0
+ARG RELEASE_VERSION=0.3.1
 LABEL org.opencontainers.image.title="Crypto Price Action" \
       org.opencontainers.image.version="$RELEASE_VERSION" \
       org.opencontainers.image.source="https://github.com/naseri-coder/crypto-price-action"

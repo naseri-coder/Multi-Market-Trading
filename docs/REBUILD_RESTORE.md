@@ -1,6 +1,6 @@
 # Rebuild and Restore Runbook
 
-This document defines the v0.3.0 rebuild/restore procedure. It is a **runbook**, not authorization to operate on the current production server.
+This document defines the v0.3.1 rebuild/restore procedure. It is a **runbook**, not authorization to operate on the current production server.
 
 ## Source / secret / persistent-state boundary
 
@@ -28,7 +28,7 @@ Restore only into isolated infrastructure first.
 2. Restore the authorized dump and required roles/extensions.
 3. Verify restore exit status, checksums/inventory, row counts and constraints.
 4. Determine the restored database's actual Alembic revision; do not guess it from source files.
-5. Upgrade the restored copy to the v0.3.0 migration head using the exact release artifact.
+5. Upgrade the restored copy to the v0.3.1 migration head using the exact release artifact.
 6. Run disposable integration/configuration checks and verify critical records remain present.
 7. Keep Telegram, Brooks runtime, operations, paper runtime and reporting disabled throughout the rehearsal.
 
@@ -36,10 +36,10 @@ The RC workflow separately proves a synthetic 0020→0021 data-preservation migr
 
 ## Rebuild
 
-Only after the official v0.3.0 release and a successful restore rehearsal:
+Only after the official v0.3.1 release and a successful restore rehearsal:
 
 1. provision a fresh host;
-2. verify the immutable v0.3.0 tag/commit and release artifacts;
+2. verify the immutable v0.3.1 tag/commit and release artifacts;
 3. install using the supported fresh-host path;
 4. restore only the authorized persistent state;
 5. supply secrets externally;
