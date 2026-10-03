@@ -10,7 +10,8 @@ __pycache__
 .ruff_cache
 tests
 docs
-scripts
+scripts/*
+!scripts/validate_release_config.py
 build
 dist
 *.db

@@ -45,13 +45,28 @@ def test_load_settings_from_environment(
     assert settings.database_url.get_secret_value() == valid_database_url
 
 
-def test_env_example_is_valid(valid_token: str) -> None:
+def test_env_example_is_valid(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
     example_path = Path(__file__).resolve().parents[2] / ".env.example"
+    source = example_path.read_text(encoding="utf-8")
+    source = source.replace("REPLACE_WITH_NUMERIC_ADMIN_ID", "123456789")
+    source = source.replace(
+        "REPLACE_WITH_NEW_RANDOM_URLSAFE_PASSWORD",
+        "Synthetic_Template_Password_2026",
+    )
+    rendered = tmp_path / ".env"
+    rendered.write_text(source, encoding="utf-8")
 
-    settings = Settings(_env_file=example_path)
+    for field in Settings.model_fields:
+        monkeypatch.delenv(field.upper(), raising=False)
 
-    assert settings.app_env == "development"
-    assert settings.log_format == "console"
+    settings = Settings(_env_file=rendered)
+
+    assert settings.app_env == "production"
+    assert settings.log_format == "json"
+    assert settings.telegram_runtime_enabled is False
     assert settings.telegram_bot_token is None
 
 

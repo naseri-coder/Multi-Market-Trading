@@ -107,10 +107,17 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
+      PYTHONUNBUFFERED: "1"
       PYTHONDONTWRITEBYTECODE: "1"
+      APP_ENV: "test"
       TELEGRAM_RUNTIME_ENABLED: "false"
       TELEGRAM_BOT_TOKEN: ""
       ADMIN_IDS: "123456789"
+      BROOKS_RUNTIME_ENABLED: "false"
+      BROOKS_OPERATIONS_ENABLED: "false"
+      PAPER_RUNTIME_ENABLED: "false"
+      PERFORMANCE_REPORTS_ENABLED: "false"
+      DB_ECHO: "false"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -156,7 +163,7 @@ jobs:
           DATABASE_URL: postgresql+asyncpg://rcsynthetic:rcsynthetic_password_2026@localhost/rcmigration?host=${{ steps.pg.outputs.socket_dir }}
         run: |
           set -Eeuo pipefail
-          python -m alembic -c alembic.ini upgrade 20260914_0020
+          python -m alembic --raiseerr -c alembic.ini upgrade 20260914_0020
           docker exec "${{ steps.pg.outputs.container }}" psql             -h /var/run/postgresql -U rcsynthetic -d rcmigration -v ON_ERROR_STOP=1 <<'SQL'
           WITH inserted AS (
             INSERT INTO signals (
@@ -178,7 +185,7 @@ jobs:
           SQL
           test "$(docker exec "${{ steps.pg.outputs.container }}" psql             -h /var/run/postgresql -U rcsynthetic -d rcmigration -Aqt             -c "SELECT count(*) FROM signal_automation_metadata WHERE source_signal_id='rc-0020-source';")" = "1"
 
-          python -m alembic -c alembic.ini upgrade 20260928_0021
+          python -m alembic --raiseerr -c alembic.ini upgrade 20260928_0021
 
           test "$(docker exec "${{ steps.pg.outputs.container }}" psql             -h /var/run/postgresql -U rcsynthetic -d rcmigration -Aqt             -c "SELECT version_num FROM alembic_version;")" = "20260928_0021"
           test "$(docker exec "${{ steps.pg.outputs.container }}" psql             -h /var/run/postgresql -U rcsynthetic -d rcmigration -Aqt             -c "SELECT count(*) FROM signal_automation_metadata WHERE source_signal_id='rc-0020-source' AND opportunity_variant IS NULL AND opportunity_key IS NULL;")" = "1"
