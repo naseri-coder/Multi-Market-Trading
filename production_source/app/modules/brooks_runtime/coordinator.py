@@ -33,6 +33,7 @@ from app.modules.live_vip_runtime.service import LiveVipRuntimeService
 from app.modules.market_data.binance_futures import BinanceFuturesMarketDataProvider
 from app.modules.market_data.entities import MarketSnapshot
 from app.modules.operations.approval_evidence import record_approved_candidate
+from app.modules.operations.lifecycle import ColdStartBootstrapLifecycleService
 from app.modules.paper_runtime.publisher import TelegramPaperPublisher
 from app.modules.paper_runtime.service import PaperRuntimeService
 from app.modules.risk_engine.service import RiskEngineService
@@ -136,6 +137,7 @@ class BrooksFullCoreCoordinator:
         self._provider: BinanceFuturesMarketDataProvider | None = None
         self._analyzer: BrooksCoreAnalyzerAdapter | None = None
         self._publisher: TelegramPaperPublisher | TelegramLiveVipPublisher | None = None
+        self._bot = None
         self._last_snapshot_id: dict[tuple[str, str], str] = {}
         self._ai_council = AICouncilService()
         self._risk_engine = RiskEngineService()
@@ -157,7 +159,7 @@ class BrooksFullCoreCoordinator:
         leverage: Decimal,
     ):
         """Persist one isolated empirical SHADOW observation for HP cold start."""
-        if self.settings.brooks_runtime_mode != "live":
+        if self.settings.brooks_runtime_mode not in {"paper", "live"}:
             return None
         if getattr(candidate, "semantic_cohort_id", None) != FINAL_BROOKS_HP_SEMANTIC_COHORT_ID:
             return None
@@ -228,6 +230,7 @@ class BrooksFullCoreCoordinator:
             "bootstrap": True,
             "policy_id": HP_COLD_START_BOOTSTRAP_POLICY_ID,
             "generation_mode": "SHADOW",
+            "collection_runtime_mode": self.settings.brooks_runtime_mode.upper(),
             "semantic_cohort_id": candidate.semantic_cohort_id,
             "original_source_signal_id": candidate.source_signal_id,
             "mode_scoped_source_signal_id": source_signal_id,
@@ -325,6 +328,7 @@ class BrooksFullCoreCoordinator:
             raise RuntimeError("Brooks full-core runtime is already started")
 
         self._provider = self._build_provider()
+        self._bot = application.bot
         engine = BrooksTrilogyFullCoreEngine(
             policy=BrooksFullCorePolicy(enable_trade_decisions=True)
         )
@@ -383,6 +387,7 @@ class BrooksFullCoreCoordinator:
 
         self._analyzer = None
         self._publisher = None
+        self._bot = None
         self._last_snapshot_id.clear()
         logger.info(
             "Brooks full-core runtime stopped",
@@ -413,12 +418,43 @@ class BrooksFullCoreCoordinator:
                     extra={"event": "brooks_full_core_scan_failed"},
                 )
 
+            if self.settings.brooks_runtime_mode == "paper":
+                try:
+                    await self._run_paper_bootstrap_lifecycle_once()
+                except asyncio.CancelledError:
+                    raise
+                except Exception:
+                    logger.exception(
+                        "HP cold-start PAPER shadow lifecycle failed",
+                        extra={"event": "hp_cold_start_paper_lifecycle_failed"},
+                    )
+
             elapsed = monotonic() - started
             delay = max(
                 1.0,
                 float(self.settings.brooks_poll_interval_seconds) - elapsed,
             )
             await asyncio.sleep(delay)
+
+    async def _run_paper_bootstrap_lifecycle_once(self) -> None:
+        if self.settings.brooks_runtime_mode != "paper":
+            return
+        if self._provider is None or self._bot is None:
+            raise RuntimeError("PAPER bootstrap lifecycle requires an active runtime")
+
+        result = await ColdStartBootstrapLifecycleService(
+            database=self.database,
+            provider=self._provider,
+            bot=self._bot,
+            candle_limit=self.settings.signal_lifecycle_candle_limit,
+        ).run_once()
+        logger.info(
+            "HP cold-start PAPER shadow lifecycle evaluated",
+            extra={
+                "event": "hp_cold_start_paper_lifecycle_evaluated",
+                **result,
+            },
+        )
 
     async def scan_once(self) -> None:
         if self._provider is None or self._analyzer is None or self._publisher is None:

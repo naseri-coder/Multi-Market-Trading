@@ -10,6 +10,7 @@ import pytest
 from app.modules.brooks_runtime import coordinator as coordinator_module
 from app.modules.brooks_runtime.coordinator import BrooksFullCoreCoordinator
 from app.modules.operations.lifecycle import (
+    ColdStartBootstrapLifecycleService,
     LiveSignalLifecycleService,
     _hp_bootstrap_metadata,
     _set_hp_bootstrap_state,
@@ -349,12 +350,15 @@ class _CaptureIntegration:
 
 
 @pytest.mark.asyncio
-async def test_coordinator_collects_only_authorized_stop_trigger_shadow(monkeypatch):
+@pytest.mark.parametrize("runtime_mode", ["paper", "live"])
+async def test_coordinator_collects_only_authorized_stop_trigger_shadow(
+    monkeypatch, runtime_mode
+):
     monkeypatch.setattr(
         coordinator_module, "BrooksSignalIntegrationService", _CaptureIntegration
     )
     service = BrooksFullCoreCoordinator.__new__(BrooksFullCoreCoordinator)
-    service.settings = SimpleNamespace(brooks_runtime_mode="live")
+    service.settings = SimpleNamespace(brooks_runtime_mode=runtime_mode)
     service.database = _Database(object())
     service._signal_gate = SignalGateService()
     result = await service._collect_hp_cold_start_bootstrap(
@@ -417,3 +421,65 @@ def test_failed_qualitative_policy_is_not_reactivated_and_thresholds_unchanged()
     source = inspect.getsource(BrooksFullCoreCoordinator._collect_hp_cold_start_bootstrap)
     assert "qualitative" not in source.lower()
     assert "calibrated" in source
+
+@pytest.mark.asyncio
+async def test_bootstrap_only_lifecycle_selector_excludes_live_vip_rows():
+    session = _RecordingSession()
+    service = ColdStartBootstrapLifecycleService(
+        database=_Database(session),
+        provider=object(),
+        bot=object(),
+        candle_limit=240,
+    )
+    assert await service._load_items() == ()
+    sql = str(session.statement.compile(compile_kwargs={"literal_binds": True}))
+    assert "generation_mode = 'SHADOW'" in sql
+    assert "publication_scope = 'INTERNAL'" in sql
+    assert POLICY in sql
+    assert "generation_mode = 'LIVE'" not in sql
+    assert "TELEGRAM_VIP" not in sql
+
+
+@pytest.mark.asyncio
+async def test_bootstrap_only_lifecycle_never_retries_telegram_messages():
+    service = ColdStartBootstrapLifecycleService(
+        database=object(),
+        provider=object(),
+        bot=object(),
+        candle_limit=240,
+    )
+    assert await service._retry_pending_message_updates() == 0
+
+
+@pytest.mark.asyncio
+async def test_paper_runtime_runs_shadow_only_bootstrap_lifecycle(monkeypatch):
+    captured = {}
+
+    class _Lifecycle:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+        async def run_once(self):
+            return {"tracked": 2, "changed": 1, "ambiguous": 0, "message_retries": 0}
+
+    monkeypatch.setattr(
+        coordinator_module,
+        "ColdStartBootstrapLifecycleService",
+        _Lifecycle,
+    )
+    service = BrooksFullCoreCoordinator.__new__(BrooksFullCoreCoordinator)
+    service.settings = SimpleNamespace(
+        brooks_runtime_mode="paper",
+        signal_lifecycle_candle_limit=240,
+    )
+    service.database = object()
+    service._provider = object()
+    service._bot = object()
+
+    await service._run_paper_bootstrap_lifecycle_once()
+
+    assert captured["database"] is service.database
+    assert captured["provider"] is service._provider
+    assert captured["bot"] is service._bot
+    assert captured["candle_limit"] == 240
+
