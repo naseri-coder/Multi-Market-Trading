@@ -4,9 +4,46 @@
 # shellcheck shell=bash
 
 install_bot() {
-  info "Launching the existing fail-closed fresh-host installer."
-  bash "$ROOT/scripts/install.sh" --install
+  local state
+  state="$(installation_state)"
+  case "$state" in
+    RUNNING)
+      warn "Bot is already installed and running. Use Update Bot for source updates."
+      return 3
+      ;;
+    INSTALLED_STOPPED)
+      warn "Bot is already installed but stopped. Use Start Bot or Update Bot; fresh install is not applicable."
+      return 3
+      ;;
+    RECOVERY_REQUIRED)
+      fail "Database volume exists but .env is missing. Fresh install is blocked to protect existing data; restore configuration or use Repair/Diagnose."
+      return 3
+      ;;
+    CONFIGURED_DOCKER_UNAVAILABLE)
+      fail "Configuration exists but Docker is unavailable. Fix Docker access before installation actions."
+      return 3
+      ;;
+    NOT_INSTALLED|CONFIGURED_NOT_INSTALLED)
+      info "Launching the fail-closed fresh-host installer."
+      bash "$ROOT/scripts/install.sh" --install
+      ;;
+    *)
+      fail "Unknown installation state: $state"
+      return 3
+      ;;
+  esac
 }
+
+restore_previous_bot_container() {
+  local was_running="$1"
+  [[ "$was_running" == "1" ]] || return 0
+  if compose start bot >/dev/null 2>&1; then
+    warn "Previous bot container was restarted after a pre-migration failure."
+  else
+    fail "Could not restore the previously running bot container."
+  fi
+}
+
 
 start_bot() {
   ui_step 1 4 "Checking installation prerequisites"
@@ -231,6 +268,11 @@ update_bot() {
   fi
 }
 
+validate_configuration_action() {
+  validate_current_config || return 1
+  ok "Configuration validation passed."
+}
+
 configuration_menu() {
   local choice editor
   while true; do
@@ -248,16 +290,20 @@ MENU
     printf 'Select an option: '
     read -r choice
     case "$choice" in
-      1) safe_config_summary; pause_screen ;;
-      2) validate_current_config && ok "Configuration validation passed."; pause_screen ;;
+      1) menu_action safe_config_summary ;;
+      2) menu_action validate_configuration_action ;;
       3)
         env_file_valid_shape || { warn "No .env file exists."; pause_screen; continue; }
         editor="${EDITOR:-vi}"
         [[ "$editor" != *" "* ]] || { fail "EDITOR containing arguments is refused; use a simple executable name."; pause_screen; continue; }
         command_exists "$editor" || { fail "Editor not found: $editor"; pause_screen; continue; }
         warn "The editor will display local secrets. Do not copy or commit .env."
-        confirm_phrase "Open the private .env file?" "EDIT-CONFIG" && "$editor" "$ROOT/.env"
-        chmod 600 "$ROOT/.env"
+        if confirm_phrase "Open the private .env file?" "EDIT-CONFIG"; then
+          if ! "$editor" "$ROOT/.env"; then
+            warn "Editor exited with an error; configuration was not validated."
+          fi
+          chmod 600 "$ROOT/.env"
+        fi
         pause_screen
         ;;
       4)
@@ -525,17 +571,23 @@ database_upgrade_head() {
   compose stop bot >/dev/null 2>&1 || true
   bash "$ROOT/scripts/verify.sh" || {
     fail "Source verification failed; database upgrade refused."
+    restore_previous_bot_container "$was_bot_running"
     return 1
   }
   compose build bot || {
     fail "Bot image build failed; database upgrade refused."
+    restore_previous_bot_container "$was_bot_running"
     return 1
   }
   validate_current_config || {
     fail "Current configuration is invalid for the rebuilt image; database upgrade refused."
+    restore_previous_bot_container "$was_bot_running"
     return 1
   }
-  compose up -d --wait postgres >/dev/null || return 1
+  compose up -d --wait postgres >/dev/null || {
+    restore_previous_bot_container "$was_bot_running"
+    return 1
+  }
 
   if ! compose run --rm --no-deps bot python -m alembic -c alembic.ini upgrade head; then
     fail "Database migration failed. Bot remains stopped and the backup is preserved."
@@ -572,13 +624,16 @@ MENU
     printf 'Select an option: '
     read -r choice
     case "$choice" in
-      1) database_status; pause_screen ;;
-      2) database_migrations; pause_screen ;;
-      3) run_locked database_upgrade_head; pause_screen ;;
-      4) run_locked create_backup "manual-db" "database"; pause_screen ;;
+      1) menu_action database_status ;;
+      2) menu_action database_migrations ;;
+      3) menu_locked_action database_upgrade_head ;;
+      4) menu_locked_action create_backup "manual-db" "database" ;;
       5)
-        dir="$(select_backup_dir)" && run_locked restore_database_from_dir "$dir"
-        pause_screen
+        if select_backup_dir; then
+          menu_locked_action restore_database_from_dir "$SELECTED_BACKUP_DIR"
+        else
+          menu_action false
+        fi
         ;;
       0) return 0 ;;
       *) warn "Invalid selection."; pause_screen ;;
@@ -603,18 +658,32 @@ repair_rebuild_bot() {
   compose stop bot >/dev/null 2>&1 || true
   bash "$ROOT/scripts/verify.sh" || {
     fail "Source verification failed; rebuild refused."
+    restore_previous_bot_container "$was_running"
     return 1
   }
-  compose build bot || return 1
+  compose build bot || {
+    restore_previous_bot_container "$was_running"
+    return 1
+  }
   validate_current_config || {
-    fail "Rebuilt image rejected the current configuration. Bot remains stopped."
+    fail "Rebuilt image rejected the current configuration."
+    restore_previous_bot_container "$was_running"
     return 1
   }
 
   if volume_exists; then
-    compose up -d --wait postgres >/dev/null || return 1
-    compose run --rm --no-deps bot python -m app --check-config || return 1
-    compose run --rm --no-deps bot python -m app --check-db || return 1
+    compose up -d --wait postgres >/dev/null || {
+      restore_previous_bot_container "$was_running"
+      return 1
+    }
+    compose run --rm --no-deps bot python -m app --check-config || {
+      restore_previous_bot_container "$was_running"
+      return 1
+    }
+    compose run --rm --no-deps bot python -m app --check-db || {
+      restore_previous_bot_container "$was_running"
+      return 1
+    }
   fi
 
   if [[ "$was_running" == "1" ]]; then
@@ -642,10 +711,10 @@ MENU
     printf 'Select an option: '
     read -r choice
     case "$choice" in
-      1) doctor; pause_screen ;;
-      2) run_locked repair_env_permissions; pause_screen ;;
-      3) run_locked repair_rebuild_bot; pause_screen ;;
-      4) run_locked restart_bot; pause_screen ;;
+      1) menu_action doctor ;;
+      2) menu_locked_action repair_env_permissions ;;
+      3) menu_locked_action repair_rebuild_bot ;;
+      4) menu_locked_action restart_bot ;;
       0) return 0 ;;
       *) warn "Invalid selection."; pause_screen ;;
     esac
@@ -670,11 +739,11 @@ MENU
     printf 'Select an option: '
     read -r choice
     case "$choice" in
-      1) doctor; pause_screen ;;
-      2) verify_installation; pause_screen ;;
-      3) system_information; pause_screen ;;
-      4) validate_current_config && ok "Configuration validation passed."; pause_screen ;;
-      5) show_status; pause_screen ;;
+      1) menu_action doctor ;;
+      2) menu_action verify_installation ;;
+      3) menu_action system_information ;;
+      4) menu_action validate_configuration_action ;;
+      5) menu_action show_status ;;
       0) return 0 ;;
       *) warn "Invalid selection."; pause_screen ;;
     esac
