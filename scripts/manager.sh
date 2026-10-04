@@ -65,10 +65,12 @@ manager_self_test() {
   grep -Fq 'DELETE-RUNTIME-DATA' "$ROOT/scripts/lib/manager_runtime.sh"
   grep -Fq 'pg_dump' "$ROOT/scripts/lib/manager_backup.sh"
   grep -Fq 'pg_restore' "$ROOT/scripts/lib/manager_backup.sh"
-  grep -Fq '[9]  Environment Check' "$ROOT/scripts/manager.sh"
-  grep -Fq '[10] Database Management' "$ROOT/scripts/manager.sh"
-  grep -Fq '[13] Repair / Diagnose' "$ROOT/scripts/manager.sh"
-  grep -Fq '[16] Uninstall / Remove Runtime' "$ROOT/scripts/manager.sh"
+  grep -Fq 'Environment Check' "$ROOT/scripts/manager.sh"
+  grep -Fq 'Database Management' "$ROOT/scripts/manager.sh"
+  grep -Fq 'Repair / Diagnose' "$ROOT/scripts/manager.sh"
+  grep -Fq 'Uninstall / Remove Runtime' "$ROOT/scripts/manager.sh"
+  grep -Fq 'NO_COLOR' "$ROOT/scripts/lib/manager_common.sh"
+  grep -Fq 'ui_step' "$ROOT/scripts/lib/manager_common.sh"
   printf 'MANAGER_SELF_TEST_PASS version=%s\n' "$(project_version)"
 }
 
@@ -76,29 +78,41 @@ main_menu() {
   local choice
   while true; do
     banner
-    cat <<'MENU'
-[1]  Install Bot
-[2]  Update Bot
-[3]  Start Bot
-[4]  Stop Bot
-[5]  Restart Bot
-[6]  Bot Status
-[7]  View Logs
 
-[8]  Configuration
-[9]  Environment Check
-[10] Database Management
-[11] Backup
-[12] Restore
-[13] Repair / Diagnose
-[14] Verify Installation
-[15] System Information
-[16] Uninstall / Remove Runtime
+    ui_section "INSTALLATION"
+    printf '  %s[1]%s  Install Bot\n' "$c_bold" "$c_reset"
+    printf '  %s[2]%s  Update Bot\n' "$c_bold" "$c_reset"
 
-[0]  Exit
-────────────────────────────────────────────────────────────
-MENU
-    read -r -p "Select an option: " choice
+    ui_section "RUNTIME"
+    printf '  %s[3]%s  Start Bot\n' "$c_bold" "$c_reset"
+    printf '  %s[4]%s  Stop Bot\n' "$c_bold" "$c_reset"
+    printf '  %s[5]%s  Restart Bot\n' "$c_bold" "$c_reset"
+    printf '  %s[6]%s  Bot Status\n' "$c_bold" "$c_reset"
+    printf '  %s[7]%s  View Logs\n' "$c_bold" "$c_reset"
+
+    ui_section "SYSTEM"
+    printf '  %s[8]%s  Configuration\n' "$c_bold" "$c_reset"
+    printf '  %s[9]%s  Environment Check\n' "$c_bold" "$c_reset"
+    printf '  %s[10]%s Database Management\n' "$c_bold" "$c_reset"
+
+    ui_section "DATA"
+    printf '  %s[11]%s Backup\n' "$c_bold" "$c_reset"
+    printf '  %s[12]%s Restore\n' "$c_bold" "$c_reset"
+
+    ui_section "MAINTENANCE"
+    printf '  %s[13]%s Repair / Diagnose\n' "$c_bold" "$c_reset"
+    printf '  %s[14]%s Verify Installation\n' "$c_bold" "$c_reset"
+    printf '  %s[15]%s System Information\n' "$c_bold" "$c_reset"
+
+    ui_section_danger "DANGER ZONE"
+    printf '  %s[16]%s Uninstall / Remove Runtime\n' "$c_red$c_bold" "$c_reset"
+
+    printf '\n  %s[0]%s  Exit\n' "$c_dim" "$c_reset"
+    ui_rule
+    ui_prompt
+    printf 'Select an option: '
+    read -r choice
+
     case "$choice" in
       1) run_locked install_bot; pause_screen ;;
       2) run_locked update_bot; pause_screen ;;
