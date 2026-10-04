@@ -3,6 +3,10 @@
 # Runtime, update, diagnostics and uninstall workflows.
 # shellcheck shell=bash
 
+run_fresh_installer() {
+  bash "$ROOT/scripts/install.sh" --install
+}
+
 install_bot() {
   local state
   state="$(installation_state)"
@@ -25,7 +29,7 @@ install_bot() {
       ;;
     NOT_INSTALLED|CONFIGURED_NOT_INSTALLED)
       info "Launching the fail-closed fresh-host installer."
-      bash "$ROOT/scripts/install.sh" --install
+      run_fresh_installer
       ;;
     *)
       fail "Unknown installation state: $state"
