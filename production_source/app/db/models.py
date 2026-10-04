@@ -21,6 +21,7 @@ from app.modules.signals.models import (
 from app.modules.signal_automation.models import SignalAutomationMetadata, SignalRuleEvidence
 from app.modules.paper_runtime.models import SignalDelivery
 from app.modules.signal_quality.models import SignalQualityAssessment
+from app.modules.signal_strategies.models import SignalStrategyConfig
 from app.modules.scale_in.models import (
     BrooksPosition,
     BrooksPositionEntryLot,
@@ -64,6 +65,7 @@ MODEL_TYPES = (
     SignalRuleEvidence,
     SignalDelivery,
     SignalQualityAssessment,
+    SignalStrategyConfig,
     BrooksPosition,
     BrooksPositionEntryLot,
     BrooksPositionExitFill,
@@ -108,6 +110,7 @@ __all__ = [
     "SignalAutomationMetadata",
     "SignalRuleEvidence",
     "SignalDelivery",
+    "SignalStrategyConfig",
     "BrooksPosition",
     "BrooksPositionEntryLot",
     "BrooksPositionExitFill",

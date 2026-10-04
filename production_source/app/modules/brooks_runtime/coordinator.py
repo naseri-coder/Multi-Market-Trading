@@ -51,6 +51,10 @@ from app.modules.signal_intelligence.probability import load_probability_engine
 from app.modules.signal_intelligence.service import SignalIntelligenceService
 from app.modules.signal_quality.repository import SQLAlchemySignalQualityRepository
 from app.modules.signal_quality.service import SignalQualityService
+from app.modules.signal_strategies.entities import BROOKS_STRATEGY_CODE
+from app.modules.signal_strategies.publisher import TelegramStrategyVipPublisher
+from app.modules.signal_strategies.repository import SQLAlchemySignalStrategyRepository
+from app.modules.signal_strategies.service import SignalStrategyService
 
 logger = logging.getLogger(__name__)
 
@@ -791,10 +795,33 @@ class BrooksFullCoreCoordinator:
                 event = "brooks_full_core_paper_processed"
                 message = "Brooks full-core PAPER candidate processed"
             else:
+                route = await SignalStrategyService(
+                    SQLAlchemySignalStrategyRepository(session)
+                ).get(BROOKS_STRATEGY_CODE)
+                if not route.effective_enabled:
+                    logger.info(
+                        "Brooks LIVE candidate blocked by strategy routing",
+                        extra={
+                            "event": "brooks_strategy_delivery_disabled",
+                            "strategy_code": BROOKS_STRATEGY_CODE,
+                            "configured_enabled": route.enabled,
+                            "engine_ready": route.engine_ready,
+                            "channel_configured": route.private_channel_id is not None,
+                            "symbol": symbol,
+                            "timeframe": timeframe,
+                        },
+                    )
+                    return
+                if self._bot is None or route.private_channel_id is None:
+                    raise RuntimeError("Brooks strategy route is not initialized")
+                strategy_publisher = TelegramStrategyVipPublisher(
+                    bot=self._bot,
+                    private_channel_id=route.private_channel_id,
+                )
                 runtime = LiveVipRuntimeService(
                     session,
-                    publisher=self._publisher,
-                    vip_channel_id=self.settings.brooks_vip_channel_id or 0,
+                    publisher=strategy_publisher,
+                    vip_channel_id=route.private_channel_id,
                     default_leverage=dynamic_leverage,
                 )
                 result = await runtime.process(

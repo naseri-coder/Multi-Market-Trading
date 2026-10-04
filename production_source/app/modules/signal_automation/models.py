@@ -29,7 +29,7 @@ from app.db.base import Base
 class SignalAutomationMetadata(Base):
     __tablename__ = "signal_automation_metadata"
     __table_args__ = (
-        CheckConstraint("producer IN ('BROOKS')", name="producer"),
+        CheckConstraint("producer IN ('BROOKS','FM')", name="producer"),
         CheckConstraint(
             "generation_mode IN ('SHADOW','PAPER','LIVE')",
             name="generation_mode",
