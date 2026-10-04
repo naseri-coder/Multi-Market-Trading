@@ -289,7 +289,7 @@ MENU
           menu_action false
         fi
         ;;
-      3) list_backups; pause_screen ;;
+      3) menu_action list_backups ;;
       0) return 0 ;;
       *) warn "Invalid selection."; pause_screen ;;
     esac
