@@ -220,6 +220,61 @@ restore_config_from_dir() {
   ok "Configuration restored and validated. Restart the bot to apply it."
 }
 
+
+backup_create_menu() {
+  local choice
+  while true; do
+    banner
+    cat <<'MENU'
+Backup
+
+[1] Create full backup
+[2] Create database backup
+[3] Create configuration backup
+[4] List backups
+[0] Back
+MENU
+    read -r -p "Select an option: " choice
+    case "$choice" in
+      1) run_locked create_backup "manual" "full"; pause_screen ;;
+      2) run_locked create_backup "manual-db" "database"; pause_screen ;;
+      3) run_locked create_backup "manual-config" "config"; pause_screen ;;
+      4) list_backups; pause_screen ;;
+      0) return 0 ;;
+      *) warn "Invalid selection."; pause_screen ;;
+    esac
+  done
+}
+
+restore_menu() {
+  local choice dir
+  while true; do
+    banner
+    cat <<'MENU'
+Restore
+
+[1] Restore database
+[2] Restore configuration
+[3] List backups
+[0] Back
+MENU
+    read -r -p "Select an option: " choice
+    case "$choice" in
+      1)
+        dir="$(select_backup_dir)" && run_locked restore_database_from_dir "$dir"
+        pause_screen
+        ;;
+      2)
+        dir="$(select_backup_dir)" && run_locked restore_config_from_dir "$dir"
+        pause_screen
+        ;;
+      3) list_backups; pause_screen ;;
+      0) return 0 ;;
+      *) warn "Invalid selection."; pause_screen ;;
+    esac
+  done
+}
+
 backup_menu() {
   local choice dir
   while true; do
