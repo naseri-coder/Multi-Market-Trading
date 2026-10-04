@@ -50,10 +50,12 @@ restore_previous_bot_container() {
 
 
 DB_AUTH_STATUS="UNKNOWN"
+DB_AUTH_LAST_OUTPUT=""
 
 database_auth_probe() {
-  local output=""
+  local tmp rc=0
   DB_AUTH_STATUS="UNKNOWN"
+  DB_AUTH_LAST_OUTPUT=""
 
   check_compose_prereqs >/dev/null 2>&1 || {
     DB_AUTH_STATUS="UNAVAILABLE"
@@ -68,15 +70,23 @@ database_auth_probe() {
     return 1
   }
 
-  if output="$(compose exec -T postgres sh -c \
-    'PGPASSWORD="$POSTGRES_PASSWORD" psql -X -h 127.0.0.1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atqc "SELECT 1"' \
-    2>&1)"; then
+  tmp="$(mktemp "${TMPDIR:-/tmp}/naseri-db-auth.XXXXXX")" || {
+    DB_AUTH_STATUS="UNAVAILABLE"
+    return 1
+  }
+  chmod 600 "$tmp" 2>/dev/null || true
+
+  if compose run --rm --no-deps bot python -m app --check-db >"$tmp" 2>&1; then
+    rm -f -- "$tmp"
     DB_AUTH_STATUS="READY"
     return 0
   fi
+  rc=$?
+  DB_AUTH_LAST_OUTPUT="$(tail -n 80 "$tmp" 2>/dev/null || true)"
+  rm -f -- "$tmp"
 
-  case "$output" in
-    *"password authentication failed"*)
+  case "$DB_AUTH_LAST_OUTPUT" in
+    *InvalidPasswordError*|*"password authentication failed"*)
       DB_AUTH_STATUS="PASSWORD_MISMATCH"
       ;;
     *"role "*" does not exist"*)
@@ -89,7 +99,7 @@ database_auth_probe() {
       DB_AUTH_STATUS="FAILED"
       ;;
   esac
-  return 1
+  return "$rc"
 }
 
 report_database_auth_failure() {
@@ -100,7 +110,7 @@ report_database_auth_failure() {
       ;;
     ROLE_MISMATCH)
       fail "Configured PostgreSQL role does not exist in the existing database volume."
-      warn "Do not create a new role automatically. Restore the correct configuration from backup."
+      warn "Automatic role creation is refused. Restore the correct configuration from backup."
       ;;
     DATABASE_MISMATCH)
       fail "Configured PostgreSQL database does not exist in the existing volume."
@@ -116,34 +126,13 @@ report_database_auth_failure() {
       fail "Database authentication check is unavailable because prerequisites are not ready."
       ;;
     *)
-      fail "Database authentication/connectivity check failed."
+      fail "Application database check failed for a reason other than a recognized credential mismatch."
+      [[ -n "$DB_AUTH_LAST_OUTPUT" ]] && printf '%s\n' "$DB_AUTH_LAST_OUTPUT" >&2
       ;;
   esac
 }
 
 run_app_database_check() {
-  local tmp rc=0
-  tmp="$(mktemp "${TMPDIR:-/tmp}/naseri-db-check.XXXXXX")" || return 1
-  chmod 600 "$tmp" 2>/dev/null || true
-
-  if compose run --rm --no-deps bot python -m app --check-db >"$tmp" 2>&1; then
-    rm -f -- "$tmp"
-    return 0
-  fi
-  rc=$?
-
-  if grep -Eqi 'InvalidPasswordError|password authentication failed' "$tmp"; then
-    DB_AUTH_STATUS="PASSWORD_MISMATCH"
-    report_database_auth_failure
-  else
-    cat "$tmp" >&2
-    fail "Application database check failed."
-  fi
-  rm -f -- "$tmp"
-  return "$rc"
-}
-
-require_database_auth() {
   if database_auth_probe; then
     return 0
   fi
@@ -151,6 +140,9 @@ require_database_auth() {
   return 1
 }
 
+require_database_auth() {
+  run_app_database_check
+}
 
 start_bot() {
   ui_step 1 4 "Checking installation prerequisites"
@@ -370,7 +362,7 @@ update_bot() {
     fail "Updated configuration check failed after migration. Bot remains stopped."
     return 1
   fi
-  if ! require_database_auth || ! run_app_database_check; then
+  if ! require_database_auth; then
     fail "Updated database check failed after migration. Bot remains stopped."
     return 1
   fi
@@ -536,7 +528,6 @@ verify_installation() {
   compose run --rm --no-deps bot python -m alembic -c alembic.ini heads || return 1
   compose run --rm --no-deps bot python -m app --check-config || return 1
   require_database_auth || return 1
-  run_app_database_check || return 1
   ok "Installation verification passed."
 }
 
@@ -721,7 +712,7 @@ database_upgrade_head() {
     fail "Database migration failed. Bot remains stopped and the backup is preserved."
     return 1
   fi
-  if ! require_database_auth || ! run_app_database_check; then
+  if ! require_database_auth; then
     fail "Database verification failed. Bot remains stopped and the backup is preserved."
     return 1
   fi
@@ -812,10 +803,6 @@ repair_rebuild_bot() {
       restore_previous_bot_container "$was_running"
       return 1
     }
-    run_app_database_check || {
-      restore_previous_bot_container "$was_running"
-      return 1
-    }
   fi
 
   if [[ "$was_running" == "1" ]]; then
@@ -880,12 +867,7 @@ SQL
 
   if ! database_auth_probe; then
     report_database_auth_failure
-    fail "Credential repair did not produce a valid authenticated connection."
-    return 1
-  fi
-
-  if ! run_app_database_check; then
-    fail "Credential repair succeeded at PostgreSQL but the application database check still failed."
+    fail "Credential repair did not produce a valid application database connection."
     return 1
   fi
 
