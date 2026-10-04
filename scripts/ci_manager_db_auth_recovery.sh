@@ -29,14 +29,20 @@ stage="docker_start"
 docker run -d --rm   --name "$container"   --security-opt no-new-privileges:true   -e POSTGRES_USER="$user"   -e POSTGRES_PASSWORD="$old_password"   -e POSTGRES_DB="$db"   postgres:16-alpine >/dev/null
 
 stage="postgres_ready"
+ready=0
 for _ in {1..90}; do
-  if docker exec "$container" pg_isready -U "$user" -d "$db" >/dev/null 2>&1; then
+  if docker exec -e PGPASSWORD="$old_password" "$container" \
+    psql -X -h 127.0.0.1 -U "$user" -d "$db" -Atqc 'SELECT 1' 2>/dev/null \
+    | grep -Fxq '1'; then
+    ready=1
     break
   fi
   sleep 1
 done
-
-docker exec "$container" pg_isready -U "$user" -d "$db" >/dev/null
+[[ "$ready" == "1" ]] || {
+  echo "MANAGER_DB_AUTH_REHEARSAL_FAIL database_not_ready" >&2
+  exit 1
+}
 
 stage="precondition_new_password_rejected"
 # New password must fail before the repair.
