@@ -80,8 +80,9 @@ database_auth_probe() {
     rm -f -- "$tmp"
     DB_AUTH_STATUS="READY"
     return 0
+  else
+    rc=$?
   fi
-  rc=$?
   DB_AUTH_LAST_OUTPUT="$(tail -n 80 "$tmp" 2>/dev/null || true)"
   rm -f -- "$tmp"
 
