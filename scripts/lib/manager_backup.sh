@@ -175,7 +175,7 @@ restore_database_from_dir() {
 }
 
 restore_config_from_dir() {
-  local dir="$1" tmp
+  local dir="$1" tmp current_backup=""
   [[ -f "$dir/env.backup" && ! -L "$dir/env.backup" ]] || {
     fail "Selected backup has no valid env.backup."
     return 1
@@ -183,16 +183,41 @@ restore_config_from_dir() {
   confirm_phrase     "Configuration restore replaces .env. Database credentials must still match the existing database volume."     "RESTORE-CONFIG" || return 1
 
   tmp="$ROOT/.env.restore.$$"
+  if env_file_valid_shape; then
+    current_backup="$ROOT/.env.before-restore.$$"
+    cp -- "$ROOT/.env" "$current_backup"
+    chmod 600 "$current_backup"
+  fi
+
   cp -- "$dir/env.backup" "$tmp"
   chmod 600 "$tmp"
-  python3 "$ROOT/scripts/check_env.py" "$tmp" >/dev/null 2>&1 || {
-    rm -f -- "$tmp"
-    fail "Backup configuration does not pass the fail-closed host preflight; no change made."
-    return 1
-  }
   mv -- "$tmp" "$ROOT/.env"
   chmod 600 "$ROOT/.env"
-  ok "Configuration restored. Validate it before restarting services."
+
+  if ! validate_current_config; then
+    if [[ -n "$current_backup" && -f "$current_backup" ]]; then
+      mv -- "$current_backup" "$ROOT/.env"
+      chmod 600 "$ROOT/.env"
+    else
+      rm -f -- "$ROOT/.env"
+    fi
+    fail "Restored configuration failed validation; previous configuration was reinstated."
+    return 1
+  fi
+
+  if docker_ready && volume_exists && postgres_running; then
+    if ! compose run --rm --no-deps bot python -m app --check-db >/dev/null; then
+      if [[ -n "$current_backup" && -f "$current_backup" ]]; then
+        mv -- "$current_backup" "$ROOT/.env"
+        chmod 600 "$ROOT/.env"
+      fi
+      fail "Restored configuration cannot connect to the current database; previous configuration was reinstated."
+      return 1
+    fi
+  fi
+
+  [[ -n "$current_backup" ]] && rm -f -- "$current_backup"
+  ok "Configuration restored and validated. Restart the bot to apply it."
 }
 
 backup_menu() {
