@@ -49,6 +49,109 @@ restore_previous_bot_container() {
 }
 
 
+DB_AUTH_STATUS="UNKNOWN"
+
+database_auth_probe() {
+  local output=""
+  DB_AUTH_STATUS="UNKNOWN"
+
+  check_compose_prereqs >/dev/null 2>&1 || {
+    DB_AUTH_STATUS="UNAVAILABLE"
+    return 1
+  }
+  volume_exists || {
+    DB_AUTH_STATUS="NO_VOLUME"
+    return 1
+  }
+  postgres_running || {
+    DB_AUTH_STATUS="POSTGRES_STOPPED"
+    return 1
+  }
+
+  if output="$(compose exec -T postgres sh -c \
+    'PGPASSWORD="$POSTGRES_PASSWORD" psql -X -h 127.0.0.1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atqc "SELECT 1"' \
+    2>&1)"; then
+    DB_AUTH_STATUS="READY"
+    return 0
+  fi
+
+  case "$output" in
+    *"password authentication failed"*)
+      DB_AUTH_STATUS="PASSWORD_MISMATCH"
+      ;;
+    *"role "*" does not exist"*)
+      DB_AUTH_STATUS="ROLE_MISMATCH"
+      ;;
+    *"database "*" does not exist"*)
+      DB_AUTH_STATUS="DATABASE_MISMATCH"
+      ;;
+    *)
+      DB_AUTH_STATUS="FAILED"
+      ;;
+  esac
+  return 1
+}
+
+report_database_auth_failure() {
+  case "$DB_AUTH_STATUS" in
+    PASSWORD_MISMATCH)
+      fail "Database password does not match the existing PostgreSQL volume."
+      warn "Use Repair / Diagnose -> Repair database credentials. No database data will be deleted."
+      ;;
+    ROLE_MISMATCH)
+      fail "Configured PostgreSQL role does not exist in the existing database volume."
+      warn "Do not create a new role automatically. Restore the correct configuration from backup."
+      ;;
+    DATABASE_MISMATCH)
+      fail "Configured PostgreSQL database does not exist in the existing volume."
+      warn "Restore the correct configuration from backup before starting the bot."
+      ;;
+    POSTGRES_STOPPED)
+      fail "PostgreSQL is not running."
+      ;;
+    NO_VOLUME)
+      fail "Database volume does not exist."
+      ;;
+    UNAVAILABLE)
+      fail "Database authentication check is unavailable because prerequisites are not ready."
+      ;;
+    *)
+      fail "Database authentication/connectivity check failed."
+      ;;
+  esac
+}
+
+run_app_database_check() {
+  local tmp rc=0
+  tmp="$(mktemp "${TMPDIR:-/tmp}/naseri-db-check.XXXXXX")" || return 1
+  chmod 600 "$tmp" 2>/dev/null || true
+
+  if compose run --rm --no-deps bot python -m app --check-db >"$tmp" 2>&1; then
+    rm -f -- "$tmp"
+    return 0
+  fi
+  rc=$?
+
+  if grep -Eqi 'InvalidPasswordError|password authentication failed' "$tmp"; then
+    DB_AUTH_STATUS="PASSWORD_MISMATCH"
+    report_database_auth_failure
+  else
+    cat "$tmp" >&2
+    fail "Application database check failed."
+  fi
+  rm -f -- "$tmp"
+  return "$rc"
+}
+
+require_database_auth() {
+  if database_auth_probe; then
+    return 0
+  fi
+  report_database_auth_failure
+  return 1
+}
+
+
 start_bot() {
   ui_step 1 4 "Checking installation prerequisites"
   check_compose_prereqs || return 1
@@ -64,9 +167,10 @@ start_bot() {
 
   ui_step 3 4 "Starting PostgreSQL and checking database"
   compose up -d --wait postgres || return 1
+  require_database_auth || return 1
   compose run --rm --no-deps bot python -m app --check-config || return 1
-  compose run --rm --no-deps bot python -m app --check-db || return 1
-  ui_step_done "PostgreSQL and database checks passed"
+  run_app_database_check || return 1
+  ui_step_done "PostgreSQL authentication and database checks passed"
 
   ui_step 4 4 "Starting bot"
   compose up -d --no-deps bot || return 1
@@ -90,7 +194,7 @@ restart_bot() {
 
 show_status() {
   banner
-  local version branch sha bot_state db_state volume_state docker_state install_state
+  local version branch sha bot_state db_state volume_state docker_state install_state db_auth_state
   version="$(project_version)"
   branch="$(git_branch)"
   sha="$(git_short_sha)"
@@ -98,17 +202,26 @@ show_status() {
   db_state="STOPPED"
   volume_state="ABSENT"
   docker_state="UNAVAILABLE"
+  db_auth_state="NOT_CHECKED"
   install_state="$(installation_state)"
 
   docker_ready && docker_state="HEALTHY"
   bot_running && bot_state="RUNNING"
   postgres_running && db_state="RUNNING"
   docker_ready && volume_exists && volume_state="PRESENT"
+  if [[ "$db_state" == "RUNNING" && "$volume_state" == "PRESENT" && -f "$ROOT/.env" ]]; then
+    if database_auth_probe; then
+      db_auth_state="READY"
+    else
+      db_auth_state="$DB_AUTH_STATUS"
+    fi
+  fi
 
   ui_section "SYSTEM STATUS"
   ui_state_line "Bot" "$bot_state"
   ui_state_line "PostgreSQL" "$db_state"
   ui_state_line "Database volume" "$volume_state"
+  ui_state_line "Database auth" "$db_auth_state"
   ui_state_line "Docker / Compose" "$docker_state"
   ui_state_line "Installation" "$install_state"
 
@@ -257,7 +370,7 @@ update_bot() {
     fail "Updated configuration check failed after migration. Bot remains stopped."
     return 1
   fi
-  if ! compose run --rm --no-deps bot python -m app --check-db; then
+  if ! require_database_auth || ! run_app_database_check; then
     fail "Updated database check failed after migration. Bot remains stopped."
     return 1
   fi
@@ -370,7 +483,17 @@ doctor() {
         ((failures+=1))
       fi
       volume_exists && ok "Database volume exists" || warn "Database volume does not exist yet"
-      postgres_running && ok "PostgreSQL is running" || warn "PostgreSQL is not running"
+      if postgres_running; then
+        ok "PostgreSQL is running"
+        if database_auth_probe; then
+          ok "Database credentials match the existing PostgreSQL volume"
+        else
+          report_database_auth_failure
+          ((failures+=1))
+        fi
+      else
+        warn "PostgreSQL is not running"
+      fi
       bot_running && ok "Bot is running" || warn "Bot is not running"
     fi
   else
@@ -412,7 +535,8 @@ verify_installation() {
   compose run --rm --no-deps bot python -m alembic -c alembic.ini current || return 1
   compose run --rm --no-deps bot python -m alembic -c alembic.ini heads || return 1
   compose run --rm --no-deps bot python -m app --check-config || return 1
-  compose run --rm --no-deps bot python -m app --check-db || return 1
+  require_database_auth || return 1
+  run_app_database_check || return 1
   ok "Installation verification passed."
 }
 
@@ -597,7 +721,7 @@ database_upgrade_head() {
     fail "Database migration failed. Bot remains stopped and the backup is preserved."
     return 1
   fi
-  if ! compose run --rm --no-deps bot python -m app --check-db; then
+  if ! require_database_auth || ! run_app_database_check; then
     fail "Database verification failed. Bot remains stopped and the backup is preserved."
     return 1
   fi
@@ -684,7 +808,11 @@ repair_rebuild_bot() {
       restore_previous_bot_container "$was_running"
       return 1
     }
-    compose run --rm --no-deps bot python -m app --check-db || {
+    require_database_auth || {
+      restore_previous_bot_container "$was_running"
+      return 1
+    }
+    run_app_database_check || {
       restore_previous_bot_container "$was_running"
       return 1
     }
@@ -698,6 +826,77 @@ repair_rebuild_bot() {
   fi
 }
 
+repair_database_credentials() {
+  local was_running=0
+
+  check_compose_prereqs || return 1
+  volume_exists || { fail "Database volume does not exist."; return 1; }
+  validate_current_config || return 1
+
+  compose up -d --wait postgres >/dev/null || return 1
+
+  if database_auth_probe; then
+    ok "Database credentials already match the existing PostgreSQL volume. No repair is needed."
+    return 0
+  fi
+
+  if [[ "$DB_AUTH_STATUS" != "PASSWORD_MISMATCH" ]]; then
+    report_database_auth_failure
+    fail "Automatic credential repair is allowed only for a confirmed password mismatch."
+    return 1
+  fi
+
+  bot_running && was_running=1
+
+  ui_section "DATABASE CREDENTIAL RECOVERY"
+  ui_kv "Detected issue" "PASSWORD_MISMATCH"
+  ui_kv "Database volume" "PRESERVED"
+  ui_kv "Database contents" "NOT DELETED"
+  ui_kv "Safety backup" "MANDATORY"
+
+  confirm_phrase \
+    "This will back up the current database and change only the existing PostgreSQL role password to match the private .env configuration." \
+    "REPAIR-DATABASE-CREDENTIALS" || return 1
+
+  create_backup "pre-db-credential-repair" "full" || {
+    fail "Safety backup failed. Database credential repair was refused."
+    return 1
+  }
+
+  compose stop bot >/dev/null 2>&1 || true
+
+  info "Synchronizing the existing PostgreSQL role password with the private configuration..."
+  if ! compose exec -T postgres sh -c \
+    'psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' <<'SQL'
+\getenv nc_role POSTGRES_USER
+\getenv nc_password POSTGRES_PASSWORD
+SELECT format('ALTER ROLE %I WITH PASSWORD %L', :'nc_role', :'nc_password') \gexec
+SQL
+  then
+    fail "PostgreSQL rejected credential repair. Database contents were not deleted."
+    restore_previous_bot_container "$was_running"
+    return 1
+  fi
+
+  if ! database_auth_probe; then
+    report_database_auth_failure
+    fail "Credential repair did not produce a valid authenticated connection."
+    return 1
+  fi
+
+  if ! run_app_database_check; then
+    fail "Credential repair succeeded at PostgreSQL but the application database check still failed."
+    return 1
+  fi
+
+  if [[ "$was_running" == "1" ]]; then
+    compose start bot >/dev/null || return 1
+    ok "Database credentials repaired and previous RUNNING state restored."
+  else
+    ok "Database credentials repaired. Bot remains stopped; use Start Bot when ready."
+  fi
+}
+
 repair_menu() {
   local choice
   while true; do
@@ -708,6 +907,7 @@ repair_menu() {
 [2] Repair .env permissions
 [3] Rebuild and verify bot image
 [4] Restart bot safely
+[5] Repair database credentials
 [0] Back
 MENU
     ui_rule
@@ -719,6 +919,7 @@ MENU
       2) menu_locked_action repair_env_permissions ;;
       3) menu_locked_action repair_rebuild_bot ;;
       4) menu_locked_action restart_bot ;;
+      5) menu_locked_action repair_database_credentials ;;
       0) return 0 ;;
       *) warn "Invalid selection."; pause_screen ;;
     esac
