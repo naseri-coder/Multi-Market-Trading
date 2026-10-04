@@ -145,4 +145,42 @@ case "$state_render" in
   *) fail_test "installed-stopped state rendering missing" ;;
 esac
 
+# ---------------------------------------------------------------------------
+# Database credential mismatch classification
+# ---------------------------------------------------------------------------
+check_compose_prereqs() { return 0; }
+volume_exists() { return 0; }
+postgres_running() { return 0; }
+
+compose() {
+  printf '%s\n' 'psql: error: connection failed: FATAL:  password authentication failed for user "crypto_bot"' >&2
+  return 1
+}
+if database_auth_probe >/dev/null 2>&1; then
+  fail_test "password mismatch probe unexpectedly passed"
+fi
+assert_eq "PASSWORD_MISMATCH" "$DB_AUTH_STATUS" "database auth password mismatch"
+
+compose() {
+  printf '%s\n' 'psql: error: connection failed: FATAL:  role "crypto_bot" does not exist' >&2
+  return 1
+}
+database_auth_probe >/dev/null 2>&1 || true
+assert_eq "ROLE_MISMATCH" "$DB_AUTH_STATUS" "database auth role mismatch"
+
+compose() {
+  printf '%s\n' 'psql: error: connection failed: FATAL:  database "crypto_bot" does not exist' >&2
+  return 1
+}
+database_auth_probe >/dev/null 2>&1 || true
+assert_eq "DATABASE_MISMATCH" "$DB_AUTH_STATUS" "database auth database mismatch"
+
+compose() { printf '%s\n' '1'; return 0; }
+database_auth_probe >/dev/null
+assert_eq "READY" "$DB_AUTH_STATUS" "database auth ready"
+
+grep -Fq 'REPAIR-DATABASE-CREDENTIALS' scripts/lib/manager_runtime.sh || fail_test "database credential repair confirmation missing"
+grep -Fq 'ALTER ROLE %I WITH PASSWORD %L' scripts/lib/manager_runtime.sh || fail_test "database credential repair SQL missing"
+grep -Fq 'Repair database credentials' scripts/lib/manager_runtime.sh || fail_test "repair menu entry missing"
+
 printf 'MANAGER_BEHAVIOR_TEST_PASS\n'
