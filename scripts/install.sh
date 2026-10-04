@@ -11,10 +11,16 @@ if [[ "$MODE" != "--check" && "$MODE" != "--install" ]]; then
   echo "Usage: bash scripts/install.sh [--menu | --check | --install]" >&2
   exit 2
 fi
+
 for cmd in bash python3 sha256sum; do
-  command -v "$cmd" >/dev/null || { echo "MISSING_PREREQUISITE: $cmd" >&2; exit 3; }
+  command -v "$cmd" >/dev/null || {
+    echo "MISSING_PREREQUISITE: $cmd" >&2
+    exit 3
+  }
 done
+
 bash scripts/verify.sh
+
 if [[ "$MODE" == "--check" ]]; then
   echo "CHECK_ONLY: no Docker calls, network, migration, or service changes performed"
   exit 0
@@ -29,13 +35,9 @@ if [[ ! -t 0 ]]; then
   echo "REFUSED: install requires an interactive operator" >&2
   exit 3
 fi
-if [[ ! -e .env ]]; then
-  echo "No .env found; creating a private configuration for this fresh host."
-  python3 scripts/bootstrap_env.py .env .env.example
-fi
-python3 scripts/check_env.py .env
 
-# Compose gives inherited shell variables precedence over --env-file interpolation.
+# Compose gives inherited shell variables precedence over --env-file
+# interpolation. Refuse them before any local configuration is created.
 for name in POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB DATABASE_URL; do
   if [[ -v "$name" ]]; then
     echo "REFUSED: inherited database override for $name (value suppressed)" >&2
@@ -43,6 +45,9 @@ for name in POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB DATABASE_URL; do
   fi
 done
 
+# Run every non-mutating host/storage preflight before bootstrap_env.py. This
+# prevents a fresh .env from being generated next to an existing database
+# volume or on a host that cannot run Docker.
 command -v docker >/dev/null || {
   echo "MISSING_PREREQUISITE: Docker Engine. Install Docker Engine + Compose v2, then rerun." >&2
   exit 3
@@ -56,12 +61,19 @@ docker info >/dev/null || {
   exit 3
 }
 if docker volume inspect crypto-price-action_postgres_data >/dev/null 2>&1; then
-  echo "REFUSED: install volume exists; no overwrite/upgrade through installer" >&2
+  echo "REFUSED: existing database volume detected; use Update/Start/Restore from NASERI CODER Manager" >&2
   exit 3
 fi
 
+if [[ ! -e .env ]]; then
+  echo "No .env found; creating a private configuration for this fresh host."
+  python3 scripts/bootstrap_env.py .env .env.example
+fi
+python3 scripts/check_env.py .env
+
 compose=(docker compose -p crypto-price-action -f compose.yaml --env-file .env)
 "${compose[@]}" config --quiet
+
 echo "NEW HOST ONLY. Creates dedicated DB, runs migrations, starts bot with runtime disabled."
 read -r -p "Type INSTALL-NEW-HOST to continue: " consent
 if [[ "$consent" != "INSTALL-NEW-HOST" ]]; then
@@ -70,10 +82,12 @@ if [[ "$consent" != "INSTALL-NEW-HOST" ]]; then
 fi
 
 "${compose[@]}" build bot
-"${compose[@]}" run --rm --no-deps bot   python release_tools/validate_release_config.py --from-environment --mode safe-install
+"${compose[@]}" run --rm --no-deps bot \
+  python release_tools/validate_release_config.py --from-environment --mode safe-install
 "${compose[@]}" up -d --wait postgres
 "${compose[@]}" run --rm --no-deps bot python -m alembic -c alembic.ini upgrade head
 "${compose[@]}" run --rm --no-deps bot python -m app --check-config
 "${compose[@]}" run --rm --no-deps bot python -m app --check-db
 "${compose[@]}" up -d --no-deps bot
+
 echo "NEW_HOST_INSTALL_FINISHED: v0.3.2 source installed with effectful runtime disabled"
