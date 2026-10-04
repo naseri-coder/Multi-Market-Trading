@@ -268,12 +268,12 @@ def _revision_pair(path: Path) -> tuple[str, str | None]:
     )
 
 
-def test_canonical_migration_tree_is_one_linear_chain_through_0021() -> None:
+def test_canonical_migration_tree_is_one_linear_chain_through_0022() -> None:
     files = sorted(VERSIONS.glob("*.py"))
-    assert len(files) == 21
+    assert len(files) == 22
     pairs = [_revision_pair(path) for path in files]
     revisions = {revision for revision, _ in pairs}
-    assert len(revisions) == 21
+    assert len(revisions) == 22
     assert sum(parent is None for _, parent in pairs) == 1
 
     children: dict[str | None, list[str]] = {}
@@ -286,7 +286,7 @@ def test_canonical_migration_tree_is_one_linear_chain_through_0021() -> None:
             assert len(children.get(parent, ())) <= 1
 
     heads = revisions - {parent for _, parent in pairs if parent is not None}
-    assert heads == {"20260928_0021"}
+    assert heads == {"20261004_0022"}
 
 
 def test_no_divergent_legacy_migration_tree_is_present() -> None:

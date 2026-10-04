@@ -518,6 +518,11 @@ async def test_gap4_public_confidence_stays_separate_from_private_leverage_senti
             )
         ),
     )
+    monkeypatch.setattr(
+        coordinator_module,
+        "TelegramStrategyVipPublisher",
+        lambda **kwargs: publisher,
+    )
     def live_runtime_factory(
         session,
         *,
