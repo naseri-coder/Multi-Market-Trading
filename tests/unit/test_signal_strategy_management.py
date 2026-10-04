@@ -250,3 +250,19 @@ def test_fm_runtime_has_no_brooks_imports() -> None:
     )
     assert "app.modules.brooks_" not in source
     assert "BrooksFullCore" not in source
+
+
+def test_strategy_migration_finalizes_existing_producer_constraint_name() -> None:
+    from pathlib import Path
+
+    path = (
+        Path(__file__).resolve().parents[2]
+        / "production_source"
+        / "migrations"
+        / "versions"
+        / "20261004_0022_signal_strategy_management.py"
+    )
+    source = path.read_text(encoding="utf-8")
+    assert source.count(
+        'op.f("ck_signal_automation_metadata_producer")'
+    ) == 4

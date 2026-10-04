@@ -84,12 +84,12 @@ def upgrade() -> None:
     )
 
     op.drop_constraint(
-        "ck_signal_automation_metadata_producer",
+        op.f("ck_signal_automation_metadata_producer"),
         "signal_automation_metadata",
         type_="check",
     )
     op.create_check_constraint(
-        "signal_automation_metadata_producer",
+        op.f("ck_signal_automation_metadata_producer"),
         "signal_automation_metadata",
         "producer IN ('BROOKS','FM')",
     )
@@ -97,12 +97,12 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_constraint(
-        "ck_signal_automation_metadata_producer",
+        op.f("ck_signal_automation_metadata_producer"),
         "signal_automation_metadata",
         type_="check",
     )
     op.create_check_constraint(
-        "signal_automation_metadata_producer",
+        op.f("ck_signal_automation_metadata_producer"),
         "signal_automation_metadata",
         "producer IN ('BROOKS')",
     )
