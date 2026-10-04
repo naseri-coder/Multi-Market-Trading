@@ -30,8 +30,12 @@ Commands:
   config        Open configuration menu
   doctor        Run diagnostics
   verify        Verify repository and installed runtime
+  env-check     Run environment preflight
+  database      Open database management menu
   backup        Create a full backup
-  backups       Open Backup & Restore menu
+  backups       Open backup menu
+  restore       Open restore menu
+  repair        Open repair/diagnose menu
   system        Show system information
   uninstall     Open guarded runtime removal menu
   menu          Open interactive menu
@@ -78,13 +82,14 @@ main_menu() {
 [7]  View Logs
 
 [8]  Configuration
-[9]  Doctor / Diagnose
-[10] Verify Installation
-[11] Backup & Restore
-[12] System Information
-[13] Maintenance
-
-[14] Uninstall / Remove Runtime
+[9]  Environment Check
+[10] Database Management
+[11] Backup
+[12] Restore
+[13] Repair / Diagnose
+[14] Verify Installation
+[15] System Information
+[16] Uninstall / Remove Runtime
 
 [0]  Exit
 ────────────────────────────────────────────────────────────
@@ -99,12 +104,14 @@ MENU
       6) show_status; pause_screen ;;
       7) view_logs; pause_screen ;;
       8) configuration_menu ;;
-      9) doctor; pause_screen ;;
-      10) run_locked verify_installation; pause_screen ;;
-      11) backup_menu ;;
-      12) system_information; pause_screen ;;
-      13) maintenance_menu ;;
-      14) run_locked uninstall_bot; pause_screen ;;
+      9) environment_check; pause_screen ;;
+      10) database_menu ;;
+      11) backup_create_menu ;;
+      12) restore_menu ;;
+      13) repair_menu ;;
+      14) run_locked verify_installation; pause_screen ;;
+      15) system_information; pause_screen ;;
+      16) run_locked uninstall_bot; pause_screen ;;
       0) say "Goodbye."; return 0 ;;
       *) warn "Invalid selection."; pause_screen ;;
     esac
@@ -123,10 +130,14 @@ dispatch() {
     status) show_status ;;
     logs) view_logs ;;
     config) configuration_menu ;;
+    env-check) environment_check ;;
+    database) database_menu ;;
     doctor) doctor ;;
     verify) run_locked verify_installation ;;
     backup) run_locked create_backup "manual" "full" ;;
-    backups|restore) backup_menu ;;
+    backups) backup_create_menu ;;
+    restore) restore_menu ;;
+    repair) repair_menu ;;
     system) system_information ;;
     uninstall) run_locked uninstall_bot ;;
     --self-test) manager_self_test ;;
