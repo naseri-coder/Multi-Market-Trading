@@ -9,20 +9,28 @@ install_bot() {
 }
 
 start_bot() {
+  ui_step 1 4 "Checking installation prerequisites"
   check_compose_prereqs || return 1
   volume_exists || {
     fail "No project database volume exists. Use Install Bot first."
     return 1
   }
-  validate_current_config || return 1
+  ui_step_done "Installation prerequisites passed"
 
-  info "Starting PostgreSQL..."
+  ui_step 2 4 "Validating configuration"
+  validate_current_config || return 1
+  ui_step_done "Configuration is valid"
+
+  ui_step 3 4 "Starting PostgreSQL and checking database"
   compose up -d --wait postgres || return 1
-  info "Checking application configuration and database..."
   compose run --rm --no-deps bot python -m app --check-config || return 1
   compose run --rm --no-deps bot python -m app --check-db || return 1
-  compose up -d --no-deps bot
-  ok "Bot started."
+  ui_step_done "PostgreSQL and database checks passed"
+
+  ui_step 4 4 "Starting bot"
+  compose up -d --no-deps bot || return 1
+  ui_step_done "Bot started"
+  ok "Runtime is ready."
 }
 
 stop_bot() {
@@ -41,31 +49,34 @@ restart_bot() {
 
 show_status() {
   banner
-  local version branch sha bot_state db_state volume_state
+  local version branch sha bot_state db_state volume_state docker_state install_state
   version="$(project_version)"
   branch="$(git_branch)"
   sha="$(git_short_sha)"
   bot_state="STOPPED"
   db_state="STOPPED"
   volume_state="ABSENT"
+  docker_state="UNAVAILABLE"
+  install_state="$(installation_state)"
+
+  docker_ready && docker_state="HEALTHY"
   bot_running && bot_state="RUNNING"
   postgres_running && db_state="RUNNING"
   docker_ready && volume_exists && volume_state="PRESENT"
 
-  cat <<STATUS
-Bot Status
+  ui_section "SYSTEM STATUS"
+  ui_state_line "Bot" "$bot_state"
+  ui_state_line "PostgreSQL" "$db_state"
+  ui_state_line "Database volume" "$volume_state"
+  ui_state_line "Docker / Compose" "$docker_state"
+  ui_state_line "Installation" "$install_state"
 
-  Project version......... ${version:-unknown}
-  Git branch.............. $branch
-  Git commit.............. $sha
-  Bot..................... $bot_state
-  PostgreSQL.............. $db_state
-  Database volume......... $volume_state
-  Installation state...... $(installation_state)
-STATUS
+  ui_section "SOURCE"
+  ui_kv "Project version" "${version:-unknown}"
+  ui_kv "Git branch" "$branch"
+  ui_kv "Git commit" "$sha"
 
   if env_file_valid_shape; then
-    say
     safe_config_summary
   fi
 }
@@ -114,8 +125,9 @@ update_bot() {
     return 1
   }
 
-  info "Checking the official main branch for updates..."
+  ui_step 1 7 "Checking official origin/main"
   git -C "$ROOT" fetch --prune origin main || return 1
+  ui_step_done "Official origin/main fetched"
   old_sha="$(git -C "$ROOT" rev-parse HEAD)"
   new_sha="$(git -C "$ROOT" rev-parse origin/main)"
 
@@ -128,30 +140,42 @@ update_bot() {
     return 1
   }
 
-  say "Current : ${old_sha:0:12}"
-  say "Latest  : ${new_sha:0:12}"
-  confirm_phrase     "Update will create a backup, stop the bot if running, fast-forward source, rebuild, migrate, verify, and restore the previous running state."     "UPDATE" || return 1
+  ui_section "UPDATE PLAN"
+  ui_kv "Current commit" "${old_sha:0:12}"
+  ui_kv "Target commit" "${new_sha:0:12}"
+  ui_kv "Source strategy" "FAST-FORWARD ONLY"
+  ui_kv "Database backup" "MANDATORY WHEN INSTALLED"
+  ui_kv "Runtime state" "RESTORED AFTER VALIDATION"
+  confirm_phrase "Update will create a backup, stop the bot if running, fast-forward source, rebuild, migrate, verify, and restore the previous running state." "UPDATE" || return 1
 
   if env_file_valid_shape && docker_ready && volume_exists; then
     bot_running && was_running=1
-    info "Creating mandatory pre-update backup..."
+    ui_step 2 7 "Creating mandatory pre-update backup"
     create_backup "pre-update" "full" || {
       fail "Pre-update backup failed. Update refused."
       return 1
     }
+    ui_step_done "Pre-update backup created"
     compose stop bot >/dev/null 2>&1 || true
+  else
+    ui_step 2 7 "Checking backup requirement"
+    ui_step_done "No installed database backup was required"
   fi
 
+  ui_step 3 7 "Fast-forwarding source"
   if ! git -C "$ROOT" merge --ff-only "$new_sha"; then
     fail "Git fast-forward failed."
     return 1
   fi
 
+  ui_step_done "Source fast-forward completed"
+  ui_step 4 7 "Verifying updated source"
   if ! bash "$ROOT/scripts/verify.sh"; then
     rollback_source_before_migration "$old_sha" "$was_running"
     return 1
   fi
 
+  ui_step_done "Updated source verification passed"
   if ! env_file_valid_shape; then
     ok "Source updated. No installed .env was present, so runtime changes were not attempted."
     return 0
@@ -162,18 +186,19 @@ update_bot() {
     return 1
   }
 
-  info "Building updated bot image..."
+  ui_step 5 7 "Building updated bot image"
   if ! compose build bot; then
     rollback_source_before_migration "$old_sha" "$was_running"
     return 1
   fi
 
+  ui_step_done "Updated bot image built"
   if ! validate_current_config; then
     rollback_source_before_migration "$old_sha" "$was_running"
     return 1
   fi
 
-  info "Starting PostgreSQL and applying Alembic migrations..."
+  ui_step 6 7 "Starting PostgreSQL and applying Alembic migrations"
   compose up -d --wait postgres || {
     rollback_source_before_migration "$old_sha" "$was_running"
     return 1
@@ -185,6 +210,8 @@ update_bot() {
     fail "Migration failed. Bot remains stopped. The pre-update backup is preserved for recovery."
     return 1
   fi
+  ui_step_done "Database migration reached current Alembic head"
+  ui_step 7 7 "Running final application checks"
   if ! compose run --rm --no-deps bot python -m app --check-config; then
     fail "Updated configuration check failed after migration. Bot remains stopped."
     return 1
@@ -196,8 +223,10 @@ update_bot() {
 
   if [[ "$was_running" == "1" ]]; then
     compose up -d --no-deps bot || return 1
+    ui_step_done "Application checks passed and previous RUNNING state restored"
     ok "Update completed and the bot was restarted."
   else
+    ui_step_done "Application checks passed; previous STOPPED state preserved"
     ok "Update completed. Bot was previously stopped and remains stopped."
   fi
 }
