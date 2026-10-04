@@ -93,6 +93,9 @@ jobs:
           grep -Fq 'revision = "20260928_0021"'             production_source/migrations/versions/20260928_0021_ch6_ii_opportunity_identity.py
           grep -Fq 'revision = "20261004_0022"'             production_source/migrations/versions/20261004_0022_signal_strategy_management.py
           docker compose version
+      - name: Manager database credential recovery rehearsal
+        run: bash scripts/ci_manager_db_auth_recovery.sh
+
       - name: Synthetic environment acceptance and rejection cases
         run: python3 scripts/ci_stage3b_env.py
       - name: Compose isolation preflight
