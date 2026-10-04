@@ -118,24 +118,32 @@ The public source includes market-data adapters, including **Binance USD-M Futur
 <a id="quick-start"></a>
 ## 🚀 Quick Start
 
-### 1) Verify the snapshot — no installation
-
-Recommended first step:
+### 1) Open NASERI CODER Bot Manager
 
 ```bash
 git clone https://github.com/naseri-coder/crypto-price-action.git
 cd crypto-price-action
+bash naseri.sh
+```
+
+The interactive manager provides **Install · Update · Start · Stop · Restart · Status · Logs · Configuration · Environment Check · Database Management · Backup · Restore · Repair/Diagnose · Verify · System Information · Uninstall** with fail-closed safety checks.
+
+To perform only the offline source/release verification:
+
+```bash
 bash scripts/install.sh --check
 ```
 
-`--check` runs offline verification of the frozen source and publication files. It does not start Docker services, run migrations, or modify a database.
+`--check` does not start Docker services, run migrations, or modify a database.
 
 ### 2) Install on a fresh isolated host
 
 Required beforehand: **Git · Docker Engine · Docker Compose v2 · Bash · Python 3 · sha256sum**
 
+Choose **[1] Install Bot** from `bash naseri.sh`, or use the compatibility command:
+
 ```bash
-git clone https://github.com/naseri-coder/crypto-price-action.git && cd crypto-price-action && bash scripts/install.sh --install
+bash scripts/install.sh --install
 ```
 
 The installer validates the environment, creates a private `.env` when needed, generates a PostgreSQL password, and waits for explicit final authorization:
@@ -156,7 +164,7 @@ Only after that confirmation does it build the image, create the dedicated Postg
 | `production_source/` | Curated, hash-verified public source snapshot |
 | `production_checks/` | Frozen-source and regression guards |
 | `tests/` | Reviewed public test corpus |
-| `scripts/` | Verification, safety, environment, and installer tooling |
+| `naseri.sh` / `scripts/manager.sh` | Interactive NASERI CODER lifecycle manager |\n| `scripts/` | Verification, safety, environment, installer, diagnostics, and backup tooling |
 | `.github/workflows/` | CI, release baseline, and publication-safety workflows |
 | `Dockerfile.production` / `compose.yaml` | Isolated containerized deployment |
 

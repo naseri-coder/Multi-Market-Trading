@@ -2,9 +2,13 @@
 set -Eeuo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
-MODE="${1:---check}"
+
+MODE="${1:-}"
+if [[ -z "$MODE" || "$MODE" == "--menu" ]]; then
+  exec bash "$ROOT/scripts/manager.sh"
+fi
 if [[ "$MODE" != "--check" && "$MODE" != "--install" ]]; then
-  echo "Usage: bash scripts/install.sh --check | --install" >&2
+  echo "Usage: bash scripts/install.sh [--menu | --check | --install]" >&2
   exit 2
 fi
 for cmd in bash python3 sha256sum; do

@@ -24,17 +24,27 @@ The default configuration is fail-closed:
 - Python 3
 - `sha256sum`
 
-## 1. Clone and verify
+## 1. Clone and open NASERI CODER Bot Manager
 
 ```bash
 git clone https://github.com/naseri-coder/crypto-price-action.git
 cd crypto-price-action
+bash naseri.sh
+```
+
+Running `bash scripts/install.sh` with no arguments opens the same manager. The manager provides guarded install, update, start/stop/restart, status/logs, configuration validation, diagnostics, backup/restore, system information, maintenance, and uninstall workflows.
+
+To run only the offline release verification:
+
+```bash
 bash scripts/install.sh --check
 ```
 
 `--check` is offline. It validates the curated 348-file source manifest, Python syntax, v0.3.2 package identity, template contract, and required release files. It does not start Docker, contact a database, or run migrations.
 
 ## 2. Install on a fresh host
+
+Choose **[1] Install Bot** in the manager, or run the compatibility command directly:
 
 ```bash
 bash scripts/install.sh --install
@@ -52,6 +62,21 @@ Before resource creation the installer performs:
 6. full typed Settings validation inside the built image.
 
 Only then does it create the dedicated PostgreSQL volume, upgrade the disposable/new database to Alembic head, run application configuration/database checks, and start the bot with effectful runtime disabled.
+
+## Manager safety model
+
+The manager is intentionally fail-closed:
+
+- update accepts only the official `naseri-coder/crypto-price-action` origin on `main`;
+- the worktree must be clean and the remote update must be fast-forward only;
+- an installed database is backed up before update;
+- source rollback is automatic only before database migration starts;
+- after migration begins, failures leave the bot stopped and preserve the backup for explicit recovery;
+- database restore creates a new safety backup before changing data;
+- full runtime removal requires typed confirmation and does not delete source or backups;
+- `.env` contents and generated database passwords are never printed by manager workflows.
+
+Manager-created backups are stored under `.naseri-backups/` with restrictive permissions and are ignored by Git.
 
 ## Configuration validation modes
 
