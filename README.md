@@ -126,7 +126,7 @@ cd crypto-price-action
 bash naseri.sh
 ```
 
-The interactive manager provides **Install · Update · Start · Stop · Restart · Status · Logs · Configuration · Doctor · Verify · Backup/Restore · System Information · Uninstall** with fail-closed safety checks.
+The interactive manager provides **Install · Update · Start · Stop · Restart · Status · Logs · Configuration · Environment Check · Database Management · Backup · Restore · Repair/Diagnose · Verify · System Information · Uninstall** with fail-closed safety checks.
 
 To perform only the offline source/release verification:
 
