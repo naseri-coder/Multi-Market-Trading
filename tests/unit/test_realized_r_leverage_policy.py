@@ -23,6 +23,7 @@ from app.modules.signal_automation.entities import (
 from app.modules.signal_gate.service import SignalGateService
 from app.modules.signal_intelligence.probability import ProbabilityAssessment
 from app.modules.signal_intelligence.service import SignalIntelligenceService
+from app.modules.signal_strategies.entities import SignalStrategyRecord
 
 
 def test_realized_r_policy_routes_private_zero_sentinel():
@@ -324,6 +325,7 @@ def _build_coordinator(probability_assessment, publisher):
     service._provider = _Provider()
     service._analyzer = _Analyzer()
     service._publisher = publisher
+    service._bot = SimpleNamespace()
     service._last_snapshot_id = {}
     service._ai_council = SimpleNamespace(
         evaluate=lambda candidate: SimpleNamespace(
@@ -495,6 +497,27 @@ async def test_gap4_public_confidence_stays_separate_from_private_leverage_senti
         lambda repository: quality_persistence,
     )
 
+    monkeypatch.setattr(
+        coordinator_module,
+        "SignalStrategyService",
+        lambda repository: SimpleNamespace(
+            get=AsyncMock(
+                return_value=SignalStrategyRecord(
+                    id=1,
+                    strategy_code="BROOKS",
+                    display_name="Price Action (Al Brooks)",
+                    enabled=True,
+                    engine_ready=True,
+                    private_channel_id=-100123,
+                    private_channel_title="VIP 1",
+                    private_channel_username=None,
+                    updated_by_telegram_user_id=1,
+                    created_at=datetime(2026, 10, 4, tzinfo=UTC),
+                    updated_at=datetime(2026, 10, 4, tzinfo=UTC),
+                )
+            )
+        ),
+    )
     def live_runtime_factory(
         session,
         *,

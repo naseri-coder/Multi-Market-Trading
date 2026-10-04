@@ -179,3 +179,23 @@ async def test_membership_maps_telegram_api_error() -> None:
 
     with pytest.raises(TelegramChannelGatewayError):
         await TelegramChannelGateway(bot).is_member(-1001, 123456789)
+
+
+async def test_resolve_private_strategy_channel_does_not_create_invite_link() -> None:
+    chat = SimpleNamespace(
+        id=-1_009_876_543_210,
+        type=Chat.CHANNEL,
+        username=None,
+        title="VIP Strategy Channel",
+        invite_link=None,
+    )
+    bot = fake_bot(chat=chat)
+
+    result = await TelegramChannelGateway(bot).resolve_channel(
+        "-1009876543210",
+        ensure_invite_link=False,
+    )
+
+    assert result.telegram_chat_id == -1_009_876_543_210
+    assert result.invite_link is None
+    bot.create_chat_invite_link.assert_not_awaited()
