@@ -19,9 +19,11 @@ if [[ -t 1 && -z "${NO_COLOR:-}" && "${TERM:-dumb}" != "dumb" ]]; then
 fi
 
 UI_UNICODE=0
-case "${LC_ALL:-${LC_CTYPE:-${LANG:-}}}" in
-  *UTF-8*|*utf8*|*UTF8*) UI_UNICODE=1 ;;
-esac
+if [[ -t 1 ]]; then
+  case "${LC_ALL:-${LC_CTYPE:-${LANG:-}}}" in
+    *UTF-8*|*utf8*|*UTF8*) UI_UNICODE=1 ;;
+  esac
+fi
 
 if [[ "$UI_COLOR" == "1" ]]; then
   c_reset=$'\033[0m'
