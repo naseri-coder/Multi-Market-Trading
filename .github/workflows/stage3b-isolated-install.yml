@@ -32,7 +32,7 @@ jobs:
           set -Eeuo pipefail
           test ! -e .env
           test "$(wc -l < production_source/SHA256SUMS)" -eq 362
-          expected='73bf3c1041871da6bde1e3f8ad8461d5a445266cacef61ebfc3facb6a663e1d6'
+          expected='e614c6f64c21d95b284dfd67d35a9d5e569923b1cff32df61871c0860ad6c96b'
           actual="$(sha256sum production_source/SHA256SUMS | cut -d' ' -f1)"
           test "$actual" = "$expected"
           bash scripts/install.sh --check
