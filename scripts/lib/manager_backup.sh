@@ -102,7 +102,7 @@ list_backups() {
   mkdir -p "$BACKUP_ROOT"
   chmod 700 "$BACKUP_ROOT"
   local found=0 path
-  say "Available backups:"
+  ui_section "AVAILABLE BACKUPS"
   while IFS= read -r -d '' path; do
     found=1
     printf '  %s\n' "$(basename "$path")"
@@ -120,7 +120,7 @@ select_backup_dir() {
   (("${#dirs[@]}" > 0)) || { warn "No backups are available."; return 1; }
   is_tty || { fail "Interactive backup selection required."; return 1; }
 
-  say "Select a backup:"
+  ui_section "SELECT BACKUP"
   for path in "${dirs[@]}"; do
     printf '  [%d] %s\n' "$i" "$(basename "$path")"
     ((i+=1))
@@ -225,16 +225,18 @@ backup_create_menu() {
   local choice
   while true; do
     banner
+    ui_section "BACKUP"
     cat <<'MENU'
-Backup
-
 [1] Create full backup
 [2] Create database backup
 [3] Create configuration backup
 [4] List backups
 [0] Back
 MENU
-    read -r -p "Select an option: " choice
+    ui_rule
+    ui_prompt
+    printf 'Select an option: '
+    read -r choice
     case "$choice" in
       1) run_locked create_backup "manual" "full"; pause_screen ;;
       2) run_locked create_backup "manual-db" "database"; pause_screen ;;
@@ -250,15 +252,17 @@ restore_menu() {
   local choice dir
   while true; do
     banner
+    ui_section "RESTORE"
     cat <<'MENU'
-Restore
-
 [1] Restore database
 [2] Restore configuration
 [3] List backups
 [0] Back
 MENU
-    read -r -p "Select an option: " choice
+    ui_rule
+    ui_prompt
+    printf 'Select an option: '
+    read -r choice
     case "$choice" in
       1)
         dir="$(select_backup_dir)" && run_locked restore_database_from_dir "$dir"
@@ -279,9 +283,8 @@ backup_menu() {
   local choice dir
   while true; do
     banner
+    ui_section "BACKUP & RESTORE"
     cat <<'MENU'
-Backup & Restore
-
 [1] Create full backup
 [2] Create database backup
 [3] Create configuration backup
@@ -290,7 +293,10 @@ Backup & Restore
 [6] Restore configuration
 [0] Back
 MENU
-    read -r -p "Select an option: " choice
+    ui_rule
+    ui_prompt
+    printf 'Select an option: '
+    read -r choice
     case "$choice" in
       1) run_locked create_backup "manual" "full"; pause_screen ;;
       2) run_locked create_backup "manual-db" "database"; pause_screen ;;

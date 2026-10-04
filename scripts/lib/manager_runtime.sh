@@ -9,20 +9,28 @@ install_bot() {
 }
 
 start_bot() {
+  ui_step 1 4 "Checking installation prerequisites"
   check_compose_prereqs || return 1
   volume_exists || {
     fail "No project database volume exists. Use Install Bot first."
     return 1
   }
-  validate_current_config || return 1
+  ui_step_done "Installation prerequisites passed"
 
-  info "Starting PostgreSQL..."
+  ui_step 2 4 "Validating configuration"
+  validate_current_config || return 1
+  ui_step_done "Configuration is valid"
+
+  ui_step 3 4 "Starting PostgreSQL and checking database"
   compose up -d --wait postgres || return 1
-  info "Checking application configuration and database..."
   compose run --rm --no-deps bot python -m app --check-config || return 1
   compose run --rm --no-deps bot python -m app --check-db || return 1
-  compose up -d --no-deps bot
-  ok "Bot started."
+  ui_step_done "PostgreSQL and database checks passed"
+
+  ui_step 4 4 "Starting bot"
+  compose up -d --no-deps bot || return 1
+  ui_step_done "Bot started"
+  ok "Runtime is ready."
 }
 
 stop_bot() {
@@ -41,31 +49,34 @@ restart_bot() {
 
 show_status() {
   banner
-  local version branch sha bot_state db_state volume_state
+  local version branch sha bot_state db_state volume_state docker_state install_state
   version="$(project_version)"
   branch="$(git_branch)"
   sha="$(git_short_sha)"
   bot_state="STOPPED"
   db_state="STOPPED"
   volume_state="ABSENT"
+  docker_state="UNAVAILABLE"
+  install_state="$(installation_state)"
+
+  docker_ready && docker_state="HEALTHY"
   bot_running && bot_state="RUNNING"
   postgres_running && db_state="RUNNING"
   docker_ready && volume_exists && volume_state="PRESENT"
 
-  cat <<STATUS
-Bot Status
+  ui_section "SYSTEM STATUS"
+  ui_state_line "Bot" "$bot_state"
+  ui_state_line "PostgreSQL" "$db_state"
+  ui_state_line "Database volume" "$volume_state"
+  ui_state_line "Docker / Compose" "$docker_state"
+  ui_state_line "Installation" "$install_state"
 
-  Project version......... ${version:-unknown}
-  Git branch.............. $branch
-  Git commit.............. $sha
-  Bot..................... $bot_state
-  PostgreSQL.............. $db_state
-  Database volume......... $volume_state
-  Installation state...... $(installation_state)
-STATUS
+  ui_section "SOURCE"
+  ui_kv "Project version" "${version:-unknown}"
+  ui_kv "Git branch" "$branch"
+  ui_kv "Git commit" "$sha"
 
   if env_file_valid_shape; then
-    say
     safe_config_summary
   fi
 }
@@ -114,8 +125,9 @@ update_bot() {
     return 1
   }
 
-  info "Checking the official main branch for updates..."
+  ui_step 1 7 "Checking official origin/main"
   git -C "$ROOT" fetch --prune origin main || return 1
+  ui_step_done "Official origin/main fetched"
   old_sha="$(git -C "$ROOT" rev-parse HEAD)"
   new_sha="$(git -C "$ROOT" rev-parse origin/main)"
 
@@ -128,30 +140,42 @@ update_bot() {
     return 1
   }
 
-  say "Current : ${old_sha:0:12}"
-  say "Latest  : ${new_sha:0:12}"
-  confirm_phrase     "Update will create a backup, stop the bot if running, fast-forward source, rebuild, migrate, verify, and restore the previous running state."     "UPDATE" || return 1
+  ui_section "UPDATE PLAN"
+  ui_kv "Current commit" "${old_sha:0:12}"
+  ui_kv "Target commit" "${new_sha:0:12}"
+  ui_kv "Source strategy" "FAST-FORWARD ONLY"
+  ui_kv "Database backup" "MANDATORY WHEN INSTALLED"
+  ui_kv "Runtime state" "RESTORED AFTER VALIDATION"
+  confirm_phrase "Update will create a backup, stop the bot if running, fast-forward source, rebuild, migrate, verify, and restore the previous running state." "UPDATE" || return 1
 
   if env_file_valid_shape && docker_ready && volume_exists; then
     bot_running && was_running=1
-    info "Creating mandatory pre-update backup..."
+    ui_step 2 7 "Creating mandatory pre-update backup"
     create_backup "pre-update" "full" || {
       fail "Pre-update backup failed. Update refused."
       return 1
     }
+    ui_step_done "Pre-update backup created"
     compose stop bot >/dev/null 2>&1 || true
+  else
+    ui_step 2 7 "Checking backup requirement"
+    ui_step_done "No installed database backup was required"
   fi
 
+  ui_step 3 7 "Fast-forwarding source"
   if ! git -C "$ROOT" merge --ff-only "$new_sha"; then
     fail "Git fast-forward failed."
     return 1
   fi
 
+  ui_step_done "Source fast-forward completed"
+  ui_step 4 7 "Verifying updated source"
   if ! bash "$ROOT/scripts/verify.sh"; then
     rollback_source_before_migration "$old_sha" "$was_running"
     return 1
   fi
 
+  ui_step_done "Updated source verification passed"
   if ! env_file_valid_shape; then
     ok "Source updated. No installed .env was present, so runtime changes were not attempted."
     return 0
@@ -162,18 +186,19 @@ update_bot() {
     return 1
   }
 
-  info "Building updated bot image..."
+  ui_step 5 7 "Building updated bot image"
   if ! compose build bot; then
     rollback_source_before_migration "$old_sha" "$was_running"
     return 1
   fi
 
+  ui_step_done "Updated bot image built"
   if ! validate_current_config; then
     rollback_source_before_migration "$old_sha" "$was_running"
     return 1
   fi
 
-  info "Starting PostgreSQL and applying Alembic migrations..."
+  ui_step 6 7 "Starting PostgreSQL and applying Alembic migrations"
   compose up -d --wait postgres || {
     rollback_source_before_migration "$old_sha" "$was_running"
     return 1
@@ -185,6 +210,8 @@ update_bot() {
     fail "Migration failed. Bot remains stopped. The pre-update backup is preserved for recovery."
     return 1
   fi
+  ui_step_done "Database migration reached current Alembic head"
+  ui_step 7 7 "Running final application checks"
   if ! compose run --rm --no-deps bot python -m app --check-config; then
     fail "Updated configuration check failed after migration. Bot remains stopped."
     return 1
@@ -196,8 +223,10 @@ update_bot() {
 
   if [[ "$was_running" == "1" ]]; then
     compose up -d --no-deps bot || return 1
+    ui_step_done "Application checks passed and previous RUNNING state restored"
     ok "Update completed and the bot was restarted."
   else
+    ui_step_done "Application checks passed; previous STOPPED state preserved"
     ok "Update completed. Bot was previously stopped and remains stopped."
   fi
 }
@@ -206,16 +235,18 @@ configuration_menu() {
   local choice editor
   while true; do
     banner
+    ui_section "CONFIGURATION"
     cat <<'MENU'
-Configuration
-
 [1] Show safe configuration summary
 [2] Validate configuration
 [3] Edit .env with local editor
 [4] Create .env on a fresh configuration
 [0] Back
 MENU
-    read -r -p "Select an option: " choice
+    ui_rule
+    ui_prompt
+    printf 'Select an option: '
+    read -r choice
     case "$choice" in
       1) safe_config_summary; pause_screen ;;
       2) validate_current_config && ok "Configuration validation passed."; pause_screen ;;
@@ -257,8 +288,7 @@ doctor_check() {
 doctor() {
   local failures=0 available_kb
   banner
-  say "Doctor / Diagnose"
-  say
+  ui_section "DOCTOR / DIAGNOSE"
 
   doctor_check "Bash available" command_exists bash || ((failures+=1))
   doctor_check "Python 3 available" command_exists python3 || ((failures+=1))
@@ -338,7 +368,7 @@ verify_installation() {
 
 system_information() {
   banner
-  say "System Information"
+  ui_section "SYSTEM INFORMATION"
   printf '  OS...................... %s\n' "$(uname -srm 2>/dev/null || printf unknown)"
   printf '  Architecture............ %s\n' "$(uname -m 2>/dev/null || printf unknown)"
   if command_exists nproc; then
@@ -358,9 +388,8 @@ uninstall_bot() {
   local choice
   check_compose_prereqs || return 1
   banner
+  ui_section_danger "UNINSTALL / REMOVE RUNTIME"
   cat <<'MENU'
-Uninstall / Remove Runtime
-
 [1] Remove bot container only
     Keep PostgreSQL, database volume, .env, backups and source.
 
@@ -373,7 +402,10 @@ Uninstall / Remove Runtime
 
 [0] Cancel
 MENU
-  read -r -p "Select an option: " choice
+  ui_rule
+  ui_prompt
+  printf 'Select an option: '
+  read -r choice
   case "$choice" in
     1)
       confirm_phrase "Remove only the bot container?" "REMOVE-BOT" || return 1
@@ -405,8 +437,7 @@ MENU
 environment_check() {
   local failures=0 mode_bits
   banner
-  say "Environment Check"
-  say
+  ui_section "ENVIRONMENT CHECK"
 
   for cmd in bash python3 sha256sum git; do
     if command_exists "$cmd"; then
@@ -527,9 +558,8 @@ database_menu() {
   local choice dir
   while true; do
     banner
+    ui_section "DATABASE MANAGEMENT"
     cat <<'MENU'
-Database Management
-
 [1] Database status
 [2] Show current migration / head
 [3] Upgrade database to Alembic head
@@ -537,7 +567,10 @@ Database Management
 [5] Restore database backup
 [0] Back
 MENU
-    read -r -p "Select an option: " choice
+    ui_rule
+    ui_prompt
+    printf 'Select an option: '
+    read -r choice
     case "$choice" in
       1) database_status; pause_screen ;;
       2) database_migrations; pause_screen ;;
@@ -596,16 +629,18 @@ repair_menu() {
   local choice
   while true; do
     banner
+    ui_section "REPAIR / DIAGNOSE"
     cat <<'MENU'
-Repair / Diagnose
-
 [1] Run Doctor
 [2] Repair .env permissions
 [3] Rebuild and verify bot image
 [4] Restart bot safely
 [0] Back
 MENU
-    read -r -p "Select an option: " choice
+    ui_rule
+    ui_prompt
+    printf 'Select an option: '
+    read -r choice
     case "$choice" in
       1) doctor; pause_screen ;;
       2) run_locked repair_env_permissions; pause_screen ;;
@@ -621,9 +656,8 @@ maintenance_menu() {
   local choice
   while true; do
     banner
+    ui_section "MAINTENANCE"
     cat <<'MENU'
-Maintenance
-
 [1] Doctor / Diagnose
 [2] Verify installation
 [3] Show system information
@@ -631,7 +665,10 @@ Maintenance
 [5] Show status
 [0] Back
 MENU
-    read -r -p "Select an option: " choice
+    ui_rule
+    ui_prompt
+    printf 'Select an option: '
+    read -r choice
     case "$choice" in
       1) doctor; pause_screen ;;
       2) verify_installation; pause_screen ;;
