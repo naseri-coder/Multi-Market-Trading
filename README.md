@@ -120,17 +120,7 @@ The public source currently uses **Binance USD-M Futures** as the supported mark
 <a id="install-manager"></a>
 ## 🚀 Installation & NASERI CODER Bot Manager
 
-The supported entry point for installation and day-to-day administration is:
-
-```bash
-bash naseri.sh
-```
-
-The manager wraps installation, update, runtime control, configuration checks, database maintenance, backup/restore, diagnostics, verification, system information, and guarded removal workflows.
-
-### 1. Prerequisites
-
-Install these on the target Linux host before starting:
+### Prerequisites
 
 - Git
 - Docker Engine with a running daemon
@@ -139,28 +129,17 @@ Install these on the target Linux host before starting:
 - Python 3
 - `sha256sum`
 
-The manager does **not** silently install operating-system packages for you.
+### Install
 
-### 2. Clone the official repository
+Use this single installation entry point:
 
 ```bash
 git clone https://github.com/naseri-coder/crypto-price-action.git
 cd crypto-price-action
-```
-
-### 3. Open the Manager
-
-```bash
 bash naseri.sh
 ```
 
-You can also use:
-
-```bash
-bash scripts/install.sh
-```
-
-Running `scripts/install.sh` with no arguments opens the same interactive manager.
+The final command opens the **NASERI CODER Bot Manager**. From there, choose **[1] Install Bot** for a fresh installation.
 
 The main menu is:
 
@@ -186,19 +165,9 @@ The main menu is:
 [0]  Exit
 ```
 
-### 4. Fresh installation
+### Fresh installation
 
-For a new isolated host, choose:
-
-```text
-[1] Install Bot
-```
-
-Or run the compatibility command directly:
-
-```bash
-bash scripts/install.sh --install
-```
+For a new isolated host, choose **[1] Install Bot** from the Manager.
 
 The installer will:
 
@@ -225,7 +194,7 @@ INSTALL-NEW-HOST
 > [!WARNING]
 > The fresh-host installer intentionally refuses installation when the protected legacy tree `/opt/crypto-signal-telegram-bot` exists or when the project database volume already exists. It is **not** an overwrite mechanism.
 
-### 5. Safe defaults after installation
+### Safe defaults after installation
 
 A successful install may report:
 
@@ -249,7 +218,7 @@ PERFORMANCE_REPORTS_ENABLED=false
 
 So a normal fresh installation can correctly show **Bot = RUNNING** while Telegram, Brooks runtime, Paper runtime, and Brooks operations remain disabled.
 
-### 6. Check installation status
+### Check installation status
 
 Interactive:
 
@@ -267,7 +236,7 @@ The status screen reports the project version, Git branch/commit, bot and Postgr
 
 Secret values such as database passwords and Telegram tokens are not displayed.
 
-### 7. View logs
+### View logs
 
 Interactive:
 
@@ -295,7 +264,6 @@ The interactive menu is recommended for normal administration, but the same mana
 | Operation | Command |
 | --- | --- |
 | Open menu | `bash naseri.sh` |
-| Fresh install | `bash naseri.sh install` |
 | Update | `bash naseri.sh update` |
 | Start | `bash naseri.sh start` |
 | Stop bot | `bash naseri.sh stop` |
