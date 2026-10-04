@@ -82,7 +82,7 @@ async def test_every_registered_admin_route_denies_a_normal_user(
         if hasattr(handler.callback, "__wrapped__")
     ]
 
-    assert len(admin_handlers) == 42
+    assert len(admin_handlers) == 46
     for handler in admin_handlers:
         update = fake_update(987654321)
         await handler.callback(update, SimpleNamespace())

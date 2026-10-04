@@ -3,7 +3,7 @@ set -Eeuo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-test "$(wc -l < production_source/SHA256SUMS)" -eq 348
+test "$(wc -l < production_source/SHA256SUMS)" -eq 362
 ( cd production_source && sha256sum --status -c SHA256SUMS )
 
 python3 - <<'PY'
@@ -22,7 +22,7 @@ for line in (root / "SHA256SUMS").read_text().splitlines():
     assert full.is_file() and not full.is_symlink()
     assert hashlib.sha256(full.read_bytes()).hexdigest() == digest
     entries.append(rel)
-assert len(entries) == 348 and len(set(entries)) == 348
+assert len(entries) == 362 and len(set(entries)) == 362
 
 parsed = 0
 for rel in entries:
@@ -33,7 +33,7 @@ ast.parse(Path("production_checks/verify_historical_probability_regression.py").
 
 project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 assert project["project"]["version"] == "0.3.2"
-print("SOURCE_SHA256_PASS entries=348; PYTHON_AST_PASS count=" + str(parsed))
+print("SOURCE_SHA256_PASS entries=362; PYTHON_AST_PASS count=" + str(parsed))
 print("PACKAGE_VERSION_PASS 0.3.2")
 PY
 

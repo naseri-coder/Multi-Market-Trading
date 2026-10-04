@@ -12,20 +12,20 @@ echo "STAGE3B_BUILD_PASS"
 echo "STAGE3B_DISPOSABLE_POSTGRES_BEGIN"
 "${compose[@]}" up -d --wait postgres
 head_output="$("${compose[@]}" run --rm --no-deps bot python -m alembic -c alembic.ini heads 2>&1)"
-grep -Fq "20260928_0021" <<<"$head_output"
+grep -Fq "20261004_0022" <<<"$head_output"
 check_revision() {
   local current
   current="$("${compose[@]}" exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Aqt -c "SELECT version_num FROM alembic_version;"')"
   [[ "$current" == "$1" ]]
 }
-"${compose[@]}" run --rm --no-deps bot python -m alembic -c alembic.ini upgrade 20260928_0021
-check_revision 20260928_0021
-echo "STAGE3B_MIGRATION_0021_PASS"
+"${compose[@]}" run --rm --no-deps bot python -m alembic -c alembic.ini upgrade 20261004_0022
+check_revision 20261004_0022
+echo "STAGE3B_MIGRATION_0022_PASS"
 "${compose[@]}" run --rm --no-deps bot python -m alembic -c alembic.ini downgrade 20260914_0020
 check_revision 20260914_0020
-"${compose[@]}" run --rm --no-deps bot python -m alembic -c alembic.ini upgrade 20260928_0021
-check_revision 20260928_0021
-echo "STAGE3B_0021_ROLLBACK_REUPGRADE_PASS"
+"${compose[@]}" run --rm --no-deps bot python -m alembic -c alembic.ini upgrade 20261004_0022
+check_revision 20261004_0022
+echo "STAGE3B_0022_ROLLBACK_REUPGRADE_PASS"
 "${compose[@]}" run --rm --no-deps bot python -m app --check-config
 "${compose[@]}" run --rm --no-deps bot python -m app --check-db
 echo "STAGE3B_APP_CONFIG_DB_CHECKS_PASS"

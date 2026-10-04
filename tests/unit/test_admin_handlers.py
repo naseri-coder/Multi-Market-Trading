@@ -20,6 +20,7 @@ from app.bot.keyboards.referrals import REFERRALS_BUTTON
 from app.bot.keyboards.admin_signals import SIGNAL_MANAGEMENT_BUTTON
 from app.bot.keyboards.signals import LIVE_SIGNALS_BUTTON
 from app.bot.keyboards.support import ADMIN_SUPPORT_BUTTON, SUPPORT_BUTTON
+from app.bot.keyboards.strategy_management import STRATEGY_MANAGEMENT_BUTTON
 from app.bot.keyboards.subscriptions import (
     SUBSCRIPTION_MANAGEMENT_BUTTON,
     SUBSCRIPTION_STATUS_BUTTON,
@@ -40,15 +41,16 @@ async def test_admin_panel_exposes_dashboard_channel_management_and_back_navigat
     reply = update.effective_message.reply_text
     assert "پنل مدیریت" in reply.await_args.args[0]
     keyboard = reply.await_args.kwargs["reply_markup"]
-    assert len(keyboard.keyboard) == 8
+    assert len(keyboard.keyboard) == 9
     assert keyboard.keyboard[0][0].text == ADMIN_DASHBOARD_BUTTON
     assert keyboard.keyboard[1][0].text == BROADCAST_MANAGEMENT_BUTTON
     assert keyboard.keyboard[2][0].text == FORWARD_BROADCAST_MANAGEMENT_BUTTON
     assert keyboard.keyboard[3][0].text == ADMIN_SUPPORT_BUTTON
     assert keyboard.keyboard[4][0].text == CHANNEL_MANAGEMENT_BUTTON
     assert keyboard.keyboard[5][0].text == SIGNAL_MANAGEMENT_BUTTON
-    assert keyboard.keyboard[6][0].text == SUBSCRIPTION_MANAGEMENT_BUTTON
-    assert keyboard.keyboard[7][0].text == ADMIN_BACK_BUTTON
+    assert keyboard.keyboard[6][0].text == STRATEGY_MANAGEMENT_BUTTON
+    assert keyboard.keyboard[7][0].text == SUBSCRIPTION_MANAGEMENT_BUTTON
+    assert keyboard.keyboard[8][0].text == ADMIN_BACK_BUTTON
 
 
 async def test_admin_back_navigation_restores_authorized_user_menu() -> None:

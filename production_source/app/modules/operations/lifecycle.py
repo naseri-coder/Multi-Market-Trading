@@ -310,7 +310,6 @@ class LiveSignalLifecycleService:
                             SignalAutomationMetadata.generation_mode == "LIVE",
                             SignalAutomationMetadata.counts_toward_performance.is_(True),
                             SignalDelivery.channel_kind == "TELEGRAM_VIP",
-                            SignalDelivery.destination_id == str(self.vip_channel_id),
                             SignalDelivery.status == "SENT",
                         ),
                         and_(
@@ -1783,7 +1782,6 @@ class LiveSignalLifecycleService:
                 select(SignalDelivery).where(
                     SignalDelivery.signal_id == signal_id,
                     SignalDelivery.channel_kind == "TELEGRAM_VIP",
-                    SignalDelivery.destination_id == str(self.vip_channel_id),
                     SignalDelivery.status == "SENT",
                 )
             )
@@ -1899,7 +1897,7 @@ class LiveSignalLifecycleService:
         try:
             await edit_live_signal_message(
                 self.bot,
-                chat_id=self.vip_channel_id,
+                chat_id=int(delivery.destination_id),
                 message_id=int(delivery.external_message_id),
                 caption=caption,
             )
