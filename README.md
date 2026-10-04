@@ -244,7 +244,7 @@ Direct command:
 bash naseri.sh status
 ```
 
-The status screen reports the project version, Git branch/commit, bot and PostgreSQL state, database-volume presence, installation state, and a **secret-safe configuration summary**.
+The status screen reports the project version, Git branch/commit, bot and PostgreSQL state, database-volume presence, **database authentication state**, installation state, and a **secret-safe configuration summary**.
 
 Secret values such as database passwords and Telegram tokens are not displayed.
 
@@ -439,7 +439,8 @@ Repair tools include:
 - Doctor diagnostics;
 - repair `.env` permissions;
 - rebuild and verify the bot image;
-- safe restart.
+- safe restart;
+- guarded PostgreSQL credential recovery when the existing database volume password does not match the private `.env`.
 
 You can run Doctor directly:
 
