@@ -90,10 +90,10 @@ def test_application_factory_registers_phase_twenty_handlers(
     assert isinstance(handlers[58], MessageHandler)
     assert isinstance(handlers[64], MessageHandler)
     assert isinstance(handlers[65], CallbackQueryHandler)
-    assert isinstance(handlers[73], CallbackQueryHandler)
+    assert isinstance(handlers[77], CallbackQueryHandler)
     protected = [handler for handler in handlers if hasattr(handler.callback, "__wrapped__")]
-    assert len(protected) == 42
-    assert all(handler in handlers[31:73] for handler in protected)
+    assert len(protected) == 46
+    assert all(handler in handlers[31:77] for handler in protected)
     assert len(application.handlers[1]) == 1
     assert len(application.error_handlers) == 1
 
