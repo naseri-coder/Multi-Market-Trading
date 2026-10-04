@@ -472,7 +472,9 @@ database_upgrade_head() {
   volume_exists || { fail "Database volume does not exist."; return 1; }
   bot_running && was_bot_running=1
 
-  confirm_phrase     "This creates a mandatory backup, stops the bot, upgrades Alembic to head, verifies the DB, then restores the prior running state."     "UPGRADE-DATABASE" || return 1
+  confirm_phrase \
+    "This creates a mandatory backup, stops the bot, rebuilds verified source, upgrades Alembic to head, verifies the DB, then restores the prior running state." \
+    "UPGRADE-DATABASE" || return 1
 
   create_backup "pre-db-upgrade" "full" || {
     fail "Mandatory backup failed; database upgrade refused."
@@ -480,6 +482,18 @@ database_upgrade_head() {
   }
 
   compose stop bot >/dev/null 2>&1 || true
+  bash "$ROOT/scripts/verify.sh" || {
+    fail "Source verification failed; database upgrade refused."
+    return 1
+  }
+  compose build bot || {
+    fail "Bot image build failed; database upgrade refused."
+    return 1
+  }
+  validate_current_config || {
+    fail "Current configuration is invalid for the rebuilt image; database upgrade refused."
+    return 1
+  }
   compose up -d --wait postgres >/dev/null || return 1
 
   if ! compose run --rm --no-deps bot python -m alembic -c alembic.ini upgrade head; then
@@ -538,9 +552,10 @@ repair_env_permissions() {
 repair_rebuild_bot() {
   local was_running=0
   check_compose_prereqs || return 1
-  validate_current_config || return 1
   bot_running && was_running=1
-  confirm_phrase     "Rebuild the bot image from the current verified source and run configuration/database checks?"     "REBUILD-BOT" || return 1
+  confirm_phrase \
+    "Rebuild the bot image from the current verified source and run configuration/database checks?" \
+    "REBUILD-BOT" || return 1
 
   compose stop bot >/dev/null 2>&1 || true
   bash "$ROOT/scripts/verify.sh" || {
@@ -548,6 +563,10 @@ repair_rebuild_bot() {
     return 1
   }
   compose build bot || return 1
+  validate_current_config || {
+    fail "Rebuilt image rejected the current configuration. Bot remains stopped."
+    return 1
+  }
 
   if volume_exists; then
     compose up -d --wait postgres >/dev/null || return 1
