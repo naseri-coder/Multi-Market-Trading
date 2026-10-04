@@ -37,7 +37,7 @@ print("SOURCE_SHA256_PASS entries=362; PYTHON_AST_PASS count=" + str(parsed))
 print("PACKAGE_VERSION_PASS 0.3.2")
 PY
 
-bash -n   naseri.sh   scripts/install.sh   scripts/manager.sh   scripts/lib/manager_common.sh   scripts/lib/manager_backup.sh   scripts/lib/manager_runtime.sh   scripts/verify.sh
+bash -n   naseri.sh   scripts/install.sh   scripts/manager.sh   scripts/lib/manager_common.sh   scripts/lib/manager_backup.sh   scripts/lib/manager_runtime.sh   scripts/test_manager.sh   scripts/verify.sh
 bash scripts/manager.sh --self-test
 
 python3 -m py_compile   scripts/bootstrap_env.py   scripts/check_env.py   scripts/validate_release_config.py
