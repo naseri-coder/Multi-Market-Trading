@@ -401,6 +401,193 @@ MENU
   esac
 }
 
+
+environment_check() {
+  local failures=0 mode_bits
+  banner
+  say "Environment Check"
+  say
+
+  for cmd in bash python3 sha256sum git; do
+    if command_exists "$cmd"; then
+      ok "$cmd is available"
+    else
+      fail "$cmd is missing"
+      ((failures+=1))
+    fi
+  done
+
+  if docker_ready; then
+    ok "Docker Engine and Compose v2 are reachable"
+  else
+    warn "Docker Engine/Compose is unavailable or daemon access is missing"
+  fi
+
+  if env_file_valid_shape; then
+    ok ".env exists and is not a symlink"
+    mode_bits="$(stat -c '%a' "$ROOT/.env" 2>/dev/null || true)"
+    if [[ "$mode_bits" == "600" ]]; then
+      ok ".env permissions are 600"
+    else
+      fail ".env permissions must be 600 (found: ${mode_bits:-unknown})"
+      ((failures+=1))
+    fi
+    if validate_current_config >/dev/null 2>&1; then
+      ok "Configuration contract is valid"
+    else
+      fail "Configuration contract validation failed"
+      ((failures+=1))
+    fi
+  else
+    warn ".env has not been created yet"
+  fi
+
+  if [[ "$failures" -eq 0 ]]; then
+    ok "Environment check completed without hard failures."
+  else
+    fail "Environment check found $failures hard failure(s)."
+    return 1
+  fi
+}
+
+database_status() {
+  check_compose_prereqs || return 1
+  volume_exists || { warn "Database volume does not exist yet."; return 0; }
+  if postgres_running; then
+    ok "PostgreSQL is running."
+  else
+    warn "PostgreSQL is stopped."
+  fi
+  if postgres_running; then
+    info "Current migration revision:"
+    compose run --rm --no-deps bot python -m alembic -c alembic.ini current
+    info "Repository migration head:"
+    compose run --rm --no-deps bot python -m alembic -c alembic.ini heads
+  fi
+}
+
+database_upgrade_head() {
+  local was_bot_running=0
+  check_compose_prereqs || return 1
+  volume_exists || { fail "Database volume does not exist."; return 1; }
+  bot_running && was_bot_running=1
+
+  confirm_phrase     "This creates a mandatory backup, stops the bot, upgrades Alembic to head, verifies the DB, then restores the prior running state."     "UPGRADE-DATABASE" || return 1
+
+  create_backup "pre-db-upgrade" "full" || {
+    fail "Mandatory backup failed; database upgrade refused."
+    return 1
+  }
+
+  compose stop bot >/dev/null 2>&1 || true
+  compose up -d --wait postgres >/dev/null || return 1
+
+  if ! compose run --rm --no-deps bot python -m alembic -c alembic.ini upgrade head; then
+    fail "Database migration failed. Bot remains stopped and the backup is preserved."
+    return 1
+  fi
+  if ! compose run --rm --no-deps bot python -m app --check-db; then
+    fail "Database verification failed. Bot remains stopped and the backup is preserved."
+    return 1
+  fi
+
+  if [[ "$was_bot_running" == "1" ]]; then
+    compose up -d --no-deps bot || return 1
+    ok "Database upgraded and bot restarted."
+  else
+    ok "Database upgraded. Bot was previously stopped and remains stopped."
+  fi
+}
+
+database_menu() {
+  local choice dir
+  while true; do
+    banner
+    cat <<'MENU'
+Database Management
+
+[1] Database status
+[2] Show current migration / head
+[3] Upgrade database to Alembic head
+[4] Create database backup
+[5] Restore database backup
+[0] Back
+MENU
+    read -r -p "Select an option: " choice
+    case "$choice" in
+      1) database_status; pause_screen ;;
+      2) database_status; pause_screen ;;
+      3) run_locked database_upgrade_head; pause_screen ;;
+      4) run_locked create_backup "manual-db" "database"; pause_screen ;;
+      5)
+        dir="$(select_backup_dir)" && run_locked restore_database_from_dir "$dir"
+        pause_screen
+        ;;
+      0) return 0 ;;
+      *) warn "Invalid selection."; pause_screen ;;
+    esac
+  done
+}
+
+repair_env_permissions() {
+  env_file_valid_shape || { fail ".env missing or unsafe; nothing to repair."; return 1; }
+  chmod 600 "$ROOT/.env"
+  ok ".env permissions set to 600."
+}
+
+repair_rebuild_bot() {
+  local was_running=0
+  check_compose_prereqs || return 1
+  validate_current_config || return 1
+  bot_running && was_running=1
+  confirm_phrase     "Rebuild the bot image from the current verified source and run configuration/database checks?"     "REBUILD-BOT" || return 1
+
+  compose stop bot >/dev/null 2>&1 || true
+  bash "$ROOT/scripts/verify.sh" || {
+    fail "Source verification failed; rebuild refused."
+    return 1
+  }
+  compose build bot || return 1
+
+  if volume_exists; then
+    compose up -d --wait postgres >/dev/null || return 1
+    compose run --rm --no-deps bot python -m app --check-config || return 1
+    compose run --rm --no-deps bot python -m app --check-db || return 1
+  fi
+
+  if [[ "$was_running" == "1" ]]; then
+    compose up -d --no-deps bot || return 1
+    ok "Bot image rebuilt, verified and restarted."
+  else
+    ok "Bot image rebuilt and verified. Bot remains stopped."
+  fi
+}
+
+repair_menu() {
+  local choice
+  while true; do
+    banner
+    cat <<'MENU'
+Repair / Diagnose
+
+[1] Run Doctor
+[2] Repair .env permissions
+[3] Rebuild and verify bot image
+[4] Restart bot safely
+[0] Back
+MENU
+    read -r -p "Select an option: " choice
+    case "$choice" in
+      1) doctor; pause_screen ;;
+      2) run_locked repair_env_permissions; pause_screen ;;
+      3) run_locked repair_rebuild_bot; pause_screen ;;
+      4) run_locked restart_bot; pause_screen ;;
+      0) return 0 ;;
+      *) warn "Invalid selection."; pause_screen ;;
+    esac
+  done
+}
+
 maintenance_menu() {
   local choice
   while true; do
