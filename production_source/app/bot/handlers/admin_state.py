@@ -10,6 +10,7 @@ SUPPORT_ADMIN_LIST_KEY = "phase10_support_admin_list"
 SUBSCRIPTION_ADMIN_ACTION_KEY = "phase17_subscription_admin_action"
 SIGNAL_ADMIN_ACTION_KEY = "phase20_signal_admin_action"
 SIGNAL_ADMIN_LIST_KEY = "phase20_signal_admin_list"
+STRATEGY_ADMIN_ACTION_KEY = "strategy_signal_admin_action"
 
 
 def clear_admin_input_state(context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -20,3 +21,4 @@ def clear_admin_input_state(context: ContextTypes.DEFAULT_TYPE) -> None:
     context.user_data.pop(SUPPORT_ADMIN_ACTION_KEY, None)
     context.user_data.pop(SUBSCRIPTION_ADMIN_ACTION_KEY, None)
     context.user_data.pop(SIGNAL_ADMIN_ACTION_KEY, None)
+    context.user_data.pop(STRATEGY_ADMIN_ACTION_KEY, None)

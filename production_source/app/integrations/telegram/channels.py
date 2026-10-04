@@ -39,6 +39,7 @@ class TelegramChannelGateway:
         reference: str,
         *,
         supplied_invite_link: str | None = None,
+        ensure_invite_link: bool = True,
     ) -> ResolvedTelegramChannel:
         chat_reference = parse_chat_reference(reference)
         try:
@@ -53,7 +54,7 @@ class TelegramChannelGateway:
                 raise TelegramChannelGatewayError("The bot must be an administrator in the channel")
 
             invite_link = supplied_invite_link or chat.invite_link
-            if chat.username is None and invite_link is None:
+            if ensure_invite_link and chat.username is None and invite_link is None:
                 created_invite = await self.bot.create_chat_invite_link(
                     chat.id,
                     name="Crypto Signal Bot",

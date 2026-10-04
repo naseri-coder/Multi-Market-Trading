@@ -8,6 +8,7 @@ from app.bot.keyboards.forward_broadcasts import FORWARD_BROADCAST_MANAGEMENT_BU
 from app.bot.keyboards.admin_signals import SIGNAL_MANAGEMENT_BUTTON
 from app.bot.keyboards.support import ADMIN_SUPPORT_BUTTON
 from app.bot.keyboards.subscriptions import SUBSCRIPTION_MANAGEMENT_BUTTON
+from app.bot.keyboards.strategy_management import STRATEGY_MANAGEMENT_BUTTON
 
 ADMIN_PANEL_BUTTON = "🛡 پنل مدیریت"
 ADMIN_DASHBOARD_BUTTON = "📊 آمار کاربران"
@@ -24,6 +25,7 @@ def build_admin_menu() -> ReplyKeyboardMarkup:
             [ADMIN_SUPPORT_BUTTON],
             [CHANNEL_MANAGEMENT_BUTTON],
             [SIGNAL_MANAGEMENT_BUTTON],
+            [STRATEGY_MANAGEMENT_BUTTON],
             [SUBSCRIPTION_MANAGEMENT_BUTTON],
             [ADMIN_BACK_BUTTON],
         ],

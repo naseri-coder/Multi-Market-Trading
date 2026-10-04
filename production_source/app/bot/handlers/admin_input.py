@@ -31,6 +31,10 @@ from app.bot.handlers.admin_signals import (
     has_pending_signal_admin_action,
     signal_admin_input_handler,
 )
+from app.bot.handlers.admin_strategy_management import (
+    has_pending_strategy_admin_action,
+    strategy_admin_input_handler,
+)
 from app.bot.middlewares.admin import admin_required
 
 
@@ -47,6 +51,8 @@ async def admin_input_router(
         await forward_broadcast_content_input_handler(update, context)
     elif has_pending_admin_support_action(context):
         await admin_support_input_handler(update, context)
+    elif has_pending_strategy_admin_action(context):
+        await strategy_admin_input_handler(update, context)
     elif has_pending_signal_admin_action(context):
         await signal_admin_input_handler(update, context)
     elif has_pending_subscription_admin_action(context):

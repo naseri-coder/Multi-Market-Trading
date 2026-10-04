@@ -16,6 +16,9 @@ from app.bot.handlers.admin_statistics import admin_dashboard_handler
 from app.bot.handlers.admin_signals import register_admin_signal_handlers
 from app.bot.handlers.admin_support import register_admin_support_handlers
 from app.bot.handlers.admin_subscriptions import register_admin_subscription_handlers
+from app.bot.handlers.admin_strategy_management import (
+    register_admin_strategy_management_handlers,
+)
 from app.bot.keyboards.admin import (
     ADMIN_BACK_BUTTON,
     ADMIN_DASHBOARD_BUTTON,
@@ -85,5 +88,6 @@ def register_admin_handlers(application: Application, admin_ids: Collection[int]
     register_admin_forward_broadcast_handlers(application, admin_ids)
     register_admin_support_handlers(application, admin_ids)
     register_admin_signal_handlers(application, admin_ids)
+    register_admin_strategy_management_handlers(application, admin_ids)
     register_admin_subscription_handlers(application, admin_ids)
     register_admin_input_handler(application, admin_ids)
