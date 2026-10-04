@@ -141,28 +141,40 @@ bash naseri.sh
 
 The final command opens the **NASERI CODER Bot Manager**. From there, choose **[1] Install Bot** for a fresh installation.
 
+The Manager uses a color-aware Terminal UI: healthy states are green, warnings/stopped states are yellow, errors and destructive actions are red, and informational sections are cyan. ANSI colors are disabled automatically for non-interactive output and can also be disabled explicitly with `NO_COLOR=1`.
+
 The main menu is:
 
 ```text
-[1]  Install Bot
-[2]  Update Bot
-[3]  Start Bot
-[4]  Stop Bot
-[5]  Restart Bot
-[6]  Bot Status
-[7]  View Logs
+INSTALLATION
+  [1]  Install Bot
+  [2]  Update Bot
 
-[8]  Configuration
-[9]  Environment Check
-[10] Database Management
-[11] Backup
-[12] Restore
-[13] Repair / Diagnose
-[14] Verify Installation
-[15] System Information
-[16] Uninstall / Remove Runtime
+RUNTIME
+  [3]  Start Bot
+  [4]  Stop Bot
+  [5]  Restart Bot
+  [6]  Bot Status
+  [7]  View Logs
 
-[0]  Exit
+SYSTEM
+  [8]  Configuration
+  [9]  Environment Check
+  [10] Database Management
+
+DATA
+  [11] Backup
+  [12] Restore
+
+MAINTENANCE
+  [13] Repair / Diagnose
+  [14] Verify Installation
+  [15] System Information
+
+DANGER ZONE
+  [16] Uninstall / Remove Runtime
+
+  [0]  Exit
 ```
 
 ### Fresh installation
