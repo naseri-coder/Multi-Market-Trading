@@ -53,7 +53,14 @@ manager_self_test() {
     }
   done
 
-  for path in     "$ROOT/naseri.sh"     "$ROOT/scripts/install.sh"     "$ROOT/scripts/manager.sh"     "$ROOT/scripts/lib/manager_common.sh"     "$ROOT/scripts/lib/manager_backup.sh"     "$ROOT/scripts/lib/manager_runtime.sh     scripts/test_manager.sh"; do
+  for path in \
+    "$ROOT/naseri.sh" \
+    "$ROOT/scripts/install.sh" \
+    "$ROOT/scripts/manager.sh" \
+    "$ROOT/scripts/lib/manager_common.sh" \
+    "$ROOT/scripts/lib/manager_backup.sh" \
+    "$ROOT/scripts/lib/manager_runtime.sh" \
+    "$ROOT/scripts/test_manager.sh"; do
     bash -n "$path"
   done
 
