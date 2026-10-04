@@ -46,14 +46,14 @@ HELP
 
 manager_self_test() {
   local required path
-  for required in     naseri.sh     scripts/install.sh     scripts/manager.sh     scripts/lib/manager_common.sh     scripts/lib/manager_backup.sh     scripts/lib/manager_runtime.sh     scripts/check_env.py     scripts/verify.sh     compose.yaml     pyproject.toml; do
+  for required in     naseri.sh     scripts/install.sh     scripts/manager.sh     scripts/lib/manager_common.sh     scripts/lib/manager_backup.sh     scripts/lib/manager_runtime.sh     scripts/test_manager.sh     scripts/check_env.py     scripts/verify.sh     compose.yaml     pyproject.toml; do
     [[ -s "$ROOT/$required" ]] || {
       printf 'MANAGER_SELF_TEST_FAIL missing=%s\n' "$required" >&2
       return 1
     }
   done
 
-  for path in     "$ROOT/naseri.sh"     "$ROOT/scripts/install.sh"     "$ROOT/scripts/manager.sh"     "$ROOT/scripts/lib/manager_common.sh"     "$ROOT/scripts/lib/manager_backup.sh"     "$ROOT/scripts/lib/manager_runtime.sh"; do
+  for path in     "$ROOT/naseri.sh"     "$ROOT/scripts/install.sh"     "$ROOT/scripts/manager.sh"     "$ROOT/scripts/lib/manager_common.sh"     "$ROOT/scripts/lib/manager_backup.sh"     "$ROOT/scripts/lib/manager_runtime.sh     scripts/test_manager.sh"; do
     bash -n "$path"
   done
 
