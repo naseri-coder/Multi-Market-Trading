@@ -235,16 +235,18 @@ configuration_menu() {
   local choice editor
   while true; do
     banner
+    ui_section "CONFIGURATION"
     cat <<'MENU'
-Configuration
-
 [1] Show safe configuration summary
 [2] Validate configuration
 [3] Edit .env with local editor
 [4] Create .env on a fresh configuration
 [0] Back
 MENU
-    read -r -p "Select an option: " choice
+    ui_rule
+    ui_prompt
+    printf 'Select an option: '
+    read -r choice
     case "$choice" in
       1) safe_config_summary; pause_screen ;;
       2) validate_current_config && ok "Configuration validation passed."; pause_screen ;;
@@ -286,8 +288,7 @@ doctor_check() {
 doctor() {
   local failures=0 available_kb
   banner
-  say "Doctor / Diagnose"
-  say
+  ui_section "DOCTOR / DIAGNOSE"
 
   doctor_check "Bash available" command_exists bash || ((failures+=1))
   doctor_check "Python 3 available" command_exists python3 || ((failures+=1))
@@ -367,7 +368,7 @@ verify_installation() {
 
 system_information() {
   banner
-  say "System Information"
+  ui_section "SYSTEM INFORMATION"
   printf '  OS...................... %s\n' "$(uname -srm 2>/dev/null || printf unknown)"
   printf '  Architecture............ %s\n' "$(uname -m 2>/dev/null || printf unknown)"
   if command_exists nproc; then
@@ -387,9 +388,8 @@ uninstall_bot() {
   local choice
   check_compose_prereqs || return 1
   banner
+  ui_section_danger "UNINSTALL / REMOVE RUNTIME"
   cat <<'MENU'
-Uninstall / Remove Runtime
-
 [1] Remove bot container only
     Keep PostgreSQL, database volume, .env, backups and source.
 
@@ -402,7 +402,10 @@ Uninstall / Remove Runtime
 
 [0] Cancel
 MENU
-  read -r -p "Select an option: " choice
+  ui_rule
+  ui_prompt
+  printf 'Select an option: '
+  read -r choice
   case "$choice" in
     1)
       confirm_phrase "Remove only the bot container?" "REMOVE-BOT" || return 1
@@ -434,8 +437,7 @@ MENU
 environment_check() {
   local failures=0 mode_bits
   banner
-  say "Environment Check"
-  say
+  ui_section "ENVIRONMENT CHECK"
 
   for cmd in bash python3 sha256sum git; do
     if command_exists "$cmd"; then
@@ -556,9 +558,8 @@ database_menu() {
   local choice dir
   while true; do
     banner
+    ui_section "DATABASE MANAGEMENT"
     cat <<'MENU'
-Database Management
-
 [1] Database status
 [2] Show current migration / head
 [3] Upgrade database to Alembic head
@@ -566,7 +567,10 @@ Database Management
 [5] Restore database backup
 [0] Back
 MENU
-    read -r -p "Select an option: " choice
+    ui_rule
+    ui_prompt
+    printf 'Select an option: '
+    read -r choice
     case "$choice" in
       1) database_status; pause_screen ;;
       2) database_migrations; pause_screen ;;
@@ -625,16 +629,18 @@ repair_menu() {
   local choice
   while true; do
     banner
+    ui_section "REPAIR / DIAGNOSE"
     cat <<'MENU'
-Repair / Diagnose
-
 [1] Run Doctor
 [2] Repair .env permissions
 [3] Rebuild and verify bot image
 [4] Restart bot safely
 [0] Back
 MENU
-    read -r -p "Select an option: " choice
+    ui_rule
+    ui_prompt
+    printf 'Select an option: '
+    read -r choice
     case "$choice" in
       1) doctor; pause_screen ;;
       2) run_locked repair_env_permissions; pause_screen ;;
@@ -650,9 +656,8 @@ maintenance_menu() {
   local choice
   while true; do
     banner
+    ui_section "MAINTENANCE"
     cat <<'MENU'
-Maintenance
-
 [1] Doctor / Diagnose
 [2] Verify installation
 [3] Show system information
@@ -660,7 +665,10 @@ Maintenance
 [5] Show status
 [0] Back
 MENU
-    read -r -p "Select an option: " choice
+    ui_rule
+    ui_prompt
+    printf 'Select an option: '
+    read -r choice
     case "$choice" in
       1) doctor; pause_screen ;;
       2) verify_installation; pause_screen ;;
