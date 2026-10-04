@@ -10,33 +10,166 @@ OFFICIAL_SSH_REMOTE="git@github.com:naseri-coder/crypto-price-action.git"
 BACKUP_ROOT="${ROOT}/.naseri-backups"
 LOCK_DIR="${TMPDIR:-/tmp}/naseri-${PROJECT_NAME}-${UID}.lock"
 
-c_reset=$'\033[0m'
-c_bold=$'\033[1m'
-c_green=$'\033[32m'
-c_yellow=$'\033[33m'
-c_red=$'\033[31m'
-c_cyan=$'\033[36m'
+# Terminal UI v2: color is enabled only for an interactive terminal and can be
+# disabled explicitly with NO_COLOR=1. Unicode decorations have an ASCII
+# fallback for minimal shells and redirected output.
+UI_COLOR=0
+if [[ -t 1 && -z "${NO_COLOR:-}" && "${TERM:-dumb}" != "dumb" ]]; then
+  UI_COLOR=1
+fi
+
+UI_UNICODE=0
+case "${LC_ALL:-${LC_CTYPE:-${LANG:-}}}" in
+  *UTF-8*|*utf8*|*UTF8*) UI_UNICODE=1 ;;
+esac
+
+if [[ "$UI_COLOR" == "1" ]]; then
+  c_reset=$'\033[0m'
+  c_bold=$'\033[1m'
+  c_dim=$'\033[2m'
+  c_green=$'\033[32m'
+  c_yellow=$'\033[33m'
+  c_red=$'\033[31m'
+  c_cyan=$'\033[36m'
+  c_white=$'\033[97m'
+else
+  c_reset=""
+  c_bold=""
+  c_dim=""
+  c_green=""
+  c_yellow=""
+  c_red=""
+  c_cyan=""
+  c_white=""
+fi
+
+if [[ "$UI_UNICODE" == "1" ]]; then
+  ui_mark_ok="✓"
+  ui_mark_warn="!"
+  ui_mark_fail="✗"
+  ui_mark_info="●"
+  ui_mark_off="○"
+  ui_arrow="›"
+  ui_rule_char="─"
+else
+  ui_mark_ok="+"
+  ui_mark_warn="!"
+  ui_mark_fail="x"
+  ui_mark_info="*"
+  ui_mark_off="o"
+  ui_arrow=">"
+  ui_rule_char="-"
+fi
 
 say() { printf '%s\n' "$*"; }
-info() { printf '%s[INFO]%s %s\n' "$c_cyan" "$c_reset" "$*"; }
-ok() { printf '%s[PASS]%s %s\n' "$c_green" "$c_reset" "$*"; }
-warn() { printf '%s[WARN]%s %s\n' "$c_yellow" "$c_reset" "$*"; }
-fail() { printf '%s[FAIL]%s %s\n' "$c_red" "$c_reset" "$*" >&2; }
+info() { printf '%s%s INFO%s  %s\n' "$c_cyan" "$ui_mark_info" "$c_reset" "$*"; }
+ok() { printf '%s%s PASS%s  %s\n' "$c_green" "$ui_mark_ok" "$c_reset" "$*"; }
+warn() { printf '%s%s WARN%s  %s\n' "$c_yellow" "$ui_mark_warn" "$c_reset" "$*"; }
+fail() { printf '%s%s FAIL%s  %s\n' "$c_red" "$ui_mark_fail" "$c_reset" "$*" >&2; }
 die() { fail "$*"; return 1; }
 
 is_tty() { [[ -t 0 && -t 1 ]]; }
 
+terminal_width() {
+  local cols
+  cols="$(tput cols 2>/dev/null || true)"
+  [[ "$cols" =~ ^[0-9]+$ ]] || cols=68
+  (( cols < 60 )) && cols=60
+  (( cols > 78 )) && cols=78
+  printf '%s' "$cols"
+}
+
+ui_rule() {
+  local width line
+  width="$(terminal_width)"
+  printf -v line '%*s' "$width" ''
+  line="${line// /$ui_rule_char}"
+  printf '%s%s%s\n' "$c_dim" "$line" "$c_reset"
+}
+
+ui_section() {
+  printf '\n%s%s%s\n' "$c_bold$c_cyan" "$1" "$c_reset"
+}
+
+ui_section_danger() {
+  printf '\n%s%s%s\n' "$c_bold$c_red" "$1" "$c_reset"
+}
+
+ui_kv() {
+  local label="$1" value="$2"
+  printf '  %-24s %s\n' "$label" "$value"
+}
+
+ui_render_state() {
+  local value="$1" normalized
+  normalized="${value^^}"
+  case "$normalized" in
+    RUNNING|READY|PRESENT|PASS|PASSED|SUCCESS|CURRENT|HEALTHY|ENABLED|VALID)
+      printf '%s%s %s%s' "$c_green" "$ui_mark_info" "$normalized" "$c_reset"
+      ;;
+    STOPPED|DISABLED|ABSENT|NOT_INSTALLED|PENDING|CONFIGURED_NOT_INSTALLED)
+      printf '%s%s %s%s' "$c_yellow" "$ui_mark_off" "$normalized" "$c_reset"
+      ;;
+    FAILED|FAIL|ERROR|UNAVAILABLE|CONFIGURED_DOCKER_UNAVAILABLE|INVALID)
+      printf '%s%s %s%s' "$c_red" "$ui_mark_fail" "$normalized" "$c_reset"
+      ;;
+    *)
+      printf '%s%s%s' "$c_cyan" "$value" "$c_reset"
+      ;;
+  esac
+}
+
+ui_state_line() {
+  local label="$1" state="$2"
+  printf '  %-24s ' "$label"
+  ui_render_state "$state"
+  printf '\n'
+}
+
+ui_bool_state() {
+  case "$1" in
+    true) printf 'ENABLED' ;;
+    false) printf 'DISABLED' ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
+ui_step() {
+  local current="$1" total="$2" label="$3"
+  printf '%s[%s/%s]%s %s...\n' "$c_cyan" "$current" "$total" "$c_reset" "$label"
+}
+
+ui_step_done() {
+  printf '%s%s%s %s\n' "$c_green" "$ui_mark_ok" "$c_reset" "$1"
+}
+
+ui_notice() {
+  local level="$1" message="$2"
+  ui_rule
+  case "$level" in
+    DANGER) printf '%s%s%s\n' "$c_bold$c_red" "$message" "$c_reset" ;;
+    WARNING) printf '%s%s%s\n' "$c_bold$c_yellow" "$message" "$c_reset" ;;
+    *) printf '%s%s%s\n' "$c_bold$c_cyan" "$message" "$c_reset" ;;
+  esac
+  ui_rule
+}
+
+ui_prompt() {
+  printf '%s%s%s ' "$c_bold$c_cyan" "$ui_arrow" "$c_reset"
+}
+
 pause_screen() {
   is_tty || return 0
-  printf '\nPress Enter to continue...'
+  printf '\n%sPress Enter to continue...%s' "$c_dim" "$c_reset"
   read -r _
 }
 
 confirm_phrase() {
   local prompt="$1" expected="$2" answer
   is_tty || { fail "Interactive confirmation required."; return 1; }
-  printf '%s\n' "$prompt"
-  read -r -p "Type ${expected} to continue: " answer
+  ui_notice "WARNING" "$prompt"
+  printf 'Type %s%s%s to continue: ' "$c_bold" "$expected" "$c_reset"
+  read -r answer
   [[ "$answer" == "$expected" ]] || { warn "Cancelled."; return 1; }
 }
 
@@ -164,36 +297,49 @@ banner() {
   state="$(installation_state)"
   branch="$(git_branch)"
   sha="$(git_short_sha)"
-  command -v clear >/dev/null 2>&1 && clear || true
-  printf '%s' "$c_bold"
-  cat <<'BANNER'
-╔════════════════════════════════════════════════════════════╗
-║                        NASERI CODER                        ║
-║              Crypto Price Action Bot Manager              ║
-╚════════════════════════════════════════════════════════════╝
-BANNER
-  printf '%s' "$c_reset"
-  printf 'Project : %s\n' "$PROJECT_URL"
-  printf 'Version : %s\n' "${version:-unknown}"
-  printf 'Branch  : %s @ %s\n' "$branch" "$sha"
-  printf 'State   : %s\n' "$state"
-  printf '%s\n' '────────────────────────────────────────────────────────────'
+
+  if is_tty && command -v clear >/dev/null 2>&1; then
+    clear
+  fi
+
+  if [[ "$UI_UNICODE" == "1" ]]; then
+    printf '%s%s╔══════════════════════════════════════════════════════════════╗%s\n' "$c_bold" "$c_cyan" "$c_reset"
+    printf '%s%s║                        NASERI CODER                          ║%s\n' "$c_bold" "$c_white" "$c_reset"
+    printf '%s%s║              Crypto Price Action Manager                    ║%s\n' "$c_bold" "$c_cyan" "$c_reset"
+    printf '%s%s╚══════════════════════════════════════════════════════════════╝%s\n' "$c_bold" "$c_cyan" "$c_reset"
+  else
+    printf '%s%s+--------------------------------------------------------------+%s\n' "$c_bold" "$c_cyan" "$c_reset"
+    printf '%s%s|                        NASERI CODER                          |%s\n' "$c_bold" "$c_white" "$c_reset"
+    printf '%s%s|              Crypto Price Action Manager                    |%s\n' "$c_bold" "$c_cyan" "$c_reset"
+    printf '%s%s+--------------------------------------------------------------+%s\n' "$c_bold" "$c_cyan" "$c_reset"
+  fi
+
+  printf '\n'
+  ui_kv "Repository" "$PROJECT_URL"
+  ui_kv "Version" "${version:-unknown}"
+  ui_kv "Branch" "$branch @ $sha"
+  printf '  %-24s ' "State"
+  ui_render_state "$state"
+  printf '\n'
+  ui_rule
 }
 
 safe_config_summary() {
   env_file_valid_shape || { warn "No .env file is present."; return 0; }
-  say "Safe configuration summary (secret values are never displayed):"
-  printf '  APP_ENV................ %s\n' "$(env_value APP_ENV)"
-  printf '  Telegram runtime....... %s\n' "$(env_value TELEGRAM_RUNTIME_ENABLED)"
-  printf '  Brooks runtime......... %s\n' "$(env_value BROOKS_RUNTIME_ENABLED)"
-  printf '  Brooks mode............ %s\n' "$(env_value BROOKS_RUNTIME_MODE)"
-  printf '  Brooks operations...... %s\n' "$(env_value BROOKS_OPERATIONS_ENABLED)"
-  printf '  Paper runtime.......... %s\n' "$(env_value PAPER_RUNTIME_ENABLED)"
-  printf '  Performance reports.... %s\n' "$(env_value PERFORMANCE_REPORTS_ENABLED)"
-  printf '  Exchange / market...... %s / %s\n' "$(env_value BROOKS_EXCHANGE)" "$(env_value BROOKS_MARKET_TYPE)"
-  printf '  Symbols................ %s\n' "$(env_value BROOKS_SYMBOLS)"
-  printf '  Timeframes............. %s\n' "$(env_value BROOKS_TIMEFRAMES)"
-  printf '  Scale-in............... %s\n' "$(env_value BROOKS_SCALE_IN_MODE)"
+
+  ui_section "CONFIGURATION"
+  printf '  %sSecret values are never displayed.%s\n' "$c_dim" "$c_reset"
+  ui_kv "APP_ENV" "$(env_value APP_ENV)"
+  ui_state_line "Telegram runtime" "$(ui_bool_state "$(env_value TELEGRAM_RUNTIME_ENABLED)")"
+  ui_state_line "Brooks runtime" "$(ui_bool_state "$(env_value BROOKS_RUNTIME_ENABLED)")"
+  ui_kv "Brooks mode" "$(env_value BROOKS_RUNTIME_MODE)"
+  ui_state_line "Brooks operations" "$(ui_bool_state "$(env_value BROOKS_OPERATIONS_ENABLED)")"
+  ui_state_line "Paper runtime" "$(ui_bool_state "$(env_value PAPER_RUNTIME_ENABLED)")"
+  ui_state_line "Performance reports" "$(ui_bool_state "$(env_value PERFORMANCE_REPORTS_ENABLED)")"
+  ui_kv "Exchange / market" "$(env_value BROOKS_EXCHANGE) / $(env_value BROOKS_MARKET_TYPE)"
+  ui_kv "Symbols" "$(env_value BROOKS_SYMBOLS)"
+  ui_kv "Timeframes" "$(env_value BROOKS_TIMEFRAMES)"
+  ui_kv "Scale-in" "$(env_value BROOKS_SCALE_IN_MODE)"
 }
 
 detect_validation_mode() {
@@ -225,12 +371,14 @@ validate_current_config() {
   fi
 
   if docker_ready && docker image inspect "crypto-price-action:${RELEASE_TAG:-v$(project_version)}" >/dev/null 2>&1; then
-    compose run --rm --no-deps bot       python release_tools/validate_release_config.py --from-environment --mode "$mode"
+    compose run --rm --no-deps bot \
+      python release_tools/validate_release_config.py --from-environment --mode "$mode"
     return $?
   fi
 
   if PYTHONPATH="$ROOT/production_source" python3 -c 'import pydantic_settings' >/dev/null 2>&1; then
-    PYTHONPATH="$ROOT/production_source" python3 "$ROOT/scripts/validate_release_config.py"       --env-file "$ROOT/.env" --mode "$mode"
+    PYTHONPATH="$ROOT/production_source" python3 "$ROOT/scripts/validate_release_config.py" \
+      --env-file "$ROOT/.env" --mode "$mode"
     return $?
   fi
 
