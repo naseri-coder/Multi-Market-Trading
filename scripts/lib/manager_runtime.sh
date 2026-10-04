@@ -452,17 +452,27 @@ environment_check() {
 
 database_status() {
   check_compose_prereqs || return 1
-  volume_exists || { warn "Database volume does not exist yet."; return 0; }
-  if postgres_running; then
-    ok "PostgreSQL is running."
+  if volume_exists; then
+    ok "Database volume exists."
   else
-    warn "PostgreSQL is stopped."
+    warn "Database volume does not exist yet."
+    return 0
   fi
+  postgres_running && ok "PostgreSQL is running." || warn "PostgreSQL is stopped."
+}
+
+database_migrations() {
+  check_compose_prereqs || return 1
+  volume_exists || { warn "Database volume does not exist yet."; return 0; }
+
+  info "Repository migration head:"
+  compose run --rm --no-deps bot python -m alembic -c alembic.ini heads || return 1
+
   if postgres_running; then
-    info "Current migration revision:"
+    info "Current database revision:"
     compose run --rm --no-deps bot python -m alembic -c alembic.ini current
-    info "Repository migration head:"
-    compose run --rm --no-deps bot python -m alembic -c alembic.ini heads
+  else
+    warn "PostgreSQL is stopped; current database revision was not queried."
   fi
 }
 
@@ -530,7 +540,7 @@ MENU
     read -r -p "Select an option: " choice
     case "$choice" in
       1) database_status; pause_screen ;;
-      2) database_status; pause_screen ;;
+      2) database_migrations; pause_screen ;;
       3) run_locked database_upgrade_head; pause_screen ;;
       4) run_locked create_backup "manual-db" "database"; pause_screen ;;
       5)
