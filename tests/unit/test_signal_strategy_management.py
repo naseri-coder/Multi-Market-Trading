@@ -17,6 +17,8 @@ from app.modules.signal_strategies.errors import (
     SignalStrategyEngineNotReadyError,
 )
 from app.modules.signal_strategies.publisher import TelegramStrategyVipPublisher
+from app.modules.fm_runtime.coordinator import FMRuntimeCoordinator
+from app.modules.fm_runtime.registry import FMEngineRegistry
 from app.modules.signal_strategies.service import SignalStrategyService
 
 NOW = datetime(2026, 10, 4, tzinfo=UTC)
@@ -79,6 +81,11 @@ class _Repo:
             private_channel_title=None,
             private_channel_username=None,
         )
+        return self.record
+
+    async def set_engine_ready(self, strategy_code: str, ready: bool):
+        assert strategy_code == self.record.strategy_code
+        self.record = replace(self.record, engine_ready=ready)
         return self.record
 
 
@@ -147,3 +154,99 @@ def test_strategy_publisher_reuses_exact_existing_vip_caption() -> None:
     assert TelegramStrategyVipPublisher._caption(payload) == (
         TelegramLiveVipPublisher._caption(payload)
     )
+
+
+class _FakeFMEngine:
+    engine_id = "fm-test-engine"
+    engine_version = "0.0.test"
+
+    def __init__(self) -> None:
+        self.started_contexts = []
+        self.shutdown_calls = 0
+
+    async def start(self, context) -> None:
+        self.started_contexts.append(context)
+
+    async def shutdown(self) -> None:
+        self.shutdown_calls += 1
+
+
+def test_fm_registry_is_fail_closed_until_engine_is_registered() -> None:
+    registry = FMEngineRegistry()
+    assert registry.ready is False
+    assert registry.get() is None
+
+    engine = _FakeFMEngine()
+    registry.register(engine)
+
+    assert registry.ready is True
+    assert registry.get() is engine
+
+
+@pytest.mark.asyncio
+async def test_fm_coordinator_starts_only_on_effective_fm_route(monkeypatch) -> None:
+    registry = FMEngineRegistry()
+    engine = _FakeFMEngine()
+    registry.register(engine)
+    coordinator = FMRuntimeCoordinator(database=object(), registry=registry)
+
+    route = _record(
+        code="FM",
+        enabled=True,
+        engine_ready=True,
+        channel_id=-100222,
+    )
+
+    async def _route():
+        return route
+
+    async def _sync(ready: bool):
+        assert ready is True
+        return route
+
+    monkeypatch.setattr(coordinator, "_load_route", _route)
+    monkeypatch.setattr(coordinator, "_sync_engine_ready", _sync)
+
+    application = SimpleNamespace(bot=object())
+    coordinator._application = application
+    await coordinator._reconcile_once()
+
+    assert len(engine.started_contexts) == 1
+    assert engine.started_contexts[0].private_channel_id == -100222
+
+
+@pytest.mark.asyncio
+async def test_fm_coordinator_does_not_start_when_route_disabled(monkeypatch) -> None:
+    registry = FMEngineRegistry()
+    engine = _FakeFMEngine()
+    registry.register(engine)
+    coordinator = FMRuntimeCoordinator(database=object(), registry=registry)
+
+    route = _record(
+        code="FM",
+        enabled=False,
+        engine_ready=True,
+        channel_id=-100222,
+    )
+
+    async def _route():
+        return route
+
+    monkeypatch.setattr(coordinator, "_load_route", _route)
+    coordinator._application = SimpleNamespace(bot=object())
+    await coordinator._reconcile_once()
+
+    assert engine.started_contexts == []
+
+
+def test_fm_runtime_has_no_brooks_imports() -> None:
+    from pathlib import Path
+    import app.modules.fm_runtime as fm_runtime
+
+    package = Path(fm_runtime.__file__).resolve().parent
+    source = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in sorted(package.glob("*.py"))
+    )
+    assert "app.modules.brooks_" not in source
+    assert "BrooksFullCore" not in source

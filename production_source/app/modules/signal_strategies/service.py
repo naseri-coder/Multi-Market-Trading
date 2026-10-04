@@ -86,3 +86,12 @@ class SignalStrategyService:
     async def effective_channel_id(self, strategy_code: str) -> int | None:
         item = await self.get(strategy_code)
         return item.private_channel_id if item.effective_enabled else None
+
+    async def set_engine_ready(
+        self, strategy_code: str, *, ready: bool
+    ) -> SignalStrategyRecord:
+        """Synchronize machine-owned engine readiness without changing admin state."""
+        return await self.repository.set_engine_ready(
+            self._code(strategy_code),
+            bool(ready),
+        )

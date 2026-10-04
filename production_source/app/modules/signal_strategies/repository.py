@@ -31,6 +31,9 @@ class SignalStrategyRepository(Protocol):
     async def clear_channel(
         self, strategy_code: str, *, updated_by_telegram_user_id: int
     ) -> SignalStrategyRecord: ...
+    async def set_engine_ready(
+        self, strategy_code: str, ready: bool
+    ) -> SignalStrategyRecord: ...
 
 
 def _record(model: SignalStrategyConfig) -> SignalStrategyRecord:
@@ -130,3 +133,8 @@ class SQLAlchemySignalStrategyRepository:
             private_channel_username=None,
             updated_by_telegram_user_id=updated_by_telegram_user_id,
         )
+
+    async def set_engine_ready(
+        self, strategy_code: str, ready: bool
+    ) -> SignalStrategyRecord:
+        return await self._update(strategy_code, engine_ready=ready)
