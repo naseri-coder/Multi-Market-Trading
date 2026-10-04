@@ -61,7 +61,7 @@ def test_application_factory_registers_phase_twenty_handlers(
     assert application.bot_data["broadcast_max_retries"] == 2
     assert application.bot_data["broadcast_retry_after_cap_seconds"] == 60
     handlers = application.handlers[0]
-    assert len(handlers) == 74
+    assert len(handlers) == 78
     assert isinstance(handlers[0], CommandHandler)
     assert isinstance(handlers[1], CommandHandler)
     assert isinstance(handlers[2], MessageHandler)
