@@ -65,6 +65,10 @@ manager_self_test() {
   grep -Fq 'DELETE-RUNTIME-DATA' "$ROOT/scripts/lib/manager_runtime.sh"
   grep -Fq 'pg_dump' "$ROOT/scripts/lib/manager_backup.sh"
   grep -Fq 'pg_restore' "$ROOT/scripts/lib/manager_backup.sh"
+  grep -Fq '[9]  Environment Check' "$ROOT/scripts/manager.sh"
+  grep -Fq '[10] Database Management' "$ROOT/scripts/manager.sh"
+  grep -Fq '[13] Repair / Diagnose' "$ROOT/scripts/manager.sh"
+  grep -Fq '[16] Uninstall / Remove Runtime' "$ROOT/scripts/manager.sh"
   printf 'MANAGER_SELF_TEST_PASS version=%s\n' "$(project_version)"
 }
 
