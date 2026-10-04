@@ -8,12 +8,17 @@ timestamp_utc() {
 }
 
 new_backup_dir() {
-  local label="${1:-manual}" stamp
+  local label="${1:-manual}" stamp base dir suffix=0
   stamp="$(timestamp_utc)"
   mkdir -p "$BACKUP_ROOT"
   chmod 700 "$BACKUP_ROOT"
-  local dir="$BACKUP_ROOT/${stamp}-${label}"
-  mkdir -m 700 "$dir"
+  base="$BACKUP_ROOT/${stamp}-${label}"
+  dir="$base"
+  while ! mkdir -m 700 "$dir" 2>/dev/null; do
+    ((suffix+=1))
+    (( suffix <= 100 )) || { fail "Could not allocate a unique backup directory."; return 1; }
+    dir="${base}-${suffix}"
+  done
   printf '%s' "$dir"
 }
 
@@ -110,9 +115,12 @@ list_backups() {
   [[ "$found" == 1 ]] || say "  (none)"
 }
 
+SELECTED_BACKUP_DIR=""
+
 select_backup_dir() {
   local -a dirs=()
   local path choice i=1
+  SELECTED_BACKUP_DIR=""
   while IFS= read -r -d '' path; do
     dirs+=("$path")
   done < <(find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d -print0 2>/dev/null | sort -z -r)
@@ -128,7 +136,8 @@ select_backup_dir() {
   read -r -p "Backup number: " choice
   [[ "$choice" =~ ^[0-9]+$ ]] || return 1
   (( choice >= 1 && choice <= ${#dirs[@]} )) || return 1
-  printf '%s' "${dirs[choice-1]}"
+  SELECTED_BACKUP_DIR="${dirs[choice-1]}"
+  return 0
 }
 
 restore_database_from_dir() {
@@ -152,7 +161,9 @@ restore_database_from_dir() {
   compose up -d --wait postgres >/dev/null || return 1
 
   info "Restoring database. Existing objects may be replaced..."
-  if ! cat "$dir/database.dump" | compose exec -T postgres sh -c     'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists --no-owner --no-privileges'; then
+  if ! compose exec -T postgres sh -c \
+    'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists --no-owner --no-privileges' \
+    < "$dir/database.dump"; then
     fail "Database restore failed. Bot remains stopped; use the pre-restore backup to recover."
     return 1
   fi
@@ -238,10 +249,10 @@ MENU
     printf 'Select an option: '
     read -r choice
     case "$choice" in
-      1) run_locked create_backup "manual" "full"; pause_screen ;;
-      2) run_locked create_backup "manual-db" "database"; pause_screen ;;
-      3) run_locked create_backup "manual-config" "config"; pause_screen ;;
-      4) list_backups; pause_screen ;;
+      1) menu_locked_action create_backup "manual" "full" ;;
+      2) menu_locked_action create_backup "manual-db" "database" ;;
+      3) menu_locked_action create_backup "manual-config" "config" ;;
+      4) menu_action list_backups ;;
       0) return 0 ;;
       *) warn "Invalid selection."; pause_screen ;;
     esac
@@ -265,14 +276,20 @@ MENU
     read -r choice
     case "$choice" in
       1)
-        dir="$(select_backup_dir)" && run_locked restore_database_from_dir "$dir"
-        pause_screen
+        if select_backup_dir; then
+          menu_locked_action restore_database_from_dir "$SELECTED_BACKUP_DIR"
+        else
+          menu_action false
+        fi
         ;;
       2)
-        dir="$(select_backup_dir)" && run_locked restore_config_from_dir "$dir"
-        pause_screen
+        if select_backup_dir; then
+          menu_locked_action restore_config_from_dir "$SELECTED_BACKUP_DIR"
+        else
+          menu_action false
+        fi
         ;;
-      3) list_backups; pause_screen ;;
+      3) menu_action list_backups ;;
       0) return 0 ;;
       *) warn "Invalid selection."; pause_screen ;;
     esac
@@ -298,17 +315,23 @@ MENU
     printf 'Select an option: '
     read -r choice
     case "$choice" in
-      1) run_locked create_backup "manual" "full"; pause_screen ;;
-      2) run_locked create_backup "manual-db" "database"; pause_screen ;;
-      3) run_locked create_backup "manual-config" "config"; pause_screen ;;
-      4) list_backups; pause_screen ;;
+      1) menu_locked_action create_backup "manual" "full" ;;
+      2) menu_locked_action create_backup "manual-db" "database" ;;
+      3) menu_locked_action create_backup "manual-config" "config" ;;
+      4) menu_action list_backups ;;
       5)
-        dir="$(select_backup_dir)" && run_locked restore_database_from_dir "$dir"
-        pause_screen
+        if select_backup_dir; then
+          menu_locked_action restore_database_from_dir "$SELECTED_BACKUP_DIR"
+        else
+          menu_action false
+        fi
         ;;
       6)
-        dir="$(select_backup_dir)" && run_locked restore_config_from_dir "$dir"
-        pause_screen
+        if select_backup_dir; then
+          menu_locked_action restore_config_from_dir "$SELECTED_BACKUP_DIR"
+        else
+          menu_action false
+        fi
         ;;
       0) return 0 ;;
       *) warn "Invalid selection."; pause_screen ;;

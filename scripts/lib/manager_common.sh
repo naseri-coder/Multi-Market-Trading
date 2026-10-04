@@ -8,11 +8,11 @@ PROJECT_URL="https://github.com/naseri-coder/crypto-price-action"
 OFFICIAL_HTTPS_REMOTE="https://github.com/naseri-coder/crypto-price-action.git"
 OFFICIAL_SSH_REMOTE="git@github.com:naseri-coder/crypto-price-action.git"
 BACKUP_ROOT="${ROOT}/.naseri-backups"
-LOCK_DIR="${TMPDIR:-/tmp}/naseri-${PROJECT_NAME}-${UID}.lock"
+LOCK_FILE="${TMPDIR:-/tmp}/naseri-${PROJECT_NAME}-${UID}.lock.v2"
+LOCK_DIR="${TMPDIR:-/tmp}/naseri-${PROJECT_NAME}-${UID}.lockdir.v2"
 
-# Terminal UI v2: color is enabled only for an interactive terminal and can be
-# disabled explicitly with NO_COLOR=1. Unicode decorations have an ASCII
-# fallback for minimal shells and redirected output.
+# Terminal UI: color is enabled only for an interactive terminal and can be
+# disabled explicitly with NO_COLOR. Unicode decorations fall back to ASCII.
 UI_COLOR=0
 if [[ -t 1 && -z "${NO_COLOR:-}" && "${TERM:-dumb}" != "dumb" ]]; then
   UI_COLOR=1
@@ -76,7 +76,7 @@ terminal_width() {
   local cols
   cols="$(tput cols 2>/dev/null || true)"
   [[ "$cols" =~ ^[0-9]+$ ]] || cols=68
-  (( cols < 60 )) && cols=60
+  (( cols < 40 )) && cols=40
   (( cols > 78 )) && cols=78
   printf '%s' "$cols"
 }
@@ -109,10 +109,10 @@ ui_render_state() {
     RUNNING|READY|PRESENT|PASS|PASSED|SUCCESS|CURRENT|HEALTHY|ENABLED|VALID)
       printf '%s%s %s%s' "$c_green" "$ui_mark_info" "$normalized" "$c_reset"
       ;;
-    STOPPED|DISABLED|ABSENT|NOT_INSTALLED|PENDING|CONFIGURED_NOT_INSTALLED)
+    STOPPED|INSTALLED_STOPPED|DISABLED|ABSENT|NOT_INSTALLED|PENDING|CONFIGURED_NOT_INSTALLED)
       printf '%s%s %s%s' "$c_yellow" "$ui_mark_off" "$normalized" "$c_reset"
       ;;
-    FAILED|FAIL|ERROR|UNAVAILABLE|CONFIGURED_DOCKER_UNAVAILABLE|INVALID)
+    FAILED|FAIL|ERROR|UNAVAILABLE|CONFIGURED_DOCKER_UNAVAILABLE|RECOVERY_REQUIRED|INVALID)
       printf '%s%s %s%s' "$c_red" "$ui_mark_fail" "$normalized" "$c_reset"
       ;;
     *)
@@ -130,8 +130,8 @@ ui_state_line() {
 
 ui_bool_state() {
   case "$1" in
-    true) printf 'ENABLED' ;;
-    false) printf 'DISABLED' ;;
+    true|enabled) printf 'ENABLED' ;;
+    false|disabled) printf 'DISABLED' ;;
     *) printf '%s' "$1" ;;
   esac
 }
@@ -163,7 +163,7 @@ ui_prompt() {
 pause_screen() {
   is_tty || return 0
   printf '\n%sPress Enter to continue...%s' "$c_dim" "$c_reset"
-  read -r _
+  read -r _ || true
 }
 
 confirm_phrase() {
@@ -171,8 +171,26 @@ confirm_phrase() {
   is_tty || { fail "Interactive confirmation required."; return 1; }
   ui_notice "WARNING" "$prompt"
   printf 'Type %s%s%s to continue: ' "$c_bold" "$expected" "$c_reset"
-  read -r answer
+  read -r answer || { warn "Cancelled."; return 1; }
   [[ "$answer" == "$expected" ]] || { warn "Cancelled."; return 1; }
+}
+
+# Interactive menus must never disappear just because an operation returns a
+# non-zero status. Direct command mode still propagates failures normally.
+menu_action() {
+  local rc=0
+  if "$@"; then
+    rc=0
+  else
+    rc=$?
+    warn "Operation did not complete (exit code $rc). Manager remains open."
+  fi
+  pause_screen
+  return 0
+}
+
+menu_locked_action() {
+  menu_action run_locked "$@"
 }
 
 command_exists() { command -v "$1" >/dev/null 2>&1; }
@@ -247,16 +265,25 @@ bot_running() { service_running bot; }
 postgres_running() { service_running postgres; }
 
 installation_state() {
-  if ! env_file_valid_shape; then
-    printf '%s' "NOT_INSTALLED"
-  elif ! docker_ready; then
+  local has_env=0
+  env_file_valid_shape && has_env=1
+
+  if docker_ready; then
+    if volume_exists && [[ "$has_env" == "0" ]]; then
+      printf '%s' "RECOVERY_REQUIRED"
+    elif bot_running; then
+      printf '%s' "RUNNING"
+    elif volume_exists; then
+      printf '%s' "INSTALLED_STOPPED"
+    elif [[ "$has_env" == "1" ]]; then
+      printf '%s' "CONFIGURED_NOT_INSTALLED"
+    else
+      printf '%s' "NOT_INSTALLED"
+    fi
+  elif [[ "$has_env" == "1" ]]; then
     printf '%s' "CONFIGURED_DOCKER_UNAVAILABLE"
-  elif bot_running; then
-    printf '%s' "RUNNING"
-  elif volume_exists; then
-    printf '%s' "INSTALLED_STOPPED"
   else
-    printf '%s' "CONFIGURED_NOT_INSTALLED"
+    printf '%s' "NOT_INSTALLED"
   fi
 }
 
@@ -279,41 +306,91 @@ check_compose_prereqs() {
   compose config --quiet >/dev/null || { fail "Compose configuration validation failed."; return 1; }
 }
 
-run_locked() {
-  local rc
+_run_with_dir_lock() (
+  local rc=0 owner=""
   if ! mkdir "$LOCK_DIR" 2>/dev/null; then
-    fail "Another NASERI CODER manager operation appears to be running."
-    return 1
+    if [[ -f "$LOCK_DIR/owner.pid" && ! -L "$LOCK_DIR/owner.pid" ]]; then
+      owner="$(cat "$LOCK_DIR/owner.pid" 2>/dev/null || true)"
+    fi
+    if [[ "$owner" =~ ^[0-9]+$ ]] && kill -0 "$owner" 2>/dev/null; then
+      fail "Another NASERI CODER manager operation is running (PID $owner)."
+      exit 1
+    fi
+    if [[ -d "$LOCK_DIR" && ! -L "$LOCK_DIR" ]]; then
+      rm -f -- "$LOCK_DIR/owner.pid" 2>/dev/null || true
+      if rmdir "$LOCK_DIR" 2>/dev/null && mkdir "$LOCK_DIR" 2>/dev/null; then
+        warn "Recovered a stale Manager operation lock."
+      else
+        fail "Manager lock exists and could not be safely recovered: $LOCK_DIR"
+        exit 1
+      fi
+    else
+      fail "Manager lock path is unsafe or unavailable: $LOCK_DIR"
+      exit 1
+    fi
   fi
-  set +e
-  "$@"
-  rc=$?
-  set -e
-  rmdir "$LOCK_DIR" 2>/dev/null || true
-  return "$rc"
+
+  printf '%s\n' "$$" > "$LOCK_DIR/owner.pid"
+  chmod 600 "$LOCK_DIR/owner.pid" 2>/dev/null || true
+  cleanup_lock() {
+    rm -f -- "$LOCK_DIR/owner.pid" 2>/dev/null || true
+    rmdir "$LOCK_DIR" 2>/dev/null || true
+  }
+  trap cleanup_lock EXIT
+  trap 'exit 129' HUP
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+
+  if "$@"; then rc=0; else rc=$?; fi
+  exit "$rc"
+)
+
+run_locked() {
+  local rc=0
+  if command_exists flock; then
+    (
+      exec 9>"$LOCK_FILE" || { fail "Cannot open Manager lock file."; exit 1; }
+      if ! flock -n 9; then
+        fail "Another NASERI CODER manager operation appears to be running."
+        exit 1
+      fi
+      if "$@"; then rc=0; else rc=$?; fi
+      exit "$rc"
+    )
+    return $?
+  fi
+
+  _run_with_dir_lock "$@"
 }
 
 banner() {
-  local version state branch sha
+  local version state branch sha width
   version="$(project_version)"
   state="$(installation_state)"
   branch="$(git_branch)"
   sha="$(git_short_sha)"
+  width="$(terminal_width)"
 
   if is_tty && command -v clear >/dev/null 2>&1; then
     clear
   fi
 
-  if [[ "$UI_UNICODE" == "1" ]]; then
-    printf '%s%s╔══════════════════════════════════════════════════════════════╗%s\n' "$c_bold" "$c_cyan" "$c_reset"
-    printf '%s%s║                        NASERI CODER                          ║%s\n' "$c_bold" "$c_white" "$c_reset"
-    printf '%s%s║              Crypto Price Action Manager                    ║%s\n' "$c_bold" "$c_cyan" "$c_reset"
-    printf '%s%s╚══════════════════════════════════════════════════════════════╝%s\n' "$c_bold" "$c_cyan" "$c_reset"
+  if (( width >= 64 )); then
+    if [[ "$UI_UNICODE" == "1" ]]; then
+      printf '%s%s╔══════════════════════════════════════════════════════════════╗%s\n' "$c_bold" "$c_cyan" "$c_reset"
+      printf '%s%s║                        NASERI CODER                          ║%s\n' "$c_bold" "$c_white" "$c_reset"
+      printf '%s%s║              Crypto Price Action Manager                    ║%s\n' "$c_bold" "$c_cyan" "$c_reset"
+      printf '%s%s╚══════════════════════════════════════════════════════════════╝%s\n' "$c_bold" "$c_cyan" "$c_reset"
+    else
+      printf '%s%s+--------------------------------------------------------------+%s\n' "$c_bold" "$c_cyan" "$c_reset"
+      printf '%s%s|                        NASERI CODER                          |%s\n' "$c_bold" "$c_white" "$c_reset"
+      printf '%s%s|              Crypto Price Action Manager                    |%s\n' "$c_bold" "$c_cyan" "$c_reset"
+      printf '%s%s+--------------------------------------------------------------+%s\n' "$c_bold" "$c_cyan" "$c_reset"
+    fi
   else
-    printf '%s%s+--------------------------------------------------------------+%s\n' "$c_bold" "$c_cyan" "$c_reset"
-    printf '%s%s|                        NASERI CODER                          |%s\n' "$c_bold" "$c_white" "$c_reset"
-    printf '%s%s|              Crypto Price Action Manager                    |%s\n' "$c_bold" "$c_cyan" "$c_reset"
-    printf '%s%s+--------------------------------------------------------------+%s\n' "$c_bold" "$c_cyan" "$c_reset"
+    printf '%s%sNASERI CODER%s\n' "$c_bold" "$c_white" "$c_reset"
+    printf '%sCrypto Price Action Manager%s\n' "$c_cyan" "$c_reset"
+    ui_rule
   fi
 
   printf '\n'
@@ -341,7 +418,7 @@ safe_config_summary() {
   ui_kv "Exchange / market" "$(env_value BROOKS_EXCHANGE) / $(env_value BROOKS_MARKET_TYPE)"
   ui_kv "Symbols" "$(env_value BROOKS_SYMBOLS)"
   ui_kv "Timeframes" "$(env_value BROOKS_TIMEFRAMES)"
-  ui_kv "Scale-in" "$(env_value BROOKS_SCALE_IN_MODE)"
+  ui_state_line "Scale-in" "$(ui_bool_state "$(env_value BROOKS_SCALE_IN_MODE)")"
 }
 
 detect_validation_mode() {
