@@ -5,8 +5,6 @@ from __future__ import annotations
 import hashlib
 from decimal import Decimal
 
-from app.modules.market_data.entities import MarketSnapshot
-
 from app.modules.marc_core.entities import (
     MARC_CONFIGURATION_VERSION,
     MARC_ENGINE_VERSION,
@@ -21,6 +19,7 @@ from app.modules.marc_core.entities import (
 )
 from app.modules.marc_core.indicators import build_indicator_frames
 from app.modules.marc_core.policy import MARCPolicy
+from app.modules.market_data.entities import MarketSnapshot
 
 
 def _directional_cross(
