@@ -59,7 +59,7 @@ jobs:
             --end 2026-10-01 \
             --base-cost-bps 6 \
             --stress-cost-bps 10 \
-            --request-delay 0.25 \
+            --request-delay 0.10 \
             --output-dir research_output/marc_oos_v0_1
 
       - name: Verify research output is explicitly non-operational
