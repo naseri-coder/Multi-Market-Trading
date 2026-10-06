@@ -47,6 +47,7 @@ async def fetch_binance_futures_klines(
     timeframe: str = "15m",
     request_delay_seconds: float = 0.25,
     base_url: str = _BINANCE_FUTURES_BASE_URL,
+    transport: httpx.AsyncBaseTransport | None = None,
 ) -> tuple[Candle, ...]:
     """Fetch immutable closed klines using the public USD-M Futures REST API."""
     if timeframe not in _INTERVAL_MS:
@@ -70,6 +71,7 @@ async def fetch_binance_futures_klines(
         timeout=timeout,
         headers=headers,
         follow_redirects=True,
+        transport=transport,
     ) as client:
         while cursor < end_ms:
             payload = None
