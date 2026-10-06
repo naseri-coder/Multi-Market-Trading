@@ -105,7 +105,8 @@ The public source currently uses **Binance USD-M Futures** as the supported mark
 
 | Area | Status |
 | --- | --- |
-| Brooks rule-based analysis core | 🟡 Active development & validation |\n| MARC MA 7/25/99 core | 🟡 Frozen v0.1 baseline; backtest pending |
+| Brooks rule-based analysis core | 🟡 Active development & validation |
+| MARC MA 7/25/99 core | 🟡 Frozen v0.1 baseline; backtest pending |
 | Context / pattern coverage | 🟡 Expanding and regression-tested |
 | Public source integrity | 🟢 SHA256-verified snapshot |
 | Public test corpus | 🟢 GitHub Actions |
