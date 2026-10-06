@@ -128,9 +128,27 @@ def build_validation_report(
 ) -> dict[str, object]:
     """Build a pooled research report without converting results into runtime approval."""
     validation_trades = tuple(
-        trade for result in validation for trade in result.trades
+        sorted(
+            (trade for result in validation for trade in result.trades),
+            key=lambda trade: (
+                trade.entry_time,
+                trade.symbol,
+                trade.timeframe,
+                trade.source_signal_id,
+            ),
+        )
     )
-    oos_trades = tuple(trade for result in oos for trade in result.trades)
+    oos_trades = tuple(
+        sorted(
+            (trade for result in oos for trade in result.trades),
+            key=lambda trade: (
+                trade.entry_time,
+                trade.symbol,
+                trade.timeframe,
+                trade.source_signal_id,
+            ),
+        )
+    )
 
     validation_base = _metric_summary(validation_trades, r_field="base_net_r")
     validation_stress = _metric_summary(validation_trades, r_field="stress_net_r")
@@ -177,7 +195,10 @@ def build_validation_report(
         "runtime_approval": "DENIED_BACKTEST_ONLY",
         "limitations": [
             "Funding payments are not modeled in MARC backtest v0.1.",
-            "The pooled report is not a capital-weighted multi-asset portfolio simulation.",
+            (
+                "Pooled path metrics use chronological trade-entry order and are not "
+                "a capital-weighted multi-asset portfolio simulation."
+            ),
             "Intrabar stop/target ambiguity is resolved conservatively as stop-first.",
             "The Chandelier runner activates only after TP2 and is effective from the next bar.",
             "Historical results do not establish future profitability.",
