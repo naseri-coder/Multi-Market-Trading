@@ -116,3 +116,32 @@ def test_development_gate_requires_cross_fold_and_cross_symbol_robustness():
     gate = _development_gate(payload)
     assert gate["passed"] is False
     assert "positive_symbols_at_least_6_of_10" in gate["failed_checks"]
+
+
+
+def test_holdout_gate_accepts_true_infinite_profit_factor():
+    from research_layer.marc_r3_qualification.walkforward import _holdout_gate
+
+    payload = {
+        "aggregate": {
+            "overall": {
+                "trades": 100,
+                "base": {
+                    "expectancy_r": 0.2,
+                    "profit_factor": None,
+                    "profit_factor_infinite": True,
+                },
+                "stress": {
+                    "expectancy_r": 0.1,
+                    "profit_factor": None,
+                    "profit_factor_infinite": True,
+                },
+            },
+            "positive_base_folds": 4,
+            "fold_count": 4,
+            "positive_base_symbols": 5,
+            "symbol_count": 5,
+        }
+    }
+
+    assert _holdout_gate(payload)["passed"] is True
