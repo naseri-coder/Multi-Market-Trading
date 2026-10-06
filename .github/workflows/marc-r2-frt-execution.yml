@@ -1,0 +1,79 @@
+name: MARC R2 FRT Execution Viability
+
+on:
+  pull_request:
+    paths:
+      - "research_layer/marc_r2_frt_v2/**"
+      - "scripts/marc_r2_frt_execution.py"
+      - "tests/unit/test_marc_r2_frt_v2.py"
+      - "docs/MARC_R2_FRT_EXECUTION_PROTOCOL.md"
+      - ".github/workflows/marc-r2-frt-execution.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marc-r2-frt-v2-${{ github.ref }}-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  marc-r2-frt-v2:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONPATH: "${{ github.workspace }}/production_source:${{ github.workspace }}"
+    steps:
+      - name: Checkout immutable PR revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install reviewed development dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Verify frozen production source
+        run: bash scripts/verify.sh
+
+      - name: Run FRT v0.2 unit tests
+        run: |
+          python -m pytest -q             tests/unit/test_marc_r2_frt_v2.py             tests/unit/test_marc_r2_fresh_reversal.py             tests/unit/test_marc_r2_repair.py             tests/unit/test_marc_r2_search.py             tests/unit/test_marc_backtest.py             tests/unit/test_marc_core.py
+
+      - name: Run FRT v0.2 development and untouched holdout
+        run: |
+          rm -rf research_output/marc_r2_frt_v0_2
+          python scripts/marc_r2_frt_execution.py             --start 2022-01-01             --end 2026-10-01             --base-cost-bps 6             --stress-cost-bps 10             --request-delay 0.05             --output-dir research_output/marc_r2_frt_v0_2
+
+      - name: Verify research-only contract
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path(
+              "research_output/marc_r2_frt_v0_2/"
+              "marc_r2_frt_execution_report.json"
+          )
+          report = json.loads(path.read_text(encoding="utf-8"))
+          assert report["schema"] == "MARC_R2_FRT_EXECUTION_V2"
+          assert report["runtime_approval"] == "DENIED_RESEARCH_ONLY"
+          assert report["setup_version"] == "MARC_R2_FRT_EXECUTION_V0_2"
+          print("MARC_R2_FRT_V2_AUDIT_PASS", report["final_classification"])
+          PY
+
+      - name: Upload immutable FRT v0.2 evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: marc-r2-frt-v2-${{ github.sha }}
+          path: research_output/marc_r2_frt_v0_2/
+          if-no-files-found: error
+          retention-days: 14
