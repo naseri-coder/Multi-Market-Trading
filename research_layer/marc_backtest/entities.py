@@ -32,3 +32,15 @@ class BacktestTrade:
     tp1_hit: bool
     tp2_hit: bool
     terminal_reason: str
+
+
+@dataclass(frozen=True, slots=True)
+class BacktestWindowResult:
+    symbol: str
+    timeframe: str
+    start: datetime
+    end: datetime
+    candidate_count: int
+    rejected_plan_count: int
+    rejection_reasons: tuple[tuple[str, int], ...]
+    trades: tuple[BacktestTrade, ...]
