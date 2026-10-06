@@ -400,6 +400,13 @@ class MARCSignalEngine:
                 entry_price - self.policy.tp2_r * risk,
             )
 
+        if entry_price <= 0 or stop <= 0 or any(target <= 0 for target in targets):
+            return MARCEntryPlan(
+                accepted=False,
+                candidate=None,
+                rejection_reason="NON_POSITIVE_PRICE_GEOMETRY",
+            )
+
         risk_atr = risk / decision.atr14
         if risk_atr > self.policy.max_initial_risk_atr:
             return MARCEntryPlan(
