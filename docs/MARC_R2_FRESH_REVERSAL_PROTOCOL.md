@@ -1,4 +1,4 @@
-# MARC R2 Fresh Reversal Transition (FRT) v0.1
+# MARC R2 Fresh Reversal Transition (FRT) v0.2 — Cost Clean
 
 This stage tests one clean pre-entry hypothesis rather than another exit tweak.
 
@@ -22,7 +22,7 @@ and all of the following before entry:
 1. timeframe is 15m;
 2. the latest directional MA7/MA25 cross is no older than 3 closed bars;
 3. the 5-bar MA99 slope is still **opposed** to the new trade direction;
-4. the structural initial stop distance is at least 0.60% of entry price.
+4. the structural initial stop distance is at least 0.80% of entry price.
 
 For LONG, MA99 must still slope down while the new bullish transition is being
 confirmed. For SHORT, MA99 must still slope up.
@@ -30,8 +30,11 @@ confirmed. For SHORT, MA99 must still slope up.
 This intentionally captures the moment when fast momentum and price have
 reclaimed the slow regime average before MA99 itself has fully turned.
 
-The 0.60% structural-risk floor is an execution-viability rule: extremely tight
-stops turn ordinary futures fees/slippage into an excessive fraction of one R.
+The 0.80% structural-risk floor is the already-defined execution-economics
+budget from the prior R2 repair stage: with 10 bps/side stress cost, a simple
+entry-price round trip is approximately 0.20% of notional, so a 0.80% initial
+risk caps that friction near 0.25R. This is a cost constraint, not a target-PnL
+threshold.
 
 ## What is not changed
 
@@ -52,12 +55,13 @@ from 2022-01-01 through 2026-09-30.
 
 The single hypothesis must produce:
 
-- at least 300 trades;
-- base expectancy > +0.05R;
-- base PF >= 1.10;
-- stress expectancy > 0R;
-- stress PF >= 1.03;
-- positive base expectancy on at least 4 of 5 symbol streams.
+- at least 200 trades;
+- base expectancy > +0.08R;
+- base PF >= 1.15;
+- stress expectancy > +0.03R;
+- stress PF >= 1.05;
+- positive base expectancy on at least 4 of 5 symbol streams;
+- positive stress expectancy on at least 3 of 5 symbol streams.
 
 If it fails, the holdout is not fetched.
 
@@ -75,12 +79,13 @@ Only 15m is evaluated because FRT is explicitly a 15m setup.
 
 The holdout requires:
 
-- at least 200 trades;
-- positive base expectancy;
+- at least 150 trades;
+- base expectancy > +0.05R;
 - base PF >= 1.10;
 - positive stress expectancy;
 - stress PF >= 1.03;
-- at least 4 of 5 symbol streams positive after base costs.
+- at least 4 of 5 symbol streams positive after base costs;
+- at least 3 of 5 symbol streams positive under stress costs.
 
 A passing result is still research-only:
 

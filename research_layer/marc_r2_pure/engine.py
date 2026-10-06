@@ -22,7 +22,7 @@ D = Decimal
 FRT_TIMEFRAME = "15m"
 FRT_MAX_CROSS_AGE_BARS = 3
 FRT_MA99_SLOPE_LOOKBACK = 5
-FRT_MIN_INITIAL_RISK_PCT = D("0.006")
+FRT_MIN_INITIAL_RISK_PCT = D("0.008")
 
 
 def _cross_direction(previous, current) -> str | None:
