@@ -14,8 +14,10 @@ from research_layer.marc_backtest.data import (
     candle_series_sha256,
     fetch_binance_vision_monthly_klines,
     resample_15m_to_30m,
+    split_contiguous_candles,
 )
 from research_layer.marc_backtest.engine import BacktestConfig, backtest_window
+from research_layer.marc_backtest.entities import BacktestWindowResult
 from research_layer.marc_backtest.report import build_validation_report, trade_rows
 
 
@@ -57,13 +59,73 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _segmented_backtest(
+    *,
+    candles,
+    symbol: str,
+    timeframe: str,
+    start: datetime,
+    end: datetime,
+    config: BacktestConfig,
+) -> BacktestWindowResult:
+    results = []
+    for segment in split_contiguous_candles(candles, timeframe=timeframe):
+        if len(segment) < 100:
+            continue
+        if segment[-1].open_time < start or segment[0].open_time >= end:
+            continue
+        try:
+            result = backtest_window(
+                candles=segment,
+                symbol=symbol,
+                timeframe=timeframe,
+                start=start,
+                end=end,
+                config=config,
+            )
+        except ValueError as exc:
+            if str(exc) in {
+                "window has no evaluable candles",
+                "not enough candles for MARC backtest",
+            }:
+                continue
+            raise
+        results.append(result)
+
+    rejection_counts: dict[str, int] = {}
+    trades = []
+    candidate_count = 0
+    rejected_plan_count = 0
+    for result in results:
+        candidate_count += result.candidate_count
+        rejected_plan_count += result.rejected_plan_count
+        trades.extend(result.trades)
+        for reason, count in result.rejection_reasons:
+            rejection_counts[reason] = rejection_counts.get(reason, 0) + count
+
+    trades.sort(key=lambda trade: (trade.entry_time, trade.source_signal_id))
+    return BacktestWindowResult(
+        symbol=symbol.upper(),
+        timeframe=timeframe,
+        start=start,
+        end=end,
+        candidate_count=candidate_count,
+        rejected_plan_count=rejected_plan_count,
+        rejection_reasons=tuple(sorted(rejection_counts.items())),
+        trades=tuple(trades),
+    )
+
+
 def _series_provenance(candles, timeframe: str) -> dict[str, object]:
+    segments = split_contiguous_candles(candles, timeframe=timeframe)
     return {
         "timeframe": timeframe,
         "candles": len(candles),
         "first_open": candles[0].open_time.isoformat(),
         "last_close": candles[-1].close_time.isoformat(),
         "sha256": candle_series_sha256(candles),
+        "gap_count": max(0, len(segments) - 1),
+        "segment_count": len(segments),
     }
 
 
@@ -107,6 +169,8 @@ async def _run(args: argparse.Namespace) -> dict[str, object]:
                 "source": "BINANCE_VISION_USDM_MONTHLY_ARCHIVES",
                 "verified_archives": archive_series.verified_archives,
                 "archive_manifest_sha256": archive_series.archive_manifest_sha256,
+                "archive_gap_count": archive_series.gap_count,
+                "archive_segment_count": archive_series.segment_count,
                 "15m": _series_provenance(candles_15m, "15m"),
                 "30m": _series_provenance(candles_30m, "30m"),
             }
@@ -118,7 +182,7 @@ async def _run(args: argparse.Namespace) -> dict[str, object]:
         )
 
         for timeframe, candles in (("15m", candles_15m), ("30m", candles_30m)):
-            validation_result = backtest_window(
+            validation_result = _segmented_backtest(
                 candles=candles,
                 symbol=symbol,
                 timeframe=timeframe,
@@ -126,7 +190,7 @@ async def _run(args: argparse.Namespace) -> dict[str, object]:
                 end=args.split,
                 config=config,
             )
-            oos_result = backtest_window(
+            oos_result = _segmented_backtest(
                 candles=candles,
                 symbol=symbol,
                 timeframe=timeframe,
