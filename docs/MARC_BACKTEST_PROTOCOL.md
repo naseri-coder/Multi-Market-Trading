@@ -18,7 +18,7 @@ No strategy parameter is optimized by this protocol.
 ## Dataset
 
 The automated research job reads public **Binance USD-M Futures** 15m klines
-from the read-only `/fapi/v1/klines` endpoint for:
+from official **Binance Data Vision monthly archives** for:
 
 - BTCUSDT
 - ETHUSDT
@@ -29,9 +29,12 @@ from the read-only `/fapi/v1/klines` endpoint for:
 The fixed research range is 2022-01-01 through 2026-09-30 UTC. Four days of
 pre-window candles are downloaded only as indicator warm-up.
 
+Every monthly ZIP is verified against Binance's companion `.CHECKSUM` file
+before parsing. The report records the number of verified archives, a SHA256
+digest of the archive manifest, and SHA256 hashes of every normalized series.
+
 30m candles are reconstructed deterministically from two complete,
-UTC-aligned 15m candles. The report records SHA256 hashes of every normalized
-15m and 30m series.
+UTC-aligned 15m candles.
 
 ## Fixed split
 
