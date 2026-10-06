@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from app.modules.market_data.entities import MarketSnapshot
-
 from app.modules.marc_core.entities import MARCIndicatorFrame
 from app.modules.marc_core.policy import MARCPolicy
+from app.modules.market_data.entities import MarketSnapshot
 
 
 def _rolling_sma(values: tuple[Decimal, ...], period: int) -> tuple[Decimal | None, ...]:
