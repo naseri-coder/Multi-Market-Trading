@@ -11,7 +11,6 @@ from typing import Iterable
 from app.modules.market_data.entities import Candle, MarketSnapshot
 from app.modules.marc_core.indicators import build_indicator_frames
 from app.modules.marc_core.policy import MARCPolicy
-from research_layer.marc_backtest.data import split_contiguous_candles
 from research_layer.marc_backtest.entities import BacktestTrade, BacktestWindowResult
 from research_layer.statistics import profit_factor
 
@@ -81,6 +80,26 @@ def _cross_direction(previous, current) -> str | None:
     return None
 
 
+def _split_contiguous(
+    candles: tuple[Candle, ...],
+    *,
+    timeframe: str,
+) -> tuple[tuple[Candle, ...], ...]:
+    minutes = {"15m": 15, "30m": 30, "1h": 60}.get(timeframe)
+    if minutes is None:
+        raise ValueError("unsupported diagnostic timeframe")
+    if not candles:
+        return ()
+    expected = timedelta(minutes=minutes)
+    segments: list[list[Candle]] = [[candles[0]]]
+    for candle in candles[1:]:
+        if candle.open_time - segments[-1][-1].open_time == expected:
+            segments[-1].append(candle)
+        else:
+            segments.append([candle])
+    return tuple(tuple(segment) for segment in segments)
+
+
 def _segment_frames(
     candles: tuple[Candle, ...],
     *,
@@ -88,7 +107,7 @@ def _segment_frames(
     policy: MARCPolicy,
 ) -> tuple[tuple[tuple[Candle, ...], tuple], ...]:
     output = []
-    for segment in split_contiguous_candles(candles, timeframe=timeframe):
+    for segment in _split_contiguous(candles, timeframe=timeframe):
         if len(segment) < policy.minimum_indicator_bars:
             continue
         snapshot = MarketSnapshot(
