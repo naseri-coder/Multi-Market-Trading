@@ -19,7 +19,7 @@ from app.db.errors import DatabaseUnavailableError
 from app.db.session import DatabaseManager
 from app.lifecycle import ApplicationLifecycle
 from app.modules.brooks_runtime.coordinator import BrooksFullCoreCoordinator
-from app.modules.fm_runtime.coordinator import FMRuntimeCoordinator
+from app.modules.marc_runtime.coordinator import MARCRuntimeCoordinator
 from app.modules.operations.coordinator import BrooksProductionOperationsCoordinator
 
 logger = logging.getLogger(__name__)
@@ -98,7 +98,7 @@ def run_bot(settings: Settings) -> None:
         settings=settings,
         database=database,
     )
-    fm_runtime = FMRuntimeCoordinator(database=database)
+    marc_runtime = MARCRuntimeCoordinator(database=database)
     production_operations = BrooksProductionOperationsCoordinator(
         settings=settings,
         database=database,
@@ -107,12 +107,12 @@ def run_bot(settings: Settings) -> None:
     async def post_init(application) -> None:
         await lifecycle.startup(application)
         await brooks_runtime.start(application)
-        await fm_runtime.start(application)
+        await marc_runtime.start(application)
         await production_operations.start(application)
 
     async def post_shutdown(application) -> None:
         await production_operations.shutdown(application)
-        await fm_runtime.shutdown(application)
+        await marc_runtime.shutdown(application)
         await brooks_runtime.shutdown(application)
         await lifecycle.shutdown(application)
 
