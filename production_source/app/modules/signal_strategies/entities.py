@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from datetime import datetime
 
 BROOKS_STRATEGY_CODE = "BROOKS"
-FM_STRATEGY_CODE = "FM"
-SUPPORTED_STRATEGY_CODES = frozenset({BROOKS_STRATEGY_CODE, FM_STRATEGY_CODE})
+MARC_STRATEGY_CODE = "MARC"
+SUPPORTED_STRATEGY_CODES = frozenset({BROOKS_STRATEGY_CODE, MARC_STRATEGY_CODE})
 
 
 @dataclass(frozen=True, slots=True)

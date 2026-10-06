@@ -1,4 +1,4 @@
-"""Isolated runtime coordinator for the future FM strategy core."""
+"""Isolated runtime coordinator for the MARC strategy core."""
 
 from __future__ import annotations
 
@@ -9,13 +9,13 @@ from typing import Any
 
 from telegram.ext import Application
 
-from app.modules.fm_runtime.contracts import FMEngine, FMRuntimeContext
-from app.modules.fm_runtime.registry import (
-    FMEngineRegistry,
-    default_fm_engine_registry,
+from app.modules.marc_runtime.contracts import MARCEngine, MARCRuntimeContext
+from app.modules.marc_runtime.registry import (
+    MARCEngineRegistry,
+    default_marc_engine_registry,
 )
 from app.modules.signal_strategies.entities import (
-    FM_STRATEGY_CODE,
+    MARC_STRATEGY_CODE,
     SignalStrategyRecord,
 )
 from app.modules.signal_strategies.publisher import TelegramStrategyVipPublisher
@@ -29,11 +29,11 @@ logger = logging.getLogger(__name__)
 _RECONCILE_INTERVAL_SECONDS = 5.0
 
 
-class FMRuntimeCoordinator:
-    """Connect an optional FM engine to only the FM strategy route.
+class MARCRuntimeCoordinator:
+    """Connect an optional MARC engine to only the MARC strategy route.
 
     This coordinator never imports Brooks runtime/core modules. With no
-    registered FM engine it synchronizes engine_ready=false and performs no
+    registered MARC engine it synchronizes engine_ready=false and performs no
     market analysis or Telegram publication.
     """
 
@@ -41,30 +41,30 @@ class FMRuntimeCoordinator:
         self,
         *,
         database: Any,
-        registry: FMEngineRegistry = default_fm_engine_registry,
+        registry: MARCEngineRegistry = default_marc_engine_registry,
     ) -> None:
         self.database = database
         self.registry = registry
         self._task: asyncio.Task[None] | None = None
         self._application: Application | None = None
-        self._running_engine: FMEngine | None = None
+        self._running_engine: MARCEngine | None = None
         self._running_channel_id: int | None = None
 
     async def _sync_engine_ready(self, ready: bool) -> SignalStrategyRecord:
         async with self.database.session() as session, session.begin():
             return await SignalStrategyService(
                 SQLAlchemySignalStrategyRepository(session)
-            ).set_engine_ready(FM_STRATEGY_CODE, ready=ready)
+            ).set_engine_ready(MARC_STRATEGY_CODE, ready=ready)
 
     async def _load_route(self) -> SignalStrategyRecord:
         async with self.database.session() as session:
             return await SignalStrategyService(
                 SQLAlchemySignalStrategyRepository(session)
-            ).get(FM_STRATEGY_CODE)
+            ).get(MARC_STRATEGY_CODE)
 
     async def start(self, application: Application) -> None:
         if self._task is not None:
-            raise RuntimeError("FM runtime coordinator is already started")
+            raise RuntimeError("MARC runtime coordinator is already started")
 
         self._application = application
         engine = self.registry.get()
@@ -72,10 +72,10 @@ class FMRuntimeCoordinator:
 
         if engine is None:
             logger.info(
-                "FM engine is not connected; runtime remains fail-closed",
+                "MARC engine is not connected; runtime remains fail-closed",
                 extra={
-                    "event": "fm_engine_not_connected",
-                    "strategy_code": FM_STRATEGY_CODE,
+                    "event": "marc_engine_not_connected",
+                    "strategy_code": MARC_STRATEGY_CODE,
                     "configured_enabled": route.enabled,
                     "channel_configured": route.private_channel_id is not None,
                 },
@@ -85,12 +85,12 @@ class FMRuntimeCoordinator:
         await self._reconcile_once()
         self._task = asyncio.create_task(
             self._reconcile_loop(),
-            name="fm-strategy-runtime-coordinator",
+            name="marc-strategy-runtime-coordinator",
         )
         logger.info(
-            "FM runtime coordinator started",
+            "MARC runtime coordinator started",
             extra={
-                "event": "fm_runtime_coordinator_started",
+                "event": "marc_runtime_coordinator_started",
                 "engine_id": engine.engine_id,
                 "engine_version": engine.engine_version,
             },
@@ -106,8 +106,8 @@ class FMRuntimeCoordinator:
         await self._stop_engine()
         self._application = None
         logger.info(
-            "FM runtime coordinator stopped",
-            extra={"event": "fm_runtime_coordinator_stopped"},
+            "MARC runtime coordinator stopped",
+            extra={"event": "marc_runtime_coordinator_stopped"},
         )
 
     async def _reconcile_loop(self) -> None:
@@ -118,8 +118,8 @@ class FMRuntimeCoordinator:
                 raise
             except Exception:
                 logger.exception(
-                    "FM runtime route reconciliation failed",
-                    extra={"event": "fm_runtime_reconcile_failed"},
+                    "MARC runtime route reconciliation failed",
+                    extra={"event": "marc_runtime_reconcile_failed"},
                 )
             await asyncio.sleep(_RECONCILE_INTERVAL_SECONDS)
 
@@ -146,13 +146,13 @@ class FMRuntimeCoordinator:
         await self._stop_engine()
         application = self._application
         if application is None:
-            raise RuntimeError("FM runtime requires an initialized Telegram application")
+            raise RuntimeError("MARC runtime requires an initialized Telegram application")
 
         publisher = TelegramStrategyVipPublisher(
             bot=application.bot,
             private_channel_id=channel_id,
         )
-        context = FMRuntimeContext(
+        context = MARCRuntimeContext(
             database=self.database,
             publisher=publisher,
             private_channel_id=channel_id,
@@ -161,9 +161,9 @@ class FMRuntimeCoordinator:
             await engine.start(context)
         except Exception:
             logger.exception(
-                "FM engine startup failed; Brooks runtime remains isolated",
+                "MARC engine startup failed; Brooks runtime remains isolated",
                 extra={
-                    "event": "fm_engine_start_failed",
+                    "event": "marc_engine_start_failed",
                     "engine_id": engine.engine_id,
                     "engine_version": engine.engine_version,
                     "channel_id": channel_id,
@@ -174,12 +174,12 @@ class FMRuntimeCoordinator:
         self._running_engine = engine
         self._running_channel_id = channel_id
         logger.info(
-            "FM engine started on its independent strategy route",
+            "MARC engine started on its independent strategy route",
             extra={
-                "event": "fm_engine_started",
+                "event": "marc_engine_started",
                 "engine_id": engine.engine_id,
                 "engine_version": engine.engine_version,
-                "strategy_code": FM_STRATEGY_CODE,
+                "strategy_code": MARC_STRATEGY_CODE,
                 "channel_id": channel_id,
             },
         )
@@ -194,18 +194,18 @@ class FMRuntimeCoordinator:
             await engine.shutdown()
         except Exception:
             logger.exception(
-                "FM engine shutdown failed without affecting Brooks runtime",
+                "MARC engine shutdown failed without affecting Brooks runtime",
                 extra={
-                    "event": "fm_engine_shutdown_failed",
+                    "event": "marc_engine_shutdown_failed",
                     "engine_id": engine.engine_id,
                     "engine_version": engine.engine_version,
                 },
             )
             return
         logger.info(
-            "FM engine stopped",
+            "MARC engine stopped",
             extra={
-                "event": "fm_engine_stopped",
+                "event": "marc_engine_stopped",
                 "engine_id": engine.engine_id,
                 "engine_version": engine.engine_version,
             },

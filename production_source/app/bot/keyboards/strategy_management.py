@@ -6,16 +6,19 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMa
 
 STRATEGY_MANAGEMENT_BUTTON = "🎛 مدیریت سیگنال‌دهی"
 BROOKS_STRATEGY_BUTTON = "📈 پرایس اکشن البروکس"
-FM_STRATEGY_BUTTON = "🧩 استراتژی FM"
+MARC_STRATEGY_BUTTON = "📊 هسته MA 7/25/99 (MARC)"
 STRATEGY_ADMIN_BACK_BUTTON = "🔙 بازگشت به پنل مدیریت"
-STRATEGY_CALLBACK_PATTERN = r"^v1:strategy:(BROOKS|FM):(toggle|set_channel|clear_channel|refresh)$"
+STRATEGY_CALLBACK_PATTERN = (
+    r"^v1:strategy:(BROOKS|MARC):"
+    r"(toggle|set_channel|clear_channel|refresh)$"
+)
 
 
 def build_strategy_management_menu() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         [
             [BROOKS_STRATEGY_BUTTON],
-            [FM_STRATEGY_BUTTON],
+            [MARC_STRATEGY_BUTTON],
             [STRATEGY_ADMIN_BACK_BUTTON],
         ],
         resize_keyboard=True,

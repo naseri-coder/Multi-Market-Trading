@@ -1,4 +1,4 @@
-"""ORM models for Brooks automation metadata and rule evidence."""
+"""ORM models for signal automation metadata and rule evidence."""
 
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ from app.db.base import Base
 class SignalAutomationMetadata(Base):
     __tablename__ = "signal_automation_metadata"
     __table_args__ = (
-        CheckConstraint("producer IN ('BROOKS','FM')", name="producer"),
+        CheckConstraint("producer IN ('BROOKS','MARC')", name="producer"),
         CheckConstraint(
             "generation_mode IN ('SHADOW','PAPER','LIVE')",
             name="generation_mode",
