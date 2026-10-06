@@ -17,8 +17,8 @@ from app.modules.signal_strategies.errors import (
     SignalStrategyEngineNotReadyError,
 )
 from app.modules.signal_strategies.publisher import TelegramStrategyVipPublisher
-from app.modules.fm_runtime.coordinator import FMRuntimeCoordinator
-from app.modules.fm_runtime.registry import FMEngineRegistry
+from app.modules.marc_runtime.coordinator import MARCRuntimeCoordinator
+from app.modules.marc_runtime.registry import MARCEngineRegistry
 from app.modules.signal_strategies.service import SignalStrategyService
 
 NOW = datetime(2026, 10, 4, tzinfo=UTC)
@@ -34,7 +34,7 @@ def _record(
     return SignalStrategyRecord(
         id=1,
         strategy_code=code,
-        display_name="Price Action (Al Brooks)" if code == "BROOKS" else "FM",
+        display_name="Price Action (Al Brooks)" if code == "BROOKS" else "MARC",
         enabled=enabled,
         engine_ready=engine_ready,
         private_channel_id=channel_id,
@@ -100,11 +100,11 @@ async def test_brooks_requires_private_channel_before_enabling() -> None:
 @pytest.mark.asyncio
 async def test_fm_cannot_enable_before_engine_is_connected() -> None:
     service = SignalStrategyService(
-        _Repo(_record(code="FM", engine_ready=False, channel_id=-100222))
+        _Repo(_record(code="MARC", engine_ready=False, channel_id=-100222))
     )
 
     with pytest.raises(SignalStrategyEngineNotReadyError):
-        await service.toggle("FM", updated_by_telegram_user_id=123)
+        await service.toggle("MARC", updated_by_telegram_user_id=123)
 
 
 @pytest.mark.asyncio
@@ -156,8 +156,8 @@ def test_strategy_publisher_reuses_exact_existing_vip_caption() -> None:
     )
 
 
-class _FakeFMEngine:
-    engine_id = "fm-test-engine"
+class _FakeMARCEngine:
+    engine_id = "marc-test-engine"
     engine_version = "0.0.test"
 
     def __init__(self) -> None:
@@ -172,11 +172,11 @@ class _FakeFMEngine:
 
 
 def test_fm_registry_is_fail_closed_until_engine_is_registered() -> None:
-    registry = FMEngineRegistry()
+    registry = MARCEngineRegistry()
     assert registry.ready is False
     assert registry.get() is None
 
-    engine = _FakeFMEngine()
+    engine = _FakeMARCEngine()
     registry.register(engine)
 
     assert registry.ready is True
@@ -185,13 +185,13 @@ def test_fm_registry_is_fail_closed_until_engine_is_registered() -> None:
 
 @pytest.mark.asyncio
 async def test_fm_coordinator_starts_only_on_effective_fm_route(monkeypatch) -> None:
-    registry = FMEngineRegistry()
-    engine = _FakeFMEngine()
+    registry = MARCEngineRegistry()
+    engine = _FakeMARCEngine()
     registry.register(engine)
-    coordinator = FMRuntimeCoordinator(database=object(), registry=registry)
+    coordinator = MARCRuntimeCoordinator(database=object(), registry=registry)
 
     route = _record(
-        code="FM",
+        code="MARC",
         enabled=True,
         engine_ready=True,
         channel_id=-100222,
@@ -217,13 +217,13 @@ async def test_fm_coordinator_starts_only_on_effective_fm_route(monkeypatch) -> 
 
 @pytest.mark.asyncio
 async def test_fm_coordinator_does_not_start_when_route_disabled(monkeypatch) -> None:
-    registry = FMEngineRegistry()
-    engine = _FakeFMEngine()
+    registry = MARCEngineRegistry()
+    engine = _FakeMARCEngine()
     registry.register(engine)
-    coordinator = FMRuntimeCoordinator(database=object(), registry=registry)
+    coordinator = MARCRuntimeCoordinator(database=object(), registry=registry)
 
     route = _record(
-        code="FM",
+        code="MARC",
         enabled=False,
         engine_ready=True,
         channel_id=-100222,
@@ -239,11 +239,11 @@ async def test_fm_coordinator_does_not_start_when_route_disabled(monkeypatch) ->
     assert engine.started_contexts == []
 
 
-def test_fm_runtime_has_no_brooks_imports() -> None:
+def test_marc_runtime_has_no_brooks_imports() -> None:
     from pathlib import Path
-    import app.modules.fm_runtime as fm_runtime
+    import app.modules.marc_runtime as marc_runtime
 
-    package = Path(fm_runtime.__file__).resolve().parent
+    package = Path(marc_runtime.__file__).resolve().parent
     source = "\n".join(
         path.read_text(encoding="utf-8")
         for path in sorted(package.glob("*.py"))
@@ -266,3 +266,23 @@ def test_strategy_migration_finalizes_existing_producer_constraint_name() -> Non
     assert source.count(
         'op.f("ck_signal_automation_metadata_producer")'
     ) == 4
+
+
+def test_marc_identity_migration_preserves_route_and_resets_runtime_readiness() -> None:
+    from pathlib import Path
+
+    path = (
+        Path(__file__).resolve().parents[2]
+        / "production_source"
+        / "migrations"
+        / "versions"
+        / "20261006_0023_rename_fm_to_marc.py"
+    )
+    source = path.read_text(encoding="utf-8")
+    assert 'revision = "20261006_0023"' in source
+    assert 'down_revision = "20261004_0022"' in source
+    assert "SET strategy_code = 'MARC'" in source
+    assert "SET producer = 'MARC'" in source
+    assert "engine_ready = false" in source
+    assert "strategy_code IN ('BROOKS','MARC')" in source
+    assert "producer IN ('BROOKS','MARC')" in source
