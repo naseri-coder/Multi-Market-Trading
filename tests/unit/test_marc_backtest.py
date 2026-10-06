@@ -19,6 +19,7 @@ from research_layer.marc_backtest.data import (
 from research_layer.marc_backtest.engine import (
     BacktestConfig,
     _simulate_trade,
+    backtest_window,
 )
 from research_layer.marc_backtest.entities import BacktestTrade, BacktestWindowResult, TradeFill
 from research_layer.marc_backtest.report import build_validation_report
@@ -343,3 +344,31 @@ def test_tp2_gap_activates_existing_chandelier_before_intrabar_stop():
     assert trade.fills[-1].price == 108.0
     assert trade.tp2_hit is True
     assert trade.gross_r == pytest.approx(1.15)
+
+
+
+def test_exact_minimum_plus_one_candles_keeps_first_next_bar_entry_boundary():
+    candles = []
+    for index in range(100):
+        price = D("100") + D(index) / D("10")
+        candles.append(
+            _candle(
+                index,
+                open_price=str(price),
+                high=str(price + D("1")),
+                low=str(price - D("1")),
+                close=str(price),
+            )
+        )
+
+    result = backtest_window(
+        candles=tuple(candles),
+        symbol="BTCUSDT",
+        timeframe="15m",
+        start=candles[0].open_time,
+        end=candles[-1].close_time + timedelta(milliseconds=1),
+        config=BacktestConfig(),
+    )
+
+    assert result.symbol == "BTCUSDT"
+    assert result.timeframe == "15m"

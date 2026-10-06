@@ -366,7 +366,7 @@ def backtest_window(
         (index for index, candle in enumerate(candles) if candle.open_time < end),
         default=-1,
     )
-    if last_index <= selected_policy.minimum_indicator_bars:
+    if last_index < selected_policy.minimum_indicator_bars:
         raise ValueError("window has no evaluable candles")
 
     first_entry_index = next(
