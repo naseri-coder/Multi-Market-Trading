@@ -155,6 +155,24 @@ def _simulate_trade(
         )
         remaining -= fraction
 
+    def target_fill(
+        candle: Candle,
+        price: Decimal,
+        fraction: Decimal,
+        reason: str,
+        *,
+        at_open: bool = False,
+    ) -> None:
+        nonlocal tp1_hit, tp2_hit
+        actual_fraction = min(fraction, remaining)
+        fill(candle, price, actual_fraction, reason, at_open=at_open)
+        if reason == "TP1":
+            tp1_hit = True
+        elif reason == "TP2":
+            tp2_hit = True
+        else:
+            raise RuntimeError("unknown MARC target fill")
+
     for index in range(entry_index, last_index + 1):
         candle = candles[index]
         effective_stop = stop
@@ -170,19 +188,34 @@ def _simulate_trade(
                 terminal_reason = "STOP_GAP"
                 exit_index = index
                 break
-            pending_targets = []
-            if not tp1_hit and candle.high >= tp1:
-                pending_targets.append((tp1, tp1_fraction, "TP1"))
-            if not tp2_hit and candle.high >= tp2:
-                pending_targets.append((tp2, tp2_fraction, "TP2"))
-            stop_touched = candle.low <= effective_stop
+            gap_targets = []
+            if not tp1_hit and candle.open >= tp1:
+                gap_targets.append((tp1, tp1_fraction, "TP1"))
+            if not tp2_hit and candle.open >= tp2:
+                gap_targets.append((tp2, tp2_fraction, "TP2"))
         else:
             if candle.open >= effective_stop:
                 fill(candle, candle.open, remaining, "STOP_GAP", at_open=True)
                 terminal_reason = "STOP_GAP"
                 exit_index = index
                 break
-            pending_targets = []
+            gap_targets = []
+            if not tp1_hit and candle.open <= tp1:
+                gap_targets.append((tp1, tp1_fraction, "TP1"))
+            if not tp2_hit and candle.open <= tp2:
+                gap_targets.append((tp2, tp2_fraction, "TP2"))
+
+        for price, fraction, reason in gap_targets:
+            target_fill(candle, price, fraction, reason, at_open=True)
+
+        pending_targets = []
+        if direction == "LONG":
+            if not tp1_hit and candle.high >= tp1:
+                pending_targets.append((tp1, tp1_fraction, "TP1"))
+            if not tp2_hit and candle.high >= tp2:
+                pending_targets.append((tp2, tp2_fraction, "TP2"))
+            stop_touched = candle.low <= effective_stop
+        else:
             if not tp1_hit and candle.low <= tp1:
                 pending_targets.append((tp1, tp1_fraction, "TP1"))
             if not tp2_hit and candle.low <= tp2:
@@ -201,13 +234,7 @@ def _simulate_trade(
             break
 
         for price, fraction, reason in pending_targets:
-            if fraction > remaining:
-                fraction = remaining
-            fill(candle, price, fraction, reason)
-            if reason == "TP1":
-                tp1_hit = True
-            else:
-                tp2_hit = True
+            target_fill(candle, price, fraction, reason)
             if remaining == 0:
                 terminal_reason = reason
                 exit_index = index
