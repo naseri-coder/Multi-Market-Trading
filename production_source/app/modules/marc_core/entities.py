@@ -7,7 +7,6 @@ from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
 
-
 MARC_ENGINE_VERSION = "marc-core-v0.1.0"
 MARC_RULE_SET_VERSION = "marc-r1-v0.1"
 MARC_CONFIGURATION_VERSION = "marc-baseline-v0.1"
