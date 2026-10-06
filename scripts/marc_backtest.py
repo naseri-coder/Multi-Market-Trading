@@ -226,7 +226,10 @@ async def _run(args: argparse.Namespace) -> dict[str, object]:
         "exit": {
             "tp1": "25_PERCENT_AT_1R",
             "tp2": "25_PERCENT_AT_2R",
-            "runner": "50_PERCENT_CHANDELIER_22_3ATR_AFTER_TP2_NEXT_BAR",
+            "runner": (
+                "50_PERCENT_CHANDELIER_22_3ATR; PRIOR_CLOSED_BAR_TRAIL_APPLIES_"
+                "IMMEDIATELY_AFTER_TP2_OPEN_GAP; OTHERWISE_NEXT_BAR"
+            ),
         },
         "base_cost_bps_per_side": args.base_cost_bps,
         "stress_cost_bps_per_side": args.stress_cost_bps,

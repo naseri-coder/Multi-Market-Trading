@@ -57,7 +57,10 @@ The OOS window is not used to tune MARC parameters.
 - TP2 closes 25% at 2R;
 - the remaining 50% becomes the Chandelier runner after TP2;
 - Chandelier uses length 22 and Wilder ATR(22), multiplier 3;
-- a newly computed Chandelier level is effective only from the next candle;
+- a level computed from prior closed candles applies immediately after a
+  deterministic TP2 fill at the next candle open;
+- when TP2 is first reached intrabar, the newly activated Chandelier runner is
+  effective from the following candle;
 - the trailing stop never loosens beyond the initial stop;
 - a target already crossed at the candle open is filled first because its order is known;
 - otherwise, if stop and target are both touched intrabar, **stop wins**;

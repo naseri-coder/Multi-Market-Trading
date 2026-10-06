@@ -200,7 +200,11 @@ def build_validation_report(
                 "a capital-weighted multi-asset portfolio simulation."
             ),
             "Intrabar stop/target ambiguity is resolved conservatively as stop-first.",
-            "The Chandelier runner activates only after TP2 and is effective from the next bar.",
+            (
+                "The Chandelier runner activates after TP2. A trail derived from prior "
+                "closed bars applies immediately after a deterministic TP2 fill at the "
+                "candle open; otherwise a newly activated trail is effective next bar."
+            ),
             "Historical results do not establish future profitability.",
         ],
     }
