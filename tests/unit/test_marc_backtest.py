@@ -19,7 +19,7 @@ from research_layer.marc_backtest.engine import (
     BacktestConfig,
     _simulate_trade,
 )
-from research_layer.marc_backtest.entities import BacktestWindowResult
+from research_layer.marc_backtest.entities import BacktestTrade, BacktestWindowResult, TradeFill
 from research_layer.marc_backtest.report import build_validation_report
 
 D = Decimal
@@ -143,9 +143,10 @@ def test_hybrid_exit_uses_25_25_50_tranches_and_window_end_runner():
 
 
 @pytest.mark.asyncio
-async def test_binance_downloader_normalizes_closed_rows_without_live_network():
+async def test_binance_downloader_excludes_still_open_rows_without_live_network():
     start = BASE
     end = BASE + timedelta(minutes=45)
+    now = BASE + timedelta(minutes=30)
 
     def row(index: int, price: str):
         open_time = int((BASE + timedelta(minutes=15 * index)).timestamp() * 1000)
@@ -173,11 +174,12 @@ async def test_binance_downloader_normalizes_closed_rows_without_live_network():
         end=end,
         request_delay_seconds=0,
         transport=httpx.MockTransport(handler),
+        now=now,
     )
 
-    assert len(result) == 3
+    assert len(result) == 2
     assert result[0].open == D("100")
-    assert result[-1].close == D("102")
+    assert result[-1].close == D("101")
 
 
 def test_report_can_never_authorize_runtime_from_backtest_results():
@@ -201,3 +203,93 @@ def test_report_can_never_authorize_runtime_from_backtest_results():
 
     assert report["runtime_approval"] == "DENIED_BACKTEST_ONLY"
     assert report["research_classification"] == "INSUFFICIENT_OOS_SAMPLE"
+
+
+def test_target_crossed_at_open_is_filled_before_later_stop_touch():
+    candles = (
+        _candle(0, open_price="111", high="112", low="89", close="95"),
+    )
+    trade, _ = _simulate_trade(
+        candles=candles,
+        atr22=(None,),
+        candidate=_candidate(),
+        entry_index=0,
+        last_index=0,
+        config=BacktestConfig(),
+        policy=MARCPolicy(),
+    )
+
+    assert [fill.reason for fill in trade.fills] == ["TP1", "STOP"]
+    assert [fill.fraction for fill in trade.fills] == [0.25, 0.75]
+    assert trade.tp1_hit is True
+    assert trade.gross_r == -0.5
+
+
+def _report_trade(*, symbol: str, minutes: int, r_value: float) -> BacktestTrade:
+    at = BASE + timedelta(minutes=minutes)
+    return BacktestTrade(
+        symbol=symbol,
+        timeframe="15m",
+        direction="LONG",
+        source_signal_id=f"{symbol}-{minutes}",
+        entry_time=at,
+        entry_price=100.0,
+        stop_loss=90.0,
+        exit_time=at + timedelta(minutes=15),
+        duration_bars=1,
+        fills=(TradeFill(at, 100.0, 1.0, "TEST"),),
+        gross_r=r_value,
+        base_net_r=r_value,
+        stress_net_r=r_value,
+        tp1_hit=False,
+        tp2_hit=False,
+        terminal_reason="TEST",
+    )
+
+
+def test_pooled_drawdown_is_chronological_and_independent_of_stream_order():
+    stream_a = BacktestWindowResult(
+        symbol="AAAUSDT",
+        timeframe="15m",
+        start=BASE,
+        end=BASE + timedelta(days=1),
+        candidate_count=3,
+        rejected_plan_count=0,
+        rejection_reasons=(),
+        trades=(
+            _report_trade(symbol="AAAUSDT", minutes=0, r_value=-1.0),
+            _report_trade(symbol="AAAUSDT", minutes=30, r_value=-1.0),
+            _report_trade(symbol="AAAUSDT", minutes=45, r_value=-1.0),
+        ),
+    )
+    stream_b = BacktestWindowResult(
+        symbol="BBBUSDT",
+        timeframe="15m",
+        start=BASE,
+        end=BASE + timedelta(days=1),
+        candidate_count=1,
+        rejected_plan_count=0,
+        rejection_reasons=(),
+        trades=(
+            _report_trade(symbol="BBBUSDT", minutes=15, r_value=3.0),
+        ),
+    )
+
+    first = build_validation_report(
+        validation=(stream_a, stream_b),
+        oos=(stream_a, stream_b),
+        provenance={},
+        protocol={},
+    )
+    second = build_validation_report(
+        validation=(stream_b, stream_a),
+        oos=(stream_b, stream_a),
+        provenance={},
+        protocol={},
+    )
+
+    assert first["out_of_sample"]["pooled_base_cost"]["max_drawdown_r"] == 2.0
+    assert (
+        second["out_of_sample"]["pooled_base_cost"]["max_drawdown_r"]
+        == first["out_of_sample"]["pooled_base_cost"]["max_drawdown_r"]
+    )
