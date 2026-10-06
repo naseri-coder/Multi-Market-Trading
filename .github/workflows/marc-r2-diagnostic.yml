@@ -1,0 +1,79 @@
+name: MARC R2 Diagnostic
+
+on:
+  pull_request:
+    paths:
+      - "research_layer/marc_diagnostic/**"
+      - "scripts/marc_r2_diagnostic.py"
+      - "tests/unit/test_marc_r2_diagnostic.py"
+      - "docs/MARC_R2_DIAGNOSTIC_PROTOCOL.md"
+      - ".github/workflows/marc-r2-diagnostic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marc-r2-diagnostic-${{ github.ref }}-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  marc-r2-diagnostic:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONPATH: "${{ github.workspace }}/production_source:${{ github.workspace }}"
+    steps:
+      - name: Checkout immutable PR revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install reviewed development dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Verify frozen source
+        run: bash scripts/verify.sh
+
+      - name: Run diagnostic unit tests
+        run: |
+          python -m pytest -q             tests/unit/test_marc_r2_diagnostic.py             tests/unit/test_marc_backtest.py             tests/unit/test_marc_core.py
+
+      - name: Run MARC R2 descriptive diagnosis
+        run: |
+          rm -rf research_output/marc_r2_diagnostic_v0_1
+          python scripts/marc_r2_diagnostic.py             --symbols BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT             --start 2022-01-01             --split 2025-01-01             --end 2026-10-01             --base-cost-bps 6             --stress-cost-bps 10             --request-delay 0.10             --output-dir research_output/marc_r2_diagnostic_v0_1
+
+      - name: Verify diagnostic-only contract
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path(
+              "research_output/marc_r2_diagnostic_v0_1/"
+              "marc_r2_diagnostic_report.json"
+          )
+          report = json.loads(path.read_text(encoding="utf-8"))
+          assert report["schema"] == "MARC_R2_DIAGNOSTIC_V1"
+          assert report["future_r2_approval"] == "DENIED_DIAGNOSTIC_ONLY"
+          assert report["diagnostic_oos"]["overall"]["trades"] == 1797
+          print("MARC_R2_DIAGNOSTIC_AUDIT_PASS")
+          PY
+
+      - name: Upload diagnostic evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: marc-r2-diagnostic-${{ github.sha }}
+          path: research_output/marc_r2_diagnostic_v0_1/
+          if-no-files-found: error
+          retention-days: 14
