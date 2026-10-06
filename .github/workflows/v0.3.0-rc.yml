@@ -92,6 +92,7 @@ jobs:
           bash scripts/install.sh --check
           grep -Fq 'revision = "20260928_0021"'             production_source/migrations/versions/20260928_0021_ch6_ii_opportunity_identity.py
           grep -Fq 'revision = "20261004_0022"'             production_source/migrations/versions/20261004_0022_signal_strategy_management.py
+          grep -Fq 'revision = "20261006_0023"'             production_source/migrations/versions/20261006_0023_rename_fm_to_marc.py
           docker compose version
       - name: Manager database credential recovery rehearsal
         run: bash scripts/ci_manager_db_auth_recovery.sh
