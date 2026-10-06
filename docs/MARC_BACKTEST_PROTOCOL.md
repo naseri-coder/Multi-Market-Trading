@@ -54,7 +54,8 @@ The OOS window is not used to tune MARC parameters.
 - Chandelier uses length 22 and Wilder ATR(22), multiplier 3;
 - a newly computed Chandelier level is effective only from the next candle;
 - the trailing stop never loosens beyond the initial stop;
-- if stop and target are both touched inside the same candle, **stop wins**;
+- a target already crossed at the candle open is filled first because its order is known;
+- otherwise, if stop and target are both touched intrabar, **stop wins**;
 - an adverse gap through a stop fills at the candle open;
 - remaining exposure at the fixed window boundary is closed at the last close.
 
