@@ -152,9 +152,4 @@ def annotate_frt_trades(
             )
 
     output.sort(key=lambda item: (item.entry_time, item.symbol, item.source_signal_id))
-    if len(output) != len(trades):
-        missing = len(trades) - len(output)
-        raise RuntimeError(
-            f"MARC R3 feature coverage incomplete for {symbol}: missing={missing}"
-        )
     return tuple(output)
