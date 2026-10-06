@@ -50,8 +50,8 @@ jobs:
 
       - name: Run development FRT and untouched holdout
         run: |
-          rm -rf research_output/marc_r2_frt_v0_1
-          python scripts/marc_r2_fresh_reversal.py             --start 2022-01-01             --end 2026-10-01             --base-cost-bps 6             --stress-cost-bps 10             --request-delay 0.05             --output-dir research_output/marc_r2_frt_v0_1
+          rm -rf research_output/marc_r2_frt_v0_2
+          python scripts/marc_r2_fresh_reversal.py             --start 2022-01-01             --end 2026-10-01             --base-cost-bps 6             --stress-cost-bps 10             --request-delay 0.05             --output-dir research_output/marc_r2_frt_v0_2
 
       - name: Verify research-only contract
         run: |
@@ -60,11 +60,11 @@ jobs:
           from pathlib import Path
 
           path = Path(
-              "research_output/marc_r2_frt_v0_1/"
+              "research_output/marc_r2_frt_v0_2/"
               "marc_r2_fresh_reversal_report.json"
           )
           report = json.loads(path.read_text(encoding="utf-8"))
-          assert report["schema"] == "MARC_R2_FRESH_REVERSAL_V1"
+          assert report["schema"] == "MARC_R2_FRESH_REVERSAL_V2"
           assert report["runtime_approval"] == "DENIED_RESEARCH_ONLY"
           print("MARC_R2_FRT_AUDIT_PASS", report["final_classification"])
           PY
@@ -73,6 +73,6 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: marc-r2-frt-${{ github.sha }}
-          path: research_output/marc_r2_frt_v0_1/
+          path: research_output/marc_r2_frt_v0_2/
           if-no-files-found: error
           retention-days: 14

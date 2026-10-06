@@ -40,7 +40,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("research_output/marc_r2_frt_v0_1"),
+        default=Path("research_output/marc_r2_frt_v0_2"),
     )
     parser.add_argument("--base-url", default="https://data.binance.vision")
     return parser
@@ -180,7 +180,7 @@ async def _run(args: argparse.Namespace) -> dict[str, object]:
         holdout = tuple(items)
 
     protocol = {
-        "setup": "MARC_R2_FRESH_REVERSAL_TRANSITION_V0_1",
+        "setup": "MARC_R2_FRESH_REVERSAL_TRANSITION_V0_2_COST_CLEAN",
         "timeframe": "15m_only",
         "development_symbols": list(DEV),
         "untouched_holdout_symbols": list(HOLD),
@@ -190,7 +190,7 @@ async def _run(args: argparse.Namespace) -> dict[str, object]:
         },
         "latest_cross_age_bars_max": 3,
         "ma99_slope": "5_bar_slope_must_remain_opposed_to_trade_direction",
-        "minimum_initial_risk_pct": 0.006,
+        "minimum_initial_risk_pct": 0.008,
         "exit_model": "frozen_R1_25pct_1R_25pct_2R_50pct_chandelier",
         "base_cost_bps_per_side": args.base_cost_bps,
         "stress_cost_bps_per_side": args.stress_cost_bps,
