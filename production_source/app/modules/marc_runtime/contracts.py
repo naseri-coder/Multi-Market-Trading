@@ -1,4 +1,4 @@
-"""Framework-independent contracts for the future MARC core."""
+"""Framework-independent contracts for the MARC runtime boundary."""
 
 from __future__ import annotations
 
