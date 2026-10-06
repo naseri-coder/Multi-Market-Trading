@@ -1,0 +1,89 @@
+name: MARC Frozen OOS Backtest
+
+on:
+  pull_request:
+    paths:
+      - "production_source/app/modules/marc_core/**"
+      - "research_layer/marc_backtest/**"
+      - "scripts/marc_backtest.py"
+      - "tests/unit/test_marc_backtest.py"
+      - "docs/MARC_BACKTEST_PROTOCOL.md"
+      - ".github/workflows/marc-oos-backtest.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marc-oos-${{ github.ref }}-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  marc-oos:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONPATH: "${{ github.workspace }}/production_source:${{ github.workspace }}"
+    steps:
+      - name: Checkout immutable PR revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install reviewed development dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Verify frozen source before research
+        run: bash scripts/verify.sh
+
+      - name: Run MARC backtest protocol unit tests
+        run: python -m pytest -q tests/unit/test_marc_backtest.py tests/unit/test_marc_core.py
+
+      - name: Run fixed-window validation and out-of-sample backtest
+        run: |
+          set -Eeuo pipefail
+          rm -rf research_output/marc_oos_v0_1
+          python scripts/marc_backtest.py \
+            --symbols BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT \
+            --start 2022-01-01 \
+            --split 2025-01-01 \
+            --end 2026-10-01 \
+            --base-cost-bps 6 \
+            --stress-cost-bps 10 \
+            --request-delay 0.25 \
+            --output-dir research_output/marc_oos_v0_1
+
+      - name: Verify research output is explicitly non-operational
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("research_output/marc_oos_v0_1/marc_backtest_report.json")
+          report = json.loads(path.read_text(encoding="utf-8"))
+          assert report["schema"] == "MARC_BACKTEST_REPORT_V1"
+          assert report["runtime_approval"] == "DENIED_BACKTEST_ONLY"
+          assert report["strategy"]["rule_set_version"] == "marc-r1-v0.1"
+          print(
+              "MARC_OOS_AUDIT_PASS",
+              report["research_classification"],
+              report["out_of_sample"]["pooled_base_cost"]["trades"],
+          )
+          PY
+
+      - name: Upload immutable research report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: marc-oos-v0-1-${{ github.sha }}
+          path: research_output/marc_oos_v0_1/
+          if-no-files-found: error
+          retention-days: 14
