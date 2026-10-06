@@ -30,12 +30,15 @@ def _summary(records: Iterable[QualifiedFRTTrade]) -> dict[str, object]:
             return {
                 "expectancy_r": None,
                 "profit_factor": None,
+                "profit_factor_infinite": False,
                 "total_r": None,
                 "max_drawdown_r": None,
             }
+        pf = profit_factor(values)
         return {
             "expectancy_r": sum(values) / len(values),
-            "profit_factor": _finite(profit_factor(values)),
+            "profit_factor": _finite(pf),
+            "profit_factor_infinite": math.isinf(pf),
             "total_r": sum(values),
             "max_drawdown_r": max_drawdown(values),
         }
@@ -77,8 +80,13 @@ def _eligible_cells(
             and base["expectancy_r"] > 0.05
             and stress["expectancy_r"] is not None
             and stress["expectancy_r"] > 0
-            and stress["profit_factor"] is not None
-            and stress["profit_factor"] >= 1.03
+            and (
+                stress.get("profit_factor_infinite", False)
+                or (
+                    stress["profit_factor"] is not None
+                    and stress["profit_factor"] >= 1.03
+                )
+            )
         ):
             eligible.append(cell)
     return tuple(sorted(eligible))
@@ -96,8 +104,13 @@ def _eligible_symbols(
             summary["trades"] >= SYMBOL_MIN_TRADES
             and base["expectancy_r"] is not None
             and base["expectancy_r"] > 0
-            and base["profit_factor"] is not None
-            and base["profit_factor"] >= 1.05
+            and (
+                base.get("profit_factor_infinite", False)
+                or (
+                    base["profit_factor"] is not None
+                    and base["profit_factor"] >= 1.05
+                )
+            )
             and stress["expectancy_r"] is not None
             and stress["expectancy_r"] > 0
         ):
@@ -269,16 +282,22 @@ def _development_gate(payload: dict[str, object]) -> dict[str, object]:
             and overall["base"]["expectancy_r"] > 0
         ),
         "base_pf_at_least_1_10": (
-            overall["base"]["profit_factor"] is not None
-            and overall["base"]["profit_factor"] >= 1.10
+            overall["base"].get("profit_factor_infinite", False)
+            or (
+                overall["base"]["profit_factor"] is not None
+                and overall["base"]["profit_factor"] >= 1.10
+            )
         ),
         "stress_expectancy_positive": (
             overall["stress"]["expectancy_r"] is not None
             and overall["stress"]["expectancy_r"] > 0
         ),
         "stress_pf_at_least_1_03": (
-            overall["stress"]["profit_factor"] is not None
-            and overall["stress"]["profit_factor"] >= 1.03
+            overall["stress"].get("profit_factor_infinite", False)
+            or (
+                overall["stress"]["profit_factor"] is not None
+                and overall["stress"]["profit_factor"] >= 1.03
+            )
         ),
         "positive_folds_at_least_3_of_4": aggregate["positive_base_folds"] >= 3,
         "positive_symbols_at_least_6_of_10": aggregate["positive_base_symbols"] >= 6,
