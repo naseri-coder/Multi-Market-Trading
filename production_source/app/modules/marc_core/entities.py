@@ -100,6 +100,10 @@ class MARCCandidate:
     def __post_init__(self) -> None:
         if self.direction not in {"LONG", "SHORT"}:
             raise ValueError("MARC candidate direction must be LONG or SHORT")
+        if self.entry_price <= 0 or self.stop_loss <= 0:
+            raise ValueError("MARC candidate prices must be positive")
+        if any(target <= 0 for target in self.targets):
+            raise ValueError("MARC candidate targets must be positive")
         if self.direction == "LONG" and not self.stop_loss < self.entry_price:
             raise ValueError("LONG stop must be below entry")
         if self.direction == "SHORT" and not self.stop_loss > self.entry_price:
