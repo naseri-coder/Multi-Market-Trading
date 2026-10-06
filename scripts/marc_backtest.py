@@ -12,7 +12,7 @@ from pathlib import Path
 
 from research_layer.marc_backtest.data import (
     candle_series_sha256,
-    fetch_binance_futures_klines,
+    fetch_binance_vision_monthly_klines,
     resample_15m_to_30m,
 )
 from research_layer.marc_backtest.engine import BacktestConfig, backtest_window
@@ -44,7 +44,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--end", type=_date, default=_date("2026-10-01"))
     parser.add_argument("--base-cost-bps", type=float, default=6.0)
     parser.add_argument("--stress-cost-bps", type=float, default=10.0)
-    parser.add_argument("--request-delay", type=float, default=0.25)
+    parser.add_argument("--request-delay", type=float, default=0.10)
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -52,7 +52,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--base-url",
-        default="https://fapi.binance.com",
+        default="https://data.binance.vision",
     )
     return parser
 
@@ -91,7 +91,7 @@ async def _run(args: argparse.Namespace) -> dict[str, object]:
             f"start={warmup_start.date()} end={args.end.date()}",
             flush=True,
         )
-        candles_15m = await fetch_binance_futures_klines(
+        archive_series = await fetch_binance_vision_monthly_klines(
             symbol=symbol,
             start=warmup_start,
             end=args.end,
@@ -99,11 +99,14 @@ async def _run(args: argparse.Namespace) -> dict[str, object]:
             request_delay_seconds=args.request_delay,
             base_url=args.base_url,
         )
+        candles_15m = archive_series.candles
         candles_30m = resample_15m_to_30m(candles_15m)
         dataset_rows.append(
             {
                 "symbol": symbol,
-                "source": "BINANCE_USDM_PUBLIC_REST",
+                "source": "BINANCE_VISION_USDM_MONTHLY_ARCHIVES",
+                "verified_archives": archive_series.verified_archives,
+                "archive_manifest_sha256": archive_series.archive_manifest_sha256,
                 "15m": _series_provenance(candles_15m, "15m"),
                 "30m": _series_provenance(candles_30m, "30m"),
             }
@@ -168,7 +171,7 @@ async def _run(args: argparse.Namespace) -> dict[str, object]:
     provenance = {
         "exchange": "binance",
         "market_type": "usd_m_futures",
-        "endpoint": args.base_url,
+        "archive_base_url": args.base_url,
         "symbols": list(args.symbols),
         "datasets": dataset_rows,
     }
