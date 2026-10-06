@@ -208,6 +208,18 @@ def _simulate_trade(
         for price, fraction, reason in gap_targets:
             target_fill(candle, price, fraction, reason, at_open=True)
 
+        # A TP2 filled at the candle open is known to occur before any later
+        # intrabar movement. If a Chandelier level was already derived from
+        # prior closed candles, the remaining runner becomes active immediately
+        # after that deterministic open-time fill.
+        if tp2_hit and not runner_active:
+            runner_active = True
+            if trail is not None:
+                if direction == "LONG":
+                    effective_stop = max(effective_stop, trail)
+                else:
+                    effective_stop = min(effective_stop, trail)
+
         pending_targets = []
         if direction == "LONG":
             if not tp1_hit and candle.high >= tp1:
