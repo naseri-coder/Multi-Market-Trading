@@ -31,4 +31,4 @@ class MARCEngineRegistry:
         self._engine = None
 
 
-default_fm_engine_registry = MARCEngineRegistry()
+default_marc_engine_registry = MARCEngineRegistry()
