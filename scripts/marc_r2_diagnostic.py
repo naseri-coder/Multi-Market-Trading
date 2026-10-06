@@ -19,8 +19,8 @@ from research_layer.marc_backtest.engine import BacktestConfig, backtest_window
 from research_layer.marc_backtest.entities import BacktestWindowResult
 from research_layer.marc_diagnostic.analysis import (
     build_diagnostic_report,
-    diagnostic_rows,
     diagnose_trades,
+    diagnostic_rows,
     resample_30m_to_1h,
 )
 
