@@ -60,6 +60,7 @@ async def fetch_binance_futures_klines(
     request_delay_seconds: float = 0.25,
     base_url: str = _BINANCE_FUTURES_BASE_URL,
     transport: httpx.AsyncBaseTransport | None = None,
+    now: datetime | None = None,
 ) -> tuple[Candle, ...]:
     """Fetch immutable closed klines using the public USD-M Futures REST API."""
     if timeframe not in _INTERVAL_MS:
@@ -71,6 +72,7 @@ async def fetch_binance_futures_klines(
     if request_delay_seconds < 0:
         raise ValueError("request delay cannot be negative")
 
+    closed_cutoff = min(end, _aware_utc(now or datetime.now(UTC)))
     interval_ms = _INTERVAL_MS[timeframe]
     cursor = int(start.timestamp() * 1000)
     end_ms = int(end.timestamp() * 1000)
@@ -117,7 +119,11 @@ async def fetch_binance_futures_klines(
                 break
             for row in rows:
                 candle = _row_to_candle(row)
-                if candle.open_time >= start and candle.open_time < end:
+                if (
+                    candle.open_time >= start
+                    and candle.open_time < end
+                    and candle.close_time <= closed_cutoff
+                ):
                     by_open[candle.open_time] = candle
 
             next_cursor = int(rows[-1][0]) + interval_ms
@@ -240,6 +246,7 @@ async def fetch_binance_vision_monthly_klines(
     timeframe: str = "15m",
     request_delay_seconds: float = 0.10,
     base_url: str = _BINANCE_VISION_BASE_URL,
+    now: datetime | None = None,
 ) -> BinanceVisionSeries:
     """Fetch and checksum-verify official monthly USD-M Futures kline archives."""
     if timeframe != "15m":
@@ -248,6 +255,12 @@ async def fetch_binance_vision_monthly_klines(
     end = _aware_utc(end)
     if end <= start:
         raise ValueError("end must be after start")
+    current = _aware_utc(now or datetime.now(UTC))
+    current_month = datetime(current.year, current.month, 1, tzinfo=UTC)
+    if end > current_month:
+        raise ValueError(
+            "Binance Vision monthly source requires end at or before current UTC month"
+        )
 
     symbol = symbol.upper()
     by_open: dict[datetime, Candle] = {}
