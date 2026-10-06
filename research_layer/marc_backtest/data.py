@@ -25,6 +25,8 @@ class BinanceVisionSeries:
     candles: tuple[Candle, ...]
     verified_archives: int
     archive_manifest_sha256: str
+    gap_count: int
+    segment_count: int
 
 
 def _aware_utc(value: datetime) -> datetime:
@@ -139,9 +141,28 @@ async def fetch_binance_futures_klines(
     return validate_candle_sequence(ordered, timeframe=timeframe)
 
 
+def split_contiguous_candles(
+    candles: tuple[Candle, ...],
+    *,
+    timeframe: str,
+) -> tuple[tuple[Candle, ...], ...]:
+    """Split ordered unique candles at every missing/misaligned interval."""
+    if not candles:
+        return ()
+    expected = timedelta(milliseconds=_INTERVAL_MS[timeframe])
+    segments: list[list[Candle]] = [[candles[0]]]
+    for candle in candles[1:]:
+        previous = segments[-1][-1]
+        if candle.open_time - previous.open_time == expected:
+            segments[-1].append(candle)
+        else:
+            segments.append([candle])
+    return tuple(tuple(segment) for segment in segments)
+
+
 def resample_15m_to_30m(candles: tuple[Candle, ...]) -> tuple[Candle, ...]:
-    """Aggregate complete UTC-aligned pairs of 15m candles into 30m candles."""
-    source = validate_candle_sequence(candles, timeframe="15m")
+    """Aggregate only complete UTC-aligned adjacent 15m pairs into 30m candles."""
+    source = tuple(candles)
     out: list[Candle] = []
     index = 0
     while index + 1 < len(source):
@@ -165,7 +186,7 @@ def resample_15m_to_30m(candles: tuple[Candle, ...]) -> tuple[Candle, ...]:
             )
         )
         index += 2
-    return validate_candle_sequence(tuple(out), timeframe="30m")
+    return tuple(out)
 
 
 def candle_series_sha256(candles: tuple[Candle, ...]) -> str:
@@ -313,8 +334,8 @@ async def fetch_binance_vision_monthly_klines(
             if request_delay_seconds:
                 await asyncio.sleep(request_delay_seconds)
 
-    ordered = tuple(by_open[key] for key in sorted(by_open))
-    candles = validate_candle_sequence(ordered, timeframe=timeframe)
+    candles = tuple(by_open[key] for key in sorted(by_open))
+    segments = split_contiguous_candles(candles, timeframe=timeframe)
     manifest = hashlib.sha256()
     for filename, digest in verified:
         manifest.update(f"{digest}  {filename}\n".encode())
@@ -322,4 +343,6 @@ async def fetch_binance_vision_monthly_klines(
         candles=candles,
         verified_archives=len(verified),
         archive_manifest_sha256=manifest.hexdigest(),
+        gap_count=max(0, len(segments) - 1),
+        segment_count=len(segments),
     )
