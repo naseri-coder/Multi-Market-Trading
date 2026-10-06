@@ -14,7 +14,7 @@ class SignalStrategyConfig(BigIntIdentityMixin, TimestampMixin, Base):
     __table_args__ = (
         UniqueConstraint("strategy_code", name="uq_signal_strategy_configs_strategy_code"),
         CheckConstraint(
-            "strategy_code IN ('BROOKS','FM')",
+            "strategy_code IN ('BROOKS','MARC')",
             name="strategy_code",
         ),
         CheckConstraint(
