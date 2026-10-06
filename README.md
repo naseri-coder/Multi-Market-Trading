@@ -105,7 +105,7 @@ The public source currently uses **Binance USD-M Futures** as the supported mark
 
 | Area | Status |
 | --- | --- |
-| Rule-based analysis core | 🟡 Active development & validation |
+| Brooks rule-based analysis core | 🟡 Active development & validation |\n| MARC MA 7/25/99 core | 🟡 Frozen v0.1 baseline; backtest pending |
 | Context / pattern coverage | 🟡 Expanding and regression-tested |
 | Public source integrity | 🟢 SHA256-verified snapshot |
 | Public test corpus | 🟢 GitHub Actions |
@@ -550,7 +550,7 @@ bash naseri.sh logs
 <a id="verification"></a>
 ## 🧪 Verification & Provenance
 
-The current `main` branch source manifest contains **362 tracked entries** in `production_source/SHA256SUMS`.
+The current `main` branch source manifest contains **369 tracked entries** in `production_source/SHA256SUMS`.
 
 The historical v0.3.2 release baseline and later validated `main` changes are protected by repository verification and GitHub Actions. Use the repository's release tags when an immutable release identity is required; use `main` when following the current Manager and ongoing development state.
 
