@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from app.modules.market_data.entities import MarketSnapshot
-
 from app.modules.marc_core.engine import MARCSignalEngine
 from app.modules.marc_core.entities import MARCEntryPlan
+from app.modules.market_data.entities import MarketSnapshot
 
 
 def replay_entry_plans(
