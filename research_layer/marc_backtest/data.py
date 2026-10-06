@@ -17,7 +17,10 @@ from app.modules.market_data.entities import Candle, validate_candle_sequence
 
 _BINANCE_FUTURES_BASE_URL = "https://fapi.binance.com"
 _BINANCE_VISION_BASE_URL = "https://data.binance.vision"
-_INTERVAL_MS = {"15m": 15 * 60 * 1000}
+_INTERVAL_MS = {
+    "15m": 15 * 60 * 1000,
+    "30m": 30 * 60 * 1000,
+}
 
 
 @dataclass(frozen=True, slots=True)
