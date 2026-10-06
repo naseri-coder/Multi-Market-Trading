@@ -315,3 +315,31 @@ def test_pooled_drawdown_is_chronological_and_independent_of_stream_order():
         second["out_of_sample"]["pooled_base_cost"]["max_drawdown_r"]
         == first["out_of_sample"]["pooled_base_cost"]["max_drawdown_r"]
     )
+
+
+
+def test_tp2_gap_activates_existing_chandelier_before_intrabar_stop():
+    candles = (
+        _candle(0, open_price="100", high="108", low="99", close="107"),
+        _candle(1, open_price="107", high="109", low="106", close="108"),
+        _candle(2, open_price="121", high="122", low="107", close="115"),
+    )
+    trade, _ = _simulate_trade(
+        candles=candles,
+        atr22=(None, D("1"), D("1")),
+        candidate=_candidate(),
+        entry_index=0,
+        last_index=2,
+        config=BacktestConfig(),
+        policy=MARCPolicy(
+            chandelier_length=2,
+            chandelier_atr_period=2,
+            chandelier_multiplier=D("1"),
+        ),
+    )
+
+    assert [fill.reason for fill in trade.fills] == ["TP1", "TP2", "TRAIL_STOP"]
+    assert [fill.fraction for fill in trade.fills] == [0.25, 0.25, 0.5]
+    assert trade.fills[-1].price == 108.0
+    assert trade.tp2_hit is True
+    assert trade.gross_r == pytest.approx(1.15)
