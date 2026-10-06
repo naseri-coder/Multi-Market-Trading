@@ -136,15 +136,15 @@ jobs:
           cd "${CH6_ISOLATED_SOURCE}"
           export PYTHONPATH="${CH6_ISOLATED_SOURCE}"
 
-          python -m alembic -c alembic.ini heads | grep -F "20261004_0022"
+          python -m alembic -c alembic.ini heads | grep -F "20261006_0023"
 
-          DATABASE_URL="${CH6_DISPOSABLE_DATABASE_URL}" python -m alembic -c alembic.ini upgrade 20261004_0022
-          DATABASE_URL="${TEST_DATABASE_URL}" python -m alembic -c alembic.ini upgrade 20261004_0022
+          DATABASE_URL="${CH6_DISPOSABLE_DATABASE_URL}" python -m alembic -c alembic.ini upgrade 20261006_0023
+          DATABASE_URL="${TEST_DATABASE_URL}" python -m alembic -c alembic.ini upgrade 20261006_0023
 
           ch6_current="$(docker exec "${CH6_PG_CONTAINER}" psql -U ch6synthetic -d ch6synthetic -Aqt -c 'SELECT version_num FROM alembic_version;')"
           general_current="$(docker exec "${CH6_PG_CONTAINER}" psql -U ch6synthetic -d fullcorpus -Aqt -c 'SELECT version_num FROM alembic_version;')"
-          test "${ch6_current}" = "20261004_0022"
-          test "${general_current}" = "20261004_0022"
+          test "${ch6_current}" = "20261006_0023"
+          test "${general_current}" = "20261006_0023"
           echo "BOTH_DATABASES_MIGRATION_0022_PASS"
 
       - name: Remove migration bytecode before parity tests
