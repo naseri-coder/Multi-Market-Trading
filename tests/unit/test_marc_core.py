@@ -270,3 +270,55 @@ def test_replay_returns_no_entry_for_monotonic_series_without_recent_cross():
         captured_at=candles[-1].close_time,
     )
     assert replay_entry_plans(snap) == ()
+
+
+def test_short_entry_plan_rejects_non_positive_r_targets():
+    candles = []
+    for i in range(5):
+        candles.append(
+            Candle(
+                open_time=BASE + timedelta(minutes=15 * i),
+                close_time=BASE + timedelta(minutes=15 * (i + 1)),
+                open=D("1"),
+                high=D("2.3"),
+                low=D("0.5"),
+                close=D("1"),
+                volume=D("1"),
+            )
+        )
+    snap = MarketSnapshot(
+        exchange="binance",
+        market_type="futures",
+        symbol="TESTUSDT",
+        timeframe="15m",
+        candles=tuple(candles),
+        captured_at=candles[-1].close_time,
+    )
+    decision = MARCDecision(
+        symbol=snap.symbol,
+        timeframe=snap.timeframe,
+        state=MARCState.SHORT_READY,
+        direction="SHORT",
+        snapshot_id=snap.snapshot_id,
+        snapshot_hash=snap.snapshot_hash,
+        cross_index=1,
+        confirmation_index=4,
+        persistence_count=2,
+        ma7=D("0.9"),
+        ma25=D("1"),
+        ma99=D("1"),
+        atr14=D("1"),
+        normalized_spread_atr=D("0.3"),
+        extension_atr=D("0"),
+        fresh=True,
+        reason="test",
+    )
+
+    plan = MARCSignalEngine().build_entry_plan(
+        snap,
+        decision,
+        entry_price=D("1"),
+    )
+
+    assert plan.accepted is False
+    assert plan.rejection_reason == "NON_POSITIVE_PRICE_GEOMETRY"
