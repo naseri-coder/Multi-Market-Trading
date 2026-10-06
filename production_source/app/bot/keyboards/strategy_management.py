@@ -8,7 +8,10 @@ STRATEGY_MANAGEMENT_BUTTON = "🎛 مدیریت سیگنال‌دهی"
 BROOKS_STRATEGY_BUTTON = "📈 پرایس اکشن البروکس"
 MARC_STRATEGY_BUTTON = "📊 هسته MA 7/25/99 (MARC)"
 STRATEGY_ADMIN_BACK_BUTTON = "🔙 بازگشت به پنل مدیریت"
-STRATEGY_CALLBACK_PATTERN = (\n    r"^v1:strategy:(BROOKS|MARC):"\n    r"(toggle|set_channel|clear_channel|refresh)$"\n)
+STRATEGY_CALLBACK_PATTERN = (
+    r"^v1:strategy:(BROOKS|MARC):"
+    r"(toggle|set_channel|clear_channel|refresh)$"
+)
 
 
 def build_strategy_management_menu() -> ReplyKeyboardMarkup:
