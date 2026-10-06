@@ -319,16 +319,22 @@ def _holdout_gate(payload: dict[str, object]) -> dict[str, object]:
             and overall["base"]["expectancy_r"] > 0
         ),
         "base_pf_at_least_1_10": (
-            overall["base"]["profit_factor"] is not None
-            and overall["base"]["profit_factor"] >= 1.10
+            overall["base"].get("profit_factor_infinite", False)
+            or (
+                overall["base"]["profit_factor"] is not None
+                and overall["base"]["profit_factor"] >= 1.10
+            )
         ),
         "stress_expectancy_positive": (
             overall["stress"]["expectancy_r"] is not None
             and overall["stress"]["expectancy_r"] > 0
         ),
         "stress_pf_at_least_1_03": (
-            overall["stress"]["profit_factor"] is not None
-            and overall["stress"]["profit_factor"] >= 1.03
+            overall["stress"].get("profit_factor_infinite", False)
+            or (
+                overall["stress"]["profit_factor"] is not None
+                and overall["stress"]["profit_factor"] >= 1.03
+            )
         ),
         "positive_folds_at_least_3_of_4": aggregate["positive_base_folds"] >= 3,
         "positive_symbols_at_least_3_of_5": aggregate["positive_base_symbols"] >= 3,
