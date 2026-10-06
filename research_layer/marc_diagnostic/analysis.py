@@ -57,6 +57,35 @@ class MARCTradeDiagnostic:
     cost_drag_r: float
 
 
+
+def resample_30m_to_1h(candles: tuple[Candle, ...]) -> tuple[Candle, ...]:
+    """Aggregate only complete UTC-aligned adjacent 30m pairs into 1h candles."""
+    source = tuple(candles)
+    out: list[Candle] = []
+    index = 0
+    while index + 1 < len(source):
+        first = source[index]
+        if first.open_time.minute != 0 or first.open_time.second != 0:
+            index += 1
+            continue
+        second = source[index + 1]
+        if second.open_time - first.open_time != timedelta(minutes=30):
+            index += 1
+            continue
+        out.append(
+            Candle(
+                open_time=first.open_time,
+                close_time=second.close_time,
+                open=first.open,
+                high=max(first.high, second.high),
+                low=min(first.low, second.low),
+                close=second.close,
+                volume=first.volume + second.volume,
+            )
+        )
+        index += 2
+    return tuple(out)
+
 def _direction_sign(direction: str) -> D:
     if direction == "LONG":
         return D("1")
