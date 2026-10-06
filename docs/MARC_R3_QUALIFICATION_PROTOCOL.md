@@ -88,6 +88,10 @@ An instrument is enabled for the next year only when its training history has:
 A real candidate is eligible only when **both** its current regime cell and its
 instrument are enabled.
 
+If a historical gap leaves fewer than the full 30 days of causal volatility
+history required for the regime feature, that shadow trade is conservatively
+**ineligible** for R3. It is not imputed and it does not abort the full study.
+
 ## Development universe
 
 These ten symbols are already observed research data and may therefore be used
