@@ -33,8 +33,13 @@ Every monthly ZIP is verified against Binance's companion `.CHECKSUM` file
 before parsing. The report records the number of verified archives, a SHA256
 digest of the archive manifest, and SHA256 hashes of every normalized series.
 
+Historical archive gaps are never forward-filled or interpolated. Each
+symbol/timeframe is split into strictly contiguous segments at missing or
+misaligned intervals; MA/ATR state is restarted after each gap. Gap and segment
+counts are preserved in dataset provenance.
+
 30m candles are reconstructed deterministically from two complete,
-UTC-aligned 15m candles.
+UTC-aligned adjacent 15m candles.
 
 ## Fixed split
 
