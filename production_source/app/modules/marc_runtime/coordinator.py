@@ -12,7 +12,7 @@ from telegram.ext import Application
 from app.modules.marc_runtime.contracts import MARCEngine, MARCRuntimeContext
 from app.modules.marc_runtime.registry import (
     MARCEngineRegistry,
-    default_fm_engine_registry,
+    default_marc_engine_registry,
 )
 from app.modules.signal_strategies.entities import (
     MARC_STRATEGY_CODE,
@@ -41,7 +41,7 @@ class MARCRuntimeCoordinator:
         self,
         *,
         database: Any,
-        registry: MARCEngineRegistry = default_fm_engine_registry,
+        registry: MARCEngineRegistry = default_marc_engine_registry,
     ) -> None:
         self.database = database
         self.registry = registry
@@ -74,7 +74,7 @@ class MARCRuntimeCoordinator:
             logger.info(
                 "MARC engine is not connected; runtime remains fail-closed",
                 extra={
-                    "event": "fm_engine_not_connected",
+                    "event": "marc_engine_not_connected",
                     "strategy_code": MARC_STRATEGY_CODE,
                     "configured_enabled": route.enabled,
                     "channel_configured": route.private_channel_id is not None,
@@ -85,7 +85,7 @@ class MARCRuntimeCoordinator:
         await self._reconcile_once()
         self._task = asyncio.create_task(
             self._reconcile_loop(),
-            name="fm-strategy-runtime-coordinator",
+            name="marc-strategy-runtime-coordinator",
         )
         logger.info(
             "MARC runtime coordinator started",
@@ -163,7 +163,7 @@ class MARCRuntimeCoordinator:
             logger.exception(
                 "MARC engine startup failed; Brooks runtime remains isolated",
                 extra={
-                    "event": "fm_engine_start_failed",
+                    "event": "marc_engine_start_failed",
                     "engine_id": engine.engine_id,
                     "engine_version": engine.engine_version,
                     "channel_id": channel_id,
@@ -176,7 +176,7 @@ class MARCRuntimeCoordinator:
         logger.info(
             "MARC engine started on its independent strategy route",
             extra={
-                "event": "fm_engine_started",
+                "event": "marc_engine_started",
                 "engine_id": engine.engine_id,
                 "engine_version": engine.engine_version,
                 "strategy_code": MARC_STRATEGY_CODE,
@@ -196,7 +196,7 @@ class MARCRuntimeCoordinator:
             logger.exception(
                 "MARC engine shutdown failed without affecting Brooks runtime",
                 extra={
-                    "event": "fm_engine_shutdown_failed",
+                    "event": "marc_engine_shutdown_failed",
                     "engine_id": engine.engine_id,
                     "engine_version": engine.engine_version,
                 },
@@ -205,7 +205,7 @@ class MARCRuntimeCoordinator:
         logger.info(
             "MARC engine stopped",
             extra={
-                "event": "fm_engine_stopped",
+                "event": "marc_engine_stopped",
                 "engine_id": engine.engine_id,
                 "engine_version": engine.engine_version,
             },
