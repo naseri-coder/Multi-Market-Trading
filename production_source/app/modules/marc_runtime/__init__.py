@@ -8,7 +8,7 @@ from app.modules.marc_runtime.contracts import MARCEngine, MARCRuntimeContext
 from app.modules.marc_runtime.coordinator import MARCRuntimeCoordinator
 from app.modules.marc_runtime.registry import (
     MARCEngineRegistry,
-    default_fm_engine_registry,
+    default_marc_engine_registry,
 )
 
 __all__ = [
@@ -16,5 +16,5 @@ __all__ = [
     "MARCEngineRegistry",
     "MARCRuntimeContext",
     "MARCRuntimeCoordinator",
-    "default_fm_engine_registry",
+    "default_marc_engine_registry",
 ]
