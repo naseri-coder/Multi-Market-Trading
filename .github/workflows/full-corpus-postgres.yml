@@ -145,7 +145,7 @@ jobs:
           general_current="$(docker exec "${CH6_PG_CONTAINER}" psql -U ch6synthetic -d fullcorpus -Aqt -c 'SELECT version_num FROM alembic_version;')"
           test "${ch6_current}" = "20261006_0023"
           test "${general_current}" = "20261006_0023"
-          echo "BOTH_DATABASES_MIGRATION_0022_PASS"
+          echo "BOTH_DATABASES_MIGRATION_0023_PASS"
 
       - name: Remove migration bytecode before parity tests
         run: |
