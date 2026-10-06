@@ -14,6 +14,7 @@ from app.modules.marc_core.policy import MARCPolicy
 from research_layer.marc_backtest.data import (
     fetch_binance_futures_klines,
     resample_15m_to_30m,
+    split_contiguous_candles,
 )
 from research_layer.marc_backtest.engine import (
     BacktestConfig,
@@ -97,6 +98,27 @@ def test_resample_15m_to_30m_is_utc_aligned_and_deterministic():
     assert result[0].close == D("102")
     assert result[0].volume == D("2")
     assert result[1].open_time.minute == 30
+
+
+
+
+def test_historical_gaps_are_split_without_synthetic_candle_fill():
+    source = (
+        _candle(0, open_price="100", high="102", low="99", close="101"),
+        _candle(1, open_price="101", high="103", low="100", close="102"),
+        _candle(3, open_price="103", high="105", low="102", close="104"),
+        _candle(4, open_price="104", high="106", low="103", close="105"),
+    )
+
+    segments = split_contiguous_candles(source, timeframe="15m")
+
+    assert tuple(len(segment) for segment in segments) == (2, 2)
+    assert segments[0][-1].open_time < segments[1][0].open_time
+    assert all(
+        candle.open_time != BASE + timedelta(minutes=30)
+        for segment in segments
+        for candle in segment
+    )
 
 
 def test_same_bar_stop_and_target_is_resolved_stop_first():
