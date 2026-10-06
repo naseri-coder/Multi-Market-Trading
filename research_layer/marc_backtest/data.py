@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import csv
 import hashlib
+import io
+import zipfile
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
@@ -12,7 +16,15 @@ import httpx
 from app.modules.market_data.entities import Candle, validate_candle_sequence
 
 _BINANCE_FUTURES_BASE_URL = "https://fapi.binance.com"
+_BINANCE_VISION_BASE_URL = "https://data.binance.vision"
 _INTERVAL_MS = {"15m": 15 * 60 * 1000}
+
+
+@dataclass(frozen=True, slots=True)
+class BinanceVisionSeries:
+    candles: tuple[Candle, ...]
+    verified_archives: int
+    archive_manifest_sha256: str
 
 
 def _aware_utc(value: datetime) -> datetime:
@@ -168,3 +180,133 @@ def candle_series_sha256(candles: tuple[Candle, ...]) -> str:
         digest.update(row.encode())
         digest.update(b"\n")
     return digest.hexdigest()
+
+
+def _epoch_ms(value: str | int) -> int:
+    raw = int(value)
+    if raw > 100_000_000_000_000:
+        return raw // 1000
+    return raw
+
+
+def _archive_row_to_candle(row: list[str]) -> Candle:
+    if len(row) < 7:
+        raise ValueError("malformed Binance Vision kline row")
+    return Candle(
+        open_time=_from_ms(_epoch_ms(row[0])),
+        close_time=_from_ms(_epoch_ms(row[6])),
+        open=Decimal(row[1]),
+        high=Decimal(row[2]),
+        low=Decimal(row[3]),
+        close=Decimal(row[4]),
+        volume=Decimal(row[5]),
+    )
+
+
+def _month_starts(start: datetime, end: datetime) -> tuple[datetime, ...]:
+    month = datetime(start.year, start.month, 1, tzinfo=UTC)
+    values = []
+    while month < end:
+        values.append(month)
+        if month.month == 12:
+            month = datetime(month.year + 1, 1, 1, tzinfo=UTC)
+        else:
+            month = datetime(month.year, month.month + 1, 1, tzinfo=UTC)
+    return tuple(values)
+
+
+async def _download_bytes(
+    client: httpx.AsyncClient,
+    url: str,
+) -> bytes:
+    for attempt in range(6):
+        response = await client.get(url)
+        if response.status_code in {418, 429} or response.status_code >= 500:
+            if attempt == 5:
+                response.raise_for_status()
+            retry_after = float(response.headers.get("Retry-After", "1"))
+            await asyncio.sleep(max(1.0, retry_after) * (attempt + 1))
+            continue
+        response.raise_for_status()
+        return response.content
+    raise RuntimeError("unreachable Binance Vision retry state")
+
+
+async def fetch_binance_vision_monthly_klines(
+    *,
+    symbol: str,
+    start: datetime,
+    end: datetime,
+    timeframe: str = "15m",
+    request_delay_seconds: float = 0.10,
+    base_url: str = _BINANCE_VISION_BASE_URL,
+) -> BinanceVisionSeries:
+    """Fetch and checksum-verify official monthly USD-M Futures kline archives."""
+    if timeframe != "15m":
+        raise ValueError("MARC archive source currently supports 15m source data only")
+    start = _aware_utc(start)
+    end = _aware_utc(end)
+    if end <= start:
+        raise ValueError("end must be after start")
+
+    symbol = symbol.upper()
+    by_open: dict[datetime, Candle] = {}
+    verified: list[tuple[str, str]] = []
+    timeout = httpx.Timeout(60.0)
+
+    async with httpx.AsyncClient(
+        timeout=timeout,
+        headers={"User-Agent": "crypto-price-action-marc-backtest/0.1"},
+        follow_redirects=True,
+    ) as client:
+        for month in _month_starts(start, end):
+            stamp = month.strftime("%Y-%m")
+            filename = f"{symbol}-{timeframe}-{stamp}.zip"
+            prefix = (
+                f"{base_url.rstrip('/')}/data/futures/um/monthly/klines/"
+                f"{symbol}/{timeframe}/{filename}"
+            )
+            checksum_bytes = await _download_bytes(client, prefix + ".CHECKSUM")
+            expected = checksum_bytes.decode("utf-8").strip().split()[0].lower()
+            if len(expected) != 64 or any(ch not in "0123456789abcdef" for ch in expected):
+                raise RuntimeError(f"invalid Binance Vision checksum for {filename}")
+
+            archive = await _download_bytes(client, prefix)
+            actual = hashlib.sha256(archive).hexdigest()
+            if actual != expected:
+                raise RuntimeError(f"Binance Vision checksum mismatch for {filename}")
+            verified.append((filename, actual))
+
+            with zipfile.ZipFile(io.BytesIO(archive)) as zipped:
+                members = [
+                    name for name in zipped.namelist()
+                    if not name.endswith("/") and name.lower().endswith(".csv")
+                ]
+                if len(members) != 1:
+                    raise RuntimeError(f"unexpected Binance Vision archive layout: {filename}")
+                with zipped.open(members[0]) as raw:
+                    text = io.TextIOWrapper(raw, encoding="utf-8", newline="")
+                    for row in csv.reader(text):
+                        if not row:
+                            continue
+                        try:
+                            int(row[0])
+                        except ValueError:
+                            continue
+                        candle = _archive_row_to_candle(row)
+                        if start <= candle.open_time < end:
+                            by_open[candle.open_time] = candle
+
+            if request_delay_seconds:
+                await asyncio.sleep(request_delay_seconds)
+
+    ordered = tuple(by_open[key] for key in sorted(by_open))
+    candles = validate_candle_sequence(ordered, timeframe=timeframe)
+    manifest = hashlib.sha256()
+    for filename, digest in verified:
+        manifest.update(f"{digest}  {filename}\n".encode())
+    return BinanceVisionSeries(
+        candles=candles,
+        verified_archives=len(verified),
+        archive_manifest_sha256=manifest.hexdigest(),
+    )
