@@ -372,3 +372,31 @@ def test_exact_minimum_plus_one_candles_keeps_first_next_bar_entry_boundary():
 
     assert result.symbol == "BTCUSDT"
     assert result.timeframe == "15m"
+
+
+
+def test_tp2_gap_with_already_breached_trail_exits_runner_at_open():
+    candles = (
+        _candle(0, open_price="128", high="130", low="127", close="129"),
+        _candle(1, open_price="100", high="109", low="99", close="108"),
+        _candle(2, open_price="121", high="122", low="120", close="121"),
+    )
+    trade, exit_index = _simulate_trade(
+        candles=candles,
+        atr22=(None, D("1"), D("1")),
+        candidate=_candidate(),
+        entry_index=1,
+        last_index=2,
+        config=BacktestConfig(),
+        policy=MARCPolicy(
+            chandelier_length=2,
+            chandelier_atr_period=2,
+            chandelier_multiplier=D("1"),
+        ),
+    )
+
+    assert exit_index == 2
+    assert [fill.reason for fill in trade.fills] == ["TP1", "TP2", "STOP_GAP"]
+    assert [fill.fraction for fill in trade.fills] == [0.25, 0.25, 0.5]
+    assert trade.fills[-1].price == 121.0
+    assert trade.gross_r == pytest.approx(1.8)

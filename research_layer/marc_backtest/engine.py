@@ -217,8 +217,15 @@ def _simulate_trade(
             if trail is not None:
                 if direction == "LONG":
                     effective_stop = max(effective_stop, trail)
+                    trail_breached_at_open = candle.open <= effective_stop
                 else:
                     effective_stop = min(effective_stop, trail)
+                    trail_breached_at_open = candle.open >= effective_stop
+                if trail_breached_at_open:
+                    fill(candle, candle.open, remaining, "STOP_GAP", at_open=True)
+                    terminal_reason = "STOP_GAP"
+                    exit_index = index
+                    break
 
         pending_targets = []
         if direction == "LONG":
