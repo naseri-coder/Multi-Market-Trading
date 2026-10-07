@@ -26,7 +26,7 @@ jobs:
     env:
       PYTHONUNBUFFERED: "1"
       PYTHONDONTWRITEBYTECODE: "1"
-      PYTHONPATH: "${{ github.workspace }}"
+      PYTHONPATH: "${{ github.workspace }}/production_source:${{ github.workspace }}"
 
     steps:
       - name: Checkout immutable research revision
