@@ -138,16 +138,17 @@ def _spike_geometry(
     return origin, extreme, size
 
 
-def _pullback(
+def _pullback_candidates(
     candles: tuple[Candle, ...],
     start_index: int,
     spike_extreme: Decimal,
     spike_size: Decimal,
     direction: str,
     policy: FMPolicy,
-) -> tuple[int, int, Decimal, Decimal] | None:
+) -> tuple[tuple[int, int, Decimal, Decimal], ...]:
     if start_index >= len(candles) or spike_size <= 0:
-        return None
+        return ()
+    output: list[tuple[int, int, Decimal, Decimal]] = []
     for length in range(1, policy.max_pullback_bars + 1):
         end = start_index + length - 1
         if end >= len(candles):
@@ -166,8 +167,8 @@ def _pullback(
         fraction = retrace / spike_size
         if fraction < 0 or fraction > policy.max_pullback_fraction:
             continue
-        return start_index, end, pb_extreme, fraction
-    return None
+        output.append((start_index, end, pb_extreme, fraction))
+    return tuple(output)
 
 
 def _breaks_extreme(candle: Candle, spike_extreme: Decimal, direction: str) -> bool:
@@ -193,7 +194,13 @@ def _followthrough(
         bars = candles[break_index : end + 1]
         if not all(_directional_bar(c, direction) for c in bars):
             return None
-        gap_indices = [i for i in range(break_index, end + 1) if _fvg(candles, i, direction)]
+        # The "new gap" must be formed entirely by post-break follow-through
+        # candles, so the earliest eligible third candle is break_index + 2.
+        gap_indices = [
+            i
+            for i in range(break_index + 2, end + 1)
+            if _fvg(candles, i, direction)
+        ]
         if gap_indices:
             return end, gap_indices[0]
     return None
@@ -389,7 +396,7 @@ def scan_fm(
             _, spike_extreme, spike_size = _spike_geometry(
                 candles, spike_start, spike_end, direction
             )
-            pullback = _pullback(
+            pullbacks = _pullback_candidates(
                 candles,
                 spike_end + 1,
                 spike_extreme,
@@ -397,18 +404,39 @@ def scan_fm(
                 direction,
                 selected,
             )
-            if pullback is None:
+            if not pullbacks:
                 continue
-            pb_start, pb_end, pb_extreme, pb_fraction = pullback
-            break_index = pb_end + 1
-            if break_index >= len(candles) or not _breaks_extreme(
-                candles[break_index], spike_extreme, direction
-            ):
+
+            matched = None
+            for pb_start, pb_end, pb_extreme, pb_fraction in pullbacks:
+                break_index = pb_end + 1
+                if break_index >= len(candles) or not _breaks_extreme(
+                    candles[break_index], spike_extreme, direction
+                ):
+                    continue
+                ft = _followthrough(candles, break_index, direction, selected)
+                if ft is None:
+                    continue
+                matched = (
+                    pb_start,
+                    pb_end,
+                    pb_extreme,
+                    pb_fraction,
+                    ft[0],
+                    ft[1],
+                )
+                break
+            if matched is None:
                 continue
-            ft = _followthrough(candles, break_index, direction, selected)
-            if ft is None:
-                continue
-            follow_end, gap_index = ft
+
+            (
+                pb_start,
+                pb_end,
+                pb_extreme,
+                pb_fraction,
+                follow_end,
+                gap_index,
+            ) = matched
             setups += 1
             trade, resolved_index, status = _simulate_setup(
                 candles=candles,
