@@ -1,0 +1,57 @@
+name: FM One Year Top 10 Scan
+
+on:
+  pull_request:
+    paths:
+      - "scripts/fm_one_year_top10_scan.py"
+      - ".github/workflows/fm-one-year-top10-scan.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fm-scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONPATH: "${{ github.workspace }}/production_source:${{ github.workspace }}"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: python -m pip install -e ".[dev]"
+
+      - name: Verify frozen production source
+        run: bash scripts/verify.sh
+
+      - name: Compile research scan
+        run: python -m py_compile scripts/fm_one_year_top10_scan.py
+
+      - name: Run FM one-year top-10 scan
+        run: |
+          rm -rf research_output/fm_one_year_top10_v0_1
+          python scripts/fm_one_year_top10_scan.py \
+            --start 2025-10-01 \
+            --end 2026-10-01 \
+            --request-delay 0.03 \
+            --output-dir research_output/fm_one_year_top10_v0_1
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fm-one-year-top10-${{ github.sha }}
+          path: research_output/fm_one_year_top10_v0_1/
+          if-no-files-found: error
+          retention-days: 14
