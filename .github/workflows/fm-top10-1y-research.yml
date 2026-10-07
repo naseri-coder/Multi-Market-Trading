@@ -1,0 +1,83 @@
+name: FM Top-10 One-Year Research Scan
+
+on:
+  push:
+    branches:
+      - research/fm-top10-1y-15m-30m-v0.1
+    paths:
+      - "research_layer/fm_backtest/**"
+      - "scripts/fm_top10_1y_scan.py"
+      - "tests/unit/test_fm_backtest_research.py"
+      - "docs/FM_TOP10_1Y_RESEARCH_PROTOCOL.md"
+      - ".github/workflows/fm-top10-1y-research.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fm-top10-1y-research-${{ github.ref }}-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  fm-top10-scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONPATH: "${{ github.workspace }}"
+
+    steps:
+      - name: Checkout immutable research revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependency
+        run: python -m pip install pytest
+
+      - name: Run frozen FM research unit tests
+        run: python -m pytest -q tests/unit/test_fm_backtest_research.py
+
+      - name: Run one-year 15m and 30m FM scan
+        run: |
+          set -Eeuo pipefail
+          rm -rf research_output/fm_top10_1y_v0_1
+          python scripts/fm_top10_1y_scan.py             --start 2025-10-01             --end 2026-10-01             --output-dir research_output/fm_top10_1y_v0_1
+
+      - name: Verify research-only report contract
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path(
+              "research_output/fm_top10_1y_v0_1/"
+              "fm_top10_1y_report.json"
+          )
+          report = json.loads(path.read_text(encoding="utf-8"))
+          assert report["schema"] == "FM_TOP10_1Y_RESEARCH_V0_1"
+          assert report["research_only"] is True
+          assert report["runtime_approval"] == "DENIED_RESEARCH_ONLY"
+          assert len(report["universe"]["selected_full_coverage_symbols"]) == 10
+          assert set(report["by_timeframe"]) == {"15m", "30m"}
+          print(
+              "FM_TOP10_1Y_AUDIT_PASS",
+              report["overall"]["metrics"]["trades"],
+          )
+          PY
+
+      - name: Upload immutable FM research evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fm-top10-1y-${{ github.sha }}
+          path: research_output/fm_top10_1y_v0_1/
+          if-no-files-found: error
+          retention-days: 14
