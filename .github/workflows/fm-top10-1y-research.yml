@@ -40,8 +40,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install test dependency
-        run: python -m pip install pytest
+      - name: Install reviewed development dependencies
+        run: python -m pip install -e ".[dev]"
 
       - name: Run frozen FM research unit tests
         run: python -m pytest -q tests/unit/test_fm_backtest_research.py
