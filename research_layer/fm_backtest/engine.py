@@ -386,7 +386,7 @@ def scan_fm(
     invalidated = 0
 
     i = 0
-    while i < len(candles) - 12:
+    while i < len(candles) - selected.min_spike_bars:
         found = False
         for direction in ("LONG", "SHORT"):
             spike = _spike_from(candles, i, direction, selected)
