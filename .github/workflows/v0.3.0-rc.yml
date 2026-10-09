@@ -85,7 +85,10 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 1
-      - name: Configure Docker Hub cache mirror on disposable CI runner
+      - name: Configure verified Docker Hub image access on disposable CI runner
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: bash scripts/ci_configure_docker_mirror.sh
 
       - name: Frozen-release preflight
@@ -134,7 +137,10 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - name: Configure Docker Hub cache mirror on disposable CI runner
+      - name: Configure verified Docker Hub image access on disposable CI runner
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: bash scripts/ci_configure_docker_mirror.sh
 
       - name: Install project and materialize release layout

@@ -1,24 +1,41 @@
-# GitHub Actions Docker Hub rate-limit recovery
+# GitHub Actions: trustworthy Docker Hub access (A2 release checks)
 
-This change is **CI-only**, never a production configuration or service
-deployment. GitHub-hosted ephemeral Ubuntu runners configure the Google
-Artifact Registry mirror `https://mirror.gcr.io` before building the release
-image or pulling disposable PostgreSQL test images.
+## Scope
 
-Google's official reference:
+All configuration is on **ephemeral GitHub-hosted Actions runners** only.
+The public `Dockerfile.production`, immutable pinned Python SHA-256 image,
+`postgres:16-alpine`, full PostgreSQL rehearsal, and all security gates are
+unchanged. No server, brokerage API or strategy is touched.
+
+## Verified issue
+
+Public pulls from Docker Hub returned HTTP 429; Google's documented
+`mirror.gcr.io` did **not** contain the required PostgreSQL tag; Docker
+Official Images ECR Public also returned an anonymous rate-limit error.
+We must not disable, skip or declare passing the regression tests.
+
+## Required repo configuration
+
+Create a Docker Hub personal access token restricted to **Read** for image
+pulling. Add these *repository* GitHub Actions secrets, never to source files:
+
+- `DOCKERHUB_USERNAME`: your Docker Hub username.
+- `DOCKERHUB_TOKEN`: your read-only Docker Hub PAT.
+
+GitHub interface: Settings → Secrets and variables → Actions →
+New repository secret.
+
+When both secrets exist, `scripts/ci_configure_docker_mirror.sh` logs in with
+`--password-stdin`, configures Google's image cache, pulls and verifies the
+same PostgreSQL 16 image, and lets every existing CI check run. It never emits
+the token. When either secret is missing, the runner attempts public cache only;
+if images remain inaccessible, the pipeline **fails closed** with
+`CI_DOCKER_IMAGE_PULL_BLOCKED`.
+
+Provider docs:
+https://docs.docker.com/security/access-tokens/
+https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets
 https://docs.cloud.google.com/artifact-registry/docs/pull-cached-dockerhub-images
 
-Controls retained:
-- All existing workflows, migrations, release checks, CodeQL and unit
-  test requirements remain enabled.
-- `Dockerfile.production` stays byte-for-byte unchanged, including the pinned
-  Python base-image SHA-256 digest.
-- Existing `postgres:16-alpine` image reference remains unchanged.
-- The daemon pulls a Docker Hub image from the cache if present; otherwise
-  it tries Docker Hub. Cache availability is NOT guaranteed.
-- Any image pull failure is a **hard CI failure**, never interpreted as a pass.
-- Only `GITHUB_ACTIONS=true` on `RUNNER_ENVIRONMENT=github-hosted` can run
-  the daemon change; no user server or local Docker daemon is touched.
-
-This does not address unrelated PR content, market-data quality or private
-NYFR licensing; those must be audited independently.
+No GitHub Actions `pull_request_target`, elevated untrusted PR code,
+build-time secret injection or bypass of CI requirements is introduced.

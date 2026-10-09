@@ -36,14 +36,24 @@ if ! docker info --format '{{json .RegistryConfig.Mirrors}}' | grep -Fq "mirror.
   exit 1
 fi
 
-# The Google cache does not guarantee that postgres:16-alpine is cached.
-# Pull the Docker Official Image from Docker's verified ECR Public gallery,
-# then use the exact existing postgres:16-alpine reference in all CI scripts.
-# No production images or Dockerfile versions are changed.
-postgres_mirror="public.ecr.aws/docker/library/postgres:16-alpine"
-docker pull "$postgres_mirror"
-docker tag "$postgres_mirror" postgres:16-alpine
-docker image inspect postgres:16-alpine >/dev/null
+# Optional GitHub Actions secrets. Tokens must have read-only Docker Hub scope.
+# Never pass tokens on command line or print them to CI logs.
+if [[ -n "${DOCKERHUB_USERNAME:-}" && -n "${DOCKERHUB_TOKEN:-}" ]]; then
+  printf '%s' "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin >/dev/null
+  echo "CI_DOCKERHUB_AUTHENTICATED"
+elif [[ -n "${DOCKERHUB_USERNAME:-}" || -n "${DOCKERHUB_TOKEN:-}" ]]; then
+  echo "CI_DOCKERHUB_PARTIAL_SECRET_CONFIG" >&2
+  exit 1
+else
+  echo "CI_DOCKERHUB_SECRETS_MISSING_PUBLIC_CACHE_ONLY"
+fi
+
+# Check exactly the same official PostgreSQL major version used by the
+# existing release CI. A failed pull is a hard fail: never waive the DB tests.
+if ! docker pull postgres:16-alpine; then
+  echo "CI_DOCKER_IMAGE_PULL_BLOCKED: add DOCKERHUB_USERNAME and read-only DOCKERHUB_TOKEN as GitHub Actions secrets" >&2
+  exit 1
+fi
 postgres_version="$(docker run --rm --entrypoint postgres postgres:16-alpine --version)"
 case "$postgres_version" in
   'postgres (PostgreSQL) 16.'*) echo "CI_POSTGRES_16_IMAGE_VERIFIED" ;;
