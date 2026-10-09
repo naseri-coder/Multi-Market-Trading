@@ -96,11 +96,11 @@ def test_claim_requires_same_verified_private_route(tmp_path):
     db = SignalLedger(tmp_path / "signals.db")
     db.record(sig(), registry(), route())
     with pytest.raises(UnsafeDelivery):
-        db.claim("fx_01", "sig-a", route=route(channel=-1009998887776))
+        db.claim("fx_01", "sig-a", route=route(channel=-1009998887776),now=TS+timedelta(seconds=2))
     with pytest.raises(UnsafeDelivery):
-        db.claim("fx_01", "sig-a", route=replace(route(), enabled=False))
-    assert db.claim("fx_01", "sig-a", route=route()).state == "CLAIMED"
-    assert db.claim("fx_01", "sig-a", route=route()) is None
+        db.claim("fx_01", "sig-a", route=replace(route(), enabled=False),now=TS+timedelta(seconds=2))
+    assert db.claim("fx_01", "sig-a", route=route(),now=TS+timedelta(seconds=2)).state == "CLAIMED"
+    assert db.claim("fx_01", "sig-a", route=route(),now=TS+timedelta(seconds=2)) is None
     db.close()
 
 
@@ -108,12 +108,12 @@ def test_claim_without_ack_is_unknown_after_restart(tmp_path):
     path = tmp_path / "outbox.db"
     db = SignalLedger(path)
     db.record(sig(), registry(), route())
-    db.claim("fx_01", "sig-a", route=route())
+    db.claim("fx_01", "sig-a", route=route(),now=TS+timedelta(seconds=2))
     db.close()
     db2 = SignalLedger(path)
     assert db2.quarantine_inflight() == 1
     assert db2.get("fx_01", "sig-a").state == "UNKNOWN"
-    assert db2.claim("fx_01", "sig-a", route=route()) is None
+    assert db2.claim("fx_01", "sig-a", route=route(),now=TS+timedelta(seconds=2)) is None
     assert db2.pending("fx_01") == ()
     db2.close()
 
@@ -122,7 +122,7 @@ def test_acked_outbox_persists_as_sent(tmp_path):
     path = tmp_path / "outbox.db"
     db = SignalLedger(path)
     db.record(sig(), registry(), route())
-    db.claim("fx_01", "sig-a", route=route())
+    db.claim("fx_01", "sig-a", route=route(),now=TS+timedelta(seconds=2))
     assert db.acknowledge_sent("fx_01", "sig-a", message_id=123)
     assert not db.acknowledge_sent("fx_01", "sig-a", message_id=999)
     db.close()
@@ -253,4 +253,37 @@ def test_forward_report_isolated_per_engine(tmp_path):
     ob.open(sig(),tick(),verified_live_source=True)
     assert ob.summary("index_01")["total"] == 0
     assert ob.summary("fx_01")["total"] == 1
+    ob.close()
+
+
+def test_expired_pending_signal_never_claimed_after_restart(tmp_path):
+    path = tmp_path / "signals.db"
+    db = SignalLedger(path)
+    db.record(sig(), registry(), route())
+    assert db.claim("fx_01", "sig-a", route=route(),
+                    now=TS+timedelta(minutes=2)) is None
+    assert db.get("fx_01", "sig-a").state == "EXPIRED"
+    assert db.pending("fx_01") == ()
+    db.close()
+    db2 = SignalLedger(path)
+    assert db2.claim("fx_01", "sig-a", route=route(), now=TS) is None
+    db2.close()
+
+
+def test_claim_rejects_time_travel_and_zero_max_age(tmp_path):
+    db = SignalLedger(tmp_path / "signals.db")
+    db.record(sig(), registry(), route())
+    with pytest.raises(ValueError):
+        db.claim("fx_01", "sig-a", route=route(), now=TS, max_age_seconds=0)
+    assert db.claim("fx_01", "sig-a", route=route(),
+                    now=TS-timedelta(seconds=1)) is None
+    assert db.get("fx_01", "sig-a").state == "EXPIRED"
+    db.close()
+
+
+def test_observation_refuses_price_already_beyond_target_at_entry(tmp_path):
+    ob = ForwardObserver(tmp_path / "forward.db")
+    with pytest.raises(ValueError, match="geometry"):
+        ob.open(sig(), tick(bid="1.10400", ask="1.10404"),
+                verified_live_source=True)
     ob.close()
