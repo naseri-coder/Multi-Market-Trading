@@ -27,9 +27,25 @@ sudo systemctl restart docker
 for attempt in $(seq 1 20); do
   if docker info --format '{{json .RegistryConfig.Mirrors}}' 2>/dev/null | grep -Fq "mirror.gcr.io"; then
     echo "CI_DOCKER_MIRROR_CONFIGURED"
-    exit 0
+    break
   fi
   sleep 2
 done
-echo "CI_DOCKER_MIRROR_VERIFICATION_FAILED" >&2
-exit 1
+if ! docker info --format '{{json .RegistryConfig.Mirrors}}' | grep -Fq "mirror.gcr.io"; then
+  echo "CI_DOCKER_MIRROR_VERIFICATION_FAILED" >&2
+  exit 1
+fi
+
+# The Google cache does not guarantee that postgres:16-alpine is cached.
+# Pull the Docker Official Image from Docker's verified ECR Public gallery,
+# then use the exact existing postgres:16-alpine reference in all CI scripts.
+# No production images or Dockerfile versions are changed.
+postgres_mirror="public.ecr.aws/docker/library/postgres:16-alpine"
+docker pull "$postgres_mirror"
+docker tag "$postgres_mirror" postgres:16-alpine
+docker image inspect postgres:16-alpine >/dev/null
+postgres_version="$(docker run --rm --entrypoint postgres postgres:16-alpine --version)"
+case "$postgres_version" in
+  'postgres (PostgreSQL) 16.'*) echo "CI_POSTGRES_16_IMAGE_VERIFIED" ;;
+  *) echo "CI_POSTGRES_VERSION_MISMATCH" >&2; exit 1 ;;
+esac
