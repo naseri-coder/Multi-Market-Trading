@@ -13,7 +13,8 @@ Telegram connection, private strategy logic, or claim of profitable trading.
   is an idempotent no-op across process restarts. Any collision or cross-channel
   reroute is blocked.
 - \`claim\`: atomically moves PENDING → CLAIMED, for a route that still meets
-  the configured safety rules; **never sends anything**.
+  the configured safety rules and a short signal freshness age; expired
+  or future-dated signals become EXPIRED and cannot be claimed. **No send occurs**.
 - \`acknowledge_sent\`: CLAiMED or UNKNOWN → SENT **only on externally verified
   Telegram API message-id receipt**; no network use here.
 - \`quarantine_inflight\`: on startup, CLAIMED → UNKNOWN. UNKNOWN must be
