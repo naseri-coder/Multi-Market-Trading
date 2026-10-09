@@ -9,12 +9,13 @@ import hashlib
 import json
 import sqlite3
 from dataclasses import dataclass
-from datetime import timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .contracts import Market, SignalIntent
 from .registry import EngineRegistry
 from .routing import ChannelRoute, decide_delivery
+from .quotes import _utc
 
 
 class IdentityConflict(ValueError):
@@ -77,7 +78,7 @@ CREATE TABLE IF NOT EXISTS signal_outbox (
     engine_id TEXT NOT NULL,
     signal_id TEXT NOT NULL,
     channel_id INTEGER NOT NULL CHECK (channel_id < 0),
-    state TEXT NOT NULL CHECK (state IN ('PENDING','CLAIMED','SENT','UNKNOWN')),
+    state TEXT NOT NULL CHECK (state IN ('PENDING','CLAIMED','SENT','UNKNOWN','EXPIRED')),
     message_id INTEGER,
     PRIMARY KEY (engine_id, signal_id),
     FOREIGN KEY (engine_id, signal_id) REFERENCES signal_intents(engine_id, signal_id),
@@ -161,16 +162,21 @@ class SignalLedger:
         return OutboxItem(**dict(row)) if row else None
 
     def claim(self, engine_id: str, signal_id: str,
-              *, route: ChannelRoute) -> OutboxItem | None:
+              *, route: ChannelRoute, now: datetime,
+              max_age_seconds: int = 60) -> OutboxItem | None:
         """Claim before calling an external publisher. No send occurs here.
 
         Caller must independently validate Telegram channel privacy at time of
         send; this local flag is not a network-based privacy verification.
         """
+        if (isinstance(max_age_seconds, bool) or not isinstance(max_age_seconds, int)
+                or not 0 < max_age_seconds <= 3600):
+            raise ValueError("bounded positive signal freshness limit required")
+        current_time = _utc(now)
         self._db.execute("BEGIN IMMEDIATE")
         try:
             row = self._db.execute(
-                "SELECT o.channel_id,o.state,i.market FROM signal_outbox o "
+                "SELECT o.channel_id,o.state,i.market,i.intent_json FROM signal_outbox o "
                 "JOIN signal_intents i USING (engine_id,signal_id) "
                 "WHERE o.engine_id=? AND o.signal_id=?",
                 (engine_id, signal_id),
@@ -183,6 +189,16 @@ class SignalLedger:
                     or route.market != Market(row["market"])
                     or route.private_channel_id != row["channel_id"]):
                 raise UnsafeDelivery("route changed or no longer verified")
+            observed = datetime.fromisoformat(json.loads(row["intent_json"])["observed_at"])
+            age = (current_time - _utc(observed)).total_seconds()
+            if age < 0 or age > max_age_seconds:
+                self._db.execute(
+                    "UPDATE signal_outbox SET state='EXPIRED' "
+                    "WHERE engine_id=? AND signal_id=? AND state='PENDING'",
+                    (engine_id, signal_id),
+                )
+                self._db.execute("COMMIT")
+                return None
             self._db.execute(
                 "UPDATE signal_outbox SET state='CLAIMED' "
                 "WHERE engine_id=? AND signal_id=? AND state='PENDING'",
