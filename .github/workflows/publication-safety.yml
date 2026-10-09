@@ -23,6 +23,9 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+      - name: Configure Docker Hub cache mirror on disposable CI runner
+        run: bash scripts/ci_configure_docker_mirror.sh
+
       - name: Verify v0.2.0 release baseline
         env:
           GITHUB_TOKEN: ${{ github.token }}
