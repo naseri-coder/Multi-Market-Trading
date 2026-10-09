@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "crypto-price-action"
 version = "0.3.2"
-description = "Public source snapshot of a rule-based cryptocurrency price action signal system"
+description = "Public v0.3.2 crypto runtime preserved while NASERI MARKETS platform is developed"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "alembic==1.20.0",

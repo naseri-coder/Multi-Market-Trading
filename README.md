@@ -1,8 +1,8 @@
 <div align="center">
 
-# 📈 Crypto Price Action
+# 📈 NASERI MARKETS
 
-### Turning price-action concepts into explicit, testable crypto signal rules
+### Multi-Market Trading Intelligence · Multi-Engine Signal Platform
 
 **تبدیل مفاهیم پرایس‌اکشن البروکس به قواعد صریح، قابل‌آزمایش و قابل‌ردیابی برای سیگنال‌های کریپتو**
 
@@ -24,6 +24,10 @@
 [Overview](#overview) · [How it works](#how-it-works) · [Current status](#current-status) · [Install & Manager](#install-manager) · [Operations](#operations) · [Verification](#verification) · [Security](#security)
 
 </div>
+
+> [!NOTE]
+> **NASERI MARKETS is a planned multi-market identity.** The current v0.3.2 public snapshot remains primarily a crypto price-action system. The new `naseri_markets/` foundation is offline-only; no FX, index, NYFR or MT5 runtime is active in this repository.
+> See [architecture](docs/NASERI_MARKETS_FOUNDATION.md) and [GitHub migration plan](docs/NASERI_MARKETS_MIGRATION.md).
 
 > [!IMPORTANT]
 > **Current main includes the NASERI CODER Bot Manager while the package version remains v0.3.2.** The project does **not** claim profitability and is **not approved for live trading**.
