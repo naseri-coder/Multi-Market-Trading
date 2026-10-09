@@ -96,9 +96,11 @@ class ForwardObserver:
                 or tick.occurred_at != _utc(signal.observed_at)):
             raise ValueError("live tick provenance/identity/time verification required")
         entry = tick.ask if signal.direction is Direction.LONG else tick.bid
-        if ((signal.direction is Direction.LONG and entry <= signal.stop)
-                or (signal.direction is Direction.SHORT and entry >= signal.stop)):
-            raise ValueError("invalid observation entry risk geometry")
+        if ((signal.direction is Direction.LONG and
+             (entry <= signal.stop or entry >= signal.targets[0]))
+                or (signal.direction is Direction.SHORT and
+                    (entry >= signal.stop or entry <= signal.targets[0]))):
+            raise ValueError("invalid observed entry stop/target geometry")
         raw = _wire_intent(signal)
         self._db.execute("BEGIN IMMEDIATE")
         try:
