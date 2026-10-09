@@ -3,9 +3,9 @@ requires = ["setuptools>=75"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "crypto-price-action"
+name = "naseri-markets"
 version = "0.3.2"
-description = "Public source snapshot of a rule-based cryptocurrency price action signal system"
+description = "NASERI MARKETS multi-market platform foundation and legacy crypto signal snapshot"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "alembic==1.20.0",
