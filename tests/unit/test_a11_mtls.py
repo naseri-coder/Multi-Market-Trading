@@ -15,7 +15,7 @@ import subprocess
 import sys
 import time
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import datetime, time as clock_time, timezone
 from decimal import Decimal
 from pathlib import Path
 
@@ -243,8 +243,8 @@ async def test_separate_process_mtls_private_paper_e2e(tmp_path, material):
             "UTC", (
                 TradingWindow(
                     tick.occurred_at.weekday(),
-                    __import__("datetime").time(0, 0),
-                    __import__("datetime").time(23, 59),
+                    clock_time(0, 0),
+                    clock_time(23, 59),
                 ),
             ), verified=True,
         )
@@ -376,7 +376,6 @@ async def test_live_tick_never_reaches_real_tls_transport(tmp_path, material):
 
 
 def test_insecure_transport_context_and_remote_host_disallowed(material):
-    import ssl
     bare = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     bare.check_hostname = False
     bare.verify_mode = ssl.CERT_NONE
