@@ -141,7 +141,9 @@ def test_expired_lease_quarantines_on_next_tick(ctx):
                            == "QUARANTINED" else None))
     assert not state.owned_child_alive
     watcher.reconcile()
-    with pytest.raises(ValueError, match="EXPIRED"):
+    # A13 fresh admission has precedence over A15 release time checks:
+    # either invalid trust gate must fail closed, never restart the worker.
+    with pytest.raises(ValueError, match="FRESH_ADMISSION"):
         watcher.start()
 
 
