@@ -165,6 +165,7 @@ def poll_once(*, state_dir: str | Path, legacy_source: str | Path,
         engine = store.get(BROOKS_ENGINE_ID)
         preferences = store.preferences(BROOKS_ENGINE_ID)
         if (engine is None or not engine.requested_enabled
+                or preferences["futures_exchange"] != "binance"
                 or preferences["signal_environment"] != "PAPER"
                 or preferences["market_scope"] not in ("all", "crypto")):
             raise BrooksMarketFeedRefused("BROOKS_FEED_PAPER_NOT_ARMED")
@@ -181,6 +182,7 @@ def poll_once(*, state_dir: str | Path, legacy_source: str | Path,
                 or prefs["revision"] != preferences_revision
                 or not engine.requested_enabled
                 or prefs["signal_environment"] != "PAPER"
+                or prefs["futures_exchange"] != "binance"
                 or prefs["timeframe"] != timeframe):
             raise BrooksMarketFeedRefused("BROOKS_FEED_SETTINGS_CHANGED")
     report = replay_once(
@@ -190,6 +192,7 @@ def poll_once(*, state_dir: str | Path, legacy_source: str | Path,
         "mode": "AUTOMATIC_MARKET_CLOSED_CANDLE_PAPER",
         "market_feed": _FEED_NAME,
         "symbol": symbol,
+        "selected_exchange": "binance",
         "timeframe": timeframe,
         "last_closed_candle": latest.isoformat(),
         "telegram_sent": False,
