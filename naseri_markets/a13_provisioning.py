@@ -92,7 +92,7 @@ def parse_plan(raw: bytes, *, approved_sha256: str) -> dict:
     for field in ("engine_id", "engine_version", "owner_dns"):
         if type(p[field]) is not str or not 0 < len(p[field]) <= 100:
             raise ProvisioningRefused("A13_IDENTITY_REQUIRED")
-    if not p["owner_dns"].endswith(".fixture"):
+    if re.fullmatch(r"[a-z0-9-]{1,60}\.fixture", p["owner_dns"]) is None:
         raise ProvisioningRefused("A13_NONFIXTURE_HOST_FORBIDDEN")
     return p
 
