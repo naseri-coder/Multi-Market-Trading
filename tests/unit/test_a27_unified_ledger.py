@@ -1,7 +1,6 @@
 """A27 actual single SQLite crash consistency and explicit recovery tests."""
 from __future__ import annotations
 
-import asyncio
 import sqlite3
 import subprocess
 import sys
@@ -9,17 +8,16 @@ import threading
 
 import pytest
 
-from naseri_markets.a21_custom_contract import CustomContractCatalog, inspect_custom_paper_fixture
+from naseri_markets.a21_custom_contract import inspect_custom_paper_fixture
 from naseri_markets.a22_custom_bridge import CustomPaperRuntimeBridge, CustomRuntimeRefused
 from naseri_markets.a25_bundle_admission import PublisherAdmissionRefused
 from naseri_markets.a27_unified_ledger import (
     RecoveredFixedPaperSession, RecoveryFenceRefused, UnifiedAuthorizationLedger,
-    UnifiedPaperCommitFence,
 )
 from naseri_markets.delivery_ledger import IdentityConflict
 from naseri_markets.paper_journal import PaperJournal
 from test_a22_custom_bridge import metadata, pinned, sample
-from test_a24_publisher_admission import INSTALL, NOW, ctx as a24_ctx, service
+from test_a24_publisher_admission import INSTALL, NOW, ctx as a24_ctx
 from test_a25_bundle_admission import case as a25_case, args, release
 from test_a7_replay_pipeline import INST, quote, session
 
