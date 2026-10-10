@@ -29,7 +29,7 @@
 > **NASERI MARKETS is a planned multi-market identity.** The current v0.3.2 public snapshot remains primarily a crypto price-action system. The new `naseri_markets/` foundation is offline-only; no FX, index, NYFR or MT5 runtime is active in this repository.
 > See [architecture](docs/NASERI_MARKETS_FOUNDATION.md) and [GitHub migration plan](docs/NASERI_MARKETS_MIGRATION.md).
 >
-> **A5 installation identity:** The canonical repository is now `Multi-Market-Trading`, and the recommended launcher is `bash markets.sh` (`bash naseri.sh` remains compatible). The *historic, unmodified* v0.3.2 Python distribution name, `crypto-signal-bot` CLI, Docker image/Compose project and PostgreSQL volume still use `crypto-price-action`. This is deliberate: they are NOT yet a multi-market production release. See [A5 migration gate](docs/NASERI_MARKETS_A5_IDENTITY.md).
+> **A5 installation identity:** The canonical repository is now `Multi-Market-Trading`, and the recommended launcher is `bash markets.sh` (the legacy `bash naseri.sh` remains a compatible alias) (`bash markets.sh` remains compatible). The *historic, unmodified* v0.3.2 Python distribution name, `crypto-signal-bot` CLI, Docker image/Compose project and PostgreSQL volume still use `crypto-price-action`. This is deliberate: they are NOT yet a multi-market production release. See [A5 migration gate](docs/NASERI_MARKETS_A5_IDENTITY.md).
 >
 > **Public bot, private NYFR:** The open-source, disabled-by-default, strategy-neutral signal publisher and optional MT5 read-only quote bridge are in `naseri_markets/public_signal_bot.py` and `naseri_markets/mt5_readonly_bridge.py`. They **do not** include the private NY First-Reversal decision engine. See [public/private boundary](docs/NASERI_MARKETS_A4_PUBLIC_BOT_PRIVATE_CORE.md). Historical release names, Compose and Python package identity remain v0.3.2 until a separately validated migration.
 
@@ -143,8 +143,8 @@ Use this single installation entry point:
 
 ```bash
 git clone https://github.com/naseri-coder/Multi-Market-Trading.git
-cd crypto-price-action
-bash naseri.sh
+cd Multi-Market-Trading
+bash markets.sh
 ```
 
 The final command opens the **NASERI CODER Bot Manager**. From there, choose **[1] Install Bot** for a fresh installation.
@@ -249,7 +249,7 @@ Interactive:
 Direct command:
 
 ```bash
-bash naseri.sh status
+bash markets.sh status
 ```
 
 The status screen reports the project version, Git branch/commit, bot and PostgreSQL state, database-volume presence, **database authentication state**, installation state, and a **secret-safe configuration summary**.
@@ -267,7 +267,7 @@ Interactive:
 Direct command:
 
 ```bash
-bash naseri.sh logs
+bash markets.sh logs
 ```
 
 Use `Ctrl+C` to stop following logs.
@@ -283,32 +283,32 @@ The interactive menu is recommended for normal administration, but the same mana
 
 | Operation | Command |
 | --- | --- |
-| Open menu | `bash naseri.sh` |
-| Update | `bash naseri.sh update` |
-| Start | `bash naseri.sh start` |
-| Stop bot | `bash naseri.sh stop` |
-| Restart | `bash naseri.sh restart` |
-| Status | `bash naseri.sh status` |
-| Logs | `bash naseri.sh logs` |
-| Configuration menu | `bash naseri.sh config` |
-| Environment check | `bash naseri.sh env-check` |
-| Database menu | `bash naseri.sh database` |
-| Create full backup | `bash naseri.sh backup` |
-| Backup menu | `bash naseri.sh backups` |
-| Restore menu | `bash naseri.sh restore` |
-| Doctor | `bash naseri.sh doctor` |
-| Repair / diagnose menu | `bash naseri.sh repair` |
-| Verify installation | `bash naseri.sh verify` |
-| System information | `bash naseri.sh system` |
-| Guarded uninstall menu | `bash naseri.sh uninstall` |
-| Manager help | `bash naseri.sh --help` |
+| Open menu | `bash markets.sh` |
+| Update | `bash markets.sh update` |
+| Start | `bash markets.sh start` |
+| Stop bot | `bash markets.sh stop` |
+| Restart | `bash markets.sh restart` |
+| Status | `bash markets.sh status` |
+| Logs | `bash markets.sh logs` |
+| Configuration menu | `bash markets.sh config` |
+| Environment check | `bash markets.sh env-check` |
+| Database menu | `bash markets.sh database` |
+| Create full backup | `bash markets.sh backup` |
+| Backup menu | `bash markets.sh backups` |
+| Restore menu | `bash markets.sh restore` |
+| Doctor | `bash markets.sh doctor` |
+| Repair / diagnose menu | `bash markets.sh repair` |
+| Verify installation | `bash markets.sh verify` |
+| System information | `bash markets.sh system` |
+| Guarded uninstall menu | `bash markets.sh uninstall` |
+| Manager help | `bash markets.sh --help` |
 
 ### Update Bot
 
 Choose **[2] Update Bot** or run:
 
 ```bash
-bash naseri.sh update
+bash markets.sh update
 ```
 
 The updater is intentionally strict. It requires:
@@ -336,9 +336,9 @@ The update workflow then verifies source integrity, builds the current image, va
 ### Start / Stop / Restart
 
 ```bash
-bash naseri.sh start
-bash naseri.sh stop
-bash naseri.sh restart
+bash markets.sh start
+bash markets.sh stop
+bash markets.sh restart
 ```
 
 **Start** validates configuration, starts PostgreSQL when required, checks application configuration/database connectivity, and then starts the bot.
@@ -352,7 +352,7 @@ bash naseri.sh restart
 Choose **[8] Configuration** or run:
 
 ```bash
-bash naseri.sh config
+bash markets.sh config
 ```
 
 The manager can show a secret-safe summary, validate the current configuration, bootstrap a missing environment file, and open the local `.env` editor through a guarded workflow.
@@ -372,7 +372,7 @@ The manager restores `.env` permissions to mode `600` after supported edit/resto
 Choose **[9] Environment Check** or run:
 
 ```bash
-bash naseri.sh env-check
+bash markets.sh env-check
 ```
 
 This checks required commands, Docker/Compose availability, `.env` presence and permissions, and the supported configuration contract.
@@ -382,7 +382,7 @@ This checks required commands, Docker/Compose availability, `.env` presence and 
 Choose **[10] Database Management** or run:
 
 ```bash
-bash naseri.sh database
+bash markets.sh database
 ```
 
 Database Management provides:
@@ -400,7 +400,7 @@ Database upgrades and restores are guarded operations. The manager creates safet
 Choose **[11] Backup** or run:
 
 ```bash
-bash naseri.sh backup
+bash markets.sh backup
 ```
 
 Available backup types include:
@@ -425,7 +425,7 @@ Database backups use PostgreSQL `pg_dump` in custom format.
 Choose **[12] Restore** or run:
 
 ```bash
-bash naseri.sh restore
+bash markets.sh restore
 ```
 
 The restore menu supports database and configuration recovery.
@@ -439,7 +439,7 @@ Configuration restore validates the restored `.env`. If the new configuration fa
 Choose **[13] Repair / Diagnose** or run:
 
 ```bash
-bash naseri.sh repair
+bash markets.sh repair
 ```
 
 Repair tools include:
@@ -453,7 +453,7 @@ Repair tools include:
 You can run Doctor directly:
 
 ```bash
-bash naseri.sh doctor
+bash markets.sh doctor
 ```
 
 ### Verify Installation
@@ -461,7 +461,7 @@ bash naseri.sh doctor
 Choose **[14] Verify Installation** or run:
 
 ```bash
-bash naseri.sh verify
+bash markets.sh verify
 ```
 
 For an offline source/release check without Docker changes:
@@ -477,7 +477,7 @@ bash scripts/install.sh --check
 Choose **[15] System Information** or run:
 
 ```bash
-bash naseri.sh system
+bash markets.sh system
 ```
 
 This provides the manager's system/runtime summary for troubleshooting.
@@ -487,7 +487,7 @@ This provides the manager's system/runtime summary for troubleshooting.
 Choose **[16] Uninstall / Remove Runtime** or run:
 
 ```bash
-bash naseri.sh uninstall
+bash markets.sh uninstall
 ```
 
 The uninstall workflow provides separate guarded levels:
@@ -506,9 +506,9 @@ Full runtime removal requires explicit typed confirmation. Source files and mana
 For a normal installed instance:
 
 ```bash
-cd crypto-price-action
-bash naseri.sh status
-bash naseri.sh
+cd Multi-Market-Trading
+bash markets.sh status
+bash markets.sh
 ```
 
 Then use the manager rather than manually composing Docker commands.
@@ -516,28 +516,28 @@ Then use the manager rather than manually composing Docker commands.
 Before a significant update or configuration/database change:
 
 ```bash
-bash naseri.sh backup
+bash markets.sh backup
 ```
 
 For an official source update:
 
 ```bash
-bash naseri.sh update
+bash markets.sh update
 ```
 
 After a configuration change:
 
 ```bash
-bash naseri.sh restart
-bash naseri.sh status
+bash markets.sh restart
+bash markets.sh status
 ```
 
 For troubleshooting:
 
 ```bash
-bash naseri.sh doctor
-bash naseri.sh verify
-bash naseri.sh logs
+bash markets.sh doctor
+bash markets.sh verify
+bash markets.sh logs
 ```
 
 ## 🗂️ Repository Map
