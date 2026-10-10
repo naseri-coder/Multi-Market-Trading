@@ -121,6 +121,17 @@ def inspect_inert_bundle(data: bytes, *, approved_sha256: str,
             or not hmac.compare_digest(hashlib.sha256(data).hexdigest(),
                                        approved_sha256)):
         raise BundleAdmissionRefused("A25_INDEPENDENT_BUNDLE_PIN_REQUIRED")
+    # EOCD must be the final 22 bytes, with no archive comment or
+    # self-extracting prefix/trailing data. No ZIP ambiguity is admissible.
+    if (len(data) < 22 or data[:4] != b"PK\\x03\\x04"
+            or data[-22:-18] != b"PK\\x05\\x06"
+            or data[-2:] != b"\\x00\\x00"):
+        raise BundleAdmissionRefused("A25_ZIP_PREFIX_COMMENT_OR_TRAILER")
+    cd_size = int.from_bytes(data[-10:-6], "little")
+    cd_offset = int.from_bytes(data[-6:-2], "little")
+    if (cd_offset < 8 or cd_offset + cd_size != len(data) - 22
+            or data[cd_offset:cd_offset+4] != b"PK\\x01\\x02"):
+        raise BundleAdmissionRefused("A25_ZIP_CENTRAL_DIRECTORY_AMBIGUOUS")
     try:
         with zipfile.ZipFile(io.BytesIO(data), "r") as archive:
             entries = archive.infolist()
