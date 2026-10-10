@@ -13,6 +13,7 @@ import time
 import urllib.error
 import urllib.request
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Callable
 
@@ -25,6 +26,7 @@ from .engine_control_store import BROOKS_ENGINE_ID, EngineControlStore
 _SYMBOL = "PF_XBTUSD"  # verified Kraken USD linear perpetual, NOT BTCUSDT
 _ENDPOINT = "https://futures.kraken.com/api/charts/v1/trade"
 _FEED = "KRAKEN_FUTURES_TRADE_PUBLIC_HTTPS"
+_INSTRUMENT_ENDPOINT = "https://futures.kraken.com/derivatives/api/v3/instruments"
 _MAX_REPLY = 524288
 _FINALITY_LAG = timedelta(seconds=2)
 
@@ -62,7 +64,80 @@ def _download(symbol: str, timeframe: str, limit: int, timeout: int) -> bytes:
     return raw
 
 
-def closed_kraken_candles(*, symbol: str, timeframe: str, bars: int = 72,
+
+def _download_instruments() -> bytes:
+    """Read only independent Kraken Futures instrument metadata over TLS."""
+    url = _INSTRUMENT_ENDPOINT
+    class RefuseRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            raise KrakenFeedRefused("KRAKEN_TICK_REDIRECT_DENIED")
+    opener = urllib.request.build_opener(
+        urllib.request.ProxyHandler({}), RefuseRedirect())
+    request = urllib.request.Request(
+        url, headers={"Accept": "application/json",
+                      "User-Agent": "brooks-nonprod-futures-paper/0.1"})
+    try:
+        with opener.open(request, timeout=10) as response:
+            if (response.status != 200 or response.geturl() != url or
+                    not response.headers.get(
+                        "Content-Type", "").lower().startswith("application/json")):
+                raise KrakenFeedRefused("KRAKEN_TICK_UNEXPECTED_RESPONSE")
+            raw = response.read(2 * 1024 * 1024 + 1)
+    except KrakenFeedRefused:
+        raise
+    except urllib.error.HTTPError as exc:
+        raise KrakenFeedRefused(f"KRAKEN_TICK_HTTP_{exc.code}") from exc
+    except (OSError, ValueError) as exc:
+        raise KrakenFeedRefused("KRAKEN_TICK_NETWORK_UNAVAILABLE") from exc
+    if not 0 < len(raw) <= 2 * 1024 * 1024:
+        raise KrakenFeedRefused("KRAKEN_TICK_RESPONSE_BOUNDS")
+    return raw
+
+
+def verified_kraken_tick(
+        *, symbol: str = _SYMBOL,
+        transport: Callable[[], bytes] | None = None) -> str:
+    """Fail closed unless official public instrument is tradeable and tick bound."""
+    if symbol != _SYMBOL:
+        raise KrakenFeedRefused("KRAKEN_TICK_IDENTITY_DENIED")
+    if transport is None:
+        transport = _download_instruments
+    try:
+        raw = transport()
+    except KrakenFeedRefused:
+        raise
+    except Exception as exc:
+        raise KrakenFeedRefused("KRAKEN_TICK_TRANSPORT_FAILED") from exc
+    if type(raw) is not bytes or not 0 < len(raw) <= 2 * 1024 * 1024:
+        raise KrakenFeedRefused("KRAKEN_TICK_RESPONSE_BOUNDS")
+    try:
+        blob = json.loads(
+            raw, parse_float=Decimal,
+            parse_constant=lambda _: (_ for _ in ()).throw(ValueError("nonfinite")))
+    except (ValueError, UnicodeError) as exc:
+        raise KrakenFeedRefused("KRAKEN_TICK_JSON_INVALID") from exc
+    if (type(blob) is not dict or blob.get("result") != "success"
+            or type(blob.get("instruments")) is not list):
+        raise KrakenFeedRefused("KRAKEN_TICK_SCHEMA_INVALID")
+    matches = [row for row in blob["instruments"]
+               if type(row) is dict and row.get("symbol", "").upper() == symbol]
+    if len(matches) != 1 or matches[0].get("tradeable") is not True:
+        raise KrakenFeedRefused("KRAKEN_TICK_INSTRUMENT_NOT_TRADEABLE")
+    row = matches[0]
+    if (type(row.get("type")) is not str
+            or "futures" not in row["type"].lower()):
+        raise KrakenFeedRefused("KRAKEN_TICK_CONTRACT_TYPE_INVALID")
+    try:
+        tick = Decimal(str(row["tickSize"]))
+    except (KeyError, InvalidOperation, TypeError, ValueError) as exc:
+        raise KrakenFeedRefused("KRAKEN_TICK_VALUE_INVALID") from exc
+    if (not tick.is_finite() or not Decimal("0") < tick <= Decimal("100")
+            or tick.as_tuple().exponent < -8):
+        raise KrakenFeedRefused("KRAKEN_TICK_VALUE_BOUNDS")
+    return str(tick)
+
+
+def closed_kraken_candles(* symbol: str, timeframe: str, bars: int = 72,
                           now: datetime | None = None,
                           transport: Callable[[str, str, int, int], bytes] | None = None,
                           timeout: int = 10) -> tuple[bytes, datetime]:
@@ -154,7 +229,8 @@ def closed_kraken_candles(*, symbol: str, timeframe: str, bars: int = 72,
 def poll_once(*, state_dir: str | Path, legacy_source: str | Path,
               symbol: str = _SYMBOL, bars: int = 72,
               now: datetime | None = None,
-              transport: Callable[[str, str, int, int], bytes] | None = None) -> dict:
+              transport: Callable[[str, str, int, int], bytes] | None = None,
+              metadata_transport: Callable[[], bytes] | None = None) -> dict:
     """Independently check PAPER and scope before and after remote I/O."""
     with EngineControlStore(state_dir) as store:
         engine = store.get(BROOKS_ENGINE_ID)
@@ -165,6 +241,7 @@ def poll_once(*, state_dir: str | Path, legacy_source: str | Path,
             raise KrakenFeedRefused("KRAKEN_FEED_PAPER_NOT_ARMED")
         rev, pref_rev, timeframe = (
             engine.revision, pref["revision"], pref["timeframe"])
+    tick = verified_kraken_tick(symbol=symbol, transport=metadata_transport)
     payload, latest = closed_kraken_candles(
         symbol=symbol, timeframe=timeframe, bars=bars, now=now,
         transport=transport)
@@ -178,11 +255,13 @@ def poll_once(*, state_dir: str | Path, legacy_source: str | Path,
                 or pref["market_scope"] not in ("all", "crypto")):
             raise KrakenFeedRefused("KRAKEN_FEED_SETTINGS_CHANGED")
     report = replay_once(
-        state_dir=state_dir, legacy_source=legacy_source, replay_json=payload)
+        state_dir=state_dir, legacy_source=legacy_source, replay_json=payload,
+        kraken_tick_size=tick)
     return {
         **report, "mode": "KRAKEN_FUTURES_CLOSED_TRADE_PAPER",
         "market_feed": _FEED, "symbol": symbol,
         "quote_currency": "USD", "market_type": "futures",
+        "exchange_price_tick": tick,
         "timeframe": timeframe, "last_closed_candle": latest.isoformat(),
         "telegram_sent": False, "live_publication_enabled": False,
     }
