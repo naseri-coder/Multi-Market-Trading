@@ -92,13 +92,16 @@ def test_a20_untampered_signed_start_strict_worker_real_kernel_cgroup(signed_fix
     assert not controller.status().worker_alive
 
 
-def test_a20_invalid_profile_does_not_fallback_to_basic_fixture(tmp_path, monkeypatch):
+def test_a20_invalid_profile_does_not_fallback_to_basic_fixture(signed_fixture, monkeypatch):
+    controller, _, _, _, _, tmp_path = signed_fixture
     monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
-    # Check before any trusted SQLite side effects would be possible.
-    with pytest.raises(GuardianRefused, match="A18_A15_SIGNED_FACADE"):
-        SignedGuardianController(tmp_path / "x", signed=None,
-                                 engine_id=ENGINE, installation_id=INSTALL,
-                                 a20_ci_scoped=True)
+    with pytest.raises(GuardianRefused, match="EPHEMERAL_NONROOT_CI_ONLY"):
+        SignedGuardianController(
+            tmp_path / "a20-other", signed=controller._signed,
+            engine_id=ENGINE, installation_id=INSTALL,
+            a20_ci_scoped=True,
+        )
+    assert controller._child is None
 
 
 def test_a20_current_grant_revocation_stops_real_scoped_worker(signed_fixture):
