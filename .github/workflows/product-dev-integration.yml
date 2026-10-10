@@ -1,0 +1,102 @@
+name: Isolated new product installation and admin PAPER service E2E
+
+on:
+  pull_request:
+    paths:
+      - "scripts/install_platform_dev.sh"
+      - "naseri_markets/dev_operator.py"
+      - "tests/unit/test_product_dev_operator.py"
+      - "docs/PRODUCT_DEV_INSTALL_PANEL_PAPER_R1.md"
+      - ".github/workflows/product-dev-integration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-product-dev:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with: {python-version: "3.12"}
+      - name: Historical unmodified source, package boundary, lint
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+          bash -n scripts/install_platform_dev.sh
+          python -m pip install -e ".[dev]"
+          python -m ruff check --select E4,F \
+            naseri_markets/dev_operator.py tests/unit/test_product_dev_operator.py
+          python -m pytest -q \
+            tests/unit/test_product_dev_operator.py \
+            tests/unit/test_brooks_paper_service.py \
+            tests/unit/test_integrated_engine_panel.py \
+            tests/unit/test_brooks_exchange_admin_panel.py \
+            tests/unit/test_iran_futures_eligibility.py
+      - name: Reject dangerous implicit and in-repository installation
+        run: |
+          set -Eeuo pipefail
+          set +e
+          bash scripts/install_platform_dev.sh \
+            --destination "$RUNNER_TEMP/without-explicit-auth" >/dev/null 2>&1
+          denied=$?
+          set -e
+          test "$denied" -eq 2
+          test ! -e "$RUNNER_TEMP/without-explicit-auth"
+          set +e
+          MMT_NONPRODUCTION=1 bash scripts/install_platform_dev.sh \
+            --destination "$GITHUB_WORKSPACE/forbidden" \
+            --ack-isolated-dev-install >/dev/null 2>&1
+          denied=$?
+          set -e
+          test "$denied" -ne 0
+          test ! -e "$GITHUB_WORKSPACE/forbidden"
+      - name: Fresh isolated wheel install, real worker idle, stop and shared health
+        env:
+          MMT_NONPRODUCTION: "1"
+        run: |
+          set -Eeuo pipefail
+          export DEV_ROOT="$RUNNER_TEMP/mmt-product-dev-e2e"
+          bash scripts/install_platform_dev.sh \
+            --destination "$DEV_ROOT" --ack-isolated-dev-install
+          test "$(stat -c '%a' "$DEV_ROOT/state")" = 700
+          "$DEV_ROOT/mmt-dev" status > "$RUNNER_TEMP/before.json"
+          "$DEV_ROOT/mmt-dev" worker \
+            --legacy-source "$GITHUB_WORKSPACE/production_source" \
+            --max-steps 1 --ack-nonproduction-worker \
+            > "$RUNNER_TEMP/worker.json"
+          "$DEV_ROOT/mmt-dev" status > "$RUNNER_TEMP/after.json"
+          "$DEV_ROOT/venv/bin/python" - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from telegram.ext import CommandHandler
+          from naseri_markets.bot_admin_app import build_admin_application
+          state = Path(os.environ["DEV_ROOT"]) / "state"
+          before = json.loads(Path(os.environ["RUNNER_TEMP"], "before.json").read_text())
+          after = json.loads(Path(os.environ["RUNNER_TEMP"], "after.json").read_text())
+          worker = json.loads(Path(os.environ["RUNNER_TEMP"], "worker.json").read_text())
+          assert before["worker_phase"] == "NOT_INSTALLED"
+          assert worker == {"phase": "IDLE", "attempted": False}
+          assert after["worker_phase"] == "STOPPED"
+          assert not after["worker_connected"]
+          assert after["paper_signal_count"] == 0
+          assert not after["iran_futures_eligibility_verified"]
+          assert not after["effective_channel_publication"]
+          assert not after["real_orders_enabled"]
+          assert not after["legacy_database_attached"]
+          assert not after["telegram_connected_by_status"]
+          app = build_admin_application(
+              token="123456:FAKE_NONPRODUCTION_TEST_TOKEN",
+              state_dir=state, admin_ids={123}, owner_ids={123})
+          commands = set().union(*(
+              h.commands for group in app.handlers.values() for h in group
+              if isinstance(h, CommandHandler)))
+          assert {"engines", "custom"} <= commands
+          assert not (state / "production_source").exists()
+          print("CLEAN_PREVIEW_INSTALL_TO_PANEL_IDLE_WORKER_STOP_PASS")
+          PY
