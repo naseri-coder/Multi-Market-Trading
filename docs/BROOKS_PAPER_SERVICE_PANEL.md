@@ -37,7 +37,7 @@ heartbeat expires, the UI says `NOT_INSTALLED` / `STALE`; it never claims
 that clicking ON started a service. A real alive worker reports `IDLE`,
 `WAITING`, `ANALYZING`, or `DEGRADED`, plus last closed candle, count
 of successful/failed cycles and a sanitized reason. A graceful shutdown
-shows `STOPPED`. A heartbeat older than 30s is always STALE. This remains
+shows `STOPPED`. Idle/waiting heartbeats older than 30s are STALE; an in-progress ANALYZING\ncycle has a bounded 90s grace for Kraken metadata, OHLCV and the genuine V5\nchild process, then also becomes STALE. This remains
 a development-local control channel; nothing connects to the existing
 production bot.
 
