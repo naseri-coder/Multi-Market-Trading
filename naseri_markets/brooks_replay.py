@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+from dataclasses import replace
 import hashlib
 import json
 import re
@@ -228,7 +229,8 @@ def verify_legacy_source(source_root: Path) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def _evaluate_legacy(root: Path, payload: bytes) -> dict:
+def _evaluate_legacy(root: Path, payload: bytes, *,
+                     kraken_tick_size: str | None = None) -> dict:
     """In a separate child interpreter, evaluate the ACTUAL frozen V5 engine."""
     raw, _instrument, rows = parse_candle_replay(payload)
     verify_legacy_source(root)
@@ -245,8 +247,29 @@ def _evaluate_legacy(root: Path, payload: bytes) -> dict:
     )
     # This flag requests a geometry decision from the pure analyzer. It does
     # NOT place orders, open a broker, authorize Telegram or bypass risk gates.
-    engine = BrooksTrilogyFullCoreEngine(
-        policy=BrooksFullCorePolicy(enable_trade_decisions=True))
+    policy = BrooksFullCorePolicy(enable_trade_decisions=True)
+    if kraken_tick_size is not None:
+        # Exchange-instrument PRICE tick is metadata, not a Brooks
+        # strategy/threshold change. Restrict this extension to the precise
+        # independently identified Kraken linear perpetual; never translate
+        # it to a Binance symbol or silently override Binance ticks.
+        if (raw["provider"] != "kraken_futures_trade_public"
+                or raw["exchange"] != "kraken_futures"
+                or raw["market_type"] != "futures"
+                or raw["symbol"] != "PF_XBTUSD"
+                or raw["quote_currency"] != "USD"):
+            raise BrooksReplayRefused("BROOKS_KRAKEN_TICK_IDENTITY_DENIED")
+        tick = _decimal(kraken_tick_size)
+        if tick > Decimal("100") or tick.as_tuple().exponent < -8:
+            raise BrooksReplayRefused("BROOKS_KRAKEN_TICK_BOUNDS")
+        policy = replace(
+            policy, context=replace(
+                policy.context,
+                futures_tick_sizes=policy.context.futures_tick_sizes +
+                (("PF_XBTUSD", tick),),
+            ),
+        )
+    engine = BrooksTrilogyFullCoreEngine(policy=policy)
     result = asyncio.run(engine.evaluate(snapshot))
     return {
         "decision": result.decision,
@@ -263,10 +286,10 @@ def _evaluate_legacy(root: Path, payload: bytes) -> dict:
     }
 
 
-def _run_worker(root: Path) -> int:
+def _run_worker(root: Path, kraken_tick_size: str | None = None) -> int:
     try:
         data = sys.stdin.buffer.read(MAX_REPLAY_BYTES + 1)
-        report = _evaluate_legacy(root, data)
+        report = _evaluate_legacy(root, data, kraken_tick_size=kraken_tick_size)
         result = json.dumps(report, sort_keys=True, separators=(",", ":"))
         if len(result.encode("utf-8")) > MAX_WORKER_BYTES:
             raise BrooksReplayRefused("BROOKS_WORKER_OUTPUT_BOUNDS")
@@ -289,11 +312,23 @@ def _check_requested(store: EngineControlStore, timeframe: str) -> tuple[int, in
 
 
 def replay_once(*, state_dir: str | Path, legacy_source: str | Path,
-                replay_json: bytes, timeout_seconds: int = 30) -> dict:
+                replay_json: bytes, timeout_seconds: int = 30,
+                kraken_tick_size: str | None = None) -> dict:
     """Replay the last finalized candle only; PAPER storage is fenced atomically."""
     if type(timeout_seconds) is not int or not 1 <= timeout_seconds <= 60:
         raise BrooksReplayRefused("BROOKS_BOUNDED_TIMEOUT_REQUIRED")
     raw, instrument, bars = parse_candle_replay(replay_json)
+    if kraken_tick_size is not None:
+        if (type(kraken_tick_size) is not str
+                or raw["provider"] != "kraken_futures_trade_public"
+                or raw["exchange"] != "kraken_futures"
+                or raw["market_type"] != "futures"
+                or raw["symbol"] != "PF_XBTUSD"
+                or raw["quote_currency"] != "USD"):
+            raise BrooksReplayRefused("BROOKS_KRAKEN_TICK_IDENTITY_DENIED")
+        value = _decimal(kraken_tick_size)
+        if value > Decimal("100") or value.as_tuple().exponent < -8:
+            raise BrooksReplayRefused("BROOKS_KRAKEN_TICK_BOUNDS")
     with EngineControlStore(state_dir) as store:
         engine_revision, preference_revision = _check_requested(
             store, raw["timeframe"])
@@ -304,9 +339,10 @@ def replay_once(*, state_dir: str | Path, legacy_source: str | Path,
              "import sys; from pathlib import Path; "
              "sys.path.insert(0, sys.argv[1]); "
              "from naseri_markets.brooks_replay import _run_worker; "
-             "raise SystemExit(_run_worker(Path(sys.argv[2])))",
+             "raise SystemExit(_run_worker(Path(sys.argv[2]), sys.argv[3] or None))",
              str(Path(__file__).resolve().parent.parent),
-             str(Path(legacy_source).absolute())],
+             str(Path(legacy_source).absolute()),
+             kraken_tick_size or ""],
             input=replay_json, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
             check=False, timeout=timeout_seconds,
             env={"PYTHONDONTWRITEBYTECODE": "1", "PYTHONNOUSERSITE": "1",
