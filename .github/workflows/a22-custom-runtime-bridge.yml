@@ -1,0 +1,93 @@
+name: A22 Multi Market Trading public Custom PAPER runtime boundary
+
+on:
+  push:
+    branches: [feature/a22-custom-paper-runtime-bridge]
+  pull_request:
+    paths:
+      - "naseri_markets/a22_custom_bridge.py"
+      - "tests/unit/test_a22_custom_bridge.py"
+      - "docs/MULTI_MARKET_TRADING_A22_CUSTOM_BRIDGE.md"
+      - ".github/workflows/a22-custom-runtime-bridge.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-custom-bridge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 23
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Verify immutable historical source and offline public release
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+      - name: A22 generic Custom data bridge with permissions and legacy regression
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m pip install "cryptography==46.0.3"
+          python -m pytest -q \
+            tests/unit/test_a22_custom_bridge.py \
+            tests/unit/test_a21_custom_contract.py \
+            tests/unit/test_a8_plugin_framework.py \
+            tests/unit/test_a7_replay_pipeline.py \
+            tests/unit/test_a20_integration.py \
+            tests/unit/test_a19_hardening.py \
+            tests/unit/test_a18_guardian.py \
+            tests/unit/test_a17_watchdog.py \
+            tests/unit/test_a16_supervisor.py \
+            tests/unit/test_a15_releases.py \
+            tests/unit/test_a14_packages.py \
+            tests/unit/test_a13_provisioning.py \
+            tests/unit/test_a12_trust.py
+      - name: Strict lint and forbid dynamic Custom executable transport
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check --select E4,F \
+            naseri_markets/a22_custom_bridge.py \
+            tests/unit/test_a22_custom_bridge.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          file = Path("naseri_markets/a22_custom_bridge.py")
+          source = file.read_text()
+          forbidden = {"subprocess", "os", "socket", "ctypes",
+                       "importlib", "runpy", "requests", "httpx",
+                       "aiohttp", "pickle", "zipfile", "base64"}
+          tree = ast.parse(source)
+          for node in ast.walk(tree):
+              if isinstance(node, ast.Import):
+                  assert all(alias.name.split(".")[0] not in forbidden
+                             for alias in node.names)
+              elif isinstance(node, ast.ImportFrom):
+                  assert (node.module or "").split(".")[0] not in forbidden
+          for dangerous in ("shell=True", "eval(", "exec(",
+                            "decode_artifact", "decrypt_bundle",
+                            "private_nyfr_core", "r0_engine"):
+              assert dangerous not in source
+          print("A22_PUBLIC_DATA_ONLY_RUNTIME_PASS")
+          PY
+      - name: Public-only release context excludes NYFR and encrypted artifacts
+        run: |
+          set -Eeuo pipefail
+          python -m pip install "setuptools==80.9.0" "wheel==0.45.1"
+          python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/a22-public"
+          test -f "$RUNNER_TEMP/a22-public/naseri_markets/a22_custom_bridge.py"
+          test -f "$RUNNER_TEMP/a22-public/naseri_markets/a21_custom_contract.py"
+          test ! -e "$RUNNER_TEMP/a22-public/naseri_markets/private_nyfr_core.py"
+          test ! -e "$RUNNER_TEMP/a22-public/naseri_markets/r0_engine.py"
+          if find "$RUNNER_TEMP/a22-public" -type f \
+             \( -name '*.enc' -o -name '*.age' -o -name '*.zip' \
+                -o -name '*.so' -o -name '*.pyd' -o -name '*.bin' \) | grep -q .; then
+            echo "A22_PUBLIC_PROPRIETARY_ARTIFACT_BLOCKED"; exit 1
+          fi
+          echo "A22_PUBLIC_CUSTOM_NO_PRIVATE_ENGINE_PASS"
