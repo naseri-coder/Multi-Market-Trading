@@ -10,6 +10,10 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 import pytest
+
+# Historical full-corpus jobs deliberately install no optional crypto extra.
+# The dedicated A12 security job installs it and MUST run every test here.
+pytest.importorskip("cryptography", reason="A12 cryptography tested in its dedicated CI")
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
