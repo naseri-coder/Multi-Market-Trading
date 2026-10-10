@@ -346,7 +346,7 @@ class EngineControlStore:
                 "(engine_id,actor_id,action,engine_revision) VALUES(?,?,?,?)",
                 (engine_id, actor_id,
                  "REQUEST_PUBLICATION_ENABLE_NOT_CONNECTED" if enabled
-                 else "REQUEST_PUBLICATION_DISABLE", state.revision))
+                 else "REQUEST_PUBLICATION_DISABLE", revision + 1))
             self._db.execute("COMMIT")
         except BaseException:
             self._db.execute("ROLLBACK")
