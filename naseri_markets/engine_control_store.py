@@ -67,6 +67,12 @@ class EngineControlStore:
               CHECK(requested_publication IN (0,1)),
             revision INTEGER NOT NULL DEFAULT 1 CHECK(revision>=1)
         )""")
+        # The built-in Brooks offline Replay adapter records genuine analyzer
+        # outcomes; no Telegram outbox or live market-data subscriber exists.
+        self._db.execute("""CREATE TABLE IF NOT EXISTS brooks_replay_scans(
+            scan_id TEXT PRIMARY KEY, snapshot_hash TEXT NOT NULL,
+            decision TEXT NOT NULL, setup_type TEXT,
+            signal_id TEXT, source_sha256 TEXT NOT NULL)""")
         self._db.execute("""CREATE TABLE IF NOT EXISTS managed_engine_routes(
             engine_id TEXT PRIMARY KEY,
             channel_id INTEGER,
@@ -355,7 +361,27 @@ class EngineControlStore:
 
     def signals(self, engine_id: str) -> list[dict]:
         state = self._require(engine_id)
-        return self.host.signals(engine_id) if state.engine_kind == "PUBLIC_CUSTOM" else []
+        if state.engine_kind == "PUBLIC_CUSTOM":
+            return self.host.signals(engine_id)
+        if state.engine_kind == "BUILTIN_BROOKS":
+            rows = self._db.execute(
+                "SELECT payload FROM a7_paper_intents WHERE engine_id=? "
+                "ORDER BY signal_id", (engine_id,)).fetchall()
+            import json
+            return [json.loads(x["payload"]) for x in rows]
+        return []
+
+    def brooks_replay_status(self) -> dict:
+        """Diagnostics only: replay scans, not claims of running live engine."""
+        self._require(BROOKS_ENGINE_ID)
+        row = self._db.execute(
+            "SELECT COUNT(*) AS total, "
+            "COALESCE(SUM(CASE WHEN decision='NO_SIGNAL' THEN 1 ELSE 0 END),0) "
+            "AS no_signal FROM brooks_replay_scans").fetchone()
+        return {"scans": int(row["total"]),
+                "no_signal": int(row["no_signal"]),
+                "paper_signals": len(self.signals(BROOKS_ENGINE_ID)),
+                "live_runtime_connected": False, "telegram_sent": False}
 
     def admin_history(self, engine_id: str) -> list[dict]:
         self._require(engine_id)
