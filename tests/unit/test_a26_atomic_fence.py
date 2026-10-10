@@ -21,7 +21,7 @@ from naseri_markets.paper_journal import PaperJournal
 from test_a22_custom_bridge import metadata, pinned, sample
 from test_a23_sandbox_adapter import enable
 from test_a24_publisher_admission import INSTALL, NOW, ctx as a24_ctx, service
-from test_a25_bundle_admission import case as a25_case, args, pack, release
+from test_a25_bundle_admission import case as a25_case, args, release
 from test_a7_replay_pipeline import INST, quote, session
 
 
