@@ -9,7 +9,7 @@ status. This does **not** deploy to the running historic crypto signal bot.
 | Engine | Category | Visible to | Can the new PAPER host execute it? |
 | --- | --- | --- | --- |
 | Public trusted locally reviewed Python engine | `PUBLIC_CUSTOM` | Administrators | **Yes**; explicit SHA-pinned local code and PAPER only |
-| Al Brooks Price Action (`brooks_price_action`) | `BUILTIN_BROOKS` | Administrators | **No**; existing frozen legacy engine is **not wired into the new product** |
+| Al Brooks Price Action (`brooks_price_action`) | `BUILTIN_BROOKS` | Administrators | **Yes for explicit manual offline candle replay**; new bot does not launch it autonomously |
 | NY First-Reversal (`ny_first_reversal`) | `OWNER_CUSTOM` | Explicitly provisioned owner IDs only | **No**; private metadata **reference only**, source, private repo, binaries and encrypted payload never included |
 
 Brooks is an internal named engine, **not** an arbitrary public third-party
@@ -49,9 +49,10 @@ engine are checked by the local execution host both **before worker
 invocation** and **under the same SQLite writer transaction that persists
 the PAPER result**. Settings updates cannot race past final commit.
 The timeframe preference is **not applied to a quote**: the current A7
-single-tick request has no validated timeframe field. For Brooks and
-owner Custom, ALL settings are stored preferences and will require a
-separately authorized runtime bridge before they have market effects.
+single-tick request has no validated timeframe field. For Brooks, PAPER, timeframe and market-scope settings now also gate the
+explicit local OFFLINE replay worker. Brooks is **not** yet continuously
+running or receiving live feeds. For owner Custom, settings remain metadata
+until its private owner-side runtime is separately connected.
 No secret threshold/strategy tuning in the legacy core is performed.
 
 Owner-only engine references remain hidden from the shared panel to other
@@ -132,9 +133,11 @@ signals and legacy tests. All of it runs WITHOUT any live Telegram message
 or broker order. Production source hash/publication safety is preserved.
 
 **Remaining work (NOT silently implemented here):**
-- The *real* Brooks legacy analyzer needs an explicitly approved adapter and
-  migration before the new bot can switch its runtime on or tune its
-  strategy. No credentials, market feeds or database writes were attached.
+- A **real manual offline Brooks V5 replay adapter now exists**, with
+  causal closed-candle validation, genuine engine evaluation, SQLite PAPER
+  output and admin preview. Automatic bot-cycle dispatch, real market feeds,
+  and authenticated FORWARD publication are still missing. This adapter
+  intentionally does not migrate or modify the frozen source.
 - NYFR requires its own private, owner-only executable adapter / licensing
   outside the public repository. **It is never publicly installable, even
   encrypted or compiled**.
@@ -143,3 +146,16 @@ or broker order. Production source hash/publication safety is preserved.
   PAPER previews are not channel signals.
 
 **Target verdict:** `INTEGRATED_PUBLIC_CUSTOM_BROOKS_OWNER_PANEL_READY_NONPRODUCTION`.
+
+
+## Follow-up: real Brooks manual offline replay (public)
+
+The next standalone CLI, `naseri-brooks-replay`, checks the frozen legacy
+manifest and invokes the real Brooks full-core V5 evaluator in a separate
+process. It consumes bounded historical closed-candle windows and records
+eligible PAPER decisions or an explicit NO_SIGNAL scan. It uses the existing
+Brooks per-engine requested-enable flag, PAPER mode, market scope and
+selected timeframe, rechecking configuration inside the SQLite transaction.
+The Telegram admin panel shows PAPER signals and replay/no-signal counts.
+The main Telegram bot **still does not automatically run Brooks**; no
+channel delivery is enabled. See [Brooks real Replay/PAPER guide](BROOKS_REAL_OFFLINE_PAPER_REPLAY.md).
