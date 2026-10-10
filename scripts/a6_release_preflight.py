@@ -31,6 +31,7 @@ def check() -> dict:
         "naseri-brooks-replay": "naseri_markets.brooks_replay:main",
         "naseri-brooks-market": "naseri_markets.brooks_market_feed:main",
         "naseri-brooks-kraken-paper": "naseri_markets.brooks_kraken_feed:main",
+        "naseri-brooks-paper-service": "naseri_markets.brooks_paper_service:main",
     }:
         raise ValueError("A6_CLI_INVALID")
     old_compose = (ROOT / "compose.yaml").read_text()
