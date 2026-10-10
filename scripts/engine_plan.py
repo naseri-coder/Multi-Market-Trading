@@ -7,10 +7,14 @@ import sys
 from dataclasses import asdict
 from pathlib import Path
 
-from naseri_markets.engine_plan import plan
-
 
 def main() -> int:
+    # Allow direct `python scripts/engine_plan.py ...` before installation.
+    root = Path(__file__).resolve().parents[1]
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+    from naseri_markets.engine_plan import plan
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("manifest", type=Path)
     parser.add_argument("--json", action="store_true")
