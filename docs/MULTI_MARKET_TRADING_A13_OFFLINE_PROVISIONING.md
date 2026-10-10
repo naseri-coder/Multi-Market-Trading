@@ -33,7 +33,12 @@ Public Multi Market Trading
 
 ### Operator protocol
 
-1. Review the private owner and license issuer **out of band**. Verify an
+1. Construct the provisioner with an explicitly trusted
+   `installation_id`. Every strict plan embeds that exact installation
+   identity and every fresh A12 grant must be issued for it. A different
+   `OfflineAdmission` trust-store instance is rejected to prevent
+   substituting a foreign/self-issued signing authority.
+   Review the private owner and license issuer **out of band**. Verify an
    independent SHA-256 of the exact plan; hashing a self-supplied plan
    does **NOT** authenticate its publisher.
 2. Register the approved private descriptor and active A12 trusted policy
