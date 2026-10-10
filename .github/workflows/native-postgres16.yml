@@ -103,7 +103,7 @@ jobs:
 
           export PGPASSWORD="ch6synthetic_ci_password_2026"
           test "$(psql -h "$CH6_NATIVE_SOCKET_DIR" -U ch6synthetic -d ch6synthetic -Atqc 'SELECT 1')" = "1"
-          test "$(psql -h /var/run/postgresql -U ch6synthetic -d fullcorpus -Atqc 'SELECT 1')" = "1"
+          test "$(psql -h "$CH6_NATIVE_SOCKET_DIR" -U ch6synthetic -d fullcorpus -Atqc 'SELECT 1')" = "1"
           test "$(sudo -u postgres psql -h "$CH6_NATIVE_SOCKET_DIR" -Atqc 'SHOW listen_addresses')" = ""
           test "$(sudo -u postgres psql -h "$CH6_NATIVE_SOCKET_DIR" -Atqc 'SHOW unix_socket_directories')" = "$CH6_NATIVE_SOCKET_DIR"
           test -z "$(sudo ss -lntp | grep -E ':(5432)\b' || true)"
