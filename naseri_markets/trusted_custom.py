@@ -202,7 +202,10 @@ class TrustedLocalCustomHost:
         # this is a different, explicit, trusted-LOCAL operator decision.
         # Refuse obvious owner-private branding; content classification cannot
         # prove the absence of confidential code in arbitrary trusted scripts.
-        lowered = code.decode("utf-8", errors="strict").lower()
+        try:
+            lowered = code.decode("utf-8", errors="strict").lower()
+        except UnicodeError as exc:
+            raise LocalCustomRefused("CUSTOM_UTF8_PYTHON_REQUIRED") from exc
         if any(key in lowered for key in
                ("ny_first_reversal", "private_nyfr_core", "r0_engine")):
             raise LocalCustomRefused("CUSTOM_PROTECTED_OWNER_CORE_DENIED")
