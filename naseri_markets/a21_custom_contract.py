@@ -98,8 +98,10 @@ class CustomContractCatalog:
     def register(self, raw: bytes, *, approved_sha256: str) -> CustomEngineContract:
         contract = parse_custom_contract(raw, approved_sha256=approved_sha256)
         existing = self._items.get(contract.engine_id)
-        if existing is not None and existing != contract:
-            raise CustomContractRefused("A21_IMMUTABLE_ID_COLLISION")
+        if existing is not None:
+            if existing != contract:
+                raise CustomContractRefused("A21_IMMUTABLE_ID_COLLISION")
+            return existing
         self._items[contract.engine_id] = contract
         return contract
 
