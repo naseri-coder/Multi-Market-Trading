@@ -20,6 +20,7 @@ naseri-engine-admin = "naseri_markets.bot_admin_app:main"
 naseri-brooks-replay = "naseri_markets.brooks_replay:main"
 naseri-brooks-market = "naseri_markets.brooks_market_feed:main"
 naseri-brooks-kraken-paper = "naseri_markets.brooks_kraken_feed:main"
+naseri-brooks-paper-service = "naseri_markets.brooks_paper_service:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
