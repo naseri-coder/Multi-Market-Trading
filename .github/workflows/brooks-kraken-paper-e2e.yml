@@ -1,0 +1,75 @@
+name: Brooks Kraken futures real HTTPS to genuine V5 PAPER (ephemeral)
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/brooks_kraken_feed.py"
+      - "tests/unit/test_brooks_kraken_feed.py"
+      - "scripts/brooks_kraken_public_e2e.py"
+      - "platform_release/pyproject.toml"
+      - "scripts/a6_release_preflight.py"
+      - "docs/BROOKS_KRAKEN_FUTURES_PAPER_E2E.md"
+      - ".github/workflows/brooks-kraken-paper-e2e.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-kraken-futures-v5-paper:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with: {python-version: "3.12"}
+      - name: Exact frozen source and independent release preflight
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+      - name: Test genuine Brooks and strict mocked Kraken feed
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m ruff check --select E4,F \
+            naseri_markets/brooks_kraken_feed.py \
+            tests/unit/test_brooks_kraken_feed.py \
+            scripts/brooks_kraken_public_e2e.py \
+            scripts/brooks_public_provider_probe.py
+          python -m pytest -q \
+            tests/unit/test_brooks_kraken_feed.py \
+            tests/unit/test_brooks_market_feed.py \
+            tests/unit/test_brooks_real_offline_replay.py \
+            tests/unit/test_integrated_engine_panel.py \
+            tests/unit/test_public_brooks_publication_controls.py
+      - name: Independently install public Kraken CLI, private NYFR absent
+        run: |
+          set -Eeuo pipefail
+          python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/public-wheel"
+          python -m venv "$RUNNER_TEMP/clean-kraken"
+          "$RUNNER_TEMP/clean-kraken/bin/python" -m pip install "$RUNNER_TEMP/public-wheel"
+          "$RUNNER_TEMP/clean-kraken/bin/naseri-brooks-kraken-paper" --help >/dev/null
+          "$RUNNER_TEMP/clean-kraken/bin/python" - <<'PY'
+          from pathlib import Path
+          import naseri_markets
+          p = Path(naseri_markets.__file__).parent
+          assert (p / "brooks_kraken_feed.py").exists()
+          assert not (p / "private_nyfr_core.py").exists()
+          assert not (p / "production_source").exists()
+          print("KRAKEN_FUTURES_PUBLIC_WHEEL_ONLY_PASS")
+          PY
+      - name: Require explicit live smoke acknowledgement before any HTTP
+        run: |
+          set -Eeuo pipefail
+          if python -m scripts.brooks_kraken_public_e2e --legacy-source production_source; then
+            echo "KRAKEN_UNACKNOWLEDGED_SMOKE_EXECUTED"; exit 1
+          fi
+      - name: TWO REAL Kraken Futures HTTPS cycles into V5 isolated PAPER
+        timeout-minutes: 5
+        run: |
+          set -Eeuo pipefail
+          python -m scripts.brooks_kraken_public_e2e \
+            --legacy-source production_source \
+            --ack-ephemeral-public-paper
