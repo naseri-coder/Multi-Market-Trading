@@ -5,13 +5,12 @@ means approved for this offline PAPER demo only, never live or publish.
 """
 from __future__ import annotations
 
-import re
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
 from .delivery_ledger import open_sqlite
-from .plugin_descriptor import PluginDescriptor, parse_descriptor
+from .plugin_descriptor import parse_descriptor
 
 
 class RevisionConflict(ValueError):
