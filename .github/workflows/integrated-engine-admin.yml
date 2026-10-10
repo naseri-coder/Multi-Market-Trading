@@ -1,0 +1,100 @@
+name: Integrated Brooks and owner Custom Telegram engine admin — nonproduction
+
+on:
+  push:
+    branches: [feature/integrated-engine-panel-brooks-owner-custom]
+  pull_request:
+    paths:
+      - "naseri_markets/engine_control_store.py"
+      - "naseri_markets/integrated_engine_panel.py"
+      - "naseri_markets/bot_admin_app.py"
+      - "naseri_markets/custom_admin_panel.py"
+      - "naseri_markets/trusted_custom.py"
+      - "tests/unit/test_integrated_engine_panel.py"
+      - "docs/INTEGRATED_ENGINE_MANAGEMENT.md"
+      - "platform_release/pyproject.toml"
+      - "scripts/a6_release_preflight.py"
+      - ".github/workflows/integrated-engine-admin.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  actual-offline-product-admin:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with: {python-version: "3.12"}
+      - name: Verify legacy immutable source and public preview contract
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+      - name: Install tests and reject source/type/lint regressions
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m ruff check --select E4,F \
+            naseri_markets/engine_control_store.py \
+            naseri_markets/integrated_engine_panel.py \
+            naseri_markets/bot_admin_app.py \
+            naseri_markets/custom_admin_panel.py \
+            naseri_markets/trusted_custom.py \
+            tests/unit/test_integrated_engine_panel.py
+      - name: End-to-end private engine catalog/Telegram callbacks/real PAPER
+        run: |
+          set -Eeuo pipefail
+          python -m pytest -q \
+            tests/unit/test_integrated_engine_panel.py \
+            tests/unit/test_custom_admin_panel.py \
+            tests/unit/test_trusted_custom_mvp.py \
+            tests/unit/test_a21_custom_contract.py \
+            tests/unit/test_a22_custom_bridge.py \
+            tests/unit/test_a7_replay_pipeline.py \
+            tests/unit/test_admin_handlers.py \
+            tests/unit/test_admin_signal_handlers.py
+      - name: Clean staged wheel with one Telegram Application and guarded CLI
+        run: |
+          set -Eeuo pipefail
+          python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/engine-admin-public"
+          python -m venv "$RUNNER_TEMP/engine-admin-clean"
+          "$RUNNER_TEMP/engine-admin-clean/bin/python" -m pip install \
+            "$RUNNER_TEMP/engine-admin-public[telegram-admin]"
+          "$RUNNER_TEMP/engine-admin-clean/bin/naseri-markets" --check
+          "$RUNNER_TEMP/engine-admin-clean/bin/naseri-engine-admin" \
+            --state-dir "$RUNNER_TEMP/engine-admin-state" \
+            --admin-ids 123456789 --owner-ids 123456789 --check
+          "$RUNNER_TEMP/engine-admin-clean/bin/python" - <<'PY'
+          from pathlib import Path
+          from telegram.ext import CommandHandler
+          from naseri_markets.bot_admin_app import build_admin_application
+          from naseri_markets.engine_control_store import EngineControlStore, OWNER_CORE_ID
+          import os
+          state = Path(os.environ["RUNNER_TEMP"]) / "engine-admin-private"
+          app = build_admin_application(
+              token="123456:TEST_NONPRODUCTION_TOKEN_IN_CI",
+              state_dir=state, admin_ids={123, 234}, owner_ids={123},
+              owner_reference=True)
+          commands = set().union(*(h.commands for handlers in app.handlers.values()
+              for h in handlers if isinstance(h, CommandHandler)))
+          assert {"engines", "custom"} <= commands
+          with EngineControlStore(state, owner_visible=True) as owner:
+              assert owner.get(OWNER_CORE_ID).engine_kind == "OWNER_CUSTOM"
+              assert not owner.get(OWNER_CORE_ID).enabled
+          with EngineControlStore(state, owner_visible=False) as admin:
+              assert admin.get(OWNER_CORE_ID) is None
+              assert admin.get("brooks_price_action") is not None
+          print("INTEGRATED_BROOKS_OWNER_CUSTOM_SINGLE_BOT_APP_PASS")
+          PY
+          test ! -e "$RUNNER_TEMP/engine-admin-public/naseri_markets/private_nyfr_core.py"
+          test ! -e "$RUNNER_TEMP/engine-admin-public/naseri_markets/r0_engine.py"
+          if find "$RUNNER_TEMP/engine-admin-public" -type f \
+             \( -name '*.enc' -o -name '*.age' -o -name '*.zip' \
+                -o -name '*.so' -o -name '*.pyd' -o -name '*.bin' \) | grep -q .; then
+            echo "PRIVATE_BROOKS_OR_OWNER_CODE_BLOCKED"; exit 1
+          fi
+          echo "INTEGRATED_ENGINE_ADMIN_PUBLIC_ONLY_PASS"
