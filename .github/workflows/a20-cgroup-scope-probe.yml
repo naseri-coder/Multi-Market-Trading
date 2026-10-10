@@ -1,0 +1,26 @@
+name: A20 disposable systemd scope capability proof
+on:
+  push:
+    branches: [feature/a20-hardened-fixture-guardian-integration]
+permissions:
+  contents: read
+jobs:
+  scope-probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Prove ephemeral transient cgroup scope as user
+        run: |
+          set -Eeuo pipefail
+          echo "USER_NAME=$(id -un)"
+          test -r /sys/fs/cgroup/cgroup.controllers
+          cat /sys/fs/cgroup/cgroup.controllers
+          systemctl --version | head -1
+          name="mmt-a20-probe-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          sudo -n /usr/bin/systemd-run --scope --pipe --unit="$name" \
+             -p "MemoryMax=268435456" -p "MemoryHigh=201326592" \
+             -p "CPUQuota=50%" -p "TasksMax=12" \
+             -- /usr/bin/sudo -n -u "$(id -un)" -- /usr/bin/python3 -I -S -c \
+             "import os,pathlib; p=pathlib.Path('/proc/self/cgroup').read_text().strip().split('::')[-1]; root=pathlib.Path('/sys/fs/cgroup')/p.lstrip('/'); print('CGROUP',p); print('MEM', (root/'memory.max').read_text().strip()); print('CPU',(root/'cpu.max').read_text().strip());print('TASK',(root/'pids.max').read_text().strip()); print('UID',os.geteuid())"
+          test ! -e /etc/systemd/system/mmt-a20-probe.service
