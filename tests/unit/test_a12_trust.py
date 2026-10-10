@@ -388,7 +388,7 @@ async def test_license_revoked_during_owner_callback_is_dropped(material):
 async def test_grant_expiry_during_connection_is_rejected(material):
     mgr, replay, connector, p, _ = _connector_fixture(material)
     # The fake clock expires after request even if the owner replies promptly.
-    values = iter([NOW, NOW + 200])
+    values = iter([NOW, NOW, NOW + 200])
     connector._clock = lambda: next(values)
     with pytest.raises(AdmissionRefused, match="EXPIRED_OR_FUTURE"):
         await connector.produce(_tick())
