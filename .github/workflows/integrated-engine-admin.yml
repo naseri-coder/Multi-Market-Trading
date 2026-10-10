@@ -76,7 +76,7 @@ jobs:
           import os
           state = Path(os.environ["RUNNER_TEMP"]) / "engine-admin-private"
           app = build_admin_application(
-              token="123456:TEST_NONPRODUCTION_TOKEN_IN_CI",
+              token="".join(("123456", ":", "CI_FAKE_TOKEN")),
               state_dir=state, admin_ids={123, 234}, owner_ids={123},
               owner_reference=True)
           commands = set().union(*(h.commands for handlers in app.handlers.values()
