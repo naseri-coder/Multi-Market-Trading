@@ -1,0 +1,102 @@
+name: A23 Multi Market Trading fixed scoped Custom PAPER sandbox
+
+on:
+  push:
+    branches: [feature/a23-fixed-sandbox-custom-adapter]
+  pull_request:
+    paths:
+      - "naseri_markets/a23_sandbox_adapter.py"
+      - "tests/unit/test_a23_sandbox_adapter.py"
+      - "docs/MULTI_MARKET_TRADING_A23_FIXED_SANDBOX.md"
+      - ".github/workflows/a23-fixed-custom-sandbox.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  a23-fixed-isolation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Original source manifest and disposable kernel capabilities
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+          test "$GITHUB_ACTIONS" = true
+          test "$(id -u)" -ne 0
+          test -f /sys/fs/cgroup/cgroup.controllers
+          grep -qw cpu /sys/fs/cgroup/cgroup.controllers
+          grep -qw memory /sys/fs/cgroup/cgroup.controllers
+          grep -qw pids /sys/fs/cgroup/cgroup.controllers
+          test -x /usr/bin/sudo
+          test -x /usr/bin/systemd-run
+          ldconfig -p | grep -F libseccomp.so.2
+      - name: A23 actual sandbox relay and A7–A22 regression
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m pip install "cryptography==46.0.3"
+          python -m pytest -q \
+            tests/unit/test_a23_sandbox_adapter.py \
+            tests/unit/test_a22_custom_bridge.py \
+            tests/unit/test_a21_custom_contract.py \
+            tests/unit/test_a8_plugin_framework.py \
+            tests/unit/test_a7_replay_pipeline.py \
+            tests/unit/test_a20_integration.py \
+            tests/unit/test_a19_hardening.py \
+            tests/unit/test_a18_guardian.py \
+            tests/unit/test_a17_watchdog.py \
+            tests/unit/test_a16_supervisor.py \
+            tests/unit/test_a15_releases.py \
+            tests/unit/test_a14_packages.py \
+            tests/unit/test_a13_provisioning.py \
+            tests/unit/test_a12_trust.py
+      - name: Ruff lint and public-only static strategy execution fence
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check --select E4,F \
+            naseri_markets/a23_sandbox_adapter.py \
+            tests/unit/test_a23_sandbox_adapter.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          module = Path("naseri_markets/a23_sandbox_adapter.py")
+          source = module.read_text()
+          tree = ast.parse(source)
+          # Fixed subprocess is intentional. No arbitrary strategy source.
+          banned = {"importlib", "runpy", "requests", "httpx", "aiohttp",
+                    "pickle", "base64", "zipfile", "MetaTrader5"}
+          for n in ast.walk(tree):
+              if isinstance(n, ast.Import):
+                  assert all(x.name.split(".")[0] not in banned for x in n.names)
+              elif isinstance(n, ast.ImportFrom):
+                  assert (n.module or "").split(".")[0] not in banned
+          assert "shell=True" not in source
+          assert "preexec_fn" not in source
+          assert "production_source" not in source
+          assert "private_nyfr_core" not in source
+          assert "r0_engine" not in source
+          print("A23_FIXED_NO_STRATEGY_EXECUTION_PASS")
+          PY
+      - name: Public-only package includes only fixed mock and excludes private code
+        run: |
+          set -Eeuo pipefail
+          python -m pip install "setuptools==80.9.0" "wheel==0.45.1"
+          python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/a23-preview"
+          test -f "$RUNNER_TEMP/a23-preview/naseri_markets/a23_sandbox_adapter.py"
+          test ! -e "$RUNNER_TEMP/a23-preview/naseri_markets/private_nyfr_core.py"
+          test ! -e "$RUNNER_TEMP/a23-preview/naseri_markets/r0_engine.py"
+          if find "$RUNNER_TEMP/a23-preview" -type f \
+             \( -name '*.enc' -o -name '*.age' -o -name '*.zip' \
+                -o -name '*.so' -o -name '*.pyd' -o -name '*.bin' \) | grep -q .; then
+            echo "A23_PROPRIETARY_ARTIFACT_REFUSED"; exit 1
+          fi
+          echo "A23_PUBLIC_FIXED_FIXTURE_NO_NYFR_PASS"
