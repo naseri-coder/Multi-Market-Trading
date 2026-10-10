@@ -1,0 +1,103 @@
+name: A26 Multi Market Trading atomic PAPER authorization fence
+
+on:
+  push:
+    branches: [feature/a26-transactional-paper-permission-fence]
+  pull_request:
+    paths:
+      - "naseri_markets/a22_custom_bridge.py"
+      - "naseri_markets/a26_atomic_fence.py"
+      - "tests/unit/test_a26_atomic_fence.py"
+      - "docs/MULTI_MARKET_TRADING_A26_ATOMIC_FENCE.md"
+      - ".github/workflows/a26-atomic-permission-fence.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  a26-transactional-fence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 26
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Historical source freeze and disposable Linux prerequisites
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+          test "$GITHUB_ACTIONS" = true
+          test "$(id -u)" -ne 0
+          test -f /sys/fs/cgroup/cgroup.controllers
+          test -x /usr/bin/sudo
+          test -x /usr/bin/systemd-run
+          ldconfig -p | grep -F libseccomp.so.2
+      - name: A26 actual concurrent SQLite trust revocation and PAPER commit
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m pip install "cryptography==46.0.3"
+          python -m pytest -q \
+            tests/unit/test_a26_atomic_fence.py \
+            tests/unit/test_a25_bundle_admission.py \
+            tests/unit/test_a24_publisher_admission.py \
+            tests/unit/test_a23_sandbox_adapter.py \
+            tests/unit/test_a22_custom_bridge.py \
+            tests/unit/test_a21_custom_contract.py \
+            tests/unit/test_a8_plugin_framework.py \
+            tests/unit/test_a7_replay_pipeline.py \
+            tests/unit/test_a20_integration.py \
+            tests/unit/test_a19_hardening.py \
+            tests/unit/test_a18_guardian.py \
+            tests/unit/test_a17_watchdog.py \
+            tests/unit/test_a16_supervisor.py \
+            tests/unit/test_a15_releases.py \
+            tests/unit/test_a14_packages.py \
+            tests/unit/test_a13_provisioning.py \
+            tests/unit/test_a12_trust.py
+      - name: Ruff and public no-private-source fence
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check --select E4,F \
+            naseri_markets/a22_custom_bridge.py \
+            naseri_markets/a26_atomic_fence.py \
+            tests/unit/test_a26_atomic_fence.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          for file in ("naseri_markets/a22_custom_bridge.py",
+                       "naseri_markets/a26_atomic_fence.py"):
+              source = Path(file).read_text()
+              tree = ast.parse(source)
+              banned = {"subprocess", "socket", "importlib", "runpy",
+                        "requests", "httpx", "aiohttp", "pickle", "ctypes"}
+              for node in ast.walk(tree):
+                  if isinstance(node, ast.Import):
+                      assert all(x.name.split(".")[0] not in banned for x in node.names)
+                  elif isinstance(node, ast.ImportFrom):
+                      assert (node.module or "").split(".")[0] not in banned
+              for name in ("shell=True", "Ed25519PrivateKey",
+                           "private_nyfr_core", "r0_engine",
+                           "production_source"):
+                  assert name not in source
+          print("A26_TRUST_AND_JOURNAL_NO_PRIVATE_CODE_PASS")
+          PY
+      - name: A6 safe public artifact preview
+        run: |
+          set -Eeuo pipefail
+          python -m pip install "setuptools==80.9.0" "wheel==0.45.1"
+          python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/a26-public"
+          test -f "$RUNNER_TEMP/a26-public/naseri_markets/a26_atomic_fence.py"
+          test ! -e "$RUNNER_TEMP/a26-public/naseri_markets/private_nyfr_core.py"
+          test ! -e "$RUNNER_TEMP/a26-public/naseri_markets/r0_engine.py"
+          if find "$RUNNER_TEMP/a26-public" -type f \
+             \( -name '*.enc' -o -name '*.age' -o -name '*.zip' \
+                -o -name '*.so' -o -name '*.pyd' -o -name '*.bin' \) | grep -q .; then
+            echo "A26_PROPRIETARY_ARTIFACT_BLOCKED"; exit 1
+          fi
+          echo "A26_PUBLIC_PAPER_FENCED_NO_NYFR_PASS"
