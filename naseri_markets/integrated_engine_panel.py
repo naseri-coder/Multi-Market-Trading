@@ -75,7 +75,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
         items = host.list()
         active = sum(x.enabled for x in items)
         pending = sum(x.requested_enabled and not x.enabled for x in items)
-        owner_line = ("🔐 مرجع Custom خصوصی مالک، بدون اجرای کد.\\n"
+        owner_line = ("🔐 مرجع Custom خصوصی مالک، بدون اجرای کد.\n"
                       if host.owner_visible and host.get(OWNER_CORE_ID) is not None
                       else "")
         return (
@@ -83,7 +83,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
             f"هسته‌های قابل مشاهده: {len(items)} | PAPER فعال واقعی: {active}\n"
             f"درخواست فعال، فاقد اتصال موتور: {pending}\n"
             "پرایس اکشن البروکس: مرجع داخلی؛ اجرای نسخه قدیمی متصل نشده.\n"
-            + owner_line
+            + owner_line +
             "کانال‌ها تنها تنظیم می‌شوند؛ ارسال خودکار: 🔒 خاموش.")
 
     def detail(self, host: EngineControlStore, engine_id: str) -> str:
