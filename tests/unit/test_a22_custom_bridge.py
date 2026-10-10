@@ -13,7 +13,6 @@ from naseri_markets.a21_custom_contract import CustomContractCatalog
 from naseri_markets.a22_custom_bridge import (
     CustomPaperRuntimeBridge, CustomRuntimeRefused,
 )
-from naseri_markets.contracts import Market
 from naseri_markets.paper_journal import PaperJournal
 from naseri_markets.quotes import QuoteOrigin, QuoteTick, QuoteVerdict
 from test_a7_replay_pipeline import INST, packet, quote, session
