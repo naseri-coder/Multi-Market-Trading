@@ -19,7 +19,8 @@ from .plugin_manager import PluginManager
 
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 _FIELDS = frozenset({
-    "schema_version", "engine_id", "engine_version", "manifest_sha256",
+    "schema_version", "engine_id", "engine_version", "installation_id",
+    "manifest_sha256",
     "trust_generation", "owner_dns", "owner_cert_sha256",
     "ca_sha256", "mode",
 })
@@ -41,6 +42,7 @@ def _unique(pairs: list[tuple[str, object]]) -> dict[str, object]:
 @dataclass(frozen=True, slots=True)
 class ProvisioningRecord:
     engine_id: str
+    installation_id: str
     generation: int
     manifest_sha256: str
     plan_sha256: str
@@ -89,9 +91,11 @@ def parse_plan(raw: bytes, *, approved_sha256: str) -> dict:
     for field in ("manifest_sha256", "owner_cert_sha256", "ca_sha256"):
         if type(p[field]) is not str or not _SHA.fullmatch(p[field]):
             raise ProvisioningRefused("A13_BAD_HASH")
-    for field in ("engine_id", "engine_version", "owner_dns"):
+    for field in ("engine_id", "engine_version", "owner_dns", "installation_id"):
         if type(p[field]) is not str or not 0 < len(p[field]) <= 100:
             raise ProvisioningRefused("A13_IDENTITY_REQUIRED")
+    if re.fullmatch(r"[a-z][a-z0-9_-]{2,47}", p["installation_id"]) is None:
+        raise ProvisioningRefused("A13_INSTALLATION_ID")
     if re.fullmatch(r"[a-z0-9-]{1,60}\.fixture", p["owner_dns"]) is None:
         raise ProvisioningRefused("A13_NONFIXTURE_HOST_FORBIDDEN")
     return p
@@ -106,7 +110,14 @@ class OfflineProvisioner:
 
     def __init__(
         self, path: str | Path, *, plugins: PluginManager, trust: TrustStore,
+        installation_id: str,
     ) -> None:
+        if (
+            type(installation_id) is not str
+            or re.fullmatch(r"[a-z][a-z0-9_-]{2,47}", installation_id) is None
+        ):
+            raise ProvisioningRefused("A13_TRUSTED_INSTALLATION_REQUIRED")
+        self._installation_id = installation_id
         path = Path(path)
         if path.is_symlink() or (path.exists() and not path.is_file()):
             raise ProvisioningRefused("A13_UNSAFE_STORE")
@@ -115,7 +126,8 @@ class OfflineProvisioner:
         self._trust = trust
         self._db.execute("""
             CREATE TABLE IF NOT EXISTS a13_provision (
-                engine_id TEXT PRIMARY KEY, generation INTEGER NOT NULL,
+                engine_id TEXT PRIMARY KEY, installation_id TEXT NOT NULL,
+                generation INTEGER NOT NULL,
                 manifest_sha256 TEXT NOT NULL, plan_sha256 TEXT NOT NULL,
                 incarnation INTEGER NOT NULL, status TEXT NOT NULL,
                 revision INTEGER NOT NULL CHECK(revision >= 1)
@@ -136,7 +148,8 @@ class OfflineProvisioner:
     @staticmethod
     def _as_record(row) -> ProvisioningRecord:
         return ProvisioningRecord(
-            row["engine_id"], row["generation"], row["manifest_sha256"],
+            row["engine_id"], row["installation_id"],
+            row["generation"], row["manifest_sha256"],
             row["plan_sha256"], row["incarnation"], row["status"],
             row["revision"],
         )
@@ -161,6 +174,8 @@ class OfflineProvisioner:
         )
 
     def _match(self, p: dict) -> int:
+        if p["installation_id"] != self._installation_id:
+            raise ProvisioningRefused("A13_CROSS_INSTALLATION_PLAN")
         plugin = self._plugins.get(p["engine_id"])
         if plugin is None or (
             plugin.visibility, plugin.adapter
@@ -199,9 +214,10 @@ class OfflineProvisioner:
                     raise ProvisioningRefused("A13_UNKNOWN_RECORD")
                 revision, operation = 1, "PREPARE"
                 self._db.execute(
-                    "INSERT INTO a13_provision VALUES(?,?,?,?,?,?,?)",
-                    (ident, p["trust_generation"], p["manifest_sha256"],
-                     approved_sha256, incarnation, "PREPARED", revision),
+                    "INSERT INTO a13_provision VALUES(?,?,?,?,?,?,?,?)",
+                    (ident, self._installation_id, p["trust_generation"],
+                     p["manifest_sha256"], approved_sha256, incarnation,
+                     "PREPARED", revision),
                 )
             else:
                 prior = self._as_record(existing)
@@ -229,6 +245,8 @@ class OfflineProvisioner:
         return self.get(ident)
 
     def _require_current(self, record: ProvisioningRecord) -> None:
+        if record.installation_id != self._installation_id:
+            raise ProvisioningRefused("A13_INSTALLATION_STATE_MISMATCH")
         plugin = self._plugins.get(record.engine_id)
         if (
             plugin is None or plugin.visibility != "private"
@@ -254,6 +272,13 @@ class OfflineProvisioner:
     ) -> None:
         if not isinstance(admission, OfflineAdmission):
             raise ProvisioningRefused("A13_OFFLINE_ADMISSION_REQUIRED")
+        # A12's in-memory gate MUST reference this exact trust authority,
+        # never an untrusted alternate store with self-issued signing keys.
+        if (
+            admission._store is not self._trust
+            or admission._installation_id != self._installation_id
+        ):
+            raise ProvisioningRefused("A13_CROSS_INSTALLATION_OR_TRUST_STORE")
         self._require_current(record)
         snapshot = admission.snapshot(now=now)
         if (
