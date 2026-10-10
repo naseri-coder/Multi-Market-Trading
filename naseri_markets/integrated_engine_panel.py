@@ -62,6 +62,13 @@ class IntegratedEnginePanel(CustomAdminPanel):
             ("⏸ غیرفعال‌سازی PAPER" if requested else "✅ فعال‌سازی PAPER"),
             callback_data=f"cm:{'disable' if requested else 'enable'}:"
                           f"{idtoken}:{state.revision}")]]
+        if state.engine_kind == "BUILTIN_BROOKS":
+            pub = host.publication(selected)
+            rows.append([Button(
+                "📡 لغو درخواست انتشار" if pub["requested_publication"]
+                else "📡 درخواست فعال‌سازی انتشار",
+                callback_data=f"bp:{'off' if pub['requested_publication'] else 'on'}:"
+                              f"{idtoken}:{pub['revision']}")])
         rows.append([Button("⚙️ تنظیمات هسته",
                             callback_data=f"em:settings:{idtoken}"),
                      Button("📤 مقصد کانال", callback_data=f"cm:route:{idtoken}")])
@@ -104,6 +111,14 @@ class IntegratedEnginePanel(CustomAdminPanel):
             status += " — هسته واقعی هنوز متصل نیست"
         else:
             status = "✅ PAPER فعال" if state.enabled else "⏸ PAPER غیرفعال"
+        publication_line = ""
+        if state.engine_kind == "BUILTIN_BROOKS":
+            publication = host.publication(engine_id)
+            publication_line = (
+                "درخواست انتشار سیگنال: "
+                + ("✅ ثبت شده" if publication["requested_publication"] else "⏸ ثبت نشده")
+                + "\nانتشار مؤثر سیگنال: 🔒 غیرفعال (موتور و ناشر متصل نیستند)\n"
+            )
         return (
             f"{label}\nشناسه: {engine_id}\n"
             f"وضعیت: {status}\nنسخه تنظیمات هسته: {state.revision}\n"
@@ -112,6 +127,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
             f"محیط سیگنال: {prefs['signal_environment']} (بدون LIVE)\n"
             f"مقصد: {_safe_title(route['channel_title']) if route['channel_id'] else 'ثبت نشده'}\n"
             f"انتشار به کانال: 🔒 DISABLED\n"
+            f"{publication_line}"
             f"سیگنال‌های PAPER: {len(host.signals(engine_id))}\n"
             "تغییرات تنها بر همین هسته اعمال می‌شوند.")
 
@@ -142,6 +158,33 @@ class IntegratedEnginePanel(CustomAdminPanel):
     async def callback(self, update, context) -> None:
         query = getattr(update, "callback_query", None)
         if query is None:
+            return
+        if (query.data or "").startswith("bp:"):
+            if not _private_admin(update, self.admin_ids):
+                await query.answer("دسترسی مجاز نیست", show_alert=True)
+                return
+            match = re.fullmatch(r"bp:(on|off):([0-9a-f]{12}):([0-9]+)",
+                                 query.data or "")
+            if match is None:
+                await query.answer("درخواست نامعتبر", show_alert=True)
+                return
+            await query.answer()
+            try:
+                with self._open(update.effective_user.id) as host:
+                    state = _resolve(host, match.group(2))
+                    if state.engine_kind != "BUILTIN_BROOKS":
+                        raise LocalCustomRefused("ENGINE_PUBLICATION_PERMISSION_DENIED")
+                    host.request_publication(
+                        state.engine_id, enabled=match.group(1) == "on",
+                        expected_revision=int(match.group(3)),
+                        actor_id=update.effective_user.id)
+                    response = self.detail(host, state.engine_id)
+                    markup = self.keyboard(host, state.engine_id)
+                if query.message is not None:
+                    await query.message.reply_text(response, reply_markup=markup)
+            except (LocalCustomRefused, AdminCustomPanelRefused):
+                if query.message is not None:
+                    await query.message.reply_text("⚠️ درخواست قدیمی یا غیرمجاز است.")
             return
         if not (query.data or "").startswith("em:"):
             await super().callback(update, context)
@@ -185,7 +228,13 @@ class IntegratedEnginePanel(CustomAdminPanel):
 
     def register(self, application) -> None:
         super().register(application)
-        from telegram.ext import CommandHandler, filters
+        from telegram.ext import CallbackQueryHandler, CommandHandler, filters
+        # The shared Custom panel registers only cm: callbacks. Explicitly
+        # register the integrated settings and Brooks publication callbacks,
+        # otherwise Telegram silently drops taps on their inline buttons.
+        application.add_handler(
+            CallbackQueryHandler(self.callback, pattern=r"^(?:em:|bp:)"),
+            group=0)
         application.add_handler(
             CommandHandler("engines", self.panel, filters=filters.ChatType.PRIVATE),
             group=0)
