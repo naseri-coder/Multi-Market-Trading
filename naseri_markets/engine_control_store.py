@@ -403,7 +403,11 @@ class EngineControlStore:
                 "last_error": None, "completed_cycles": 0, "refused_cycles": 0,
             }
         age = max(0, clock - row["heartbeat_unix"])
-        fresh = age <= 30
+        # Live HTTP metadata + OHLCV + bounded Brooks V5 child can take
+        # longer than an idle heartbeat interval; allow one scan (90s)
+        # without falsely showing a dead process, never indefinitely.
+        expiry = 90 if row["phase"] == "ANALYZING" else 30
+        fresh = age <= expiry
         phase = row["phase"] if fresh or row["phase"] == "STOPPED" else "STALE"
         return {
             "phase": phase, "connected": bool(fresh and phase not in ("STOPPED", "STALE")),
@@ -427,7 +431,8 @@ class EngineControlStore:
                 "WHERE engine_id=?", (BROOKS_ENGINE_ID,)).fetchone()
             if (row is not None and row["worker_id"] != worker_id
                     and row["phase"] != "STOPPED"
-                    and now - row["heartbeat_unix"] <= 30):
+                    and now - row["heartbeat_unix"] <= (
+                        90 if row["phase"] == "ANALYZING" else 30)):
                 raise LocalCustomRefused("BROOKS_WORKER_ALREADY_RUNNING")
             self._db.execute("""INSERT INTO brooks_paper_worker
                 (engine_id,worker_id,heartbeat_unix,phase)
