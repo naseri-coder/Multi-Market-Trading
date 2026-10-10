@@ -216,6 +216,54 @@ def test_mock_transport_long_persists_real_typed_paper_intent_and_no_telegram(
         assert store.publication(BROOKS_ENGINE_ID)["effective_publication"] is False
 
 
+@pytest.mark.asyncio
+async def test_brooks_paper_signal_visible_only_in_admin_private_preview(
+        monkeypatch, enabled, replay):
+    from unittest.mock import AsyncMock
+    from naseri_markets.custom_admin_panel import _token
+    from naseri_markets.integrated_engine_panel import IntegratedEnginePanel
+
+    packet = fake_worker_report(replay)
+    monkeypatch.setattr(
+        brooks_replay.subprocess, "run",
+        lambda *a, **k: SimpleNamespace(returncode=0, stdout=packet))
+    result = replay_once(
+        state_dir=enabled, legacy_source=LEGACY, replay_json=encoded(replay))
+    panel = IntegratedEnginePanel(
+        state_dir=enabled, admin_ids={123}, owner_ids={123})
+    with EngineControlStore(enabled, owner_visible=False) as store:
+        keyboard = panel.keyboard(store)
+        titles = [b.text for row in keyboard.inline_keyboard for b in row]
+        assert any("پرایس اکشن البروکس" in label for label in titles)
+        detail = panel.detail(store, BROOKS_ENGINE_ID)
+        assert "اسکن‌های واقعی Replay: 1" in detail
+        assert "سیگنال‌های PAPER: 1" in detail
+        assert "انتشار به کانال: 🔒 DISABLED" in detail
+
+    def make_update(user_id, chat_id):
+        message = SimpleNamespace(reply_text=AsyncMock())
+        query = SimpleNamespace(
+            data="cm:paper:" + _token(BROOKS_ENGINE_ID),
+            message=message, answer=AsyncMock())
+        update = SimpleNamespace(
+            effective_user=SimpleNamespace(id=user_id),
+            effective_chat=SimpleNamespace(id=chat_id, type="private"),
+            effective_message=message, callback_query=query)
+        context = SimpleNamespace(
+            user_data={}, bot=SimpleNamespace(send_message=AsyncMock()))
+        return update, context
+
+    permitted, context = make_update(123, 123)
+    await panel.callback(permitted, context)
+    preview = permitted.effective_message.reply_text.await_args.args[0]
+    assert result["signal_id"] in preview
+    context.bot.send_message.assert_not_awaited()
+    denied, denied_context = make_update(999, 999)
+    await panel.callback(denied, denied_context)
+    denied.effective_message.reply_text.assert_not_awaited()
+    denied_context.bot.send_message.assert_not_awaited()
+
+
 def test_worker_snapshot_forgery_fails_closed_without_journal(
         monkeypatch, enabled, replay):
     obj = json.loads(fake_worker_report(replay))
@@ -271,7 +319,7 @@ def test_legacy_engine_worker_no_source_install_if_bad_manifest(
     fake = tmp_path / "not-legacy"
     fake.mkdir()
     (fake / "SHA256SUMS").write_text("invalid")
-    with pytest.raises(BrooksReplayRefused, match="MANIFEST_COUNT"):
+    with pytest.raises(BrooksReplayRefused, match="MANIFEST_PIN_CHANGED"):
         verify_legacy_source(fake)
 
 
