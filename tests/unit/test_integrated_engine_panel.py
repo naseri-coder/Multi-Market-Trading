@@ -180,6 +180,7 @@ async def test_private_telegram_manager_list_nonowner_no_nyfr_owner_visible(setu
     admin, context, message, _ = fake(user=234, chat=234)
     await panel.panel(admin, context)
     assert message.reply_text.await_count == 1
+    assert "NY First-Reversal" not in message.reply_text.await_args.args[0]
     markup = message.reply_text.await_args.kwargs["reply_markup"]
     callbacks = [b.callback_data for row in markup.inline_keyboard for b in row]
     assert f"cm:open:{_token(BROOKS_ENGINE_ID)}" in callbacks
