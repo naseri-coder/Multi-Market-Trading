@@ -12,7 +12,7 @@ import re
 from pathlib import Path
 
 from .custom_admin_panel import (
-    MENU_LABEL, AdminCustomPanelRefused, CustomAdminPanel, _private_admin,
+    AdminCustomPanelRefused, CustomAdminPanel, _private_admin,
     _resolve, _safe_title, _token,
 )
 from .engine_control_store import EngineControlStore, MARKET_SCOPES, TIMEFRAMES
