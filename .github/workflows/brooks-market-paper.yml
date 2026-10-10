@@ -1,0 +1,77 @@
+name: Brooks public market closed-candle PAPER polling (nonproduction)
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/brooks_market_feed.py"
+      - "naseri_markets/brooks_replay.py"
+      - "naseri_markets/engine_control_store.py"
+      - "naseri_markets/integrated_engine_panel.py"
+      - "tests/unit/test_brooks_market_feed.py"
+      - "tests/unit/test_brooks_real_offline_replay.py"
+      - "platform_release/pyproject.toml"
+      - "scripts/a6_release_preflight.py"
+      - "docs/BROOKS_MARKET_PAPER_POLLING.md"
+      - ".github/workflows/brooks-market-paper.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  closed-candle-v5-paper:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with: {python-version: "3.12"}
+      - name: Frozen historical source and isolated release preflight
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+      - name: Install dev test suite and lint new public adapter
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m ruff check --select E4,F \
+            naseri_markets/brooks_market_feed.py \
+            tests/unit/test_brooks_market_feed.py \
+            naseri_markets/brooks_replay.py \
+            naseri_markets/integrated_engine_panel.py \
+            scripts/a6_release_preflight.py
+          python -m compileall -q naseri_markets/brooks_market_feed.py
+      - name: Actual frozen Brooks V5 and mocked public transport
+        run: |
+          set -Eeuo pipefail
+          python -m pytest -q \
+            tests/unit/test_brooks_market_feed.py \
+            tests/unit/test_brooks_real_offline_replay.py \
+            tests/unit/test_integrated_engine_panel.py \
+            tests/unit/test_public_brooks_publication_controls.py
+      - name: Clean public wheel command and NYFR/publication exclusion
+        run: |
+          set -Eeuo pipefail
+          python scripts/a6_prepare_package.py \
+            --destination "$RUNNER_TEMP/brooks-public"
+          python -m venv "$RUNNER_TEMP/brooks-clean"
+          "$RUNNER_TEMP/brooks-clean/bin/python" -m pip install \
+            "$RUNNER_TEMP/brooks-public"
+          "$RUNNER_TEMP/brooks-clean/bin/naseri-brooks-market" --help >/dev/null
+          "$RUNNER_TEMP/brooks-clean/bin/naseri-brooks-replay" --help >/dev/null
+          "$RUNNER_TEMP/brooks-clean/bin/python" - <<'PY'
+          from pathlib import Path
+          import naseri_markets
+          root = Path(naseri_markets.__file__).parent
+          assert (root / "brooks_market_feed.py").is_file()
+          assert not (root / "private_nyfr_core.py").exists()
+          assert not (root / "r0_engine.py").exists()
+          assert not (root / "production_source").exists()
+          from naseri_markets.brooks_market_feed import main
+          assert main(["--once", "--state-dir", "/nope",
+                       "--legacy-source", "/nope",
+                       "--symbol", "BTCUSDT"]) == 2
+          print("BROOKS_MARKET_PAPER_PUBLIC_ONLY_PASS")
+          PY
