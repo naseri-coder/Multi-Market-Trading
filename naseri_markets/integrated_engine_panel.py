@@ -50,7 +50,9 @@ class IntegratedEnginePanel(CustomAdminPanel):
                 worker = (host.brooks_worker_status()
                           if engine.engine_kind == "BUILTIN_BROOKS" else None)
                 if worker is not None and worker["connected"]:
-                    badge = "🟢" if engine.requested_enabled else "⏸"
+                    armed_feed = paper_feed_verified(
+                        host.preferences(engine.engine_id)["futures_exchange"])
+                    badge = "🟢" if engine.requested_enabled and armed_feed else "⏸"
                 elif engine.runtime_status == "RUNTIME_NOT_MOUNTED":
                     badge = "🟡" if engine.requested_enabled else "🔒"
                 else:
@@ -146,7 +148,8 @@ class IntegratedEnginePanel(CustomAdminPanel):
         if worker is not None and worker["connected"]:
             status = ("🟢 تحلیل PAPER آماده/درحال اجرا"
                       if state.requested_enabled and
-                      prefs["signal_environment"] == "PAPER" else
+                      prefs["signal_environment"] == "PAPER"
+                      and paper_feed_verified(prefs["futures_exchange"]) else
                       "⏸ سرویس حاضر است؛ تحلیل از پنل خاموش است")
         elif state.runtime_status == "RUNTIME_NOT_MOUNTED":
             status = ("🟡 درخواست فعال‌سازی ثبت شده" if state.requested_enabled
