@@ -36,6 +36,20 @@ SCHEMA_FIELDS = frozenset({
 BAR_FIELDS = frozenset({
     "open_time", "close_time", "open", "high", "low", "close", "volume",
 })
+
+# The historical repo deliberately retains three extra PUBLIC cold-start
+# modules outside its frozen 362-entry manifest. Their exact GitHub main
+# bytes are separately SHA256-pinned here; arbitrary new Python source
+# remains forbidden. This does NOT add NYFR code or mutate SHA256SUMS.
+LEGACY_PUBLIC_EXTRA_SHA256 = {
+    "app/modules/signal_intelligence/cold_start_integration.py":
+        "0be746a515737316621742eda8142528f3c0d57fd6c7e29798323530cf4524be",
+    "app/modules/signal_intelligence/cold_start_policy.py":
+        "fa9425234f3bb654f536c842097b5190f73c92e350b00209af744debf3998038",
+    "app/modules/signal_intelligence/cold_start_reporting.py":
+        "2f373d1f68f708adb907f5b5b4497565cf8449b78eed0b73c9e4daf54d8b8bb3",
+}
+
 _IDENTITY = re.compile(r"[a-zA-Z0-9_.:-]{1,80}\Z")
 
 
@@ -85,6 +99,8 @@ def parse_candle_replay(payload: bytes) -> tuple[dict, Instrument, tuple[dict, .
             payload, object_pairs_hook=_unique,
             parse_constant=lambda _: (_ for _ in ()).throw(
                 BrooksReplayRefused("BROOKS_NONFINITE_JSON")))
+    except BrooksReplayRefused:
+        raise
     except (UnicodeError, ValueError) as exc:
         raise BrooksReplayRefused("BROOKS_REPLAY_JSON_INVALID") from exc
     if not isinstance(raw, dict) or set(raw) != SCHEMA_FIELDS:
@@ -185,8 +201,14 @@ def verify_legacy_source(source_root: Path) -> str:
     for entry in root.rglob("*.py"):
         if "__pycache__" in entry.parts:
             continue
-        if entry.is_symlink() or str(entry.relative_to(root)) not in seen:
+        relative = str(entry.relative_to(root))
+        if entry.is_symlink():
             raise BrooksReplayRefused("BROOKS_UNTRACKED_PYTHON_SOURCE")
+        if relative not in seen:
+            pinned = LEGACY_PUBLIC_EXTRA_SHA256.get(relative)
+            if (pinned is None
+                    or hashlib.sha256(entry.read_bytes()).hexdigest() != pinned):
+                raise BrooksReplayRefused("BROOKS_UNTRACKED_PYTHON_SOURCE")
     if ("app/modules/brooks_core/books_full_engine.py" not in seen
             or "app/modules/market_data/entities.py" not in seen):
         raise BrooksReplayRefused("BROOKS_ACTUAL_LEGACY_ENGINE_MISSING")
