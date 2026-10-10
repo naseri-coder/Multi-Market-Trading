@@ -149,7 +149,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
         if state.engine_kind == "BUILTIN_BROOKS":
             replay = host.brooks_replay_status()
             replay_line = (
-                f"اسکن‌های واقعی PAPER: {replay['scans']}\n"
+                f"اسکن‌های واقعی Replay: {replay['scans']}\n"
                 f"اسکن‌های بدون سیگنال: {replay['no_signal']}\n"
                 f"سرویس Kraken Futures: {worker['phase']}\n"
                 f"آخرین کندل: {worker['last_closed_candle'] or 'ثبت نشده'}\n"
