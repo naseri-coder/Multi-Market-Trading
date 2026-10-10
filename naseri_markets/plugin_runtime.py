@@ -8,7 +8,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-from .contracts import Market
 from .external_abi import ExternalPaperEngine
 from .paper_journal import PaperJournal
 from .plugin_manager import PluginManager
