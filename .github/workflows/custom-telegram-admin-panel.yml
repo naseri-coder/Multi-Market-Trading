@@ -43,7 +43,7 @@ jobs:
             tests/unit/test_a22_custom_bridge.py \
             tests/unit/test_a7_replay_pipeline.py \
             tests/unit/test_admin_handlers.py \
-            tests/unit/test_admin_strategy_management.py
+            tests/unit/test_admin_signal_handlers.py
       - name: Lint and guarantee no accidental private or Telegram publisher code
         run: |
           set -Eeuo pipefail
