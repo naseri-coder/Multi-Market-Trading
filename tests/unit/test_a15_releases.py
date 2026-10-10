@@ -277,3 +277,67 @@ def test_external_witness_cannot_be_inside_mock_root(ctx):
     with pytest.raises(ReleaseRefused, match="WITNESS_MUST_BE_INDEPENDENT"):
         SignedMockDeploymentManager(mock, inside)
     inside.close()
+
+
+def test_a15_real_a12_a13_signed_grant_to_publisher_release_end_to_end(tmp_path):
+    """Separate ephemeral A12 issuer and A15 publisher keys; no private service."""
+    from test_a13_provisioning import (
+        fixture as a13_fixture, plan, admission, digest as a13_sha,
+        NOW as real_now, ENGINE as real_engine, INSTALL as real_install,
+    )
+
+    plugins, trust, license_issuer, _, policy, provisioner = a13_fixture(tmp_path)
+    plan_bytes = plan(policy)
+    pending = provisioner.prepare(plan_bytes, approved_sha256=a13_sha(plan_bytes))
+    signed_grant = admission(trust, license_issuer, policy)
+    assert provisioner.verify(
+        real_engine, expected_revision=pending.revision,
+        admission=signed_grant, now=real_now,
+    ).status == "OFFLINE_VERIFIED"
+
+    publisher = Ed25519PrivateKey.generate()
+    publisher_pub = public(publisher)
+    release_authority = SignedReleaseAuthority(
+        tmp_path / "independent-a15-witness.db", engine_id=real_engine,
+        installation_id=real_install, publisher_key_id=KEY1,
+        publisher_public_key=publisher_pub,
+        approved_key_sha256=sha(publisher_pub),
+    )
+    mock = MockPackageDeploymentManager(
+        tmp_path / "a15-release-fixture", provisioner=provisioner,
+        engine_id=real_engine, installation_id=real_install,
+    )
+    signed_manager = SignedMockDeploymentManager(mock, release_authority)
+    archive, _ = bundle(
+        "1.0.0", engine=real_engine, installation=real_install,
+        digest=policy["manifest_sha256"], generation=policy["generation"],
+    )
+    envelope = sign(
+        publisher, archive, sequence=1,
+        installation_id=real_install,
+        manifest_sha256=policy["manifest_sha256"],
+        trust_generation=policy["generation"],
+        issued_at=real_now - 10, expires_at=real_now + 300,
+    )
+    installed = signed_manager.install(
+        archive, envelope, expected_revision=0,
+        admission=signed_grant, now=real_now,
+    )
+    assert installed.state == "STOPPED"
+    assert signed_manager.start(
+        expected_revision=installed.revision,
+        admission=signed_grant, now=real_now,
+    ).state == "MOCK_RUNNING"
+    trust.revoke_serial("a" * 32)
+    stopped = signed_manager.stop(expected_revision=2)
+    assert stopped.state == "STOPPED"
+    with pytest.raises(ValueError, match="A14_A13_FRESH_ADMISSION"):
+        signed_manager.start(
+            expected_revision=stopped.revision,
+            admission=signed_grant, now=real_now,
+        )
+    mock.close()
+    release_authority.close()
+    provisioner.close()
+    plugins.close()
+    trust.close()
