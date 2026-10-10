@@ -1,0 +1,59 @@
+name: A7 offline engine ABI and durable replay E2E
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  a7-offline-e2e:
+    name: A7 offline ABI + replay journal
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout reviewed source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Set up Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Prove frozen legacy source is unmodified
+        run: bash scripts/verify.sh
+      - name: Install locally for synthetic-only unit and integration tests
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m pytest -q tests/unit/test_a7_replay_pipeline.py
+      - name: Confirm A7 no live I/O code or private strategy imports
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          files = [
+              Path("naseri_markets/external_abi.py"),
+              Path("naseri_markets/paper_journal.py"),
+              Path("naseri_markets/replay_pipeline.py"),
+          ]
+          denied_roots = {
+              "socket", "requests", "urllib", "subprocess", "importlib",
+              "MetaTrader5", "r0_engine", "private_nyfr_core",
+          }
+          for path in files:
+              tree = ast.parse(path.read_bytes())
+              for node in ast.walk(tree):
+                  if isinstance(node, ast.Import):
+                      assert all(name.name.split(".")[0] not in denied_roots
+                                 for name in node.names)
+                  elif isinstance(node, ast.ImportFrom):
+                      assert (node.module or "").split(".")[0] not in denied_roots
+          print("A7_NO_PRIVATE_SOURCE_OR_LIVE_IO_IMPORTS_PASS")
+          PY
