@@ -4,7 +4,6 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
-from dataclasses import replace
 
 import pytest
 
@@ -199,8 +198,10 @@ def test_public_and_enabled_private_not_provisionable(tmp_path):
     mgr.close()
     plugins.close()
     trust.close()
+    other_dir = tmp_path / "public-sibling"
+    other_dir.mkdir()
     plugins, trust, issuer, row, policy, mgr = fixture(
-        tmp_path / "public-sibling", private=False,
+        other_dir, private=False,
     )
     raw = plan(policy)
     with pytest.raises(ProvisioningRefused, match="PRIVATE_DISABLED"):
