@@ -5,7 +5,6 @@ import asyncio
 import base64
 import hashlib
 import json
-import os
 import threading
 
 import pytest
