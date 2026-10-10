@@ -71,3 +71,22 @@ def get_venue(key: str) -> FuturesVenue:
 
 def paper_feed_verified(key: str) -> bool:
     return get_venue(key).feed_status == "VERIFIED_PUBLIC_PAPER"
+
+
+IRAN_LABELS = {
+    "EXPLICIT_RESTRICTION": "⛔ محدودیت رسمی برای ایران",
+    "UNVERIFIED": "⚪ وضعیت دسترسی ایران تأیید نشده",
+}
+FEED_LABELS = {
+    "VERIFIED_PUBLIC_PAPER": "🧪 داده عمومی PAPER آزمایش‌شده",
+    "HTTP_BLOCKED": "⛔ API فیوچرز در آزمون شبکه مسدود",
+    "CATALOG_ONLY": "⚪ فقط در فهرست؛ اتصال تحلیل آماده نیست",
+}
+
+
+def iran_status_text(key: str) -> str:
+    return IRAN_LABELS[get_venue(key).iran_access]
+
+
+def feed_status_text(key: str) -> str:
+    return FEED_LABELS[get_venue(key).feed_status]
