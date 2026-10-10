@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 from naseri_markets.a12_trust import (
-    DOMAIN, AdmissionRefused, OfflineAdmission, TrustStore, canonical,
+    DOMAIN, OfflineAdmission, TrustStore, canonical,
 )
 from naseri_markets.a13_provisioning import (
     OfflineProvisioner, ProvisioningRefused, parse_plan,
