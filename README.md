@@ -31,6 +31,8 @@
 >
 > **A5 installation identity:** The canonical repository is now `Multi-Market-Trading`, and the recommended launcher is `bash markets.sh` (the legacy `bash naseri.sh` remains a compatible alias). The *historic, unmodified* v0.3.2 Python distribution name, `crypto-signal-bot` CLI, Docker image/Compose project and PostgreSQL volume still use `crypto-price-action`. This is deliberate: they are NOT yet a multi-market production release. See [A5 migration gate](docs/NASERI_MARKETS_A5_IDENTITY.md).
 >
+> **A6 independent preview (0.4.0rc1):** A second Python distribution `multi-market-trading` and an isolated Docker image are prepared for **offline validation only**. The new `naseri-markets --check` CLI does not run signal engines, connect to PostgreSQL, publish Telegram messages or place trades. `bash markets.sh` still manages the frozen v0.3.2 legacy runtime, not this candidate. See [A6 packaging and restore evidence](docs/NASERI_MARKETS_A6_RELEASE_CANDIDATE.md).
+>
 > **Public bot, private NYFR:** The open-source, disabled-by-default, strategy-neutral signal publisher and optional MT5 read-only quote bridge are in `naseri_markets/public_signal_bot.py` and `naseri_markets/mt5_readonly_bridge.py`. They **do not** include the private NY First-Reversal decision engine. See [public/private boundary](docs/NASERI_MARKETS_A4_PUBLIC_BOT_PRIVATE_CORE.md). Historical release names, Compose and Python package identity remain v0.3.2 until a separately validated migration.
 
 > [!IMPORTANT]
