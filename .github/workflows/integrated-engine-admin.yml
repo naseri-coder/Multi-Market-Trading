@@ -11,6 +11,8 @@ on:
       - "naseri_markets/custom_admin_panel.py"
       - "naseri_markets/trusted_custom.py"
       - "tests/unit/test_integrated_engine_panel.py"
+      - "tests/unit/test_public_brooks_publication_controls.py"
+      - "docs/PUBLIC_BROOKS_SIGNAL_MANAGEMENT.md"
       - "docs/INTEGRATED_ENGINE_MANAGEMENT.md"
       - "platform_release/pyproject.toml"
       - "scripts/a6_release_preflight.py"
@@ -44,12 +46,14 @@ jobs:
             naseri_markets/bot_admin_app.py \
             naseri_markets/custom_admin_panel.py \
             naseri_markets/trusted_custom.py \
-            tests/unit/test_integrated_engine_panel.py
+            tests/unit/test_integrated_engine_panel.py \
+            tests/unit/test_public_brooks_publication_controls.py
       - name: End-to-end private engine catalog/Telegram callbacks/real PAPER
         run: |
           set -Eeuo pipefail
           python -m pytest -q \
             tests/unit/test_integrated_engine_panel.py \
+            tests/unit/test_public_brooks_publication_controls.py \
             tests/unit/test_custom_admin_panel.py \
             tests/unit/test_trusted_custom_mvp.py \
             tests/unit/test_a21_custom_contract.py \
