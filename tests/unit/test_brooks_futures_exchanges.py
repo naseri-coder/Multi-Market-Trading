@@ -150,7 +150,7 @@ def test_catalog_only_worker_never_substitutes_kraken(tmp_path):
     try:
         step = worker.step()
         assert step["phase"] == "IDLE" and not step["attempted"]
-        assert step["reason"] == "BROOKS_SELECTED_EXCHANGE_FEED_NOT_READY"
+        assert step["reason"] == "BROOKS_IRAN_FUTURES_ELIGIBILITY_UNVERIFIED"
         assert calls == []
     finally:
         worker.shutdown()
