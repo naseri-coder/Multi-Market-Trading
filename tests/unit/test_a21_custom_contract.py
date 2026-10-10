@@ -102,7 +102,7 @@ def test_protected_ny_first_reversal_is_owner_only_never_catalog_public():
 
 @pytest.mark.parametrize("name", [
     "ny_first_reversal", "nyfirstreversal", "ny_fr", "private_nyfr_core",
-    "r0_engine", "NYFR", "alpha_nyfr_market",
+    "r0_engine", "nyfr", "alpha_nyfr_market",
 ])
 def test_protected_engine_identifiers_cannot_impersonate_generic_custom(name):
     with pytest.raises(CustomContractRefused, match="PROTECTED_OWNER_EXCLUSIVE"):
