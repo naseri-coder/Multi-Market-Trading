@@ -1,0 +1,88 @@
+name: Custom Telegram administration panel — offline UI and safety
+
+on:
+  push:
+    branches: [feature/custom-telegram-admin-panel-paper-routing]
+  pull_request:
+    paths:
+      - "naseri_markets/trusted_custom.py"
+      - "naseri_markets/custom_admin_panel.py"
+      - "tests/unit/test_custom_admin_panel.py"
+      - "platform_release/pyproject.toml"
+      - "docs/CUSTOM_TELEGRAM_ADMIN_PANEL.md"
+      - ".github/workflows/custom-telegram-admin-panel.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  private-telegram-ui-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Frozen old bot and public release gates
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+      - name: Private Telegram panel, real SQLite and Custom PAPER E2E tests
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m pytest -q \
+            tests/unit/test_custom_admin_panel.py \
+            tests/unit/test_trusted_custom_mvp.py \
+            tests/unit/test_a21_custom_contract.py \
+            tests/unit/test_a22_custom_bridge.py \
+            tests/unit/test_a7_replay_pipeline.py \
+            tests/unit/test_admin_handlers.py \
+            tests/unit/test_admin_strategy_management.py
+      - name: Lint and guarantee no accidental private or Telegram publisher code
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check --select E4,F \
+            naseri_markets/trusted_custom.py \
+            naseri_markets/custom_admin_panel.py \
+            tests/unit/test_custom_admin_panel.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          source=Path("naseri_markets/custom_admin_panel.py").read_text()
+          tree=ast.parse(source)
+          forbidden={"urllib", "subprocess", "socket", "requests", "httpx",
+                     "aiohttp", "importlib", "ctypes", "pickle", "runpy"}
+          for n in ast.walk(tree):
+              if isinstance(n, ast.Import):
+                  assert all(x.name.split(".")[0] not in forbidden for x in n.names)
+              elif isinstance(n, ast.ImportFrom):
+                  assert (n.module or "").split(".")[0] not in forbidden
+          for pattern in ("production_source", "private_nyfr_core",
+                          "r0_engine", "send_message(", "send_message ="):
+              assert pattern not in source
+          print("CUSTOM_ADMIN_PAPER_ONLY_NO_PUBLICATION_PASS")
+          PY
+      - name: Clean isolated public wheel plus opt-in Telegram admin extra
+        run: |
+          set -Eeuo pipefail
+          OUT="$RUNNER_TEMP/custom-panel-public"
+          python scripts/a6_prepare_package.py --destination "$OUT"
+          python -m venv "$RUNNER_TEMP/panel-venv"
+          "$RUNNER_TEMP/panel-venv/bin/python" -m pip install "$OUT[telegram-admin]"
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/panel-venv/bin/python" - <<'PY'
+          from telegram import __version__
+          from naseri_markets.custom_admin_panel import CustomAdminPanel
+          from naseri_markets.trusted_custom import TrustedLocalCustomHost
+          assert __version__.startswith("22.")
+          assert callable(CustomAdminPanel)
+          print("CUSTOM_ADMIN_OPTIONAL_WHEEL_IMPORT_PASS")
+          PY
+          test ! -e "$OUT/naseri_markets/private_nyfr_core.py"
+          test ! -e "$OUT/naseri_markets/r0_engine.py"
