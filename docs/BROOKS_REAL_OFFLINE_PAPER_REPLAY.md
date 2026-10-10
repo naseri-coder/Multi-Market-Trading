@@ -21,8 +21,11 @@ code remains OUTSIDE this public repository and the isolated release.
 3. Explicitly run `naseri-brooks-replay` from a trusted local checkout,
    passing the NEW platform's private state directory and the untouched
    `production_source` directory.
-4. The runner verifies all **362 SHA-frozen legacy manifest entries**, rejects
-   untracked Python files or symlinks, launches an isolated Python child
+4. The runner verifies the independently pinned SHA-256 of the **362-entry
+   frozen manifest** and each listed source file. Three previously existing
+   public unmanifested cold-start modules are separately SHA256-pinned;
+   unknown or modified Python files and source symlink traversal are denied.
+   It then launches an isolated Python child
    interpreter and runs `BrooksTrilogyFullCoreEngine.evaluate` with the
    native `BrooksFullCorePolicy(enable_trade_decisions=True)`. That engine
    flag computes a geometry *decision*; it does NOT place orders.
@@ -127,7 +130,7 @@ Separate explicitly labeled **mock transport-contract tests** exercise
 the storage path when a compatible LONG decision exists; those are
 NOT historical evidence of trading profitability or a claim that the
 synthetic fixture naturally produced a profitable strategy signal.
-GitHub CI must also validate the frozen manifest, isolated package
+GitHub CI also validates the pinned frozen manifest, isolated package
 build, legacy regressions, complete test corpus and publication safety.
 
 **Nonproduction verdict target:**
