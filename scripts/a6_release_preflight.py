@@ -12,9 +12,15 @@ ROOT = Path(__file__).resolve().parents[1]
 def check() -> dict:
     historical = tomllib.loads((ROOT / "pyproject.toml").read_text())
     newer = tomllib.loads((ROOT / "platform_release/pyproject.toml").read_text())
-    if historical["project"]["name"] != "crypto-price-action" or historical["project"]["version"] != "0.3.2":
+    if (
+        historical["project"]["name"] != "crypto-price-action"
+        or historical["project"]["version"] != "0.3.2"
+    ):
         raise ValueError("HISTORICAL_PACKAGE_CHANGED")
-    if newer["project"]["name"] != "multi-market-trading" or newer["project"]["version"] != "0.4.0rc1":
+    if (
+        newer["project"]["name"] != "multi-market-trading"
+        or newer["project"]["version"] != "0.4.0rc1"
+    ):
         raise ValueError("A6_VERSION_OR_NAME_MISMATCH")
     if newer["project"]["dependencies"]:
         raise ValueError("UNREVIEWED_RUNTIME_DEPENDENCIES")
