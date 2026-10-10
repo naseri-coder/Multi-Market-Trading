@@ -38,6 +38,7 @@ class ManagedPaperPlatform:
         self._runner = runner
         self._journal = journal
         self._enabled = enabled
+        self._binding_incarnations: dict[str, int] = {}
 
     def attach(self, binding: EngineBinding, engine: QuoteEngine) -> None:
         """Bind an operator-provided adapter; never discover or load from disk."""
@@ -64,6 +65,7 @@ class ManagedPaperPlatform:
         elif existing != binding.descriptor:
             raise ValueError("A8_REGISTRY_CONFLICT")
         self._runner.attach(binding, engine)
+        self._binding_incarnations[identity] = self._manager.incarnation(identity)
 
     def available_settings(self) -> tuple:
         """Presentation-friendly settings; toggles are applied via PluginManager."""
@@ -82,6 +84,9 @@ class ManagedPaperPlatform:
                 if self._registry.get(engine_id) else None
             )
             and tick.instrument.market.value in state.markets
+            and self._binding_incarnations.get(engine_id) == (
+                self._manager.incarnation(engine_id)
+            )
         )
         if not allowed:
             return ManagedResult("NO_ENABLED_BOUND_ENGINES", QuoteVerdict.UNVERIFIED)
@@ -92,7 +97,11 @@ class ManagedPaperPlatform:
         # A toggle, replacement or version edit during await invalidates the
         # whole batch, preventing a stale async callback from being persisted.
         current = self._manager.allowed_paper_engines()
-        if any(current.get(ident) != original[ident] for ident in allowed):
+        if any(
+            current.get(ident) != original[ident]
+            or self._manager.incarnation(ident) != self._binding_incarnations.get(ident)
+            for ident in allowed
+        ):
             return ManagedResult("SETTINGS_CHANGED_IN_FLIGHT", result.quote_verdict)
         if result.quote_verdict is not QuoteVerdict.ACCEPTED:
             return ManagedResult("QUOTE_REJECTED", result.quote_verdict)
