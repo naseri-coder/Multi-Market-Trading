@@ -1,0 +1,95 @@
+name: A20 Multi Market Trading signed hardened scoped fixture
+on:
+  push:
+    branches: [feature/a20-hardened-fixture-guardian-integration]
+  pull_request:
+    paths:
+      - "naseri_markets/a18_controller.py"
+      - "naseri_markets/a18_guardian.py"
+      - "naseri_markets/a20_hardening.py"
+      - "tests/unit/test_a20_integration.py"
+      - "docs/MULTI_MARKET_TRADING_A20_SCOPED_GUARDIAN.md"
+      - ".github/workflows/a20-hardened-guardian.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+jobs:
+  signed-kernel-isolation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+      - name: Frozen historical source and disposable systemd cgroup capability
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+          test "$GITHUB_ACTIONS" = true
+          test "$(id -u)" -ne 0
+          test -f /sys/fs/cgroup/cgroup.controllers
+          grep -qw memory /sys/fs/cgroup/cgroup.controllers
+          grep -qw cpu /sys/fs/cgroup/cgroup.controllers
+          grep -qw pids /sys/fs/cgroup/cgroup.controllers
+          test -x /usr/bin/sudo
+          test -x /usr/bin/systemd-run
+          ldconfig -p | grep -F libseccomp.so.2
+      - name: Signed A12-A20 strict Guardian real systemd cgroup and SIGKILL integration
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m pip install "cryptography==46.0.3"
+          python -m pytest -q \
+            tests/unit/test_a20_integration.py \
+            tests/unit/test_a19_hardening.py \
+            tests/unit/test_a18_guardian.py \
+            tests/unit/test_a17_watchdog.py \
+            tests/unit/test_a16_supervisor.py \
+            tests/unit/test_a15_releases.py \
+            tests/unit/test_a14_packages.py \
+            tests/unit/test_a13_provisioning.py \
+            tests/unit/test_a12_trust.py
+      - name: Strict lint and absence of private strategy loader
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check --select E4,F \
+            naseri_markets/a18_controller.py \
+            naseri_markets/a18_guardian.py \
+            naseri_markets/a20_hardening.py \
+            tests/unit/test_a20_integration.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          banned = {"MetaTrader5", "private_nyfr_core", "r0_engine",
+                    "httpx", "aiohttp", "requests"}
+          for name in ("a18_controller.py", "a18_guardian.py", "a20_hardening.py"):
+              p = Path("naseri_markets")/name
+              source = p.read_text()
+              assert "shell=True" not in source
+              assert "preexec_fn=" not in source
+              assert "production_source" not in source
+              assert "Ed25519PrivateKey" not in source
+              tree = ast.parse(source)
+              for node in ast.walk(tree):
+                  if isinstance(node, ast.Import):
+                      assert all(x.name.split(".")[0] not in banned for x in node.names)
+                  if isinstance(node, ast.ImportFrom):
+                      assert (node.module or "").split(".")[0] not in banned
+          print("A20_NO_PRIVATE_ENGINE_IMPORTED_PASS")
+          PY
+      - name: Public-only distribution fixed mock worker and no proprietary source
+        run: |
+          set -Eeuo pipefail
+          python -m pip install "setuptools==80.9.0" "wheel==0.45.1"
+          python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/a20-preview"
+          test -f "$RUNNER_TEMP/a20-preview/naseri_markets/a20_hardening.py"
+          test -f "$RUNNER_TEMP/a20-preview/naseri_markets/a18_guardian.py"
+          test -f "$RUNNER_TEMP/a20-preview/naseri_markets/a18_controller.py"
+          test ! -e "$RUNNER_TEMP/a20-preview/naseri_markets/private_nyfr_core.py"
+          test ! -e "$RUNNER_TEMP/a20-preview/naseri_markets/r0_engine.py"
+          echo "A20_PUBLIC_ONLY_SIGNED_FIXTURE_PASS"
