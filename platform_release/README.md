@@ -65,3 +65,19 @@ writer lock. Brooks PAPER outcomes are visible to the private admin through
 `/engines`. No live data, automatic channel posting, broker orders or
 private NYFR loading. Full usage and boundaries:
 [Real Brooks offline PAPER replay](../docs/BROOKS_REAL_OFFLINE_PAPER_REPLAY.md).
+
+
+## Optional public Binance closed-candle Brooks PAPER poller
+
+The separate `naseri-brooks-market` command is now available for **explicitly
+operator-started nonproduction evaluation** of the genuine SHA-verified
+Brooks V5 engine using fresh, finalized Binance USD-M futures OHLCV windows.
+Unlike the `naseri-markets` base CLI, this specific command makes a
+read-only public HTTPS request when invoked. It validates closed-candle
+continuity, freshness and decimal geometry before handing the normalized
+window to the existing PAPER replay adapter. Use `--once` or the bounded
+`--loop` mode and mandatory `--ack-nonproduction-paper`; execution
+requires Brooks explicitly requested ON in PAPER with a compatible market
+and timeframe in the development admin panel. It never activates itself
+during installation, starts a Telegram bot, places orders or sends channels.
+See [Brooks market PAPER polling](../docs/BROOKS_MARKET_PAPER_POLLING.md).
