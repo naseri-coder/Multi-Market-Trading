@@ -60,14 +60,15 @@ def fixture(tmp_path, *, private=True):
     trust.stage(raw_policy, approved_sha256=digest(raw_policy))
     trust.promote(ENGINE, generation=1, expected_active=0)
     provision = OfflineProvisioner(
-        tmp_path / "provision.db", plugins=plugins, trust=trust,
+        tmp_path / "provision.db", plugins=plugins, trust=trust, installation_id=INSTALL,
     )
     return plugins, trust, issuer, state, policy, provision
 
 
-def plan(policy):
+def plan(policy, *, installation=INSTALL):
     return canonical({
         "schema_version": 1,
+        "installation_id": installation,
         "engine_id": policy["engine_id"],
         "engine_version": policy["engine_version"],
         "manifest_sha256": policy["manifest_sha256"],
@@ -127,7 +128,7 @@ def test_full_prepare_verify_recheck_suspend_retire_and_restart(tmp_path):
     assert not check.telegram_enabled
     mgr.close()
     again = OfflineProvisioner(
-        tmp_path / "provision.db", plugins=plugins, trust=trust,
+        tmp_path / "provision.db", plugins=plugins, trust=trust, installation_id=INSTALL,
     )
     assert again.health(ENGINE).state == "RECHECK_REQUIRED"
     assert again.health(ENGINE, admission=attestation, now=NOW).verified_offline
@@ -154,6 +155,7 @@ def test_full_prepare_verify_recheck_suspend_retire_and_restart(tmp_path):
     {"mode": "live_trading"}, {"mode": "offline_paper_only", "command": "curl"},
     {"owner_dns": "private.example.com"}, {"owner_dns": "../owner.fixture"},
     {"engine_version": ""}, {"manifest_sha256": "123"},
+    {"installation_id": "../outside"}, {"installation_id": "other_install"},
 ])
 def test_bounded_exact_no_executable_plan(tmp_path, changed):
     plugins, trust, issuer, _, policy, mgr = fixture(tmp_path)
@@ -301,7 +303,58 @@ def test_stale_cas_and_unsafe_store_path(tmp_path):
     link = tmp_path / "link"
     link.symlink_to(tmp_path / "provision.db")
     with pytest.raises(ProvisioningRefused, match="UNSAFE_STORE"):
-        OfflineProvisioner(link, plugins=plugins, trust=trust)
+        OfflineProvisioner(link, plugins=plugins, trust=trust, installation_id=INSTALL)
+    mgr.close()
+    plugins.close()
+    trust.close()
+
+
+def test_plan_cannot_cross_installation_even_if_name_well_formed(tmp_path):
+    plugins, trust, issuer, row, policy, mgr = fixture(tmp_path)
+    raw = plan(policy, installation="other_install")
+    with pytest.raises(ProvisioningRefused, match="CROSS_INSTALLATION_PLAN"):
+        mgr.prepare(raw, approved_sha256=digest(raw))
+    assert mgr.get(ENGINE) is None
+    mgr.close()
+    plugins.close()
+    trust.close()
+
+
+def test_valid_grant_from_other_trust_store_cannot_approve_this_install(tmp_path):
+    plugins, trust, issuer, row, policy, mgr = fixture(tmp_path)
+    raw = plan(policy)
+    mgr.prepare(raw, approved_sha256=digest(raw))
+    # Second self-issued trust anchor reproduces the same plugin/owner
+    # metadata. It must NOT be accepted as the approved local authority.
+    foreign = TrustStore(tmp_path / "foreign-issuer.db")
+    foreign_policy = dict(policy)
+    attacker = Ed25519PrivateKey.generate()
+    foreign_policy["issuer_public_key_b64"] = base64.b64encode(
+        attacker.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+    ).decode("ascii")
+    foreign_raw = canonical(foreign_policy)
+    foreign.stage(foreign_raw, approved_sha256=digest(foreign_raw))
+    foreign.promote(ENGINE, generation=1, expected_active=0)
+    foreign_evidence = admission(foreign, attacker, foreign_policy)
+    with pytest.raises(ProvisioningRefused, match="CROSS_INSTALLATION_OR_TRUST_STORE"):
+        mgr.verify(
+            ENGINE, expected_revision=1, admission=foreign_evidence, now=NOW,
+        )
+    # A different claimed installation ID is denied even with the same trust.
+    genuine = admission(trust, issuer, policy)
+    cross_install = OfflineAdmission(
+        trust, engine_id=ENGINE, installation_id="other_install",
+        signed_grant=genuine._grant, ca_pem=CA, owner_cert_der=LEAF,
+    )
+    with pytest.raises(ProvisioningRefused, match="CROSS_INSTALLATION_OR_TRUST_STORE"):
+        mgr.verify(
+            ENGINE, expected_revision=1, admission=cross_install, now=NOW,
+        )
+    assert mgr.get(ENGINE).status == "PREPARED"
+    assert mgr.verify(
+        ENGINE, expected_revision=1, admission=genuine, now=NOW,
+    ).status == "OFFLINE_VERIFIED"
+    foreign.close()
     mgr.close()
     plugins.close()
     trust.close()
