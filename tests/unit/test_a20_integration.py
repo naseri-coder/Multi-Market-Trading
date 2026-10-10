@@ -163,33 +163,72 @@ def test_a20_broken_kernel_report_quarantines_active_signed_renew(signed_fixture
 
 
 def test_a20_real_manager_sigkill_scope_lease_expiry_and_manual_recovery(signed_fixture):
-    controller, admission, _, _, _, tmp_path = signed_fixture
-    # Child manager does not reuse the parent's SQLite connections.
+    parent_controller, admission, _, _, signer, tmp_path = signed_fixture
     rd, wr = os.pipe()
     manager_pid = os.fork()
     if manager_pid == 0:
         try:
             os.close(rd)
-            p = FakeProvisioner()
-            issuer = controller._signed._authority
-            pub = issuer._publisher_public_key if hasattr(
-                issuer, "_publisher_public_key") else None
-            # Reuse no sqlite handles; derive publisher bytes via saved test
-            # signer in the parent scope? Guard via fixture export below.
-            if pub is None:
-                os.write(wr, b"missing-public")
-                os._exit(1)
-            os.write(wr, b"public-found")
+            # New independent SQLite connections after fork. No inherited
+            # parent connection objects are used for trusted operations.
+            pub = public(signer)
+            signed_authority = SignedReleaseAuthority(
+                tmp_path / "publisher.db", engine_id=ENGINE,
+                installation_id=INSTALL, publisher_key_id=KEY1,
+                publisher_public_key=pub,
+                approved_key_sha256=hashlib.sha256(pub).hexdigest(),
+            )
+            worker_mock = MockPackageDeploymentManager(
+                tmp_path / "a14", provisioner=FakeProvisioner(),
+                engine_id=ENGINE, installation_id=INSTALL,
+            )
+            ctrl = SignedGuardianController(
+                tmp_path / "a20",
+                signed=SignedMockDeploymentManager(worker_mock, signed_authority),
+                engine_id=ENGINE, installation_id=INSTALL,
+                lease_seconds=1.5, heartbeat_seconds=0.09,
+                a20_ci_scoped=True,
+            )
+            status = ctrl.launch(admission=worker_mock._provisioner, now=42)
+            os.write(wr, b"started" if status.sandbox_verified else b"failed")
+            time.sleep(30)
         except BaseException:
-            os.write(wr, b"failed")
+            try:
+                os.write(wr, b"failed")
+            except OSError:
+                pass
         finally:
             os._exit(0)
     os.close(wr)
     try:
-        _ = os.read(rd, 32)
+        reported = os.read(rd, 16)
+        assert reported == b"started"
+        running = json.loads((tmp_path / "a20" / "guardian.json").read_text())
+        assert running["guardian_pid"] != manager_pid
+        os.kill(manager_pid, signal.SIGKILL)
         os.waitpid(manager_pid, 0)
+        stopped = await_state(lambda: (
+            state if (state := json.loads(
+                (tmp_path / "a20" / "guardian.json").read_text()
+            ))["state"] == "QUARANTINED" else None
+        ), duration=4.0)
+        assert stopped["worker_pid"] is None
+        assert not stopped["sandbox_verified"]
+        # Guardian owns the lock until its bounded inactivity grace passes.
+        with pytest.raises(GuardianRefused, match="GUARDIAN_STILL_OWNS"):
+            parent_controller.reconcile_after_owner_exit(
+                admission=admission, now=42)
+        await_state(lambda: not (tmp_path / "a20" / "guardian.sock").exists(),
+                    duration=9.0)
+        assert (parent_controller.reconcile_after_owner_exit(
+            admission=admission, now=42) == "RECOVERED_STOPPED")
+        assert parent_controller._child is None
+        assert parent_controller.launch(admission=admission, now=42).sandbox_verified
+        assert parent_controller.stop().state == "STOPPED"
     finally:
         os.close(rd)
-    # Durable signed recovery is already covered by A18's actual SIGKILL
-    # end-to-end test, which is rerun in the same A20 CI. A20-specific
-    # strict manager crash testing uses an independent scenario below.
+        try:
+            os.kill(manager_pid, signal.SIGKILL)
+            os.waitpid(manager_pid, 0)
+        except (ProcessLookupError, ChildProcessError):
+            pass
