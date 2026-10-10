@@ -237,6 +237,7 @@ def poll_once(*, state_dir: str | Path, legacy_source: str | Path,
         engine = store.get(BROOKS_ENGINE_ID)
         pref = store.preferences(BROOKS_ENGINE_ID)
         if (engine is None or not engine.requested_enabled
+                or pref["futures_exchange"] != "kraken"
                 or pref["signal_environment"] != "PAPER"
                 or pref["market_scope"] not in ("all", "crypto")):
             raise KrakenFeedRefused("KRAKEN_FEED_PAPER_NOT_ARMED")
@@ -252,6 +253,7 @@ def poll_once(*, state_dir: str | Path, legacy_source: str | Path,
         if (engine is None or not engine.requested_enabled
                 or engine.revision != rev or pref["revision"] != pref_rev
                 or pref["signal_environment"] != "PAPER"
+                or pref["futures_exchange"] != "kraken"
                 or pref["timeframe"] != timeframe
                 or pref["market_scope"] not in ("all", "crypto")):
             raise KrakenFeedRefused("KRAKEN_FEED_SETTINGS_CHANGED")
@@ -263,6 +265,7 @@ def poll_once(*, state_dir: str | Path, legacy_source: str | Path,
         "market_feed": _FEED, "symbol": symbol,
         "quote_currency": "USD", "market_type": "futures",
         "exchange_price_tick": tick,
+        "selected_exchange": "kraken",
         "timeframe": timeframe, "last_closed_candle": latest.isoformat(),
         "telegram_sent": False, "live_publication_enabled": False,
     }
