@@ -1,0 +1,136 @@
+name: Native PostgreSQL 16 - no Docker Hub
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  full-corpus-native-pg16:
+    name: Native PG16 migrations and full corpus
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PTB_TIMEDELTA: "1"
+      APP_ENV: test
+      TELEGRAM_RUNTIME_ENABLED: "false"
+      BROOKS_RUNTIME_ENABLED: "false"
+      BROOKS_OPERATIONS_ENABLED: "false"
+      PAPER_RUNTIME_ENABLED: "false"
+      PERFORMANCE_REPORTS_ENABLED: "false"
+      DB_ECHO: "false"
+
+    steps:
+      - name: Checkout reviewed commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Create isolated checkout
+        run: |
+          set -Eeuo pipefail
+          isolated="$(mktemp -d /tmp/mmt-nativepg-XXXXXXXX)"
+          mkdir -p "$isolated/repo"
+          tar --exclude=.git -cf - . | tar -xf - -C "$isolated/repo"
+          {
+            echo "MMT_NATIVE_ROOT=$isolated"
+            echo "MMT_NATIVE_SOURCE=$isolated/repo"
+          } >> "$GITHUB_ENV"
+          echo "NATIVE_PG_ISOLATED_CHECKOUT_PASS"
+
+      - name: Install and prepare complete frozen application
+        run: |
+          set -Eeuo pipefail
+          cd "$MMT_NATIVE_SOURCE"
+          python -m pip install --disable-pip-version-check -e ".[dev]"
+          bash scripts/verify.sh
+          cp -a production_source/app ./app
+          cp -a production_source/migrations ./migrations
+          cp production_source/alembic.ini ./alembic.ini
+          PYTHONPATH="$MMT_NATIVE_SOURCE" python - <<'PY'
+          import app
+          import os
+          from pathlib import Path
+          root = Path(os.environ["MMT_NATIVE_SOURCE"]).resolve()
+          assert Path(app.__file__).resolve().is_relative_to(root)
+          print("NATIVE_PG_SOURCE_ISOLATION_PASS")
+          PY
+
+      - name: Start genuine socket-only PostgreSQL 16 on ephemeral runner
+        run: |
+          set -Eeuo pipefail
+          command -v pg_ctlcluster
+          psql --version | grep -E '^psql \(PostgreSQL\) 16\.'
+          test -f /etc/postgresql/16/main/pg_hba.conf
+
+          sudo python3 - <<'PY'
+          from pathlib import Path
+          conf = Path("/etc/postgresql/16/main/postgresql.conf")
+          hba = Path("/etc/postgresql/16/main/pg_hba.conf")
+          # This only modifies the fresh, GitHub-hosted ephemeral runner.
+          conf.write_text(conf.read_text() + "\nlisten_addresses = ''\n")
+          hba.write_text(
+              "local all postgres peer\n"
+              "local all ch6synthetic scram-sha-256\n"
+              + hba.read_text()
+          )
+          PY
+          sudo pg_ctlcluster 16 main start
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -c "CREATE ROLE ch6synthetic WITH LOGIN CREATEDB PASSWORD 'ch6synthetic_ci_password_2026';"
+          sudo -u postgres createdb -O ch6synthetic ch6synthetic
+          sudo -u postgres createdb -O ch6synthetic fullcorpus
+
+          export PGPASSWORD="ch6synthetic_ci_password_2026"
+          test "$(psql -h /var/run/postgresql -U ch6synthetic -d ch6synthetic -Atqc 'SELECT 1')" = "1"
+          test "$(psql -h /var/run/postgresql -U ch6synthetic -d fullcorpus -Atqc 'SELECT 1')" = "1"
+          test "$(sudo -u postgres psql -Atqc 'SHOW listen_addresses')" = ""
+          test -z "$(sudo ss -lntp | grep -E ':(5432)\b' || true)"
+          {
+            echo "CH6_DISPOSABLE_DATABASE_URL=postgresql+asyncpg://ch6synthetic:ch6synthetic_ci_password_2026@localhost/ch6synthetic?host=/var/run/postgresql"
+            echo "TEST_DATABASE_URL=postgresql+asyncpg://ch6synthetic:ch6synthetic_ci_password_2026@localhost/fullcorpus?host=/var/run/postgresql"
+            echo "DATABASE_URL=postgresql+asyncpg://ch6synthetic:ch6synthetic_ci_password_2026@localhost/ch6synthetic?host=/var/run/postgresql"
+          } >> "$GITHUB_ENV"
+          echo "NATIVE_POSTGRESQL_16_SOCKET_ONLY_PASS"
+
+      - name: Apply frozen migrations to BOTH disposable PostgreSQL databases
+        run: |
+          set -Eeuo pipefail
+          cd "$MMT_NATIVE_SOURCE"
+          export PYTHONPATH="$MMT_NATIVE_SOURCE"
+          python -m alembic -c alembic.ini heads | grep -F "20261004_0022"
+          DATABASE_URL="$CH6_DISPOSABLE_DATABASE_URL" python -m alembic -c alembic.ini upgrade 20261004_0022
+          DATABASE_URL="$TEST_DATABASE_URL" python -m alembic -c alembic.ini upgrade 20261004_0022
+          export PGPASSWORD="ch6synthetic_ci_password_2026"
+          test "$(psql -h /var/run/postgresql -U ch6synthetic -d ch6synthetic -Atqc 'SELECT version_num FROM alembic_version')" = "20261004_0022"
+          test "$(psql -h /var/run/postgresql -U ch6synthetic -d fullcorpus -Atqc 'SELECT version_num FROM alembic_version')" = "20261004_0022"
+          echo "NATIVE_POSTGRESQL_16_TWO_DB_MIGRATIONS_PASS"
+
+      - name: Run complete tracked corpus against real PostgreSQL 16
+        run: |
+          set -Eeuo pipefail
+          cd "$MMT_NATIVE_SOURCE"
+          export PYTHONPATH="$MMT_NATIVE_SOURCE"
+          python -m pytest -q
+
+      - name: Cleanup only ephemeral runner resources
+        if: always()
+        run: |
+          set -Eeuo pipefail
+          sudo pg_ctlcluster 16 main stop || true
+          if [[ -n "${MMT_NATIVE_ROOT:-}" && "${MMT_NATIVE_ROOT}" == /tmp/mmt-nativepg-* ]]; then
+            rm -rf -- "${MMT_NATIVE_ROOT}"
+          fi
+          echo "NATIVE_PG_EPHEMERAL_CLEANUP_PASS"
