@@ -2,7 +2,7 @@
 
 Register handlers on the *same* trusted Telegram Application, after the
 existing admin handlers. Do not run a second bot poller or alter frozen v0.3.2
-production_source. Optional python-telegram-bot extra; no network on import.
+legacy runtime. Optional python-telegram-bot extra; no network on import.
 No live signal publication: saved private destinations remain DISABLED.
 """
 from __future__ import annotations
