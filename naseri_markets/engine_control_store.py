@@ -9,7 +9,9 @@ Settings and destinations are per-engine, with OFF/PAPER only, never LIVE.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
+import time
 
 from .trusted_custom import LocalCustomRefused, TrustedLocalCustomHost
 
@@ -73,6 +75,16 @@ class EngineControlStore:
             scan_id TEXT PRIMARY KEY, snapshot_hash TEXT NOT NULL,
             decision TEXT NOT NULL, setup_type TEXT,
             signal_id TEXT, source_sha256 TEXT NOT NULL)""")
+        # This is ONLY a visibility/lease record for a separately launched
+        # DEVELOPMENT worker. It never spawns a service or enables forwarding.
+        self._db.execute("""CREATE TABLE IF NOT EXISTS brooks_paper_worker(
+            engine_id TEXT PRIMARY KEY, worker_id TEXT NOT NULL,
+            heartbeat_unix INTEGER NOT NULL,
+            phase TEXT NOT NULL, last_closed_candle TEXT,
+            last_outcome TEXT, last_error TEXT,
+            completed_cycles INTEGER NOT NULL DEFAULT 0,
+            refused_cycles INTEGER NOT NULL DEFAULT 0
+        )""")
         self._db.execute("""CREATE TABLE IF NOT EXISTS managed_engine_routes(
             engine_id TEXT PRIMARY KEY,
             channel_id INTEGER,
@@ -370,6 +382,97 @@ class EngineControlStore:
             import json
             return [json.loads(x["payload"]) for x in rows]
         return []
+
+    def brooks_worker_status(self, *, now: int | None = None) -> dict:
+        """Actual worker heartbeat, independent of requested engine enablement.
+
+        A requested-ON engine with a dead or absent worker is never RUNNING.
+        A 30s-old heartbeat is STALE, even if the previous phase was ACTIVE.
+        """
+        self._require(BROOKS_ENGINE_ID)
+        clock = int(time.time()) if now is None else now
+        if type(clock) is not int or clock < 0:
+            raise LocalCustomRefused("BROOKS_WORKER_CLOCK_INVALID")
+        row = self._db.execute(
+            "SELECT * FROM brooks_paper_worker WHERE engine_id=?",
+            (BROOKS_ENGINE_ID,)).fetchone()
+        if row is None:
+            return {
+                "phase": "NOT_INSTALLED", "connected": False,
+                "heartbeat_age_seconds": None, "provider": "KRAKEN_FUTURES",
+                "last_closed_candle": None, "last_outcome": None,
+                "last_error": None, "completed_cycles": 0, "refused_cycles": 0,
+            }
+        age = max(0, clock - row["heartbeat_unix"])
+        fresh = age <= 30
+        phase = row["phase"] if fresh or row["phase"] == "STOPPED" else "STALE"
+        return {
+            "phase": phase, "connected": bool(fresh and phase not in ("STOPPED", "STALE")),
+            "heartbeat_age_seconds": age, "provider": "KRAKEN_FUTURES",
+            "last_closed_candle": row["last_closed_candle"],
+            "last_outcome": row["last_outcome"], "last_error": row["last_error"],
+            "completed_cycles": row["completed_cycles"],
+            "refused_cycles": row["refused_cycles"],
+        }
+
+    def brooks_worker_claim(self, *, worker_id: str, now: int) -> None:
+        """Short SQLite lease plus OS flock; reject a second live worker."""
+        if (type(worker_id) is not str or not 20 <= len(worker_id) <= 64
+                or not worker_id.isascii() or not worker_id.isalnum()
+                or type(now) is not int or now < 0):
+            raise LocalCustomRefused("BROOKS_WORKER_CLAIM_INVALID")
+        self._db.execute("BEGIN IMMEDIATE")
+        try:
+            row = self._db.execute(
+                "SELECT worker_id,heartbeat_unix,phase FROM brooks_paper_worker "
+                "WHERE engine_id=?", (BROOKS_ENGINE_ID,)).fetchone()
+            if (row is not None and row["worker_id"] != worker_id
+                    and row["phase"] != "STOPPED"
+                    and now - row["heartbeat_unix"] <= 30):
+                raise LocalCustomRefused("BROOKS_WORKER_ALREADY_RUNNING")
+            self._db.execute("""INSERT INTO brooks_paper_worker
+                (engine_id,worker_id,heartbeat_unix,phase)
+                VALUES(?,?,?,'IDLE') ON CONFLICT(engine_id) DO UPDATE SET
+                worker_id=excluded.worker_id,
+                heartbeat_unix=excluded.heartbeat_unix,
+                phase='IDLE',last_error=NULL""",
+                (BROOKS_ENGINE_ID, worker_id, now))
+            self._db.execute("COMMIT")
+        except BaseException:
+            self._db.execute("ROLLBACK")
+            raise
+
+    def brooks_worker_heartbeat(
+            self, *, worker_id: str, now: int, phase: str,
+            last_closed_candle: str | None = None,
+            outcome: str | None = None, error_code: str | None = None) -> None:
+        """CAS-owned diagnostic update; never confers signal permissions."""
+        if (phase not in ("IDLE", "WAITING", "ANALYZING", "DEGRADED", "STOPPED")
+                or type(now) is not int or now < 0
+                or type(worker_id) is not str
+                or (last_closed_candle is not None and (
+                    type(last_closed_candle) is not str
+                    or len(last_closed_candle) > 48))
+                or (outcome is not None and outcome not in (
+                    "NO_SIGNAL", "RECORDED", "DUPLICATE_SCAN"))
+                or (error_code is not None and (
+                    type(error_code) is not str or len(error_code) > 90
+                    or not error_code.replace("_", "").isalnum()))):
+            raise LocalCustomRefused("BROOKS_WORKER_STATUS_INVALID")
+        completed = int(outcome is not None)
+        refused = int(error_code is not None)
+        cursor = self._db.execute(
+            """UPDATE brooks_paper_worker SET heartbeat_unix=?,phase=?,
+            last_closed_candle=COALESCE(?,last_closed_candle),
+            last_outcome=COALESCE(?,last_outcome),
+            last_error=?,
+            completed_cycles=completed_cycles+?,
+            refused_cycles=refused_cycles+?
+            WHERE engine_id=? AND worker_id=? AND phase!='STOPPED'""",
+            (now,phase,last_closed_candle,outcome,error_code,completed,
+             refused,BROOKS_ENGINE_ID,worker_id))
+        if cursor.rowcount != 1:
+            raise LocalCustomRefused("BROOKS_WORKER_STALE_OWNER")
 
     def brooks_replay_status(self) -> dict:
         """Diagnostics only: replay scans, not claims of running live engine."""
