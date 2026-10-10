@@ -163,7 +163,12 @@ def test_mid_fetch_pair_change_fails_closed_before_worker_or_journal(tmp_path):
         assert host.brooks_replay_status()["scans"] == 0
 
 
-def test_worker_passes_selected_pair_not_hardcoded_btc(tmp_path):
+def test_worker_passes_selected_pair_not_hardcoded_btc(tmp_path, monkeypatch):
+    # Unit fixture for the former public research-only loop, NOT a venue
+    # approval in the real policy.
+    monkeypatch.setattr(
+        "naseri_markets.brooks_paper_service.iran_futures_approved",
+        lambda venue: venue == "kraken")
     with EngineControlStore(tmp_path) as host:
         enable(host)
         change(host, "futures_symbol", "PF_SOLUSD")
@@ -203,8 +208,7 @@ async def test_private_telegram_pair_choices_and_callback_revision(tmp_path):
         keyboard = panel.pair_keyboard(host, BROOKS_ENGINE_ID)
         choices = [b.callback_data for row in keyboard.inline_keyboard for b in row
                    if b.callback_data.startswith("ep:set:")]
-        assert len(choices) == 3
-        assert max(map(len, choices)) <= 64
+        assert choices == []  # Legacy Kraken is not selectable for Iran.
         assert "ep:list:" + token in [
             b.callback_data for row in panel.settings_keyboard(
                 host, BROOKS_ENGINE_ID).inline_keyboard for b in row]
@@ -221,8 +225,8 @@ async def test_private_telegram_pair_choices_and_callback_revision(tmp_path):
     update, msg = req(f"ep:set:{token}:1:1", 123)
     await panel.callback(update, SimpleNamespace())
     with EngineControlStore(folder) as host:
-        assert host.preferences(BROOKS_ENGINE_ID)["futures_symbol"] == "PF_ETHUSD"
-        assert host.preferences(BROOKS_ENGINE_ID)["revision"] == 2
+        assert host.preferences(BROOKS_ENGINE_ID)["futures_symbol"] == "PF_XBTUSD"
+        assert host.preferences(BROOKS_ENGINE_ID)["revision"] == 1
     await panel.callback(update, SimpleNamespace())
     with EngineControlStore(folder) as host:
-        assert host.preferences(BROOKS_ENGINE_ID)["revision"] == 2
+        assert host.preferences(BROOKS_ENGINE_ID)["revision"] == 1

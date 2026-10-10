@@ -19,10 +19,13 @@ from .engine_control_store import (
     BROOKS_ENGINE_ID, OWNER_CORE_ID, EngineControlStore, MARKET_SCOPES, TIMEFRAMES,
 )
 from .futures_venues import (
-    FUTURES_VENUES, get_venue, paper_feed_verified,
+    get_venue, paper_feed_verified,
     iran_status_text, feed_status_text,
 )
 from .futures_pairs import pair_choices, pair_is_verified_paper
+from .iran_futures_eligibility import (
+    available_futures_venues, iran_futures_approved, review_status,
+)
 from .trusted_custom import LocalCustomRefused
 
 _MORE = re.compile(r"em:(settings|tf|market|env):([0-9a-f]{12})(?::([0-9]+))?\Z")
@@ -56,6 +59,8 @@ class IntegratedEnginePanel(CustomAdminPanel):
                           if engine.engine_kind == "BUILTIN_BROOKS" else None)
                 if worker is not None and worker["connected"]:
                     armed_feed = paper_feed_verified(
+                        host.preferences(engine.engine_id)["futures_exchange"])
+                    armed_feed = armed_feed and iran_futures_approved(
                         host.preferences(engine.engine_id)["futures_exchange"])
                     armed_feed = armed_feed and pair_is_verified_paper(
                         host.preferences(engine.engine_id)["futures_exchange"],
@@ -116,6 +121,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
             brooks and brooks.requested_enabled and prefs
             and prefs["signal_environment"] == "PAPER"
             and prefs["market_scope"] in ("all", "crypto")
+            and iran_futures_approved(prefs["futures_exchange"])
             and paper_feed_verified(prefs["futures_exchange"])
             and pair_is_verified_paper(
                 prefs["futures_exchange"], prefs["futures_symbol"]))
@@ -159,6 +165,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
             status = ("🟢 تحلیل PAPER آماده/درحال اجرا"
                       if state.requested_enabled and
                       prefs["signal_environment"] == "PAPER"
+                      and iran_futures_approved(prefs["futures_exchange"])
                       and paper_feed_verified(prefs["futures_exchange"])
                       and pair_is_verified_paper(
                           prefs["futures_exchange"], prefs["futures_symbol"]) else
@@ -215,16 +222,17 @@ class IntegratedEnginePanel(CustomAdminPanel):
         if engine_id == BROOKS_ENGINE_ID:
             venue = get_venue(preferences["futures_exchange"])
             venue_line = (
-                f"صرافی فیوچرز: {venue.name}\n"
+                f"صرافی قبلی (غیرمجاز برای انتخاب): {venue.name}\n"
+                f"وضعیت خدمات فیوچرز برای ایران: {review_status(venue.key)}\n"
                 f"جفت‌ارز فیوچرز: {preferences['futures_symbol']}\n"
-                + ("🧪 این قرارداد قابلیت تحلیل PAPER دارد.\n"
+                + ("🧪 قرارداد عمومی PAPER پژوهشی (نه مجوز معامله ایران).\n"
                    if pair_is_verified_paper(
                        preferences["futures_exchange"],
                        preferences["futures_symbol"])
                    else "⚪ این نماد صرفاً نامزد است؛ فید PAPER فعال نیست.\n") +
                 f"وضعیت فید: {feed_status_text(venue.key)}\n"
                 f"وضعیت ایران: {iran_status_text(venue.key)}\n"
-                "⚠️ وجود صرافی در فهرست به‌معنای مجاز بودن برای ایران نیست.\n"
+                "⚠️ صرافی‌های محدودکننده یا تأییدنشده از انتخاب حذف شده‌اند.\n"
                 "فقط صرافی با فید اعتبارسنجی‌شده قابلیت تحلیل PAPER دارد.\n")
         return (f"⚙️ تنظیمات {engine_id}\n"
                 + venue_line +
@@ -245,7 +253,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
                     callback_data=f"et:list:{token}")] if engine_id == BROOKS_ENGINE_ID
             else [Button("⏱ تغییر تایم‌فریم",
                          callback_data=f"em:tf:{token}:{revision}")],
-            *([[Button("🏦 انتخاب صرافی فیوچرز (۲۰ مورد)",
+            *([[Button("🏦 صرافی‌های فیوچرز مجاز برای ایران",
                        callback_data=f"ex:list:{token}:0")],
                [Button("💱 انتخاب جفت‌ارز فیوچرز",
                        callback_data=f"ep:list:{token}")]]
@@ -266,10 +274,17 @@ class IntegratedEnginePanel(CustomAdminPanel):
             raise AdminCustomPanelRefused("BROOKS_EXCHANGE_PAGE_DENIED")
         prefs = host.preferences(engine_id)
         token = _token(engine_id)
+        approved = available_futures_venues()
+        if not approved:
+            return InlineKeyboardMarkup([
+                [Button("⛔ مورد تأییدشده‌ای یافت نشد",
+                        callback_data=f"em:settings:{token}")],
+                [Button("🔙 تنظیمات", callback_data=f"em:settings:{token}")],
+            ])
         start = page * _PAGE_SIZE
         rows = []
-        for index in range(start, min(start + _PAGE_SIZE, len(FUTURES_VENUES))):
-            venue = FUTURES_VENUES[index]
+        for index in range(start, min(start + _PAGE_SIZE, len(approved))):
+            venue = approved[index]
             flag = ("⛔" if venue.iran_access == "EXPLICIT_RESTRICTION"
                     else "🧪" if paper_feed_verified(venue.key) else "⚪")
             selected = "✅" if venue.key == prefs["futures_exchange"] else ""
@@ -279,7 +294,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
         nav = []
         if page:
             nav.append(Button("◀ قبلی", callback_data=f"ex:list:{token}:{page-1}"))
-        if page < 3:
+        if (page + 1) * _PAGE_SIZE < len(approved):
             nav.append(Button("بعدی ▶", callback_data=f"ex:list:{token}:{page+1}"))
         if nav:
             rows.append(nav)
@@ -313,8 +328,14 @@ class IntegratedEnginePanel(CustomAdminPanel):
         if engine_id != BROOKS_ENGINE_ID:
             raise AdminCustomPanelRefused("BROOKS_PAIR_SELECTION_DENIED")
         pref = host.preferences(engine_id)
-        options = pair_choices(pref["futures_exchange"])
         token = _token(engine_id)
+        if not iran_futures_approved(pref["futures_exchange"]):
+            return InlineKeyboardMarkup([
+                [Button("⛔ صرافی انتخاب‌شده برای ایران تأیید نشده",
+                        callback_data=f"em:settings:{token}")],
+                [Button("🔙 تنظیمات", callback_data=f"em:settings:{token}")],
+            ])
+        options = pair_choices(pref["futures_exchange"])
         rows = []
         for idx in range(0, len(options), 2):
             row = []
@@ -358,8 +379,10 @@ class IntegratedEnginePanel(CustomAdminPanel):
                                 int(match.group(4)) != prefs["revision"]):
                             raise LocalCustomRefused("ENGINE_STALE_SETTING_REVISION")
                         choices = (
-                            FUTURES_VENUES if is_exchange else
-                            pair_choices(prefs["futures_exchange"]) if is_pair
+                            available_futures_venues() if is_exchange else
+                            (pair_choices(prefs["futures_exchange"])
+                             if iran_futures_approved(prefs["futures_exchange"])
+                             else ()) if is_pair
                             else TIMEFRAMES)
                         index = int(match.group(3))
                         if not 0 <= index < len(choices):
@@ -381,8 +404,8 @@ class IntegratedEnginePanel(CustomAdminPanel):
                         message = (
                             f"🏦 صرافی انتخاب‌شده: "
                             f"{get_venue(host.preferences(state.engine_id)['futures_exchange']).name}\n"
-                            "⛔ = ایران رسماً محدود | ⚪ = دسترسی ایران نامشخص\n"
-                            "این فهرست تضمین دسترسی قانونی یا فید آماده نیست.")
+                            "صرافی ممنوع یا نامشخص نمایش داده نمی‌شود.\n"
+                            "هیچ صرافی با صلاحیت تأییدشده یافت نشده است.")
                     elif is_pair:
                         markup = self.pair_keyboard(host, state.engine_id)
                         current = host.preferences(state.engine_id)

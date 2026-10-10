@@ -9,8 +9,17 @@ from unittest.mock import AsyncMock
 import pytest
 
 from naseri_markets import brooks_paper_service as service
+
 from naseri_markets.engine_control_store import BROOKS_ENGINE_ID, EngineControlStore
 from naseri_markets.trusted_custom import LocalCustomRefused
+
+@pytest.fixture(autouse=True)
+def _isolate_legacy_public_research_paper_tests(monkeypatch):
+    # Legacy development-only worker contracts are independently tested
+    # with an injected policy; real resident-facing policy remains fail closed.
+    monkeypatch.setattr(
+        service, "iran_futures_approved", lambda key: key == "kraken")
+
 
 SOURCE = Path(__file__).resolve().parents[2] / "production_source"
 START = datetime(2026, 1, 1, tzinfo=UTC)

@@ -3,6 +3,9 @@ on:
   pull_request:
     paths:
       - "naseri_markets/futures_venues.py"
+      - "naseri_markets/iran_futures_eligibility.py"
+      - "tests/unit/test_iran_futures_eligibility.py"
+      - "docs/IRAN_FUTURES_EXCHANGE_ELIGIBILITY_2026_10_11.md"
       - "naseri_markets/engine_control_store.py"
       - "naseri_markets/integrated_engine_panel.py"
       - "naseri_markets/brooks_paper_service.py"
@@ -38,10 +41,12 @@ jobs:
           python -m pip install -e ".[dev]"
           python -m ruff check --select E4,F \
             naseri_markets/futures_venues.py \
+            naseri_markets/iran_futures_eligibility.py \
             naseri_markets/engine_control_store.py \
             naseri_markets/integrated_engine_panel.py \
             naseri_markets/brooks_paper_service.py \
             tests/unit/test_brooks_futures_exchanges.py \
+            tests/unit/test_iran_futures_eligibility.py \
             tests/unit/test_brooks_pair_selection.py \
             tests/unit/test_brooks_exchange_admin_panel.py
       - name: Actual frozen Brooks V5 on selected periods and cross-exchange fences
@@ -50,6 +55,7 @@ jobs:
           python -m pytest -q \
             tests/unit/test_brooks_futures_exchanges.py \
             tests/unit/test_brooks_pair_selection.py \
+            tests/unit/test_iran_futures_eligibility.py \
             tests/unit/test_brooks_exchange_admin_panel.py \
             tests/unit/test_brooks_kraken_feed.py \
             tests/unit/test_brooks_market_feed.py \
