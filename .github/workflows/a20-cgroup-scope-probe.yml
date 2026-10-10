@@ -18,7 +18,7 @@ jobs:
           cat /sys/fs/cgroup/cgroup.controllers
           systemctl --version | head -1
           name="mmt-a20-probe-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
-          sudo -n /usr/bin/systemd-run --scope --pipe --unit="$name" \
+          sudo -n /usr/bin/systemd-run --scope --unit="$name" \
              -p "MemoryMax=268435456" -p "MemoryHigh=201326592" \
              -p "CPUQuota=50%" -p "TasksMax=12" \
              -- /usr/bin/sudo -n -u "$(id -un)" -- /usr/bin/python3 -I -S -c \
