@@ -136,7 +136,7 @@ def test_policy_cannot_approve_itself(material):
 
 def test_policy_duplicate_json_keys_rejected(material):
     raw = b'{"schema_version":1,"schema_version":1}'
-    with pytest.raises(AdmissionRefused, match="DUPLICATE"):
+    with pytest.raises(AdmissionRefused, match="INVALID_JSON"):
         parse_policy(raw, approved_sha256=hashlib.sha256(raw).hexdigest())
 
 
