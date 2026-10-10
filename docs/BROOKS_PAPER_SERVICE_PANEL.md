@@ -89,11 +89,15 @@ access to one shared, dedicated development SQLite folder. The separate
 Telegram app must use a **development bot token**, never the legacy
 production token.
 
-A future nonproduction process supervisor may invoke this command via
-systemd under a dedicated unprivileged account with a writable private
-state folder. Do **not** copy the command or token to the running price-action
-server, enable any service, create a new VPS, open firewall ports or create
-a deployment until an explicit, environment-specific deployment authorization
+An inert sample unit is retained at
+`deploy/examples/brooks-paper-nonproduction.service.example`. On a
+**separately authorized** development host, a dedicated unprivileged
+`mmt-paper-dev` account and private writable `/var/lib/mmt-paper-dev`
+state folder could be used with a process supervisor that restarts only on
+real process failure. This file has not been installed, enabled or launched.
+Do **not** copy the command or any token to the running price-action server,
+enable any service, create a new VPS, open firewall ports or create a
+deployment until an explicit, environment-specific deployment authorization
 is given.
 
 ## Verification and limits
