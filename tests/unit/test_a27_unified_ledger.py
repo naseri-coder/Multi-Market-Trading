@@ -90,7 +90,8 @@ async def test_a27_real_fixed_relay_and_single_transaction_journal(rig):
     assert ledger.count() == 1
     assert old.count() == 0  # no cross-file A7 insert in A27
     rows = ledger._db.execute("PRAGMA database_list").fetchall()
-    assert len(rows) == 1 and rows[0][1] == "main"
+    # SQLite also exposes an optional in-memory TEMP schema; no other file.
+    assert [(row[1], row[2]) for row in rows if row[2]] == [("main", str(path))]
     assert ledger._db.execute("PRAGMA journal_mode").fetchone()[0] == "delete"
     assert ledger._db.execute("PRAGMA synchronous").fetchone()[0] == 2
     assert path.stat().st_mode & 0o077 == 0
@@ -243,7 +244,8 @@ def test_a27_sqlite_writer_revocation_serializes_with_paper_commit(rig):
         t.join(5)
         assert not t.is_alive()
     assert revoked.is_set() and ledger.count() == 1
-    with pytest.raises(RecoveryFenceRefused, match="REVOKED_STALE"):
+    # Old in-memory generation is invalidated before any further SQL insert.
+    with pytest.raises(RecoveryFenceRefused, match="EXACT_ARMED_PAPER_BRIDGE_REQUIRED"):
         wrapper.fence.commit([intent], now=NOW)
 
 
