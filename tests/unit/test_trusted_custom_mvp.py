@@ -3,10 +3,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import subprocess
 import sys
-from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -14,7 +12,6 @@ import pytest
 from naseri_markets.custom_cli import _export_demo
 from naseri_markets.trusted_custom import (
     LocalCustomRefused, TRUST_ACK, TrustedLocalCustomHost,
-    parse_offline_quote,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -86,8 +83,6 @@ def test_real_external_python_exec_paper_duplicate_disable_restart(environment):
         assert len(reopened.signals()) == 1
     finally:
         reopened.close()
-    # Avoid closing a same connection twice in the fixture finalizer:
-    environment = None
 
 
 def test_exact_separately_pinned_local_code_trust_and_private_contract_fences(environment):
@@ -220,11 +215,10 @@ def test_real_independent_sqlite_disable_before_paper_commit_wins(
 
 
 def test_real_independent_sqlite_disable_after_commit_does_not_erase_paper(
-        environment, monkeypatch):
+        environment):
     sample, _, _, _, host, root = environment
     register(environment)
     enable(environment)
-    original = host._db.execute
     # Use a separate connection after commit instead of monkeypatching an
     # SQLite read-only C attribute. This proves persisted permission and log.
     assert host.paper("public_toy_demo", get_quote(environment))["stored"] == 1
