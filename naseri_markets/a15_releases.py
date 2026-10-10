@@ -11,7 +11,6 @@ import binascii
 import hashlib
 import hmac
 import json
-import os
 import re
 import tempfile
 from dataclasses import dataclass
