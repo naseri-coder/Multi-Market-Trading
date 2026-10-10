@@ -1,0 +1,69 @@
+name: A15 Multi Market Trading signed private release security
+
+on:
+  push:
+    branches: [feature/a15-signed-private-release-fencing]
+  pull_request:
+    paths:
+      - "naseri_markets/a15_releases.py"
+      - "tests/unit/test_a15_releases.py"
+      - "docs/MULTI_MARKET_TRADING_A15_SIGNED_RELEASES.md"
+      - ".github/workflows/a15-signed-private-release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  signed-release-fixtures:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Verify historical baseline and independent public-only preflight
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+      - name: A15 signed release crypto and real A12 A13 A14 regression
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m pip install "cryptography==46.0.3"
+          python -m pytest -q tests/unit/test_a15_releases.py tests/unit/test_a14_packages.py tests/unit/test_a13_provisioning.py tests/unit/test_a12_trust.py
+      - name: Mandatory A15 static security and source lint
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check --select E4,F naseri_markets/a15_releases.py tests/unit/test_a15_releases.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          name = Path("naseri_markets/a15_releases.py")
+          banned = {"socket", "requests", "urllib", "httpx", "aiohttp",
+                    "importlib", "MetaTrader5", "r0_engine", "private_nyfr_core"}
+          for n in ast.walk(ast.parse(name.read_bytes())):
+              if isinstance(n, ast.Import):
+                  assert all(p.name.split(".")[0] not in banned for p in n.names)
+              if isinstance(n, ast.ImportFrom):
+                  assert (n.module or "").split(".")[0] not in banned
+          print("A15_NO_PRIVATE_PAYLOAD_OR_NETWORK_IMPORT_PASS")
+          PY
+      - name: No private strategies or signing secrets in public preview
+        run: |
+          set -Eeuo pipefail
+          python -m pip install "setuptools==80.9.0" "wheel==0.45.1"
+          python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/a15-wheel"
+          test -f "$RUNNER_TEMP/a15-wheel/naseri_markets/a15_releases.py"
+          test ! -e "$RUNNER_TEMP/a15-wheel/naseri_markets/private_nyfr_core.py"
+          test ! -e "$RUNNER_TEMP/a15-wheel/naseri_markets/r0_engine.py"
+          python - <<'PY'
+          from pathlib import Path
+          src = Path("naseri_markets/a15_releases.py").read_text()
+          assert "Ed25519PrivateKey" not in src
+          print("A15_NO_SIGNER_PRIVATE_KEYS_IN_PUBLIC_RUNTIME_PASS")
+          PY
