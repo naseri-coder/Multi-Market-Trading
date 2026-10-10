@@ -173,6 +173,17 @@ class TrustedLocalCustomHost:
             engine_id TEXT NOT NULL, actor_id INTEGER NOT NULL,
             action TEXT NOT NULL, engine_revision INTEGER,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)""")
+        # Per-engine PAPER environment/market preferences are shared with
+        # the integrated Telegram panel. The old standalone CLI defaults
+        # to PAPER and all markets until the admin explicitly configures it.
+        self._db.execute("""CREATE TABLE IF NOT EXISTS managed_engine_preferences(
+            engine_id TEXT PRIMARY KEY,
+            timeframe TEXT NOT NULL DEFAULT '15m',
+            market_scope TEXT NOT NULL DEFAULT 'all',
+            signal_environment TEXT NOT NULL DEFAULT 'PAPER'
+              CHECK(signal_environment IN ('OFF','PAPER')),
+            revision INTEGER NOT NULL DEFAULT 1 CHECK(revision>=1)
+        )""")
 
     def route(self, engine_id: str) -> dict:
         if self.get(engine_id) is None:
@@ -388,6 +399,17 @@ class TrustedLocalCustomHost:
             "WHERE engine_id=? AND enabled=1 AND revision=?",
             (engine_id, revision))
 
+    def _check_paper_preferences(self, engine_id: str, market: str) -> None:
+        row = self._db.execute(
+            "SELECT signal_environment,market_scope "
+            "FROM managed_engine_preferences WHERE engine_id=?",
+            (engine_id,)).fetchone()
+        if row is not None:
+            if row["signal_environment"] != "PAPER":
+                raise LocalCustomRefused("CUSTOM_PAPER_ENVIRONMENT_DISABLED")
+            if row["market_scope"] not in ("all", market):
+                raise LocalCustomRefused("CUSTOM_MARKET_SCOPE_BLOCKED")
+
     def paper(self, engine_id: str, quote_json: bytes, *, timeout_seconds: float = 2.0
               ) -> dict:
         if not 0 < timeout_seconds <= 5:
@@ -407,6 +429,7 @@ class TrustedLocalCustomHost:
         if QuoteQualityGate().inspect(
                 tick, now=tick.occurred_at) is not QuoteVerdict.ACCEPTED:
             raise LocalCustomRefused("CUSTOM_QUOTE_REJECTED")
+        self._check_paper_preferences(engine_id, tick.instrument.market.value)
         snapshot = self.snapshots / f"{engine_id}-{state.code_sha256}.py"
         script = _read_file(snapshot, MAX_SOURCE)
         if not hmac.compare_digest(
@@ -447,6 +470,9 @@ class TrustedLocalCustomHost:
                     or current.descriptor_sha256 != state.descriptor_sha256
                     or current.code_sha256 != state.code_sha256):
                 raise LocalCustomRefused("CUSTOM_REVOKED_DURING_EXECUTION")
+            # Same SQLite writer lock as PAPER insert prevents racing OFF
+            # or market-scope changes from allowing an obsolete signal.
+            self._check_paper_preferences(engine_id, tick.instrument.market.value)
             inserted = duplicate = 0
             if signal is not None:
                 payload = _wire_intent(signal)

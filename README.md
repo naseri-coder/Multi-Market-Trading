@@ -59,6 +59,18 @@
 > **not** appear in any live bot until explicitly mounted and deployed.
 > [Setup, access rules, and limits](docs/CUSTOM_TELEGRAM_ADMIN_PANEL.md).
 
+> [!NOTE]
+> **Next-product integrated engine management:** The development-only
+> Telegram engine panel shows **Al Brooks Price Action** as a built-in
+> engine reference and accepts **owner-only Custom NY First-Reversal**
+> as private local metadata visible solely to the owner, never as public
+> installable source. Each engine has independent PAPER/OFF, market and
+> timeframe preferences, private channel routing and admin audit.
+> Brooks/NYFR runtime code is **not yet connected** to the new product;
+> buttons record requests, not live execution. For public trusted Custom
+> scripts, PAPER and market settings are enforced. No real bot or Telegram
+> delivery is deployed. [Detailed product guide](docs/INTEGRATED_ENGINE_MANAGEMENT.md).
+
 > [!IMPORTANT]
 > **The current manager is branded Multi Market Trading; its historic v0.3.2 runtime identity remains unchanged.** The project does **not** claim profitability and is **not approved for live trading**.
 >
