@@ -37,6 +37,9 @@
 >
 > **Public bot, private NYFR:** The open-source, disabled-by-default, strategy-neutral signal publisher and optional MT5 read-only quote bridge are in `naseri_markets/public_signal_bot.py` and `naseri_markets/mt5_readonly_bridge.py`. They **do not** include the private NY First-Reversal decision engine. See [public/private boundary](docs/NASERI_MARKETS_A4_PUBLIC_BOT_PRIVATE_CORE.md). Historical release names, Compose and Python package identity remain v0.3.2 until a separately validated migration.
 
+> [!NOTE]
+> **A28 final product-readiness freeze (2026-10-10):** The A-series infrastructure roadmap closes at A28; no planned A29/A30. The current multi-market candidate remains an **offline preview, not a deployable product**. The next authorized work should prioritize one usable installed Custom PAPER workflow, dependency closure, operator UX and explicit migration planning, rather than additional security layers. **NY First-Reversal stays OWNER_ONLY and never publicly installable, including encrypted versions.** See [A28 final audit and minimal product backlog](docs/MULTI_MARKET_TRADING_A28_FINAL_PRODUCT_AUDIT.md).
+
 > [!IMPORTANT]
 > **The current manager is branded Multi Market Trading; its historic v0.3.2 runtime identity remains unchanged.** The project does **not** claim profitability and is **not approved for live trading**.
 >
