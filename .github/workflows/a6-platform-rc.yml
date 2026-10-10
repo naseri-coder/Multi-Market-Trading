@@ -1,0 +1,119 @@
+name: A6 isolated 0.4.0rc1 package, image and restore candidate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wheel-isolation:
+    name: A6 standalone wheel and offline CLI
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Validate immutable legacy release and new standalone identity
+        run: |
+          set -Eeuo pipefail
+          bash scripts/install.sh --check
+          python scripts/a6_release_preflight.py
+      - name: Build standalone wheel in isolated public source staging area
+        run: |
+          set -Eeuo pipefail
+          python -m pip install "setuptools==80.9.0" "wheel==0.45.1" "pytest==9.1.1"
+          python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/a6-wheel-src"
+          mkdir -p "$RUNNER_TEMP/a6-dist"
+          python -m pip wheel --disable-pip-version-check --no-build-isolation             --no-deps --wheel-dir "$RUNNER_TEMP/a6-dist" "$RUNNER_TEMP/a6-wheel-src"
+          test "$(find "$RUNNER_TEMP/a6-dist" -type f -name '*.whl' | wc -l)" -eq 1
+      - name: Install isolated wheel and prove old app is not packaged
+        run: |
+          set -Eeuo pipefail
+          python -m venv "$RUNNER_TEMP/a6-venv"
+          "$RUNNER_TEMP/a6-venv/bin/python" -m pip install             --no-deps "$RUNNER_TEMP"/a6-dist/multi_market_trading-0.4.0rc1-py3-none-any.whl
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/a6-venv/bin/python" -m naseri_markets --check > "$RUNNER_TEMP/a6-check.json"
+          "$RUNNER_TEMP/a6-venv/bin/python" - <<'PY'
+          import importlib.util
+          import json
+          import os
+          from pathlib import Path
+          payload = json.loads((Path(os.environ["RUNNER_TEMP"]) / "a6-check.json").read_text())
+          assert payload["distribution"] == "multi-market-trading"
+          assert payload["version"] == "0.4.0rc1"
+          assert payload["mode"] == "OFFLINE_PREVIEW"
+          assert payload["registered_engines"] == 0
+          assert payload["network_enabled"] is False
+          assert importlib.util.find_spec("app") is None
+          print("A6_INSTALLED_WHEEL_ISOLATION_PASS")
+          PY
+      - name: Run negative tests for safety and frozen-release preservation
+        run: python -m pytest -q tests/unit/test_a6_preview.py
+
+  docker-offline:
+    name: A6 nonroot, no-network Docker image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Inspect Compose isolation before build
+        run: |
+          set -Eeuo pipefail
+          python scripts/a6_release_preflight.py
+          docker compose -f compose.platform.yaml --profile validation config --format json > "$RUNNER_TEMP/a6-compose.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          conf=json.loads((Path(os.environ["RUNNER_TEMP"]) / "a6-compose.json").read_text())
+          assert conf["name"] == "multi-market-trading"
+          assert set(conf["services"]) == {"platform-check"}
+          svc=conf["services"]["platform-check"]
+          assert svc["read_only"] is True
+          assert svc["network_mode"] == "none"
+          assert not svc.get("ports") and not svc.get("volumes")
+          assert not svc.get("privileged", False)
+          assert not svc.get("environment")
+          print("A6_COMPOSE_ISOLATION_PASS")
+          PY
+      - name: Build independent preview image
+        run: |
+          set -Eeuo pipefail
+          docker build --file Dockerfile.platform --tag multi-market-trading:0.4.0rc1 .
+          docker image inspect multi-market-trading:0.4.0rc1 --format '{{.Config.User}}' | grep -Fx '10001:10001'
+      - name: Run independent image with Telegram and networking disabled
+        run: |
+          set -Eeuo pipefail
+          docker compose -f compose.platform.yaml --profile validation             run --rm --no-deps platform-check --check > "$RUNNER_TEMP/a6-docker.log"
+          grep -Fq '"mode": "OFFLINE_PREVIEW"' "$RUNNER_TEMP/a6-docker.log"
+          docker run --rm --network none --read-only --cap-drop ALL             --security-opt no-new-privileges:true --user 10001:10001             multi-market-trading:0.4.0rc1 --check             | grep -Fq '"registered_engines": 0'
+          echo "A6_ROOTLESS_OFFLINE_IMAGE_PASS"
+
+  backup-restore:
+    name: A6 full legacy PostgreSQL schema backup and restore
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install frozen migrations without a real service
+        run: |
+          python -m pip install -e ".[dev]"
+          bash scripts/install.sh --check
+      - name: Rehearse PostgreSQL 16 data preservation in TWO separate databases
+        run: bash scripts/a6_restore_rehearsal.sh
