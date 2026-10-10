@@ -3,10 +3,14 @@
 # Shared helpers for NASERI CODER Bot Manager.
 # shellcheck shell=bash
 
+# Historic v0.3.2 runtime identity. Changing this silently can orphan the
+# crypto-price-action_postgres_data database volume. A new release must
+# introduce an explicit volume-preserving migration, never an in-place rename.
 PROJECT_NAME="crypto-price-action"
-PROJECT_URL="https://github.com/naseri-coder/crypto-price-action"
-OFFICIAL_HTTPS_REMOTE="https://github.com/naseri-coder/crypto-price-action.git"
-OFFICIAL_SSH_REMOTE="git@github.com:naseri-coder/crypto-price-action.git"
+# Canonical Git repository identity since the GitHub rename.
+PROJECT_URL="https://github.com/naseri-coder/Multi-Market-Trading"
+OFFICIAL_HTTPS_REMOTE="${PROJECT_URL}.git"
+OFFICIAL_SSH_REMOTE="git@github.com:naseri-coder/Multi-Market-Trading.git"
 BACKUP_ROOT="${ROOT}/.naseri-backups"
 LOCK_FILE="${TMPDIR:-/tmp}/naseri-${PROJECT_NAME}-${UID}.lock.v2"
 LOCK_DIR="${TMPDIR:-/tmp}/naseri-${PROJECT_NAME}-${UID}.lockdir.v2"
@@ -378,18 +382,18 @@ banner() {
   if (( width >= 64 )); then
     if [[ "$UI_UNICODE" == "1" ]]; then
       printf '%s%s╔══════════════════════════════════════════════════════════════╗%s\n' "$c_bold" "$c_cyan" "$c_reset"
-      printf '%s%s║                        NASERI CODER                          ║%s\n' "$c_bold" "$c_white" "$c_reset"
-      printf '%s%s║              Crypto Price Action Manager                    ║%s\n' "$c_bold" "$c_cyan" "$c_reset"
+      printf '%s%s║                        NASERI MARKETS                         ║%s\n' "$c_bold" "$c_white" "$c_reset"
+      printf '%s%s║              Multi-Market Trading Manager                    ║%s\n' "$c_bold" "$c_cyan" "$c_reset"
       printf '%s%s╚══════════════════════════════════════════════════════════════╝%s\n' "$c_bold" "$c_cyan" "$c_reset"
     else
       printf '%s%s+--------------------------------------------------------------+%s\n' "$c_bold" "$c_cyan" "$c_reset"
-      printf '%s%s|                        NASERI CODER                          |%s\n' "$c_bold" "$c_white" "$c_reset"
-      printf '%s%s|              Crypto Price Action Manager                    |%s\n' "$c_bold" "$c_cyan" "$c_reset"
+      printf '%s%s|                        NASERI MARKETS                         |%s\n' "$c_bold" "$c_white" "$c_reset"
+      printf '%s%s|              Multi-Market Trading Manager                    |%s\n' "$c_bold" "$c_cyan" "$c_reset"
       printf '%s%s+--------------------------------------------------------------+%s\n' "$c_bold" "$c_cyan" "$c_reset"
     fi
   else
-    printf '%s%sNASERI CODER%s\n' "$c_bold" "$c_white" "$c_reset"
-    printf '%sCrypto Price Action Manager%s\n' "$c_cyan" "$c_reset"
+    printf '%s%sNASERI MARKETS%s\n' "$c_bold" "$c_white" "$c_reset"
+    printf '%sMulti-Market Trading Manager%s\n' "$c_cyan" "$c_reset"
     ui_rule
   fi
 

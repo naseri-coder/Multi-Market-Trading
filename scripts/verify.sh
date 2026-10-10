@@ -37,7 +37,7 @@ print("SOURCE_SHA256_PASS entries=362; PYTHON_AST_PASS count=" + str(parsed))
 print("PACKAGE_VERSION_PASS 0.3.2")
 PY
 
-bash -n   naseri.sh   scripts/install.sh   scripts/manager.sh   scripts/lib/manager_common.sh   scripts/lib/manager_backup.sh   scripts/lib/manager_runtime.sh   scripts/test_manager.sh   scripts/ci_manager_db_auth_recovery.sh   scripts/verify.sh
+bash -n   markets.sh naseri.sh   scripts/install.sh   scripts/manager.sh   scripts/lib/manager_common.sh   scripts/lib/manager_backup.sh   scripts/lib/manager_runtime.sh   scripts/test_manager.sh   scripts/ci_manager_db_auth_recovery.sh   scripts/verify.sh
 bash scripts/manager.sh --self-test
 
 python3 -m py_compile   scripts/bootstrap_env.py   scripts/check_env.py   scripts/validate_release_config.py
@@ -49,5 +49,7 @@ done
 grep -Fxq 'ruff==0.16.9' requirements-dev.lock
 grep -Fxq 'pytest==9.1.1' requirements-dev.lock
 grep -Fq 'version-v0.3.2' README.md
+python3 scripts/identity_preflight.py --json >/dev/null
+python3 scripts/engine_plan.py examples/engine-plan.example.json --json >/dev/null
 
 echo STAGED_STATIC_VERIFICATION_PASS

@@ -6,6 +6,15 @@ This guide describes the supported **fresh isolated host** installation path. It
 
 Use a new, separate host. Do not point this installer at an existing production database, an existing `crypto-price-action_postgres_data` volume, or the protected `/opt/crypto-signal-telegram-bot` tree.
 
+**Name migration contract (A5):** The repository and menu now display
+NASERI MARKETS, but this guide still installs the frozen v0.3.2
+`crypto-price-action` Compose project and its existing
+`crypto-price-action_postgres_data` volume. This is a compatibility
+guarantee, **not** a completed v0.4 multi-market installation. Do not
+rename Compose's `name:`, `PROJECT_NAME`, image, package or volume
+without an separately tested data migration. See
+[installation migration policy](NASERI_MARKETS_A5_IDENTITY.md).
+
 The default configuration is fail-closed:
 
 - Telegram runtime: disabled
@@ -24,12 +33,12 @@ The default configuration is fail-closed:
 - Python 3
 - `sha256sum`
 
-## 1. Clone and open NASERI CODER Bot Manager
+## 1. Clone the canonical repository and open NASERI MARKETS Manager
 
 ```bash
-git clone https://github.com/naseri-coder/crypto-price-action.git
-cd crypto-price-action
-bash naseri.sh
+git clone https://github.com/naseri-coder/Multi-Market-Trading.git
+cd Multi-Market-Trading
+bash markets.sh
 ```
 
 Running `bash scripts/install.sh` with no arguments opens the same manager. The manager provides guarded install, update, start/stop/restart, status/logs, configuration validation, diagnostics, backup/restore, system information, maintenance, and uninstall workflows.
@@ -67,7 +76,7 @@ Only then does it create the dedicated PostgreSQL volume, upgrade the disposable
 
 The manager is intentionally fail-closed:
 
-- update accepts only the official `naseri-coder/crypto-price-action` origin on `main`;
+- update accepts only the official `naseri-coder/Multi-Market-Trading` origin on `main`;
 - the worktree must be clean and the remote update must be fast-forward only;
 - an installed database is backed up before update;
 - source rollback is automatic only before database migration starts;

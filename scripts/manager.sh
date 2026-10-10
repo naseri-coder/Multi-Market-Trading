@@ -13,7 +13,7 @@ source "$ROOT/scripts/lib/manager_runtime.sh"
 
 manager_help() {
   cat <<'HELP'
-NASERI CODER — Crypto Price Action Bot Manager
+NASERI MARKETS — Multi-Market Trading Bot Manager (legacy v0.3.2 runtime)
 
 Usage:
   bash scripts/manager.sh
@@ -64,7 +64,7 @@ manager_self_test() {
     bash -n "$path"
   done
 
-  [[ "$PROJECT_URL" == "https://github.com/naseri-coder/crypto-price-action" ]]
+  [[ "$PROJECT_URL" == "https://github.com/naseri-coder/Multi-Market-Trading" ]]
   [[ "$OFFICIAL_HTTPS_REMOTE" == "${PROJECT_URL}.git" ]]
   [[ -n "$(project_version)" ]]
   grep -Fq 'python -m alembic -c alembic.ini upgrade head' "$ROOT/scripts/install.sh"

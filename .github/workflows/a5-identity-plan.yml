@@ -1,0 +1,44 @@
+name: A5 canonical identity and engine-plan preflight
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  a5-offline-fresh-checkout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout reviewed revision (no persisted credentials)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Configure Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Validate read-only canonical and frozen identities
+        run: |
+          set -Eeuo pipefail
+          python scripts/identity_preflight.py --json
+          python scripts/engine_plan.py examples/engine-plan.example.json
+          bash -n markets.sh naseri.sh scripts/manager.sh scripts/install.sh
+          bash markets.sh --self-test
+      - name: Check install preflight without creating .env, DB, or containers
+        run: |
+          set -Eeuo pipefail
+          test ! -e .env
+          bash scripts/install.sh --check
+          test ! -e .env
+      - name: A5 regression tests on fresh checkout
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m pytest -q tests/unit/test_a5_identity.py
