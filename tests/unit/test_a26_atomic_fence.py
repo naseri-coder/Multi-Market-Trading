@@ -1,11 +1,8 @@
 """A26 transactional PAPER commit fence: revocation races and rollback tests."""
 from __future__ import annotations
 
-import asyncio
-import hashlib
 import sqlite3
 import threading
-import time
 from dataclasses import replace
 
 import pytest
