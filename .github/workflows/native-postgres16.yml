@@ -123,8 +123,8 @@ jobs:
           DATABASE_URL="$CH6_DISPOSABLE_DATABASE_URL" python -m alembic -c alembic.ini upgrade 20261004_0022
           DATABASE_URL="$TEST_DATABASE_URL" python -m alembic -c alembic.ini upgrade 20261004_0022
           export PGPASSWORD="ch6synthetic_ci_password_2026"
-          test "$(psql -h /var/run/postgresql -U ch6synthetic -d ch6synthetic -Atqc 'SELECT version_num FROM alembic_version')" = "20261004_0022"
-          test "$(psql -h /var/run/postgresql -U ch6synthetic -d fullcorpus -Atqc 'SELECT version_num FROM alembic_version')" = "20261004_0022"
+          test "$(psql -h "$CH6_NATIVE_SOCKET_DIR" -U ch6synthetic -d ch6synthetic -Atqc 'SELECT version_num FROM alembic_version')" = "20261004_0022"
+          test "$(psql -h "$CH6_NATIVE_SOCKET_DIR" -U ch6synthetic -d fullcorpus -Atqc 'SELECT version_num FROM alembic_version')" = "20261004_0022"
           echo "NATIVE_POSTGRESQL_16_TWO_DB_MIGRATIONS_PASS"
 
       - name: Run complete tracked corpus against real PostgreSQL 16
