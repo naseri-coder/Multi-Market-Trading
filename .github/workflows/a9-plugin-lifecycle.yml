@@ -1,0 +1,86 @@
+name: A9 plugin lifecycle and settings offline E2E
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  a9-plugin-settings-e2e:
+    name: A9 offline plugin lifecycle / access-control E2E
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout reviewed commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Setup Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Verify frozen legacy source and existing A6 release identity
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+      - name: A9 and A8 offline end-to-end regressions
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m pytest -q tests/unit/test_a9_plugin_lifecycle.py
+          python -m pytest -q tests/unit/test_a8_plugin_framework.py
+      - name: Lint the new settings backend and forbid external control paths
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check --select E4,F \
+            naseri_markets/plugin_manager.py \
+            naseri_markets/plugin_runtime.py \
+            naseri_markets/plugin_settings.py \
+            naseri_markets/plugin_admin.py \
+            tests/unit/test_a9_plugin_lifecycle.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          denied = {
+              "importlib", "subprocess", "socket", "requests", "urllib",
+              "MetaTrader5", "private_nyfr_core", "r0_engine",
+          }
+          for name in ("plugin_settings.py", "plugin_manager.py",
+                       "plugin_admin.py", "plugin_runtime.py"):
+              path = Path("naseri_markets") / name
+              for node in ast.walk(ast.parse(path.read_bytes())):
+                  if isinstance(node, ast.Import):
+                      assert all(i.name.split(".")[0] not in denied
+                                 for i in node.names)
+                  if isinstance(node, ast.ImportFrom):
+                      assert (node.module or "").split(".")[0] not in denied
+          print("A9_NO_LIVE_IO_OR_PRIVATE_SOURCE_IMPORTS_PASS")
+          PY
+      - name: Build clean isolated A6 wheel containing A9 management modules
+        run: |
+          set -Eeuo pipefail
+          python -m pip install "setuptools==80.9.0" "wheel==0.45.1"
+          python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/a9-wheel"
+          mkdir -p "$RUNNER_TEMP/a9-dist"
+          python -m pip wheel --no-build-isolation --no-deps \
+            --wheel-dir "$RUNNER_TEMP/a9-dist" "$RUNNER_TEMP/a9-wheel"
+          python -m venv "$RUNNER_TEMP/a9-venv"
+          "$RUNNER_TEMP/a9-venv/bin/python" -m pip install --no-deps \
+            "$RUNNER_TEMP/a9-dist/multi_market_trading-0.4.0rc1-py3-none-any.whl"
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/a9-venv/bin/python" - <<'PY'
+          import importlib.util
+          from naseri_markets.plugin_settings import PluginSettingsService
+          from naseri_markets.plugin_admin import main
+          from naseri_markets.plugin_manager import PluginManager
+          assert PluginSettingsService and PluginManager and main
+          assert importlib.util.find_spec("app") is None
+          print("A9_STANDALONE_WHEEL_PLUGIN_LIFECYCLE_PASS")
+          PY
