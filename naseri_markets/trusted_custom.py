@@ -161,6 +161,114 @@ class TrustedLocalCustomHost:
             digest TEXT NOT NULL, payload TEXT NOT NULL,
             PRIMARY KEY(engine_id,signal_id))""")
 
+        self._db.execute("""CREATE TABLE IF NOT EXISTS custom_admin_routes(
+            engine_id TEXT PRIMARY KEY REFERENCES local_custom_engines(engine_id),
+            channel_id INTEGER,
+            channel_title TEXT NOT NULL DEFAULT '',
+            verification TEXT NOT NULL DEFAULT 'NOT_CONFIGURED',
+            delivery_mode TEXT NOT NULL DEFAULT 'DISABLED'
+              CHECK(delivery_mode='DISABLED'))""")
+        self._db.execute("""CREATE TABLE IF NOT EXISTS custom_admin_audit(
+            audit_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            engine_id TEXT NOT NULL, actor_id INTEGER NOT NULL,
+            action TEXT NOT NULL, engine_revision INTEGER,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)""")
+
+    def route(self, engine_id: str) -> dict:
+        if self.get(engine_id) is None:
+            raise LocalCustomRefused("CUSTOM_UNKNOWN_ENGINE")
+        row = self._db.execute(
+            "SELECT channel_id,channel_title,verification,delivery_mode "
+            "FROM custom_admin_routes WHERE engine_id=?", (engine_id,)
+        ).fetchone()
+        return {
+            "engine_id": engine_id,
+            "channel_id": row["channel_id"] if row else None,
+            "channel_title": row["channel_title"] if row else "",
+            "channel_verification": row["verification"] if row else "NOT_CONFIGURED",
+            "delivery_mode": "DISABLED",
+            "paper_admin_preview_only": True,
+            "live_publication_enabled": False,
+        }
+
+    def set_route(self, engine_id: str, *, channel_id: int,
+                  channel_title: str, actor_id: int,
+                  verified_private_channel: bool) -> dict:
+        """Save a verified destination as DISABLED (no Telegram sends).
+
+        The caller is responsible for independently verifying Telegram's
+        private-channel identity and the bot's admin/post permissions.
+        """
+        if (type(actor_id) is not int or actor_id <= 0
+                or type(channel_id) is not int or channel_id >= 0
+                or type(channel_title) is not str
+                or not 0 < len(channel_title) <= 160
+                or verified_private_channel is not True):
+            raise LocalCustomRefused("CUSTOM_PRIVATE_CHANNEL_PROOF_REQUIRED")
+        self._db.execute("BEGIN IMMEDIATE")
+        try:
+            state = self.get(engine_id)
+            if state is None:
+                raise LocalCustomRefused("CUSTOM_UNKNOWN_ENGINE")
+            self._db.execute("""INSERT INTO custom_admin_routes
+                (engine_id,channel_id,channel_title,verification,delivery_mode)
+                VALUES(?,?,?,'PRIVATE_VERIFIED_AT_CONFIGURATION','DISABLED')
+                ON CONFLICT(engine_id) DO UPDATE SET
+                channel_id=excluded.channel_id,
+                channel_title=excluded.channel_title,
+                verification=excluded.verification,
+                delivery_mode='DISABLED'""",
+                (engine_id, channel_id, channel_title))
+            self._db.execute(
+                "INSERT INTO custom_admin_audit "
+                "(engine_id,actor_id,action,engine_revision) VALUES(?,?,?,?)",
+                (engine_id,actor_id,"SET_DISABLED_ROUTE",state.revision))
+            self._db.execute("COMMIT")
+        except BaseException:
+            self._db.execute("ROLLBACK")
+            raise
+        return self.route(engine_id)
+
+    def clear_route(self, engine_id: str, *, actor_id: int) -> dict:
+        if type(actor_id) is not int or actor_id <= 0:
+            raise LocalCustomRefused("CUSTOM_ADMIN_ACTOR_REQUIRED")
+        self._db.execute("BEGIN IMMEDIATE")
+        try:
+            state = self.get(engine_id)
+            if state is None:
+                raise LocalCustomRefused("CUSTOM_UNKNOWN_ENGINE")
+            self._db.execute(
+                "DELETE FROM custom_admin_routes WHERE engine_id=?", (engine_id,))
+            self._db.execute(
+                "INSERT INTO custom_admin_audit "
+                "(engine_id,actor_id,action,engine_revision) VALUES(?,?,?,?)",
+                (engine_id,actor_id,"CLEAR_DISABLED_ROUTE",state.revision))
+            self._db.execute("COMMIT")
+        except BaseException:
+            self._db.execute("ROLLBACK")
+            raise
+        return self.route(engine_id)
+
+    def toggle_as_admin(self, engine_id: str, *, enabled: bool,
+                        expected_revision: int, actor_id: int,
+                        descriptor_sha256: str | None = None) -> LocalCustomState:
+        """CAS toggles and audit in one DB transaction; no partial admin logs."""
+        if type(actor_id) is not int or actor_id <= 0:
+            raise LocalCustomRefused("CUSTOM_ADMIN_ACTOR_REQUIRED")
+        # toggle() owns BEGIN IMMEDIATE, so integrate the audit in its
+        # existing transaction instead of a second transaction.
+        return self.toggle(
+            engine_id, enabled=enabled, expected_revision=expected_revision,
+            descriptor_sha256=descriptor_sha256, admin_actor_id=actor_id)
+
+    def admin_history(self, engine_id: str) -> list[dict]:
+        if self.get(engine_id) is None:
+            raise LocalCustomRefused("CUSTOM_UNKNOWN_ENGINE")
+        return [dict(row) for row in self._db.execute(
+            "SELECT actor_id,action,engine_revision,created_at "
+            "FROM custom_admin_audit WHERE engine_id=? "
+            "ORDER BY audit_id DESC LIMIT 30", (engine_id,))]
+
     def close(self) -> None:
         self._db.close()
 
@@ -239,7 +347,8 @@ class TrustedLocalCustomHost:
         return self.get(contract.engine_id)
 
     def toggle(self, engine_id: str, *, enabled: bool, expected_revision: int,
-               descriptor_sha256: str | None = None) -> LocalCustomState:
+               descriptor_sha256: str | None = None,
+               admin_actor_id: int | None = None) -> LocalCustomState:
         if (type(enabled) is not bool or type(expected_revision) is not int):
             raise LocalCustomRefused("CUSTOM_EXACT_CAS_REQUIRED")
         self._db.execute("BEGIN IMMEDIATE")
@@ -254,6 +363,13 @@ class TrustedLocalCustomHost:
             self._db.execute(
                 "UPDATE local_custom_engines SET enabled=?,revision=revision+1 "
                 "WHERE engine_id=?", (int(enabled), engine_id))
+            if admin_actor_id is not None:
+                self._db.execute(
+                    "INSERT INTO custom_admin_audit "
+                    "(engine_id,actor_id,action,engine_revision) VALUES(?,?,?,?)",
+                    (engine_id,admin_actor_id,
+                     "ENABLE_PAPER" if enabled else "DISABLE_PAPER",
+                     state.revision + 1))
             self._db.execute("COMMIT")
         except BaseException:
             self._db.execute("ROLLBACK")
