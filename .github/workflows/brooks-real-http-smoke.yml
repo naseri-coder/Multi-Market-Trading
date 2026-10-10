@@ -33,7 +33,7 @@ jobs:
       - name: Verify no HTTP or side effect without explicit acknowledgement
         run: |
           set -Eeuo pipefail
-          if python scripts/brooks_real_http_smoke.py \
+          if python -m scripts.brooks_real_http_smoke \
             --legacy-source production_source; then
               echo "UNACKNOWLEDGED_NETWORK_SMOKE_WAS_NOT_BLOCKED"; exit 1
           fi
@@ -41,7 +41,7 @@ jobs:
         timeout-minutes: 5
         run: |
           set -Eeuo pipefail
-          python scripts/brooks_real_http_smoke.py \
+          python -m scripts.brooks_real_http_smoke \
             --legacy-source production_source \
             --cycles 2 \
             --ack-public-http-paper
