@@ -225,7 +225,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
                 f"صرافی قبلی (غیرمجاز برای انتخاب): {venue.name}\n"
                 f"وضعیت خدمات فیوچرز برای ایران: {review_status(venue.key)}\n"
                 f"جفت‌ارز فیوچرز: {preferences['futures_symbol']}\n"
-                + ("🧪 این قرارداد قابلیت تحلیل PAPER دارد.\n"
+                + ("🧪 قرارداد عمومی PAPER پژوهشی (نه مجوز معامله ایران).\n"
                    if pair_is_verified_paper(
                        preferences["futures_exchange"],
                        preferences["futures_symbol"])
@@ -328,8 +328,14 @@ class IntegratedEnginePanel(CustomAdminPanel):
         if engine_id != BROOKS_ENGINE_ID:
             raise AdminCustomPanelRefused("BROOKS_PAIR_SELECTION_DENIED")
         pref = host.preferences(engine_id)
-        options = pair_choices(pref["futures_exchange"])
         token = _token(engine_id)
+        if not iran_futures_approved(pref["futures_exchange"]):
+            return InlineKeyboardMarkup([
+                [Button("⛔ صرافی انتخاب‌شده برای ایران تأیید نشده",
+                        callback_data=f"em:settings:{token}")],
+                [Button("🔙 تنظیمات", callback_data=f"em:settings:{token}")],
+            ])
+        options = pair_choices(pref["futures_exchange"])
         rows = []
         for idx in range(0, len(options), 2):
             row = []
@@ -374,7 +380,9 @@ class IntegratedEnginePanel(CustomAdminPanel):
                             raise LocalCustomRefused("ENGINE_STALE_SETTING_REVISION")
                         choices = (
                             available_futures_venues() if is_exchange else
-                            pair_choices(prefs["futures_exchange"]) if is_pair
+                            (pair_choices(prefs["futures_exchange"])
+                             if iran_futures_approved(prefs["futures_exchange"])
+                             else ()) if is_pair
                             else TIMEFRAMES)
                         index = int(match.group(3))
                         if not 0 <= index < len(choices):
