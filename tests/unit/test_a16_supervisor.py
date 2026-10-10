@@ -2,8 +2,6 @@
 from __future__ import annotations
 
 import hashlib
-import os
-import time
 
 import pytest
 
@@ -13,7 +11,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from naseri_markets.a14_packages import MockPackageDeploymentManager
 from naseri_markets.a15_releases import SignedReleaseAuthority, SignedMockDeploymentManager
 from naseri_markets.a16_supervisor import OfflineFixtureSupervisor, ServiceRefused
-from test_a14_packages import FakeProvisioner, ENGINE, INSTALL, DESCRIPTOR, bundle
+from test_a14_packages import FakeProvisioner, ENGINE, INSTALL, bundle
 from test_a15_releases import KEY1, public, sign
 
 NOW = 42
@@ -105,7 +103,7 @@ def test_new_manager_cannot_adopt_or_kill_other_worker(env):
         engine_id=ENGINE, installation_id=INSTALL,
     )
     assert observer.status().state == "RECOVERY_REQUIRED"
-    with pytest.raises(ServiceRefused, match="QUIESCENCE"):
+    with pytest.raises(ServiceRefused, match="WORKER_OWNED"):
         observer.reconcile(expected_revision=started.revision)  # no adoption
     with pytest.raises(ServiceRefused, match="EXPLICIT_RECOVERY"):
         observer.start(expected_revision=started.revision, admission=guard, now=NOW)
