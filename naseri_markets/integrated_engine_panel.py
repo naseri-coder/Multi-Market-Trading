@@ -117,7 +117,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
             publication_line = (
                 "درخواست انتشار سیگنال: "
                 + ("✅ ثبت شده" if publication["requested_publication"] else "⏸ ثبت نشده")
-                + "\\nانتشار مؤثر سیگنال: 🔒 غیرفعال (موتور و ناشر متصل نیستند)\\n"
+                + "\nانتشار مؤثر سیگنال: 🔒 غیرفعال (موتور و ناشر متصل نیستند)\n"
             )
         return (
             f"{label}\nشناسه: {engine_id}\n"
