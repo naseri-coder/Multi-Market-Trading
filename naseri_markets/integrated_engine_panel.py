@@ -94,9 +94,21 @@ class IntegratedEnginePanel(CustomAdminPanel):
 
     def summary(self, host: EngineControlStore) -> str:
         items = host.list()
-        active = sum(x.enabled for x in items)
-        pending = sum(x.requested_enabled and not x.enabled for x in items)
         worker = host.brooks_worker_status()
+        brooks = next(
+            (x for x in items if x.engine_kind == "BUILTIN_BROOKS"), None)
+        prefs = host.preferences(brooks.engine_id) if brooks else None
+        paper_armed = bool(
+            brooks and brooks.requested_enabled and prefs
+            and prefs["signal_environment"] == "PAPER"
+            and prefs["market_scope"] in ("all", "crypto"))
+        paper_active = bool(
+            paper_armed and worker["connected"]
+            and worker["phase"] in ("WAITING", "ANALYZING"))
+        active = sum(x.enabled for x in items) + int(paper_active)
+        pending = (
+            sum(x.requested_enabled and not x.enabled for x in items)
+            - int(paper_active))
         worker_line = (
             "🟢 سرویس مستقل Brooks: " + worker["phase"] + "\n"
             if worker["connected"] else
