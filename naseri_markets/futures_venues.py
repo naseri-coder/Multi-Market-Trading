@@ -37,7 +37,7 @@ FUTURES_VENUES: tuple[FuturesVenue, ...] = (
     FuturesVenue("htx", "HTX", "UNVERIFIED", "CATALOG_ONLY"),
     FuturesVenue("lbank", "LBank", "UNVERIFIED", "CATALOG_ONLY"),
     FuturesVenue("toobit", "Toobit", "UNVERIFIED", "CATALOG_ONLY"),
-    FuturesVenue("bitunix", "Bitunix", "UNVERIFIED", "CATALOG_ONLY"),
+    FuturesVenue("bitunix", "Bitunix", "EXPLICIT_RESTRICTION", "CATALOG_ONLY"),
     FuturesVenue("weex", "WEEX", "EXPLICIT_RESTRICTION", "CATALOG_ONLY"),
     FuturesVenue("blofin", "BloFin", "UNVERIFIED", "CATALOG_ONLY"),
     FuturesVenue("phemex", "Phemex", "UNVERIFIED", "CATALOG_ONLY"),
@@ -58,6 +58,8 @@ PROVENANCE = {
         "https://www.weex.com/help/articles/4417379529241",
     "coinex_iran_geofencing":
         "https://www.coinex.com/en/blog/14875-coinex-official-statement-regarding-the-wall-street-journal-report",
+    "bitunix_iran_service_restriction":
+        "https://www.bitunix.com/fr-fr/hub/helpcenter/article/bitunix-restricted-regions-and-user-eligibility-notice?id=146",
     "kraken_timeframes":
         "https://docs.kraken.com/api/docs/futures-api/charts/candles",
 }
