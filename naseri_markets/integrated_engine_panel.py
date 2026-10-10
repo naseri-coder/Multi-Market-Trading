@@ -186,8 +186,8 @@ class IntegratedEnginePanel(CustomAdminPanel):
             f"{label}\nشناسه: {engine_id}\n"
             f"وضعیت: {status}\nنسخه تنظیمات هسته: {state.revision}\n"
             f"صرافی فیوچرز: {get_venue(prefs['futures_exchange']).name if worker is not None else '—'}\n"
-            f"آمادگی فید: {prefs['futures_feed_status'] if worker is not None else '—'}\n"
-            f"دسترسی کاربران ایران: {prefs['futures_iran_access'] if worker is not None else '—'}\n"
+            f"آمادگی فید: {feed_status_text(prefs['futures_exchange']) if worker is not None else '—'}\n"
+            f"دسترسی کاربران ایران: {iran_status_text(prefs['futures_exchange']) if worker is not None else '—'}\n"
             f"بازه زمانی انتخابی: {prefs['timeframe']} "
             f"({'مؤثر بر سرویس PAPER مستقل' if worker is not None else 'تنظیم'})\n"
             f"بازار انتخابی: {prefs['market_scope']}\n"
@@ -206,8 +206,8 @@ class IntegratedEnginePanel(CustomAdminPanel):
             venue = get_venue(preferences["futures_exchange"])
             venue_line = (
                 f"صرافی فیوچرز: {venue.name}\n"
-                f"وضعیت فید: {venue.feed_status}\n"
-                f"وضعیت ایران: {venue.iran_access}\n"
+                f"وضعیت فید: {feed_status_text(venue.key)}\n"
+                f"وضعیت ایران: {iran_status_text(venue.key)}\n"
                 "⚠️ وجود صرافی در فهرست به‌معنای مجاز بودن برای ایران نیست.\n"
                 "فقط صرافی با فید اعتبارسنجی‌شده قابلیت تحلیل PAPER دارد.\n")
         return (f"⚙️ تنظیمات {engine_id}\n"
