@@ -43,7 +43,11 @@ class IntegratedEnginePanel(CustomAdminPanel):
         if selected is None:
             rows = []
             for engine in host.list()[:30]:
-                if engine.runtime_status == "RUNTIME_NOT_MOUNTED":
+                worker = (host.brooks_worker_status()
+                          if engine.engine_kind == "BUILTIN_BROOKS" else None)
+                if worker is not None and worker["connected"]:
+                    badge = "🟢" if engine.requested_enabled else "⏸"
+                elif engine.runtime_status == "RUNTIME_NOT_MOUNTED":
                     badge = "🟡" if engine.requested_enabled else "🔒"
                 else:
                     badge = "✅" if engine.enabled else "⏸"
@@ -62,7 +66,11 @@ class IntegratedEnginePanel(CustomAdminPanel):
             raise AdminCustomPanelRefused("ENGINE_UNKNOWN_OR_PRIVATE")
         idtoken = _token(selected)
         requested = state.requested_enabled
+        worker = (host.brooks_worker_status()
+                  if state.engine_kind == "BUILTIN_BROOKS" else None)
         rows = [[Button(
+            ("⏸ توقف تحلیل PAPER" if requested else "✅ روشن کردن تحلیل PAPER")
+            if worker is not None and worker["connected"] else
             ("⏸ غیرفعال‌سازی" if requested else "✅ درخواست فعال‌سازی")
             if state.runtime_status == "RUNTIME_NOT_MOUNTED" else
             ("⏸ غیرفعال‌سازی PAPER" if requested else "✅ فعال‌سازی PAPER"),
@@ -88,6 +96,11 @@ class IntegratedEnginePanel(CustomAdminPanel):
         items = host.list()
         active = sum(x.enabled for x in items)
         pending = sum(x.requested_enabled and not x.enabled for x in items)
+        worker = host.brooks_worker_status()
+        worker_line = (
+            "🟢 سرویس مستقل Brooks: " + worker["phase"] + "\n"
+            if worker["connected"] else
+            "⚪ سرویس مستقل Brooks: " + worker["phase"] + "\n")
         owner_line = ("🔐 مرجع Custom خصوصی مالک، بدون اجرای کد.\n"
                       if host.owner_visible and host.get(OWNER_CORE_ID) is not None
                       else "")
@@ -95,8 +108,8 @@ class IntegratedEnginePanel(CustomAdminPanel):
             "🎛 مدیریت یکپارچه هسته‌های Multi Market Trading\n"
             f"هسته‌های قابل مشاهده: {len(items)} | PAPER فعال واقعی: {active}\n"
             f"درخواست فعال، فاقد اتصال موتور: {pending}\n"
-            "پرایس اکشن البروکس: مرجع داخلی؛ اجرای نسخه قدیمی متصل نشده.\n"
-            + owner_line +
+            "پرایس اکشن البروکس: تحلیل PAPER با سرویس مستقل اختیاری.\n"
+            + worker_line + owner_line +
             "کانال‌ها تنها تنظیم می‌شوند؛ ارسال خودکار: 🔒 خاموش.")
 
     def detail(self, host: EngineControlStore, engine_id: str) -> str:
@@ -111,7 +124,14 @@ class IntegratedEnginePanel(CustomAdminPanel):
             label = "🔐 Custom مالک | خصوصی"
         else:
             label = "🔌 Custom عمومی مورداعتماد"
-        if state.runtime_status == "RUNTIME_NOT_MOUNTED":
+        worker = (host.brooks_worker_status()
+                  if state.engine_kind == "BUILTIN_BROOKS" else None)
+        if worker is not None and worker["connected"]:
+            status = ("🟢 تحلیل PAPER آماده/درحال اجرا"
+                      if state.requested_enabled and
+                      prefs["signal_environment"] == "PAPER" else
+                      "⏸ سرویس حاضر است؛ تحلیل از پنل خاموش است")
+        elif state.runtime_status == "RUNTIME_NOT_MOUNTED":
             status = ("🟡 درخواست فعال‌سازی ثبت شده" if state.requested_enabled
                       else "⏸ درخواست اجرا غیرفعال")
             status += " — هسته واقعی هنوز متصل نیست"
@@ -123,21 +143,27 @@ class IntegratedEnginePanel(CustomAdminPanel):
             publication_line = (
                 "درخواست انتشار سیگنال: "
                 + ("✅ ثبت شده" if publication["requested_publication"] else "⏸ ثبت نشده")
-                + "\nانتشار مؤثر سیگنال: 🔒 غیرفعال (موتور و ناشر متصل نیستند)\n"
+                + "\nانتشار مؤثر سیگنال: 🔒 غیرفعال (ناشر کانال وجود ندارد)\n"
             )
         replay_line = ""
         if state.engine_kind == "BUILTIN_BROOKS":
             replay = host.brooks_replay_status()
             replay_line = (
-                f"اسکن‌های واقعی Replay: {replay['scans']}\n"
+                f"اسکن‌های واقعی PAPER: {replay['scans']}\n"
                 f"اسکن‌های بدون سیگنال: {replay['no_signal']}\n"
-                "مسیر تحلیل: Replay دستی یا Poller مستقل اختیاری PAPER؛ "
-                "Poller با اجرای صریح آغاز می‌شود؛ ربات عملیاتی متصل نیست.\n"
+                f"سرویس Kraken Futures: {worker['phase']}\n"
+                f"آخرین کندل: {worker['last_closed_candle'] or 'ثبت نشده'}\n"
+                f"چرخه‌های موفق: {worker['completed_cycles']} | "
+                f"خطاهای کنترل‌شده: {worker['refused_cycles']}\n"
+                f"آخرین خطا: {worker['last_error'] or 'ندارد'}\n"
+                "کنترل روشن/خاموش از پنل مؤثر است؛ آغاز فرایند مستقل "
+                "فقط با اجرای صریح در محیط توسعه.\n"
             )
         return (
             f"{label}\nشناسه: {engine_id}\n"
             f"وضعیت: {status}\nنسخه تنظیمات هسته: {state.revision}\n"
-            f"بازه زمانی انتخابی: {prefs['timeframe']} (تا اتصال فید، صرفاً تنظیم)\n"
+            f"بازه زمانی انتخابی: {prefs['timeframe']} "
+            f"({'مؤثر بر سرویس PAPER مستقل' if worker is not None else 'تنظیم'})\n"
             f"بازار انتخابی: {prefs['market_scope']}\n"
             f"محیط سیگنال: {prefs['signal_environment']} (بدون LIVE)\n"
             f"مقصد: {_safe_title(route['channel_title']) if route['channel_id'] else 'ثبت نشده'}\n"
@@ -150,7 +176,8 @@ class IntegratedEnginePanel(CustomAdminPanel):
     def settings_text(self, host: EngineControlStore, engine_id: str) -> str:
         preferences = host.preferences(engine_id)
         return (f"⚙️ تنظیمات {engine_id}\n"
-                f"تایم‌فریم: {preferences['timeframe']} (اطلاعاتی)\n"
+                f"تایم‌فریم: {preferences['timeframe']} "
+                f"({'مؤثر در سرویس مستقل PAPER' if engine_id == 'brooks_price_action' else 'اطلاعاتی'})\n"
                 f"بازار: {preferences['market_scope']}\n"
                 f"محیط: {preferences['signal_environment']}\n"
                 f"نسخه تنظیمات: {preferences['revision']}\n"
