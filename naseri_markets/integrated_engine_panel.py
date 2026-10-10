@@ -131,7 +131,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
             replay_line = (
                 f"اسکن‌های واقعی Replay: {replay['scans']}\n"
                 f"اسکن‌های بدون سیگنال: {replay['no_signal']}\n"
-                "مسیر تحلیل: اجرای دستی PAPER با داده کندلی آفلاین؛ "
+                "مسیر تحلیل: Replay دستی یا Poller مستقل اختیاری PAPER؛ "
                 "ربات آنلاین به موتور متصل نیست.\n"
             )
         return (
