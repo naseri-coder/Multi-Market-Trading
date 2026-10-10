@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from naseri_markets.brooks_kraken_feed import (
-    KrakenFeedRefused, poll_once, verified_kraken_tick,
+    KrakenFeedRefused, poll_once,
 )
 from naseri_markets.brooks_paper_service import BrooksPaperService
 from naseri_markets.engine_control_store import BROOKS_ENGINE_ID, EngineControlStore
