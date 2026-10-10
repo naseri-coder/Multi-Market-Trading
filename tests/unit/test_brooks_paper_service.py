@@ -153,13 +153,14 @@ def test_status_lease_stale_cas_and_duplicate_owner_fenced(tmp_path):
         host.brooks_worker_heartbeat(
             worker_id=id1, now=1002, phase="ANALYZING")
         assert host.brooks_worker_status(now=1010)["connected"]
-        assert host.brooks_worker_status(now=1035)["phase"] == "STALE"
-        assert not host.brooks_worker_status(now=1035)["connected"]
-        host.brooks_worker_claim(worker_id=id2, now=1035)
+        assert host.brooks_worker_status(now=1035)["phase"] == "ANALYZING"
+        assert host.brooks_worker_status(now=1093)["phase"] == "STALE"
+        assert not host.brooks_worker_status(now=1093)["connected"]
+        host.brooks_worker_claim(worker_id=id2, now=1093)
         with pytest.raises(LocalCustomRefused, match="STALE_OWNER"):
-            host.brooks_worker_heartbeat(worker_id=id1, now=1036, phase="IDLE")
-        host.brooks_worker_heartbeat(worker_id=id2, now=1036, phase="STOPPED")
-        assert not host.brooks_worker_status(now=1036)["connected"]
+            host.brooks_worker_heartbeat(worker_id=id1, now=1094, phase="IDLE")
+        host.brooks_worker_heartbeat(worker_id=id2, now=1094, phase="STOPPED")
+        assert not host.brooks_worker_status(now=1094)["connected"]
 
 
 def test_singleton_file_lock_enforced(tmp_path):
