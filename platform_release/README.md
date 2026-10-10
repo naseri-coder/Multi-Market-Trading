@@ -13,3 +13,15 @@ download capability.
 The historical v0.3.2 `crypto-price-action` release has a distinct
 Python package, Dockerfile, Compose project and PostgreSQL volume.
 No migration between the two is performed by this candidate.
+
+
+## Actual public Custom PAPER workflow (operator-trusted code only)
+
+The optional installed `naseri-custom` CLI now supports **explicitly
+operator-approved locally stored standalone Python Custom scripts** and
+PAPER-only replay with a durable SQLite journal. Source hash pinning and
+`--trust-local-code` are mandatory. It is NOT an untrusted-code sandbox,
+public automatic installer, signed A24/A25 publisher entitlement, live feed,
+Telegram bot, or broker/trading integration. See
+[trusted local Custom PAPER MVP](../docs/TRUSTED_LOCAL_CUSTOM_PAPER_MVP.md)
+for commands, the ABI and the private NY First-Reversal exclusion.

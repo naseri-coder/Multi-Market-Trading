@@ -1,0 +1,107 @@
+name: Trusted Custom local PAPER product MVP
+
+on:
+  push:
+    branches: [feature/custom-trusted-local-paper-mvp]
+  pull_request:
+    paths:
+      - "naseri_markets/trusted_custom.py"
+      - "naseri_markets/custom_cli.py"
+      - "naseri_markets/public_demo_custom_worker.py"
+      - "tests/unit/test_trusted_custom_mvp.py"
+      - "platform_release/pyproject.toml"
+      - "platform_release/README.md"
+      - "docs/TRUSTED_LOCAL_CUSTOM_PAPER_MVP.md"
+      - ".github/workflows/trusted-custom-paper-mvp.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  actual-installed-custom-mvp:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Immutable legacy source, publication preflight and strict Ruff
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+          python -m pip install "ruff==0.16.9"
+          python -m ruff check --select E4,F \
+            naseri_markets/trusted_custom.py \
+            naseri_markets/custom_cli.py \
+            naseri_markets/public_demo_custom_worker.py \
+            tests/unit/test_trusted_custom_mvp.py
+      - name: Real local trusted plugin, SHA and atomic disable/PAPER acceptance
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m pytest -q \
+            tests/unit/test_trusted_custom_mvp.py \
+            tests/unit/test_a21_custom_contract.py \
+            tests/unit/test_a22_custom_bridge.py \
+            tests/unit/test_a7_replay_pipeline.py \
+            tests/unit/test_a8_plugin_framework.py
+      - name: Build isolated public wheel and run its executable CLI
+        run: |
+          set -Eeuo pipefail
+          OUT="$RUNNER_TEMP/public-stage"
+          python scripts/a6_prepare_package.py --destination "$OUT"
+          python -m venv "$RUNNER_TEMP/clean-custom"
+          "$RUNNER_TEMP/clean-custom/bin/python" -m pip install "$OUT"
+          "$RUNNER_TEMP/clean-custom/bin/naseri-markets" --check
+          "$RUNNER_TEMP/clean-custom/bin/naseri-custom" sample --output-dir "$RUNNER_TEMP/toy-example"
+          test -f "$RUNNER_TEMP/toy-example/descriptor.json"
+          test -f "$RUNNER_TEMP/toy-example/public_toy_demo.py"
+          "$RUNNER_TEMP/clean-custom/bin/python" - <<'PY'
+          import hashlib, json, os, pathlib, subprocess
+          base = pathlib.Path(os.environ["RUNNER_TEMP"])
+          cli = base / "clean-custom/bin/naseri-custom"
+          example = base / "toy-example"
+          state = base / "toy-state"
+          digest = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+          descriptor = example / "descriptor.json"
+          script = example / "public_toy_demo.py"
+          quote = example / "quote.json"
+          def run(*args, ok=True):
+              p = subprocess.run([str(cli), "--state-dir", str(state), *args],
+                                 capture_output=True, text=True, timeout=12)
+              assert (p.returncode == 0) == ok, p.stderr
+              return json.loads(p.stdout) if ok else p.stderr
+          assert run("list") == []
+          d = digest(descriptor)
+          assert not run("register", "--descriptor", str(descriptor),
+                         "--code", str(script), "--descriptor-sha256", d,
+                         "--code-sha256", digest(script),
+                         "--trust-local-code")["enabled"]
+          assert run("enable", "public_toy_demo", "--revision", "1",
+                     "--descriptor-sha256", d)["enabled"]
+          answer = run("paper", "public_toy_demo", "--quote", str(quote))
+          assert answer["stored"] == 1 and not answer["live_trading_permitted"]
+          answer = run("paper", "public_toy_demo", "--quote", str(quote))
+          assert answer["result"] == "DUPLICATE"
+          assert len(run("signals", "--engine-id", "public_toy_demo")) == 1
+          assert not run("disable", "public_toy_demo", "--revision", "2")["enabled"]
+          assert "REFUSED" in run("paper", "public_toy_demo",
+                                  "--quote", str(quote), ok=False)
+          print("TRUSTED_PUBLIC_CUSTOM_INSTALLED_WHEEL_PAPER_MVP_PASS")
+          PY
+      - name: Public-wheel path excludes proprietary NYFR and binary source
+        run: |
+          set -Eeuo pipefail
+          test ! -e "$RUNNER_TEMP/public-stage/naseri_markets/private_nyfr_core.py"
+          test ! -e "$RUNNER_TEMP/public-stage/naseri_markets/r0_engine.py"
+          if find "$RUNNER_TEMP/public-stage" -type f \
+             \( -name '*.enc' -o -name '*.age' -o -name '*.zip' \
+                -o -name '*.so' -o -name '*.pyd' -o -name '*.bin' \) | grep -q .; then
+            echo "PRIVATE_ARTIFACT_BLOCKED"; exit 1
+          fi
+          echo "CUSTOM_PUBLIC_OWNER_NYFR_EXCLUDED_PASS"

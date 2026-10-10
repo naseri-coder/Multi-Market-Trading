@@ -24,7 +24,10 @@ def check() -> dict:
         raise ValueError("A6_VERSION_OR_NAME_MISMATCH")
     if newer["project"]["dependencies"]:
         raise ValueError("UNREVIEWED_RUNTIME_DEPENDENCIES")
-    if newer["project"]["scripts"] != {"naseri-markets": "naseri_markets.platform_cli:main"}:
+    if newer["project"]["scripts"] != {
+        "naseri-markets": "naseri_markets.platform_cli:main",
+        "naseri-custom": "naseri_markets.custom_cli:main",
+    }:
         raise ValueError("A6_CLI_INVALID")
     old_compose = (ROOT / "compose.yaml").read_text()
     if "\nname: crypto-price-action\n" not in "\n" + old_compose:
