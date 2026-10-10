@@ -47,7 +47,13 @@ class IntegratedEnginePanel(CustomAdminPanel):
                     badge = "🟡" if engine.requested_enabled else "🔒"
                 else:
                     badge = "✅" if engine.enabled else "⏸"
-                rows.append([Button(f"{badge} {engine.engine_id}",
+                label = (
+                    "📚 پرایس اکشن البروکس (Brooks)"
+                    if engine.engine_kind == "BUILTIN_BROOKS" else
+                    "🔐 NY First-Reversal — Custom اختصاصی"
+                    if engine.engine_kind == "OWNER_CUSTOM" else engine.engine_id
+                )
+                rows.append([Button(f"{badge} {label}",
                                     callback_data=f"cm:open:{_token(engine.engine_id)}")])
             rows.append([Button("🔄 تازه‌سازی", callback_data="cm:list")])
             return InlineKeyboardMarkup(rows)
@@ -119,6 +125,15 @@ class IntegratedEnginePanel(CustomAdminPanel):
                 + ("✅ ثبت شده" if publication["requested_publication"] else "⏸ ثبت نشده")
                 + "\nانتشار مؤثر سیگنال: 🔒 غیرفعال (موتور و ناشر متصل نیستند)\n"
             )
+        replay_line = ""
+        if state.engine_kind == "BUILTIN_BROOKS":
+            replay = host.brooks_replay_status()
+            replay_line = (
+                f"اسکن‌های واقعی Replay: {replay['scans']}\n"
+                f"اسکن‌های بدون سیگنال: {replay['no_signal']}\n"
+                "مسیر تحلیل: اجرای دستی PAPER با داده کندلی آفلاین؛ "
+                "ربات آنلاین به موتور متصل نیست.\n"
+            )
         return (
             f"{label}\nشناسه: {engine_id}\n"
             f"وضعیت: {status}\nنسخه تنظیمات هسته: {state.revision}\n"
@@ -128,6 +143,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
             f"مقصد: {_safe_title(route['channel_title']) if route['channel_id'] else 'ثبت نشده'}\n"
             f"انتشار به کانال: 🔒 DISABLED\n"
             f"{publication_line}"
+            f"{replay_line}"
             f"سیگنال‌های PAPER: {len(host.signals(engine_id))}\n"
             "تغییرات تنها بر همین هسته اعمال می‌شوند.")
 

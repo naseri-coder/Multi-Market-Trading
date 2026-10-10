@@ -6,14 +6,17 @@ on:
   pull_request:
     paths:
       - "naseri_markets/engine_control_store.py"
+      - "naseri_markets/brooks_replay.py"
       - "naseri_markets/integrated_engine_panel.py"
       - "naseri_markets/bot_admin_app.py"
       - "naseri_markets/custom_admin_panel.py"
       - "naseri_markets/trusted_custom.py"
       - "tests/unit/test_integrated_engine_panel.py"
+      - "tests/unit/test_brooks_real_offline_replay.py"
       - "tests/unit/test_public_brooks_publication_controls.py"
       - "docs/PUBLIC_BROOKS_SIGNAL_MANAGEMENT.md"
       - "docs/INTEGRATED_ENGINE_MANAGEMENT.md"
+      - "docs/BROOKS_REAL_OFFLINE_PAPER_REPLAY.md"
       - "platform_release/pyproject.toml"
       - "scripts/a6_release_preflight.py"
       - ".github/workflows/integrated-engine-admin.yml"
@@ -42,17 +45,20 @@ jobs:
           python -m pip install -e ".[dev]"
           python -m ruff check --select E4,F \
             naseri_markets/engine_control_store.py \
+            naseri_markets/brooks_replay.py \
             naseri_markets/integrated_engine_panel.py \
             naseri_markets/bot_admin_app.py \
             naseri_markets/custom_admin_panel.py \
             naseri_markets/trusted_custom.py \
             tests/unit/test_integrated_engine_panel.py \
+            tests/unit/test_brooks_real_offline_replay.py \
             tests/unit/test_public_brooks_publication_controls.py
       - name: End-to-end private engine catalog/Telegram callbacks/real PAPER
         run: |
           set -Eeuo pipefail
           python -m pytest -q \
             tests/unit/test_integrated_engine_panel.py \
+            tests/unit/test_brooks_real_offline_replay.py \
             tests/unit/test_public_brooks_publication_controls.py \
             tests/unit/test_custom_admin_panel.py \
             tests/unit/test_trusted_custom_mvp.py \
@@ -69,6 +75,7 @@ jobs:
           "$RUNNER_TEMP/engine-admin-clean/bin/python" -m pip install \
             "$RUNNER_TEMP/engine-admin-public[telegram-admin]"
           "$RUNNER_TEMP/engine-admin-clean/bin/naseri-markets" --check
+          "$RUNNER_TEMP/engine-admin-clean/bin/naseri-brooks-replay" --help >/dev/null
           "$RUNNER_TEMP/engine-admin-clean/bin/naseri-engine-admin" \
             --state-dir "$RUNNER_TEMP/engine-admin-state" \
             --admin-ids 123456789 --owner-ids 123456789 --check
