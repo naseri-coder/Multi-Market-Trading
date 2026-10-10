@@ -66,7 +66,7 @@ async def test_blocked_exchanges_cannot_be_selected_via_private_panel(tmp_path):
         assert not any(
             b.callback_data.startswith("ep:set:")
             for row in pair_menu.inline_keyboard for b in row)
-        assert "قابل انتخاب" in panel.settings_text(host, BROOKS_ENGINE_ID)
+        assert "غیرمجاز برای انتخاب" in panel.settings_text(host, BROOKS_ENGINE_ID)
 
     message = SimpleNamespace(reply_text=AsyncMock())
     cb = SimpleNamespace(
