@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools==80.9.0", "wheel==0.45.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "multi-market-trading"
+version = "0.4.0rc1"
+description = "NASERI MARKETS public strategy-neutral offline multi-market platform preview"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[project.scripts]
+naseri-markets = "naseri_markets.platform_cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["naseri_markets", "naseri_markets.*"]

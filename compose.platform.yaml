@@ -1,0 +1,19 @@
+# Only for non-production, ephemeral validation. Nothing starts by default.
+# No PostgreSQL service/volume, no legacy database attachment and no network.
+name: multi-market-trading
+services:
+  platform-check:
+    profiles: ["validation"]
+    build:
+      context: .
+      dockerfile: Dockerfile.platform
+    image: multi-market-trading:0.4.0rc1
+    network_mode: none
+    read_only: true
+    user: "10001:10001"
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=8m,mode=1777
+    restart: "no"
