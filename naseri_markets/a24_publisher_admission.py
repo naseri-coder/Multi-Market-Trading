@@ -89,6 +89,8 @@ def _parse_envelope(raw: bytes) -> tuple[dict, bytes, bytes, str]:
         obj = json.loads(raw.decode("ascii"), object_pairs_hook=_unique,
                          parse_constant=lambda _: (_ for _ in ()).throw(
                              PublisherAdmissionRefused("A24_NONFINITE")))
+    except PublisherAdmissionRefused:
+        raise
     except (UnicodeError, ValueError) as exc:
         raise PublisherAdmissionRefused("A24_INVALID_ENVELOPE") from exc
     if type(obj) is not dict or set(obj) != _ENVELOPE_FIELDS:
