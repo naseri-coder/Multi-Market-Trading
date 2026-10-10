@@ -25,3 +25,14 @@ public automatic installer, signed A24/A25 publisher entitlement, live feed,
 Telegram bot, or broker/trading integration. See
 [trusted local Custom PAPER MVP](../docs/TRUSTED_LOCAL_CUSTOM_PAPER_MVP.md)
 for commands, the ABI and the private NY First-Reversal exclusion.
+
+
+### Optional Telegram administration controls
+
+Install the optional `[telegram-admin]` extra and mount
+`CustomAdminPanel(...).register(application)` into the **same** approved
+python-telegram-bot application. Provides private admin-only per-engine
+PAPER enable/disable, verified private channel destination configuration
+(**delivery remains disabled**), PAPER signal previews and audit history.
+This is **not** integrated into the old frozen production bot or deployed.
+See [Custom admin panel guide](../docs/CUSTOM_TELEGRAM_ADMIN_PANEL.md).

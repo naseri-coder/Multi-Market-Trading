@@ -10,6 +10,9 @@ readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = []
 
+[project.optional-dependencies]
+telegram-admin = ["python-telegram-bot==22.8"]
+
 [project.scripts]
 naseri-markets = "naseri_markets.platform_cli:main"
 naseri-custom = "naseri_markets.custom_cli:main"
