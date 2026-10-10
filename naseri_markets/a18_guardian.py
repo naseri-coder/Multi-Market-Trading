@@ -6,8 +6,6 @@ strings. It is NOT an untrusted binary sandbox or a production service.
 """
 from __future__ import annotations
 
-import ctypes
-import errno
 import fcntl
 import hmac
 import json
@@ -15,7 +13,6 @@ import os
 import re
 import secrets
 import select
-import signal
 import socket
 import subprocess
 import sys
