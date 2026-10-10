@@ -64,7 +64,7 @@ class CustomAdminPanel:
         object.__setattr__(self, "state_dir", Path(state_dir))
         object.__setattr__(self, "admin_ids", allowed)
 
-    def _open(self) -> TrustedLocalCustomHost:
+    def _open(self, actor_id: int | None = None) -> TrustedLocalCustomHost:
         return TrustedLocalCustomHost(self.state_dir)
 
     def keyboard(self, host: TrustedLocalCustomHost, selected: str | None = None):
@@ -129,7 +129,7 @@ class CustomAdminPanel:
         msg = update.effective_message
         if msg is None:
             return
-        with self._open() as host:
+        with self._open(update.effective_user.id) as host:
             await msg.reply_text(self.summary(host), reply_markup=self.keyboard(host))
 
     async def callback(self, update, context) -> None:
@@ -146,7 +146,7 @@ class CustomAdminPanel:
         await query.answer()
         context.user_data.pop(_PENDING, None)
         try:
-            with self._open() as host:
+            with self._open(update.effective_user.id) as host:
                 if command in ("list", "back"):
                     text = self.summary(host)
                     markup = self.keyboard(host)
@@ -238,7 +238,7 @@ class CustomAdminPanel:
                     or (member.status == "administrator"
                         and getattr(member, "can_post_messages", False) is not True)):
                 raise AdminCustomPanelRefused("CUSTOM_PRIVATE_CHANNEL_NOT_VERIFIED")
-            with self._open() as host:
+            with self._open(update.effective_user.id) as host:
                 state = host.get(engine_id)
                 if state is None or state.revision != expected_revision:
                     raise AdminCustomPanelRefused("CUSTOM_PENDING_REVISION_CHANGED")
