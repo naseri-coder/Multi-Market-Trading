@@ -20,14 +20,14 @@ from naseri_markets.delivery_ledger import IdentityConflict
 from naseri_markets.paper_journal import PaperJournal
 from test_a22_custom_bridge import metadata, pinned, sample
 from test_a23_sandbox_adapter import enable
-from test_a24_publisher_admission import INSTALL, NOW, service
+from test_a24_publisher_admission import INSTALL, NOW, ctx as a24_ctx, service
 from test_a25_bundle_admission import case as a25_case, args, pack, release
 from test_a7_replay_pipeline import INST, quote, session
 
 
 @pytest.fixture
 def rig(request, tmp_path):
-    assert callable(a25_case)
+    assert callable(a25_case) and callable(a24_ctx)
     case = request.getfixturevalue("a25_case")
     ctx, gate, bundle, a24_envelope = case
     original = ctx[6]
