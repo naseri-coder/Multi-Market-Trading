@@ -11,7 +11,6 @@ import argparse
 import asyncio
 import hashlib
 import json
-import os
 import re
 import subprocess
 import sys
@@ -330,7 +329,7 @@ def replay_once(*, state_dir: str | Path, legacy_source: str | Path,
         "snapshot_hash": obj["snapshot_hash"], "source": source_digest,
         "market": instrument.market.value, "provider": instrument.provider,
         "symbol": instrument.symbol, "version": obj["engine_version"],
-        "timeframe": raw["timeframe"], "decision": obj["decision"],
+        "timeframe": raw["timeframe"],
     }, sort_keys=True).encode()).hexdigest()
     report = {
         "engine_id": BROOKS_ENGINE_ID,
