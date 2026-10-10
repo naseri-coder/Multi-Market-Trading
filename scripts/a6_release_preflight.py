@@ -29,6 +29,7 @@ def check() -> dict:
         "naseri-custom": "naseri_markets.custom_cli:main",
         "naseri-engine-admin": "naseri_markets.bot_admin_app:main",
         "naseri-brooks-replay": "naseri_markets.brooks_replay:main",
+        "naseri-brooks-market": "naseri_markets.brooks_market_feed:main",
     }:
         raise ValueError("A6_CLI_INVALID")
     old_compose = (ROOT / "compose.yaml").read_text()
