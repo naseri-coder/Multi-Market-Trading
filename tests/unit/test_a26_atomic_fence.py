@@ -74,9 +74,15 @@ async def test_a26_full_dual_signed_inert_fixture_atomic_paper_commit_and_duplic
     assert first.status == "PAPER_RECORDED"
     assert first.stored == 1 and first.duplicate == 0
     assert journal.count() == 1
+    # A22 filters the same quote as DUPLICATE before reaching the journal.
     second = await guarded.dispatch(sample(), tick=tick, now=NOW,
                                     expected_revision=2)
-    assert second.stored == 0 and second.duplicate == 1
+    assert second.status == "QUOTE_REJECTED"
+    assert second.stored == 0 and second.duplicate == 0
+    # A26 separately verifies idempotency at the SQL commit boundary.
+    intent = inspect_custom_paper_fixture(ctx[1], sample(), tick)
+    replay = guarded.fence.commit([intent], now=NOW)
+    assert replay.inserted == 0 and replay.duplicate == 1
     assert journal.count() == 1
     assert journal.get("custom_demo", "example-paper-1") is not None
 
