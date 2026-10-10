@@ -92,6 +92,17 @@ class PluginManager:
             ),
         )
 
+    def incarnation(self, engine_id: str) -> int:
+        """Stable install generation, advancing across deletion/re-registration.
+
+        Consulted by the paper dispatch guard; no actual plugin is loaded.
+        """
+        row = self._db.execute(
+            "SELECT last_revision FROM a9_plugin_tombstones WHERE engine_id=?",
+            (engine_id,),
+        ).fetchone()
+        return int(row["last_revision"]) if row is not None else 0
+
     def get(self, engine_id: str) -> PluginState | None:
         row = self._db.execute(
             "SELECT * FROM a8_plugins WHERE engine_id=?", (engine_id,)
