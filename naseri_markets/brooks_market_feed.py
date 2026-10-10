@@ -147,7 +147,10 @@ def closed_candle_payload(*, symbol: str, timeframe: str, bars: int = 128,
     if len(payload) > MAX_REPLAY_BYTES:
         raise BrooksMarketFeedRefused("BROOKS_FEED_REPLAY_BOUNDS")
     # Reuse the genuine strict contiguous OHLCV validator before any engine call.
-    parse_candle_replay(payload)
+    try:
+        parse_candle_replay(payload)
+    except BrooksReplayRefused as exc:
+        raise BrooksMarketFeedRefused("BROOKS_FEED_REPLAY_VALIDATION_FAILED") from exc
     return payload, latest
 
 
