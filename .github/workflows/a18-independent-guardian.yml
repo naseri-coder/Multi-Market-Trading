@@ -1,0 +1,86 @@
+name: A18 Multi Market Trading independent fixture guardian
+
+on:
+  push:
+    branches: [feature/a18-independent-sandbox-guardian]
+  pull_request:
+    paths:
+      - "naseri_markets/a18_guardian.py"
+      - "naseri_markets/a18_controller.py"
+      - "tests/unit/test_a18_guardian.py"
+      - "docs/MULTI_MARKET_TRADING_A18_GUARDIAN.md"
+      - ".github/workflows/a18-independent-guardian.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  a18-linux-guardian:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Verify frozen historical manifest and offline platform preflight
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+          test -r /proc/self/status
+          ldconfig -p | grep -F 'libseccomp.so.2'
+      - name: A18 Linux independent kernel confinement SIGKILL and signed gate regressions
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m pip install "cryptography==46.0.3"
+          python -m pytest -q \
+            tests/unit/test_a18_guardian.py \
+            tests/unit/test_a17_watchdog.py \
+            tests/unit/test_a16_supervisor.py \
+            tests/unit/test_a15_releases.py \
+            tests/unit/test_a14_packages.py \
+            tests/unit/test_a13_provisioning.py \
+            tests/unit/test_a12_trust.py
+      - name: No strategy imports, no signing secrets, strict public Python lint
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check --select E4,F \
+            naseri_markets/a18_guardian.py \
+            naseri_markets/a18_controller.py \
+            tests/unit/test_a18_guardian.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          forbidden = {
+              "requests", "urllib", "httpx", "aiohttp", "importlib",
+              "MetaTrader5", "r0_engine", "private_nyfr_core",
+          }
+          for name in ("a18_guardian.py", "a18_controller.py"):
+              path = Path("naseri_markets") / name
+              code = path.read_text()
+              tree = ast.parse(code)
+              for n in ast.walk(tree):
+                  if isinstance(n, ast.Import):
+                      assert all(a.name.split(".")[0] not in forbidden for a in n.names)
+                  if isinstance(n, ast.ImportFrom):
+                      assert (n.module or "").split(".")[0] not in forbidden
+              for unsafe in ("shell=True", "preexec_fn=", "Ed25519PrivateKey",
+                             "production_source"):
+                  assert unsafe not in code
+          print("A18_PRIVATE_BOUNDARY_FAIL_CLOSED_PASS")
+          PY
+      - name: Public isolated distribution no private strategy and no secrets
+        run: |
+          set -Eeuo pipefail
+          python -m pip install "setuptools==80.9.0" "wheel==0.45.1"
+          python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/a18-wheel"
+          test -f "$RUNNER_TEMP/a18-wheel/naseri_markets/a18_guardian.py"
+          test -f "$RUNNER_TEMP/a18-wheel/naseri_markets/a18_controller.py"
+          test ! -e "$RUNNER_TEMP/a18-wheel/naseri_markets/private_nyfr_core.py"
+          test ! -e "$RUNNER_TEMP/a18-wheel/naseri_markets/r0_engine.py"
+          echo "A18_PUBLIC_ONLY_DISTRIBUTION_PASS"
