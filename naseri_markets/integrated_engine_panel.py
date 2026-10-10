@@ -15,7 +15,9 @@ from .custom_admin_panel import (
     AdminCustomPanelRefused, CustomAdminPanel, _private_admin,
     _resolve, _safe_title, _token,
 )
-from .engine_control_store import EngineControlStore, MARKET_SCOPES, TIMEFRAMES
+from .engine_control_store import (
+    OWNER_CORE_ID, EngineControlStore, MARKET_SCOPES, TIMEFRAMES,
+)
 from .trusted_custom import LocalCustomRefused
 
 _MORE = re.compile(r"em:(settings|tf|market|env):([0-9a-f]{12})(?::([0-9]+))?\Z")
@@ -73,12 +75,15 @@ class IntegratedEnginePanel(CustomAdminPanel):
         items = host.list()
         active = sum(x.enabled for x in items)
         pending = sum(x.requested_enabled and not x.enabled for x in items)
+        owner_line = ("🔐 مرجع Custom خصوصی مالک، بدون اجرای کد.\\n"
+                      if host.owner_visible and host.get(OWNER_CORE_ID) is not None
+                      else "")
         return (
             "🎛 مدیریت یکپارچه هسته‌های Multi Market Trading\n"
             f"هسته‌های قابل مشاهده: {len(items)} | PAPER فعال واقعی: {active}\n"
             f"درخواست فعال، فاقد اتصال موتور: {pending}\n"
             "پرایس اکشن البروکس: مرجع داخلی؛ اجرای نسخه قدیمی متصل نشده.\n"
-            "NY First-Reversal: Custom اختصاصی و فقط در فهرست خصوصی مالک.\n"
+            + owner_line
             "کانال‌ها تنها تنظیم می‌شوند؛ ارسال خودکار: 🔒 خاموش.")
 
     def detail(self, host: EngineControlStore, engine_id: str) -> str:
