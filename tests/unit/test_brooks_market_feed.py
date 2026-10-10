@@ -206,3 +206,23 @@ def test_cli_requires_explicit_development_ack_and_never_starts_implicitly():
         "--once", "--state-dir", "/unused", "--legacy-source", "/unused",
         "--symbol", "BTCUSDT",
     ]) == 2
+
+
+def test_binance_http_status_sanitized_and_denied(monkeypatch):
+    """Do not leak exchange response contents or silently treat HTTP errors as OHLCV."""
+    from urllib.error import HTTPError
+
+    class Rejected:
+        def open(self, request, timeout):
+            raise HTTPError(
+                request.full_url, 451, "sensitive upstream body",
+                hdrs=None, fp=None,
+            )
+
+    monkeypatch.setattr(
+        brooks_market_feed.urllib.request, "build_opener",
+        lambda *handlers: Rejected(),
+    )
+    with pytest.raises(BrooksMarketFeedRefused, match="BROOKS_FEED_HTTP_451") as error:
+        brooks_market_feed._download_klines("BTCUSDT", "15m", 73, 8)
+    assert "sensitive" not in str(error.value)

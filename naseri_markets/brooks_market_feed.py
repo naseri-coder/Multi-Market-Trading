@@ -59,6 +59,10 @@ def _download_klines(symbol: str, timeframe: str, limit: int, timeout: int) -> b
             data = response.read(_MAX_REPLY + 1)
     except BrooksMarketFeedRefused:
         raise
+    except urllib.error.HTTPError as exc:
+        # Only the numeric HTTP status is exposed, never the raw response,
+        # request URL, headers or region-specific error body.
+        raise BrooksMarketFeedRefused(f"BROOKS_FEED_HTTP_{exc.code}") from exc
     except (OSError, urllib.error.URLError, ValueError) as exc:
         raise BrooksMarketFeedRefused("BROOKS_FEED_NETWORK_UNAVAILABLE") from exc
     if not 0 < len(data) <= _MAX_REPLY:

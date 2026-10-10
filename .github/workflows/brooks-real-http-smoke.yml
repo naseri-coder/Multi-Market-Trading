@@ -1,0 +1,47 @@
+name: Brooks actual public HTTPS PAPER smoke — ephemeral only
+
+on:
+  pull_request:
+    paths:
+      - "scripts/brooks_real_http_smoke.py"
+      - "naseri_markets/brooks_market_feed.py"
+      - "docs/BROOKS_REAL_HTTP_E2E.md"
+      - ".github/workflows/brooks-real-http-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-public-http-brooks-paper:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    # No daemon, database service, Telegram bot/token, exchange account or broker.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with: {python-version: "3.12"}
+      - name: Verify historical frozen source; install development test dependencies
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+          python -m pip install -e ".[dev]"
+          python -m ruff check --select E4,F scripts/brooks_real_http_smoke.py
+          python -m compileall -q scripts/brooks_real_http_smoke.py
+      - name: Verify no HTTP or side effect without explicit acknowledgement
+        run: |
+          set -Eeuo pipefail
+          if python -m scripts.brooks_real_http_smoke \
+            --legacy-source production_source; then
+              echo "UNACKNOWLEDGED_NETWORK_SMOKE_WAS_NOT_BLOCKED"; exit 1
+          fi
+      - name: Read actual Binance public HTTPS and run exactly two Brooks PAPER cycles
+        timeout-minutes: 5
+        run: |
+          set -Eeuo pipefail
+          python -m scripts.brooks_real_http_smoke \
+            --legacy-source production_source \
+            --cycles 2 \
+            --ack-public-http-paper
