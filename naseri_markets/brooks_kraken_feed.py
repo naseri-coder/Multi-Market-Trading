@@ -120,7 +120,8 @@ def verified_kraken_tick(
             or type(blob.get("instruments")) is not list):
         raise KrakenFeedRefused("KRAKEN_TICK_SCHEMA_INVALID")
     matches = [row for row in blob["instruments"]
-               if type(row) is dict and row.get("symbol", "").upper() == symbol]
+               if type(row) is dict and type(row.get("symbol")) is str
+               and row["symbol"].upper() == symbol]
     if len(matches) != 1 or matches[0].get("tradeable") is not True:
         raise KrakenFeedRefused("KRAKEN_TICK_INSTRUMENT_NOT_TRADEABLE")
     row = matches[0]
