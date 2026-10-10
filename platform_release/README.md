@@ -43,9 +43,25 @@ See [Custom admin panel guide](../docs/CUSTOM_TELEGRAM_ADMIN_PANEL.md).
 The installed `naseri-engine-admin` command can perform a local offline
 `--check` and only under explicit development flags mount a single Telegram
 Application with `/engines` and `/custom`. It lists Al Brooks as a built-in
-reference, with **non-operational requested enable/disable** until the legacy
-Brooks runtime is bridged. NY First-Reversal is a protected, owner-only
+reference, with separately requested analysis/publication. The new explicit
+`naseri-brooks-replay` command runs the genuine frozen Brooks full-core V5
+against validated offline candle windows and stores PAPER results for the
+admin panel; the continuously running bot engine remains **not mounted**. NY First-Reversal is a protected, owner-only
 Custom **metadata reference** (opt-in `--owner-reference`); no private code
 is installed or exposed. Per-engine OFF/PAPER, market, timeframe preferences,
 private channel settings and admin audit are available. No auto channel
 sending or live trading. See [integrated engine management](../docs/INTEGRATED_ENGINE_MANAGEMENT.md).
+
+
+## Genuine Brooks full-core replay (public, offline PAPER only)
+
+The `naseri-brooks-replay` command requires explicit local paths to a
+SHA-verified historical `production_source` directory and an offline
+closed-candle replay file. It calls the **actual** existing Al Brooks V5
+analyzer in a separate trusted local worker and records only eligible
+PAPER intents or no-signal scan evidence in the unified private SQLite
+journal. Settings are checked before execution and under the final journal
+writer lock. Brooks PAPER outcomes are visible to the private admin through
+`/engines`. No live data, automatic channel posting, broker orders or
+private NYFR loading. Full usage and boundaries:
+[Real Brooks offline PAPER replay](../docs/BROOKS_REAL_OFFLINE_PAPER_REPLAY.md).
