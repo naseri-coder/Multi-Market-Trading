@@ -225,8 +225,8 @@ async def test_private_admin_panel_displays_actual_heartbeat_and_toggle(tmp_path
     with EngineControlStore(folder) as host:
         host.brooks_worker_claim(worker_id=owner, now=int(CLOCK.timestamp()))
         # Details must not claim an active worker when heartbeat becomes stale.
-        assert "NOT_INSTALLED" not in panel.detail(host, BROOKS_ENGINE_ID)
-        assert "STALE" not in panel.detail(host, BROOKS_ENGINE_ID)
+        assert "سرویس Kraken Futures: STALE" in panel.detail(
+            host, BROOKS_ENGINE_ID)
     # For actual fresh state, use real wall-clock time in the lease.
     import time
     with EngineControlStore(folder) as host:
