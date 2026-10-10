@@ -20,7 +20,7 @@ from naseri_markets.a25_bundle_admission import (
 from naseri_markets.a24_publisher_admission import PublisherAdmissionRefused
 from test_a24_publisher_admission import (
     INSTALL, NOW, PUBLISHER_KEY_ID, admit as admit_a24, ctx as a24_ctx,
-    public, service, signed as signed_a24,
+    service, signed as signed_a24,
 )
 from test_a22_custom_bridge import sample
 from test_a7_replay_pipeline import quote
@@ -124,6 +124,9 @@ def args(case, *, signed=None, package=None, admission=None):
     }
 
 
+def signed_case(case, **changes):
+    return release(case[0], package=case[2], a24=case[3], **changes)
+
 def test_a25_two_stored_json_members_strict_bundle_without_install(case):
     ctx, gate, package, _ = case
     proof = inspect_inert_bundle(
@@ -149,7 +152,7 @@ def test_a25_signature_composition_rejects_wrong_publisher_operator_and_swaps(ca
         (None, Ed25519PrivateKey.generate()),
         (ctx[5], ctx[4]),
     ]:
-        signed = release(ctx, pub_key=pub_key, op_key=op_key)
+        signed = signed_case(case, pub_key=pub_key, op_key=op_key)
         with pytest.raises(PublisherAdmissionRefused, match="INVALID_ED25519"):
             gate.admit(**args(case, signed=signed))
 
@@ -168,7 +171,7 @@ def test_a25_signature_composition_rejects_wrong_publisher_operator_and_swaps(ca
 ])
 def test_a25_signed_supply_chain_identity_binding_cannot_be_changed(case, changes):
     ctx, gate, _, _ = case
-    signed = release(ctx, **changes)
+    signed = signed_case(case, **changes)
     with pytest.raises(PublisherAdmissionRefused):
         gate.admit(**args(case, signed=signed))
 
@@ -190,7 +193,7 @@ def test_a25_signed_supply_chain_identity_binding_cannot_be_changed(case, change
 ])
 def test_a25_signed_envelope_cannot_authorize_executable_or_expired_release(case, changes):
     ctx, gate, _, _ = case
-    signed = release(ctx, **changes)
+    signed = signed_case(case, **changes)
     with pytest.raises(PublisherAdmissionRefused):
         gate.admit(**args(case, signed=signed))
 
@@ -300,7 +303,7 @@ def test_a25_replay_floor_persists_and_monotonic_cross_restart(case, tmp_path):
     first = gate.admit(**args(case))
     with pytest.raises(BundleAdmissionRefused, match="ROLLBACK"):
         gate.admit(**args(case))
-    new_release = release(ctx, sequence=2)
+    new_release = signed_case(case, sequence=2)
     second = gate.admit(**args(case, signed=new_release))
     assert second.revision == first.revision+1
     with pytest.raises(BundleAdmissionRefused, match="UNADMITTED"):
@@ -323,7 +326,7 @@ def test_a25_a24_revocation_cascades_and_a25_revocation_is_terminal(case):
     with pytest.raises(BundleAdmissionRefused, match="UNADMITTED"):
         gate.current(**args(case))
     with pytest.raises(BundleAdmissionRefused, match="ROLLBACK"):
-        gate.admit(**args(case, signed=release(ctx, sequence=2)))
+        gate.admit(**args(case, signed=signed_case(case, sequence=2)))
 
 
 def test_a25_revoked_publisher_and_expired_A24_proof_never_admitted(case):
@@ -333,7 +336,7 @@ def test_a25_revoked_publisher_and_expired_A24_proof_never_admitted(case):
     with pytest.raises(PublisherAdmissionRefused, match="REVOKED_PUBLISHER"):
         gate.current(**args(case))
     with pytest.raises(PublisherAdmissionRefused, match="REVOKED_PUBLISHER"):
-        gate.admit(**args(case, signed=release(ctx, sequence=2)))
+        gate.admit(**args(case, signed=signed_case(case, sequence=2)))
 
 
 def test_a25_rejects_all_owner_private_and_commercial_candidate_artifacts(case):
