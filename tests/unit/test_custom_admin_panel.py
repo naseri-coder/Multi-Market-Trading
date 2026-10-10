@@ -54,7 +54,8 @@ def test_admin_menu_registration_reuses_existing_application_without_polling(pan
     assert any(isinstance(h, CallbackQueryHandler) for h in handlers)
     assert MENU_LABEL == "🎛 مدیریت هسته‌های Custom"
     with TrustedLocalCustomHost(state) as host:
-        assert "public_toy_demo" in owner.summary(host)
+        assert "هسته‌های ثبت‌شده: 1" in owner.summary(host)
+        assert "public_toy_demo" in owner.detail(host, "public_toy_demo")
         assert host.get("public_toy_demo").enabled is False
         assert not host.route("public_toy_demo")["live_publication_enabled"]
 
