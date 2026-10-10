@@ -10,7 +10,7 @@ pytest.importorskip("telegram")
 from telegram.ext import Application, CallbackQueryHandler, CommandHandler
 
 from naseri_markets.custom_admin_panel import (
-    MENU_LABEL, AdminCustomPanelRefused, CustomAdminPanel, _token,
+    MENU_LABEL, CustomAdminPanel, _token,
 )
 from naseri_markets.custom_cli import _export_demo
 from naseri_markets.trusted_custom import (
