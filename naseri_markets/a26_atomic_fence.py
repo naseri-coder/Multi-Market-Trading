@@ -12,8 +12,6 @@ import asyncio
 import base64
 import hashlib
 import hmac
-import os
-import sqlite3
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
