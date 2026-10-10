@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import hashlib
 import json
 import threading
 
@@ -82,7 +81,7 @@ def ctx(tmp_path):
                             public(pub), approved_key_sha256=pinned(public(pub)))
     journal = PaperJournal(tmp_path / "journal.db")
     bridge = CustomPaperRuntimeBridge(catalog, journal, paper_enabled=True)
-    bound = bridge.attach(descriptor, approved_sha256=pinned(descriptor),
+    bridge.attach(descriptor, approved_sha256=pinned(descriptor),
                           instruments=frozenset({INST}),
                           session_policy=session())
     sandbox = FixedCustomSandbox(tmp_path / "sandbox", catalog=catalog,
