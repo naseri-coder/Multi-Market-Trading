@@ -1,0 +1,75 @@
+name: Brooks standalone nonproduction PAPER service and admin panel
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/brooks_paper_service.py"
+      - "naseri_markets/engine_control_store.py"
+      - "naseri_markets/integrated_engine_panel.py"
+      - "naseri_markets/brooks_kraken_feed.py"
+      - "tests/unit/test_brooks_paper_service.py"
+      - "platform_release/pyproject.toml"
+      - "scripts/a6_release_preflight.py"
+      - "docs/BROOKS_PAPER_SERVICE_PANEL.md"
+      - ".github/workflows/brooks-service-panel.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  paper-service-panel:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with: {python-version: "3.12"}
+      - name: No historical changes and isolated public release verification
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+      - name: Lint and test actual state-driven Brooks PAPER worker
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m ruff check --select E4,F \
+            naseri_markets/brooks_paper_service.py \
+            naseri_markets/engine_control_store.py \
+            naseri_markets/integrated_engine_panel.py \
+            tests/unit/test_brooks_paper_service.py \
+            scripts/a6_release_preflight.py
+          python -m pytest -q \
+            tests/unit/test_brooks_paper_service.py \
+            tests/unit/test_brooks_kraken_feed.py \
+            tests/unit/test_integrated_engine_panel.py \
+            tests/unit/test_public_brooks_publication_controls.py \
+            tests/unit/test_brooks_real_offline_replay.py
+      - name: New wheel CLI is opt-in and never starts implicitly
+        run: |
+          set -Eeuo pipefail
+          python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/brooks-service-wheel"
+          python -m venv "$RUNNER_TEMP/service-clean"
+          "$RUNNER_TEMP/service-clean/bin/python" -m pip install \
+            "$RUNNER_TEMP/brooks-service-wheel"
+          "$RUNNER_TEMP/service-clean/bin/naseri-brooks-paper-service" --help >/dev/null
+          set +e
+          "$RUNNER_TEMP/service-clean/bin/naseri-brooks-paper-service" \
+            --state-dir "$RUNNER_TEMP/never-created" \
+            --legacy-source /nonexistent \
+            --max-steps 1
+          status=$?
+          set -e
+          test "$status" -eq 2
+          test ! -e "$RUNNER_TEMP/never-created"
+          "$RUNNER_TEMP/service-clean/bin/python" - <<'PY'
+          from pathlib import Path
+          import naseri_markets
+          root = Path(naseri_markets.__file__).parent
+          assert (root / "brooks_paper_service.py").is_file()
+          assert not (root / "private_nyfr_core.py").exists()
+          assert not (root / "production_source").exists()
+          print("BROOKS_SERVICE_WHEEL_NO_IMPLICIT_START_PASS")
+          PY
