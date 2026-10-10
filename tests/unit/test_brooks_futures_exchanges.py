@@ -1,5 +1,6 @@
 """Exchange and period selection are tightly bound to PAPER execution."""
 import json
+import sqlite3
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -174,3 +175,32 @@ def test_real_frozen_v5_honors_new_selected_period(frame, tmp_path):
     with EngineControlStore(tmp_path) as host:
         assert host.brooks_replay_status()["scans"] == 1
         assert not host.publication(BROOKS_ENGINE_ID)["effective_publication"]
+
+
+def test_existing_development_database_migrates_without_resetting_controls(tmp_path):
+    folder = tmp_path / "dev-existing"
+    folder.mkdir(mode=0o700)
+    db = folder / "custom_paper.db"
+    with sqlite3.connect(db) as con:
+        con.execute("""CREATE TABLE managed_engine_preferences(
+            engine_id TEXT PRIMARY KEY,
+            timeframe TEXT NOT NULL DEFAULT '15m',
+            market_scope TEXT NOT NULL DEFAULT 'all',
+            signal_environment TEXT NOT NULL DEFAULT 'PAPER',
+            revision INTEGER NOT NULL DEFAULT 1)""")
+        con.execute(
+            "INSERT INTO managed_engine_preferences VALUES (?, '4h', 'crypto', 'PAPER', 17)",
+            (BROOKS_ENGINE_ID,))
+    db.chmod(0o600)
+    with EngineControlStore(folder) as host:
+        pref = host.preferences(BROOKS_ENGINE_ID)
+        assert pref["futures_exchange"] == "kraken"
+        assert pref["timeframe"] == "4h"
+        assert pref["market_scope"] == "crypto"
+        assert pref["signal_environment"] == "PAPER"
+        assert pref["revision"] == 17
+        updated = set_pref(host, "futures_exchange", "bybit")
+        assert updated["revision"] == 18
+    with EngineControlStore(folder) as host:
+        assert host.preferences(BROOKS_ENGINE_ID)["futures_exchange"] == "bybit"
+        assert host.preferences(BROOKS_ENGINE_ID)["revision"] == 18
