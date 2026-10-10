@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Shared helpers for NASERI CODER Bot Manager.
+# Shared helpers for Multi Market Trading Bot Manager.
 # shellcheck shell=bash
 
 # Historic v0.3.2 runtime identity. Changing this silently can orphan the
@@ -317,7 +317,7 @@ _run_with_dir_lock() (
       owner="$(cat "$LOCK_DIR/owner.pid" 2>/dev/null || true)"
     fi
     if [[ "$owner" =~ ^[0-9]+$ ]] && kill -0 "$owner" 2>/dev/null; then
-      fail "Another NASERI CODER manager operation is running (PID $owner)."
+      fail "Another Multi Market Trading manager operation is running (PID $owner)."
       exit 1
     fi
     if [[ -d "$LOCK_DIR" && ! -L "$LOCK_DIR" ]]; then
@@ -355,7 +355,7 @@ run_locked() {
     (
       exec 9>"$LOCK_FILE" || { fail "Cannot open Manager lock file."; exit 1; }
       if ! flock -n 9; then
-        fail "Another NASERI CODER manager operation appears to be running."
+        fail "Another Multi Market Trading manager operation appears to be running."
         exit 1
       fi
       if "$@"; then rc=0; else rc=$?; fi
@@ -382,17 +382,17 @@ banner() {
   if (( width >= 64 )); then
     if [[ "$UI_UNICODE" == "1" ]]; then
       printf '%s%s╔══════════════════════════════════════════════════════════════╗%s\n' "$c_bold" "$c_cyan" "$c_reset"
-      printf '%s%s║                        NASERI MARKETS                        ║%s\n' "$c_bold" "$c_white" "$c_reset"
+      printf '%s%s║                     MULTI MARKET TRADING                     ║%s\n' "$c_bold" "$c_white" "$c_reset"
       printf '%s%s║              Multi-Market Trading Manager                    ║%s\n' "$c_bold" "$c_cyan" "$c_reset"
       printf '%s%s╚══════════════════════════════════════════════════════════════╝%s\n' "$c_bold" "$c_cyan" "$c_reset"
     else
       printf '%s%s+--------------------------------------------------------------+%s\n' "$c_bold" "$c_cyan" "$c_reset"
-      printf '%s%s|                        NASERI MARKETS                        |%s\n' "$c_bold" "$c_white" "$c_reset"
+      printf '%s%s|                     MULTI MARKET TRADING                     |%s\n' "$c_bold" "$c_white" "$c_reset"
       printf '%s%s|              Multi-Market Trading Manager                    |%s\n' "$c_bold" "$c_cyan" "$c_reset"
       printf '%s%s+--------------------------------------------------------------+%s\n' "$c_bold" "$c_cyan" "$c_reset"
     fi
   else
-    printf '%s%sNASERI MARKETS%s\n' "$c_bold" "$c_white" "$c_reset"
+    printf '%s%sMULTI MARKET TRADING%s\n' "$c_bold" "$c_white" "$c_reset"
     printf '%sMulti-Market Trading Manager%s\n' "$c_cyan" "$c_reset"
     ui_rule
   fi
