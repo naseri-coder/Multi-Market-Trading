@@ -272,6 +272,12 @@ class TrustedLocalCustomHost:
     def close(self) -> None:
         self._db.close()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
     @staticmethod
     def _state(row: sqlite3.Row) -> LocalCustomState:
         return LocalCustomState(row["engine_id"], row["engine_version"],
