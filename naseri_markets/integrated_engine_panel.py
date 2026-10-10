@@ -19,7 +19,7 @@ from .engine_control_store import (
     BROOKS_ENGINE_ID, OWNER_CORE_ID, EngineControlStore, MARKET_SCOPES, TIMEFRAMES,
 )
 from .futures_venues import (
-    FUTURES_VENUES, get_venue, paper_feed_verified,
+    get_venue, paper_feed_verified,
     iran_status_text, feed_status_text,
 )
 from .futures_pairs import pair_choices, pair_is_verified_paper
