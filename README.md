@@ -50,6 +50,15 @@
 > OWNER_ONLY and never publicly installable, even encrypted.**
 > [Custom plugin ABI, tested quickstart and limitations](docs/TRUSTED_LOCAL_CUSTOM_PAPER_MVP.md).
 
+> [!NOTE]
+> **Custom engine Telegram admin UI — optional, not deployed:** A private
+> admin panel module is available to mount on the **same** Telegram bot
+> `Application`. It manages Custom PAPER enable/disable, audit logs, private
+> channel destination selection and admin-only PAPER previews without
+> auto-posting to channels. The old production bot is unchanged; this UI does
+> **not** appear in any live bot until explicitly mounted and deployed.
+> [Setup, access rules, and limits](docs/CUSTOM_TELEGRAM_ADMIN_PANEL.md).
+
 > [!IMPORTANT]
 > **The current manager is branded Multi Market Trading; its historic v0.3.2 runtime identity remains unchanged.** The project does **not** claim profitability and is **not approved for live trading**.
 >
