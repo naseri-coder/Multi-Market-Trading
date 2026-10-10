@@ -23,6 +23,20 @@ def candles(*, count=73, start=START):
     } for i in range(count)]
 
 
+def metadata(*, tick=0.5, tradeable=True, contract_type="futures_vanilla"):
+    return json.dumps({
+        "result": "success",
+        "instruments": [{
+            "symbol": "pf_xbtusd", "tickSize": tick,
+            "tradeable": tradeable, "type": contract_type,
+        }],
+    }).encode()
+
+
+def mock_metadata():
+    return metadata()
+
+
 def transport(rows, **extra):
     blob = json.dumps({"candles": rows, "more_candles": False, **extra}).encode()
     def get(symbol, timeframe, count, timeout):
@@ -138,7 +152,7 @@ def test_revoked_during_fetch_before_engine(state):
     with pytest.raises(kraken.KrakenFeedRefused, match="SETTINGS_CHANGED"):
         kraken.poll_once(
             state_dir=state, legacy_source=SOURCE, now=CLOCK,
-            transport=revoke)
+            transport=revoke, metadata_transport=mock_metadata)
     with EngineControlStore(state) as store:
         assert store.brooks_replay_status()["scans"] == 0
 
@@ -146,15 +160,16 @@ def test_revoked_during_fetch_before_engine(state):
 def test_real_frozen_brooks_worker_and_duplicate_journal(state):
     first = kraken.poll_once(
         state_dir=state, legacy_source=SOURCE, now=CLOCK,
-        transport=transport(candles()))
+        transport=transport(candles()), metadata_transport=mock_metadata)
     again = kraken.poll_once(
         state_dir=state, legacy_source=SOURCE, now=CLOCK,
-        transport=transport(candles()))
+        transport=transport(candles()), metadata_transport=mock_metadata)
     assert first["decision"] in ("NO_SIGNAL", "LONG", "SHORT")
     assert first["mode"] == "KRAKEN_FUTURES_CLOSED_TRADE_PAPER"
     assert first["market_feed"] == "KRAKEN_FUTURES_TRADE_PUBLIC_HTTPS"
     assert first["telegram_sent"] is False
     assert first["live_publication_enabled"] is False
+    assert first["exchange_price_tick"] == "0.5"
     assert again["scan_id"] == first["scan_id"]
     assert again["outcome"] == "DUPLICATE_SCAN"
     with EngineControlStore(state) as store:
@@ -172,6 +187,21 @@ def test_http_451_refused_with_no_raw_error_body(monkeypatch):
     with pytest.raises(kraken.KrakenFeedRefused, match="KRAKEN_FEED_HTTP_451") as err:
         kraken._download("PF_XBTUSD", "15m", 73, 10)
     assert "secret" not in str(err.value)
+
+
+
+def test_frozen_brooks_only_accepts_verified_kraken_tick_and_identity():
+    assert kraken.verified_kraken_tick(transport=mock_metadata) == "0.5"
+    for payload in (
+        metadata(tick=-1),
+        metadata(tick=101),
+        metadata(tick="NaN"),
+        metadata(tradeable=False),
+        metadata(contract_type="spot"),
+        b'{"result":"error","instruments":[]}',
+    ):
+        with pytest.raises(kraken.KrakenFeedRefused):
+            kraken.verified_kraken_tick(transport=lambda payload=payload: payload)
 
 
 def test_no_implicit_poll_or_publication(tmp_path):
