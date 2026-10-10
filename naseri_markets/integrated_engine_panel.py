@@ -123,10 +123,10 @@ class IntegratedEnginePanel(CustomAdminPanel):
         if state.engine_kind == "BUILTIN_BROOKS":
             replay = host.brooks_replay_status()
             replay_line = (
-                f"اسکن‌های واقعی Replay: {replay['scans']}\\n"
-                f"اسکن‌های بدون سیگنال: {replay['no_signal']}\\n"
+                f"اسکن‌های واقعی Replay: {replay['scans']}\n"
+                f"اسکن‌های بدون سیگنال: {replay['no_signal']}\n"
                 "مسیر تحلیل: اجرای دستی PAPER با داده کندلی آفلاین؛ "
-                "ربات آنلاین به موتور متصل نیست.\\n"
+                "ربات آنلاین به موتور متصل نیست.\n"
             )
         return (
             f"{label}\nشناسه: {engine_id}\n"
