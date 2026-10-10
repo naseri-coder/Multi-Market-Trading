@@ -1,0 +1,90 @@
+name: A11 Multi Market Trading two-process localhost mTLS security E2E
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  a11-real-two-process-mtls:
+    name: A11 two-process mutual TLS, identity, replay and resilience
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout pinned reviewed commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Verify historical release and explicit project branding
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+          grep -Fq '# 📈 Multi Market Trading' README.md
+          grep -Fq '"product": "Multi Market Trading"' naseri_markets/platform_cli.py
+          test "$(grep -c 'MULTI MARKET TRADING' scripts/lib/manager_common.sh)" -ge 1
+          openssl version
+      - name: Run real two-process loopback mTLS and A10 security regressions
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m pytest -q tests/unit/test_a11_mtls.py
+          python -m pytest -q tests/unit/test_a10_private_connector.py
+          python -m pytest -q tests/unit/test_a9_plugin_lifecycle.py
+      - name: Lint new transport, owner fixture and TLS tests
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check --select E4,F \
+            naseri_markets/a11_mtls.py \
+            tests/fixtures/a11_owner_process.py \
+            tests/unit/test_a11_mtls.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          modules = ("naseri_markets/a11_mtls.py",
+                     "tests/fixtures/a11_owner_process.py")
+          forbidden = {"MetaTrader5", "private_nyfr_core", "r0_engine",
+                       "requests", "httpx", "aiohttp", "importlib"}
+          for filename in modules:
+              for node in ast.walk(ast.parse(Path(filename).read_bytes())):
+                  if isinstance(node, ast.Import):
+                      assert all(n.name.split(".")[0] not in forbidden
+                                 for n in node.names)
+                  if isinstance(node, ast.ImportFrom):
+                      assert (node.module or "").split(".")[0] not in forbidden
+          source = Path("naseri_markets/a11_mtls.py").read_text()
+          assert 'host="127.0.0.1"' in source
+          assert "ssl.CERT_REQUIRED" in source
+          print("A11_LOOPBACK_ONLY_NO_PRIVATE_SOURCE_PASS")
+          PY
+      - name: Build isolated new Python wheel and verify public TLS code only
+        run: |
+          set -Eeuo pipefail
+          python -m pip install "setuptools==80.9.0" "wheel==0.45.1"
+          python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/a11-wheel-src"
+          mkdir -p "$RUNNER_TEMP/a11-dist"
+          python -m pip wheel --no-build-isolation --no-deps \
+            --wheel-dir "$RUNNER_TEMP/a11-dist" "$RUNNER_TEMP/a11-wheel-src"
+          python -m venv "$RUNNER_TEMP/a11-clean"
+          "$RUNNER_TEMP/a11-clean/bin/python" -m pip install --no-deps \
+            "$RUNNER_TEMP/a11-dist/multi_market_trading-0.4.0rc1-py3-none-any.whl"
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/a11-clean/bin/python" - <<'PY'
+          import importlib.util
+          from naseri_markets.a11_mtls import LoopbackMtlsExchange
+          from naseri_markets.private_connector import PrivatePaperConnector
+          assert LoopbackMtlsExchange and PrivatePaperConnector
+          assert importlib.util.find_spec("app") is None
+          assert importlib.util.find_spec("tests") is None
+          print("A11_ISOLATED_PUBLIC_PACKAGE_NO_FIXTURE_OR_PRIVATE_APP_PASS")
+          PY
