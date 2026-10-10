@@ -77,10 +77,11 @@ class CustomPaperRuntimeBridge:
     """
 
     def __init__(self, catalog: CustomContractCatalog, journal: PaperJournal, *,
-                 paper_enabled: bool = False):
+                 paper_enabled: bool = False, require_atomic_fence: bool = False):
         if (type(catalog) is not CustomContractCatalog
                 or type(journal) is not PaperJournal
-                or type(paper_enabled) is not bool):
+                or type(paper_enabled) is not bool
+                or type(require_atomic_fence) is not bool):
             raise CustomRuntimeRefused("A22_EXACT_PUBLIC_PAPER_DEPENDENCIES")
         self._catalog = catalog
         self._journal = journal
@@ -90,6 +91,7 @@ class CustomPaperRuntimeBridge:
         self._contracts: dict[str, CustomEngineContract] = {}
         self._states: dict[str, CustomRuntimeState] = {}
         self._paper_enabled = paper_enabled
+        self._require_atomic_fence = require_atomic_fence
         self._epoch = 0
         self._gate = asyncio.Lock()
 
@@ -179,7 +181,8 @@ class CustomPaperRuntimeBridge:
     async def dispatch(self, tick: QuoteTick, *,
                        packets: Mapping[str, bytes | None],
                        expected_revisions: Mapping[str, int],
-                       now: datetime) -> CustomDispatchResult:
+                       now: datetime, atomic_fence=None,
+                       authorization_now: int | None = None) -> CustomDispatchResult:
         """Only inject validated A7 PAPER envelopes for enabled public engines.
 
         A single tick is dispatched once to multiple engines. An invalid or
@@ -195,6 +198,17 @@ class CustomPaperRuntimeBridge:
                 or set(expected_revisions) != set(packets)
                 or any(type(k) is not str for k in packets)):
             raise CustomRuntimeRefused("A22_EXACT_BOUNDED_REVISIONED_BATCH")
+        # A26 is an explicit opt-in bridge mode; there is no permission
+        # fallback to the historical ungated A7 journal when enabled.
+        if self._require_atomic_fence and atomic_fence is None:
+            raise CustomRuntimeRefused("A26_ATOMIC_FENCE_REQUIRED")
+        if atomic_fence is not None:
+            from .a26_atomic_fence import AtomicPaperCommitFence
+            if (type(atomic_fence) is not AtomicPaperCommitFence
+                    or atomic_fence.bridge is not self
+                    or atomic_fence.journal is not self._journal
+                    or type(authorization_now) is not int):
+                raise CustomRuntimeRefused("A26_EXACT_FENCE_AND_CLOCK_REQUIRED")
         async with self._gate:
             if not self._paper_enabled:
                 return CustomDispatchResult("PLATFORM_DISABLED", QuoteVerdict.UNVERIFIED)
@@ -237,7 +251,10 @@ class CustomPaperRuntimeBridge:
                 return CustomDispatchResult("QUOTE_REJECTED", result.quote_verdict)
             intents = tuple(intent for engine_id, batch in result.by_engine.items()
                             if engine_id in approved for intent in batch)
-            counts = self._journal.record_batch(intents)
+            if atomic_fence is None:
+                counts = self._journal.record_batch(intents)
+            else:
+                counts = atomic_fence.commit(intents, now=authorization_now)
             return CustomDispatchResult(
                 "ENGINE_FAULTED" if result.faulted_engines else "PAPER_RECORDED",
                 result.quote_verdict, tuple(sorted(approved)),
