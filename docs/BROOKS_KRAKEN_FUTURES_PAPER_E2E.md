@@ -30,6 +30,25 @@ rejects stale/future data and impossible price geometry, and preserves
 canonical data passed to Brooks. Market data is public and not
 cryptographically exchange-signed.
 
+### Authoritative futures price tick metadata
+
+The frozen Brooks V5 policy intentionally has a *Binance-symbol* price-tick
+allowlist. Applying that original policy directly to `PF_XBTUSD` fails
+closed, rather than safely producing a Kraken signal. The public adapter
+therefore separately GETs the official **Kraken Futures instrument listing**
+(`https://futures.kraken.com/derivatives/api/v3/instruments`), requires
+exactly one tradeable `PF_XBTUSD` futures instrument, and checks its positive,
+bounded `tickSize`. Missing, stale, malformed, unavailable, duplicate or
+nontradeable instrument metadata stops PAPER without a signal.
+
+The isolated `brooks_replay` worker uses this *explicit instrument metadata*
+only to extend its local `BrooksFullCorePolicy.context.futures_tick_sizes`
+tuple for the real Kraken symbol. It cannot alter any existing Binance tick,
+threshold or historical source byte; it cannot be used for another symbol,
+provider or market. The engine version and provenance remain V5; the
+context configuration version records the added tick mapping. **This is
+exchange execution metadata, not a trading threshold optimization.**
+
 ## Full-core PAPER safety
 
 The **actual pinned BrooksTrilogyFullCoreEngine V5** runs in a separate child
