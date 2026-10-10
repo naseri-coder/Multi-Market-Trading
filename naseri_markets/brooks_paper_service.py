@@ -23,6 +23,7 @@ from typing import Callable
 from .brooks_kraken_feed import poll_once
 from .brooks_replay import BrooksReplayRefused, SECONDS, verify_legacy_source
 from .engine_control_store import BROOKS_ENGINE_ID, EngineControlStore
+from .futures_venues import paper_feed_verified
 from .trusted_custom import LocalCustomRefused
 
 DEFAULT_SYMBOL = "PF_XBTUSD"
@@ -105,6 +106,15 @@ class BrooksPaperService:
                 store.brooks_worker_heartbeat(
                     worker_id=self.worker_id, now=now, phase="IDLE")
                 return {"phase": "IDLE", "attempted": False}
+            # A catalog entry is NOT a verified market-data integration.
+            # No automatic fallback to Kraken when another venue was selected.
+            if not paper_feed_verified(prefs["futures_exchange"]):
+                self.next_attempt_at = 0
+                self.last_config = None
+                store.brooks_worker_heartbeat(
+                    worker_id=self.worker_id, now=now, phase="IDLE")
+                return {"phase": "IDLE", "attempted": False,
+                        "reason": "BROOKS_SELECTED_EXCHANGE_FEED_NOT_READY"}
             config = (state.revision, prefs["revision"])
             if self.last_config != config:
                 # New timeframe/PAPER or operator re-arming should get a fresh
@@ -130,7 +140,8 @@ class BrooksPaperService:
                     ("RECORDED", "NO_SIGNAL", "DUPLICATE_SCAN")
                     or report.get("telegram_sent") is not False
                     or report.get("live_publication_enabled") is not False
-                    or report.get("timeframe") != prefs["timeframe"]):
+                    or report.get("timeframe") != prefs["timeframe"]
+                    or report.get("selected_exchange") != "kraken"):
                 raise BrooksServiceRefused("BROOKS_WORKER_REPORT_INTEGRITY")
             closed = datetime.fromisoformat(report["last_closed_candle"])
             if closed.tzinfo is None or closed.utcoffset() is None:
