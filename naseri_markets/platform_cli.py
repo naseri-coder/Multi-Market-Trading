@@ -1,4 +1,4 @@
-"""NASERI MARKETS standalone preview CLI, without live network or trading."""
+"""Multi Market Trading standalone preview CLI, without live network or trading."""
 from __future__ import annotations
 
 import argparse
@@ -44,7 +44,7 @@ def main(argv: list[str] | None = None) -> int:
             }
         else:
             output = {
-                "product": "NASERI MARKETS",
+                "product": "Multi Market Trading",
                 "distribution": "multi-market-trading",
                 "version": release,
                 "mode": "OFFLINE_PREVIEW",
