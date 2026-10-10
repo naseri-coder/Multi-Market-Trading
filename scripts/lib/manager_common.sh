@@ -382,12 +382,12 @@ banner() {
   if (( width >= 64 )); then
     if [[ "$UI_UNICODE" == "1" ]]; then
       printf '%s%s╔══════════════════════════════════════════════════════════════╗%s\n' "$c_bold" "$c_cyan" "$c_reset"
-      printf '%s%s║                        NASERI MARKETS                         ║%s\n' "$c_bold" "$c_white" "$c_reset"
+      printf '%s%s║                        NASERI MARKETS                        ║%s\n' "$c_bold" "$c_white" "$c_reset"
       printf '%s%s║              Multi-Market Trading Manager                    ║%s\n' "$c_bold" "$c_cyan" "$c_reset"
       printf '%s%s╚══════════════════════════════════════════════════════════════╝%s\n' "$c_bold" "$c_cyan" "$c_reset"
     else
       printf '%s%s+--------------------------------------------------------------+%s\n' "$c_bold" "$c_cyan" "$c_reset"
-      printf '%s%s|                        NASERI MARKETS                         |%s\n' "$c_bold" "$c_white" "$c_reset"
+      printf '%s%s|                        NASERI MARKETS                        |%s\n' "$c_bold" "$c_white" "$c_reset"
       printf '%s%s|              Multi-Market Trading Manager                    |%s\n' "$c_bold" "$c_cyan" "$c_reset"
       printf '%s%s+--------------------------------------------------------------+%s\n' "$c_bold" "$c_cyan" "$c_reset"
     fi
