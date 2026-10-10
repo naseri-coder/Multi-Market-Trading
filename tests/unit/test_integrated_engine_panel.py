@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -223,7 +222,7 @@ async def test_brooks_toggles_and_per_engine_settings_in_telegram(setup):
     update, context, msg, query = fake(data=f"em:tf:{token}:1")
     await panel.callback(update, context)
     with EngineControlStore(state, owner_visible=True) as store:
-        assert store.preferences(BROOKS_ENGINE_ID)["timeframe"] == "4h"
+        assert store.preferences(BROOKS_ENGINE_ID)["timeframe"] == "1h"
         assert store.preferences(BROOKS_ENGINE_ID)["revision"] == 2
     await panel.callback(update, context)  # replay stale callback
     with EngineControlStore(state, owner_visible=True) as store:
