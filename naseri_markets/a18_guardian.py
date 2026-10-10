@@ -261,7 +261,7 @@ class Guardian:
                 if not response.startswith(prefix):
                     raise ValueError("A20_STRICT_WORKER_ATTESTATION_FAILED")
                 fields = response[len(prefix):].split("|")
-                if (len(fields) != 5 or fields[1] != "PID"
+                if (len(fields) != 6 or fields[1] != "PID"
                         or fields[3:] != ["NNP1", "STRICT2", "NET_OPEN_FORK_DENIED"]):
                     raise ValueError("A20_STRICT_WORKER_FORMAT")
                 uid, pid = int(fields[0]), int(fields[2])
