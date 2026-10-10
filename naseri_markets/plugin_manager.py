@@ -69,6 +69,16 @@ class PluginManager:
                 removed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        self._db.execute("""
+            CREATE TABLE IF NOT EXISTS a9_plugin_audit (
+                seq INTEGER PRIMARY KEY AUTOINCREMENT,
+                engine_id TEXT NOT NULL,
+                action TEXT NOT NULL,
+                revision INTEGER NOT NULL,
+                digest TEXT NOT NULL,
+                recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
 
     def close(self) -> None:
         self._db.close()
@@ -148,6 +158,7 @@ class PluginManager:
                         descriptor.digest, next_revision,
                     ),
                 )
+                self._audit(descriptor.engine_id, "REGISTER", next_revision, descriptor.digest)
             row = self._db.execute(
                 "SELECT * FROM a8_plugins WHERE engine_id=?",
                 (descriptor.engine_id,),
@@ -180,6 +191,10 @@ class PluginManager:
                     "UPDATE a8_plugins SET enabled=?, revision=revision+1 "
                     "WHERE engine_id=? AND revision=?",
                     (int(enabled), engine_id, expected_revision),
+                )
+                self._audit(
+                    engine_id, "ENABLE_PAPER" if enabled else "DISABLE_PAPER",
+                    expected_revision + 1, row["digest"],
                 )
             updated = self._db.execute(
                 "SELECT * FROM a8_plugins WHERE engine_id=?", (engine_id,)
@@ -222,6 +237,8 @@ class PluginManager:
                 "SELECT * FROM a8_plugins WHERE engine_id=?",
                 (descriptor.engine_id,),
             ).fetchone()
+            self._audit(descriptor.engine_id, "UPGRADE_METADATA",
+                        expected_revision + 1, descriptor.digest)
             self._db.execute("COMMIT")
         except BaseException:
             self._db.execute("ROLLBACK")
@@ -260,11 +277,28 @@ class PluginManager:
                 "DELETE FROM a8_plugins WHERE engine_id=? AND revision=?",
                 (engine_id, expected_revision),
             )
+            self._audit(engine_id, "UNREGISTER_METADATA", fence, row["digest"])
             self._db.execute("COMMIT")
             return fence
         except BaseException:
             self._db.execute("ROLLBACK")
             raise
+
+    def _audit(self, engine_id: str, action: str,
+               revision: int, digest: str) -> None:
+        """Executed inside caller's SQLite write transaction."""
+        self._db.execute(
+            "INSERT INTO a9_plugin_audit(engine_id,action,revision,digest) "
+            "VALUES(?,?,?,?)", (engine_id, action, revision, digest),
+        )
+
+    def audit_history(self, engine_id: str) -> tuple[dict, ...]:
+        rows = self._db.execute(
+            "SELECT seq,action,revision,digest,recorded_at "
+            "FROM a9_plugin_audit WHERE engine_id=? ORDER BY seq",
+            (engine_id,),
+        ).fetchall()
+        return tuple(dict(row) for row in rows)
 
     def allowed_paper_engines(self) -> dict[str, PluginState]:
         """Read for EACH input tick: disabled engines are not dispatched."""
