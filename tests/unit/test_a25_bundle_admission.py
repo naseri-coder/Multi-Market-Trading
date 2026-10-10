@@ -372,8 +372,9 @@ def test_a25_executable_package_never_entered_in_temp_directory(case, tmp_path):
     before = {x.name for x in tmp_path.iterdir()}
     gate.admit(**args(case))
     after = {x.name for x in tmp_path.iterdir()}
+    # The A24 authority fixture already owns a legitimate /authority
+    # directory. A25 must introduce NO new directory or ZIP extraction.
     assert after == before
-    assert not any((tmp_path/name).is_dir() for name in after)
     assert not any(x.endswith((".so", ".pyc", ".zip", ".enc", ".bin"))
                    for x in after)
 
