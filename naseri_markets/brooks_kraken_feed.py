@@ -22,6 +22,7 @@ from .brooks_replay import (
     BrooksReplayRefused, parse_candle_replay, replay_once,
 )
 from .engine_control_store import BROOKS_ENGINE_ID, EngineControlStore
+from .futures_pairs import KRAKEN_PAIRS
 
 _SYMBOL = "PF_XBTUSD"  # verified Kraken USD linear perpetual, NOT BTCUSDT
 _ENDPOINT = "https://futures.kraken.com/api/charts/v1/trade"
@@ -98,7 +99,7 @@ def verified_kraken_tick(
         *, symbol: str = _SYMBOL,
         transport: Callable[[], bytes] | None = None) -> str:
     """Fail closed unless official public instrument is tradeable and tick bound."""
-    if symbol != _SYMBOL:
+    if symbol not in KRAKEN_PAIRS:
         raise KrakenFeedRefused("KRAKEN_TICK_IDENTITY_DENIED")
     if transport is None:
         transport = _download_instruments
@@ -143,7 +144,7 @@ def closed_kraken_candles(*, symbol: str, timeframe: str, bars: int = 72,
                           transport: Callable[[str, str, int, int], bytes] | None = None,
                           timeout: int = 10) -> tuple[bytes, datetime]:
     """Strict actual Kraken TRADE stream candle finalization and provenance."""
-    if (symbol != _SYMBOL or timeframe not in SECONDS or
+    if (symbol not in KRAKEN_PAIRS or timeframe not in SECONDS or
             type(bars) is not int or not MIN_BARS <= bars <= MAX_BARS or
             type(timeout) is not int or not 1 <= timeout <= 15):
         raise KrakenFeedRefused("KRAKEN_FEED_ALLOWLIST_REQUIRED")
@@ -213,7 +214,7 @@ def closed_kraken_candles(*, symbol: str, timeframe: str, bars: int = 72,
         raise KrakenFeedRefused("KRAKEN_FEED_STALE_OR_FUTURE")
     data = json.dumps({
         "schema_version": 1, "origin": "replay", "market": "crypto",
-        "provider": "kraken_futures_trade_public", "symbol": _SYMBOL,
+        "provider": "kraken_futures_trade_public", "symbol": symbol,
         "timezone": "UTC", "quote_currency": "USD",
         "exchange": "kraken_futures", "market_type": "futures",
         "timeframe": timeframe, "candles": selected,
@@ -237,6 +238,8 @@ def poll_once(*, state_dir: str | Path, legacy_source: str | Path,
         engine = store.get(BROOKS_ENGINE_ID)
         pref = store.preferences(BROOKS_ENGINE_ID)
         if (engine is None or not engine.requested_enabled
+                or symbol not in KRAKEN_PAIRS
+                or pref["futures_symbol"] != symbol
                 or pref["futures_exchange"] != "kraken"
                 or pref["signal_environment"] != "PAPER"
                 or pref["market_scope"] not in ("all", "crypto")):
@@ -254,6 +257,7 @@ def poll_once(*, state_dir: str | Path, legacy_source: str | Path,
                 or engine.revision != rev or pref["revision"] != pref_rev
                 or pref["signal_environment"] != "PAPER"
                 or pref["futures_exchange"] != "kraken"
+                or pref["futures_symbol"] != symbol
                 or pref["timeframe"] != timeframe
                 or pref["market_scope"] not in ("all", "crypto")):
             raise KrakenFeedRefused("KRAKEN_FEED_SETTINGS_CHANGED")
