@@ -154,7 +154,7 @@ class CustomAdminPanel:
                     state = _resolve(host, token)
                     engine_id = state.engine_id
                     if command in ("enable", "disable"):
-                        if revision is None or type(int(revision)) is not int:
+                        if revision is None:
                             raise AdminCustomPanelRefused("CUSTOM_REVISION_REQUIRED")
                         host.toggle_as_admin(
                             engine_id, enabled=command == "enable",
