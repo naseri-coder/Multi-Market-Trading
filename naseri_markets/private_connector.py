@@ -15,6 +15,7 @@ import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
+from .a12_trust import AdmissionRefused, OfflineAdmission
 from .external_abi import parse_paper_envelope
 from .plugin_manager import PluginManager
 from .private_protocol import (
@@ -82,6 +83,7 @@ class PrivatePaperConnector:
         engine_id: str, engine_version: str, approved_digest: str,
         keys: ConnectorKeys, exchange: Exchange, timeout_seconds: float = 1.0,
         now_seconds: Callable[[], int] | None = None,
+        offline_admission: OfflineAdmission | None = None,
     ) -> None:
         if (
             not callable(exchange) or not 0 < timeout_seconds <= 10
@@ -97,6 +99,7 @@ class PrivatePaperConnector:
         self._exchange = exchange
         self._timeout = timeout_seconds
         self._clock = now_seconds or (lambda: int(time.time()))
+        self._offline_admission = offline_admission
         self._incarnation = manager.incarnation(engine_id)
         # Fail closed upon construction if plugin is not explicitly prepared.
         self._require_registered()
@@ -127,6 +130,15 @@ class PrivatePaperConnector:
         now = self._clock()
         if type(now) is not int or now <= 0:
             raise ProtocolRefused("A10_INVALID_CLOCK")
+        granted = None
+        if self._offline_admission is not None:
+            granted = self._offline_admission.snapshot(now=now)
+            if (
+                granted.engine_id != self._engine_id
+                or granted.engine_version != self._engine_version
+                or granted.manifest_sha256 != self._digest
+            ):
+                raise AdmissionRefused("A12_PLUGIN_LICENSE_BINDING")
         nonce = secrets.token_hex(16)
         request = {
             "version": 1,
@@ -179,9 +191,16 @@ class PrivatePaperConnector:
         )
         if self._require_registered() != old:
             raise ProtocolRefused("A10_SETTINGS_CHANGED_DURING_EXCHANGE")
+        if self._offline_admission is not None:
+            current = self._offline_admission.snapshot(now=self._clock())
+            if current != granted:
+                raise AdmissionRefused("A12_ADMISSION_CHANGED_IN_FLIGHT")
         self._fence.consume(
             direction="to_bot", key_id=self._keys.owner_key_id,
             nonce=body["nonce"],
         )
         self._require_registered()
+        if self._offline_admission is not None:
+            if self._offline_admission.snapshot(now=self._clock()) != granted:
+                raise AdmissionRefused("A12_ADMISSION_CHANGED_DURING_COMMIT")
         return output

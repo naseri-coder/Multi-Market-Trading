@@ -1,0 +1,57 @@
+name: A12 Multi Market Trading offline trust grants
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  a12-signed-grants:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Verify historical baseline
+        run: |
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+      - name: Run signed grant, rotation and private connector tests
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m pip install "cryptography==46.0.3"
+          python -m pytest -q tests/unit/test_a12_trust.py
+          python -m pytest -q tests/unit/test_a12_cert_pin.py
+          python -m pytest -q tests/unit/test_a11_mtls.py
+          python -m pytest -q tests/unit/test_a10_private_connector.py
+      - name: Lint new security modules
+        run: |
+          python -m ruff check --select E4,F naseri_markets/a12_trust.py naseri_markets/a11_mtls.py naseri_markets/private_connector.py tests/unit/test_a12_trust.py tests/unit/test_a12_cert_pin.py
+      - name: Validate standalone public wheel does not contain issuer secrets
+        run: |
+          set -Eeuo pipefail
+          python -m pip install "setuptools==80.9.0" "wheel==0.45.1"
+          python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/a12-staged-wheel"
+          mkdir -p "$RUNNER_TEMP/a12-dist"
+          python -m pip wheel --no-build-isolation --no-deps --wheel-dir "$RUNNER_TEMP/a12-dist" "$RUNNER_TEMP/a12-staged-wheel"
+          python -m venv "$RUNNER_TEMP/a12-clean"
+          "$RUNNER_TEMP/a12-clean/bin/python" -m pip install --no-deps "$RUNNER_TEMP/a12-dist/multi_market_trading-0.4.0rc1-py3-none-any.whl"
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/a12-clean/bin/python" - <<'PY'
+          import importlib.util
+          from naseri_markets.a12_trust import TrustStore, OfflineAdmission
+          assert TrustStore and OfflineAdmission
+          assert importlib.util.find_spec("app") is None
+          assert importlib.util.find_spec("cryptography") is None
+          print("A12_ISOLATED_WHEEL_PUBLIC_ONLY_VERIFICATION_IMPORT_PASS")
+          PY

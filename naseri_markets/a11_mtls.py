@@ -7,6 +7,9 @@ ambiguous failures. Certificate files are supplied by the CI operator.
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import hmac
+import re
 import ssl
 import struct
 import time
@@ -88,6 +91,7 @@ class LoopbackMtlsExchange:
         self, *, port: int, expected_owner_dns: str,
         context: ssl.SSLContext, timeout: float = 2.0,
         failure_limit: int = 2, cooldown: float = 1.0,
+        expected_owner_cert_sha256: str | None = None,
     ) -> None:
         if type(port) is not int or not 0 < port <= 65535:
             raise TransportRefused("A11_PORT_REQUIRED")
@@ -108,6 +112,12 @@ class LoopbackMtlsExchange:
             raise TransportRefused("A11_INVALID_TRANSPORT_POLICY")
         if not 0 < cooldown <= 60:
             raise TransportRefused("A11_INVALID_COOLDOWN")
+        if expected_owner_cert_sha256 is not None and (
+            type(expected_owner_cert_sha256) is not str
+            or re.fullmatch(r"[0-9a-f]{64}", expected_owner_cert_sha256) is None
+        ):
+            raise TransportRefused("A12_INVALID_OWNER_CERT_PIN")
+        self._cert_pin = expected_owner_cert_sha256
         self._port = port
         self._expected_owner_dns = expected_owner_dns
         self._context = context
@@ -157,6 +167,13 @@ class LoopbackMtlsExchange:
             server_hostname=self._expected_owner_dns,
         )
         try:
+            if self._cert_pin is not None:
+                tls = writer.get_extra_info("ssl_object")
+                leaf = tls.getpeercert(binary_form=True) if tls else None
+                if not leaf or not hmac.compare_digest(
+                    hashlib.sha256(leaf).hexdigest(), self._cert_pin
+                ):
+                    raise TransportRefused("A12_UNTRUSTED_OWNER_CERT")
             await send_frame(writer, packet)
             answer = await read_frame(reader)
             # One-message response and no hidden auto-retry.
