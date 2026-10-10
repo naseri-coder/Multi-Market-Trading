@@ -1,0 +1,78 @@
+name: A13 Multi Market Trading private engine offline provisioning
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  a13-provisioning-lifecycle:
+    name: A13 private metadata stage/verify/suspend/retire and rollback fences
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Verify historical source baseline and independent package
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+      - name: Test isolated provision lifecycle and existing trust/connector
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m pip install "cryptography==46.0.3"
+          python -m pytest -q tests/unit/test_a13_provisioning.py
+          python -m pytest -q tests/unit/test_a12_trust.py
+          python -m pytest -q tests/unit/test_a12_cert_pin.py
+      - name: No live IO, dynamic plugin imports or new Python lint debt
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check --select E4,F \
+            naseri_markets/a13_provisioning.py \
+            tests/unit/test_a13_provisioning.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          name = Path("naseri_markets/a13_provisioning.py")
+          forbidden = {"subprocess", "socket", "requests", "urllib", "httpx",
+                       "aiohttp", "importlib", "MetaTrader5",
+                       "r0_engine", "private_nyfr_core"}
+          for node in ast.walk(ast.parse(name.read_bytes())):
+              if isinstance(node, ast.Import):
+                  assert all(x.name.split(".")[0] not in forbidden
+                             for x in node.names)
+              if isinstance(node, ast.ImportFrom):
+                  assert (node.module or "").split(".")[0] not in forbidden
+          print("A13_NO_PLUGIN_INSTALL_OR_NETWORK_ACCESS_PASS")
+          PY
+      - name: Build and import clean standalone PUBLIC preview wheel
+        run: |
+          set -Eeuo pipefail
+          python -m pip install "setuptools==80.9.0" "wheel==0.45.1"
+          python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/a13-wheel"
+          mkdir -p "$RUNNER_TEMP/a13-dist"
+          python -m pip wheel --no-build-isolation --no-deps \
+            --wheel-dir "$RUNNER_TEMP/a13-dist" "$RUNNER_TEMP/a13-wheel"
+          python -m venv "$RUNNER_TEMP/a13-env"
+          "$RUNNER_TEMP/a13-env/bin/python" -m pip install --no-deps \
+            "$RUNNER_TEMP/a13-dist/multi_market_trading-0.4.0rc1-py3-none-any.whl"
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/a13-env/bin/python" - <<'PY'
+          import importlib.util
+          from naseri_markets.a13_provisioning import OfflineProvisioner
+          assert OfflineProvisioner is not None
+          assert importlib.util.find_spec("app") is None
+          assert importlib.util.find_spec("cryptography") is None
+          print("A13_ISOLATED_PUBLIC_WHEEL_ONLY_PASS")
+          PY
