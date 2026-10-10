@@ -111,6 +111,14 @@ class IntegratedEnginePanel(CustomAdminPanel):
             status += " — هسته واقعی هنوز متصل نیست"
         else:
             status = "✅ PAPER فعال" if state.enabled else "⏸ PAPER غیرفعال"
+        publication_line = ""
+        if state.engine_kind == "BUILTIN_BROOKS":
+            publication = host.publication(engine_id)
+            publication_line = (
+                "درخواست انتشار سیگنال: "
+                + ("✅ ثبت شده" if publication["requested_publication"] else "⏸ ثبت نشده")
+                + "\\nانتشار مؤثر سیگنال: 🔒 غیرفعال (موتور و ناشر متصل نیستند)\\n"
+            )
         return (
             f"{label}\nشناسه: {engine_id}\n"
             f"وضعیت: {status}\nنسخه تنظیمات هسته: {state.revision}\n"
@@ -119,6 +127,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
             f"محیط سیگنال: {prefs['signal_environment']} (بدون LIVE)\n"
             f"مقصد: {_safe_title(route['channel_title']) if route['channel_id'] else 'ثبت نشده'}\n"
             f"انتشار به کانال: 🔒 DISABLED\n"
+            f"{publication_line}"
             f"سیگنال‌های PAPER: {len(host.signals(engine_id))}\n"
             "تغییرات تنها بر همین هسته اعمال می‌شوند.")
 
@@ -219,7 +228,13 @@ class IntegratedEnginePanel(CustomAdminPanel):
 
     def register(self, application) -> None:
         super().register(application)
-        from telegram.ext import CommandHandler, filters
+        from telegram.ext import CallbackQueryHandler, CommandHandler, filters
+        # The shared Custom panel registers only cm: callbacks. Explicitly
+        # register the integrated settings and Brooks publication callbacks,
+        # otherwise Telegram silently drops taps on their inline buttons.
+        application.add_handler(
+            CallbackQueryHandler(self.callback, pattern=r"^(?:em:|bp:)"),
+            group=0)
         application.add_handler(
             CommandHandler("engines", self.panel, filters=filters.ChatType.PRIVATE),
             group=0)
