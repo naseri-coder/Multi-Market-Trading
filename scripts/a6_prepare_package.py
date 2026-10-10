@@ -9,7 +9,6 @@ import argparse
 import ast
 import hashlib
 import json
-import shutil
 import sys
 from pathlib import Path
 
@@ -24,12 +23,15 @@ def _check_module(path: Path) -> None:
         raise ValueError("PRIVATE_MODULE_NOT_ALLOWED")
     tree = ast.parse(path.read_bytes())
     for n in ast.walk(tree):
-        if isinstance(n, ast.Import):
-            if any(k.name.split(".")[0] in FORBIDDEN for k in n.names):
-                raise ValueError("PRIVATE_IMPORT_NOT_ALLOWED")
-        if isinstance(n, ast.ImportFrom):
-            if (n.module or "").split(".")[0] in FORBIDDEN:
-                raise ValueError("PRIVATE_IMPORT_NOT_ALLOWED")
+        if isinstance(n, ast.Import) and any(
+            k.name.split(".")[0] in FORBIDDEN for k in n.names
+        ):
+            raise ValueError("PRIVATE_IMPORT_NOT_ALLOWED")
+        if (
+            isinstance(n, ast.ImportFrom)
+            and (n.module or "").split(".")[0] in FORBIDDEN
+        ):
+            raise ValueError("PRIVATE_IMPORT_NOT_ALLOWED")
 
 
 def prepare(destination: Path) -> dict:
@@ -43,7 +45,7 @@ def prepare(destination: Path) -> dict:
 
     source = ROOT / "naseri_markets"
     modules = sorted(source.glob("*.py"))
-    if not modules or not (source / "platform_cli.py") in modules:
+    if not modules or (source / "platform_cli.py") not in modules:
         raise ValueError("PLATFORM_MODULE_MISSING")
     for module in modules:
         _check_module(module)
