@@ -47,7 +47,13 @@ class IntegratedEnginePanel(CustomAdminPanel):
                     badge = "🟡" if engine.requested_enabled else "🔒"
                 else:
                     badge = "✅" if engine.enabled else "⏸"
-                rows.append([Button(f"{badge} {engine.engine_id}",
+                label = (
+                    "📚 پرایس اکشن البروکس (Brooks)"
+                    if engine.engine_kind == "BUILTIN_BROOKS" else
+                    "🔐 NY First-Reversal — Custom اختصاصی"
+                    if engine.engine_kind == "OWNER_CUSTOM" else engine.engine_id
+                )
+                rows.append([Button(f"{badge} {label}",
                                     callback_data=f"cm:open:{_token(engine.engine_id)}")])
             rows.append([Button("🔄 تازه‌سازی", callback_data="cm:list")])
             return InlineKeyboardMarkup(rows)
