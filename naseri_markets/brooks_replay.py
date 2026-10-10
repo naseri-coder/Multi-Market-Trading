@@ -94,8 +94,11 @@ def parse_candle_replay(payload: bytes) -> tuple[dict, Instrument, tuple[dict, .
         raise BrooksReplayRefused("BROOKS_SCHEMA_VERSION")
     if raw["origin"] != "replay" or raw["market"] != "crypto":
         raise BrooksReplayRefused("BROOKS_OFFLINE_CRYPTO_REPLAY_ONLY")
-    if (raw["timeframe"] not in SECONDS or raw["market_type"] not in
-            ("spot", "futures") or raw["timezone"] != "UTC"):
+    if (type(raw["timeframe"]) is not str
+            or raw["timeframe"] not in SECONDS
+            or type(raw["market_type"]) is not str
+            or raw["market_type"] not in ("spot", "futures")
+            or raw["timezone"] != "UTC"):
         raise BrooksReplayRefused("BROOKS_UNSUPPORTED_MARKET_CONTEXT")
     for field in ("provider", "symbol", "quote_currency", "exchange"):
         if (not isinstance(raw[field], str)
@@ -128,6 +131,29 @@ def parse_candle_replay(payload: bytes) -> tuple[dict, Instrument, tuple[dict, .
         })
         prev_close = closed
     return raw, instrument, tuple(normalized)
+
+
+def canonical_snapshot_identity(raw: dict, bars: tuple[dict, ...]) -> tuple[str, str]:
+    """Independently reproduce legacy MarketSnapshot.snapshot_hash/id."""
+    last = bars[-1]["close_time"]
+    normalized = {
+        "exchange": raw["exchange"], "market_type": raw["market_type"],
+        "symbol": raw["symbol"], "timeframe": raw["timeframe"],
+        "captured_at": last.isoformat(),
+        "candles": [
+            {**{k: row[k].isoformat() for k in ("open_time", "close_time")},
+             **{k: str(row[k]) for k in
+                ("open", "high", "low", "close", "volume")}}
+            for row in bars
+        ],
+    }
+    digest = hashlib.sha256(json.dumps(
+        normalized, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    snapshot_id = (
+        f"{raw['exchange']}:{raw['market_type']}:{raw['symbol']}:"
+        f"{raw['timeframe']}:{int(last.timestamp() * 1000)}"
+    )
+    return snapshot_id, digest
 
 
 def verify_legacy_source(source_root: Path) -> str:
@@ -240,8 +266,13 @@ def replay_once(*, state_dir: str | Path, legacy_source: str | Path,
     source_digest = verify_legacy_source(Path(legacy_source))
     try:
         proc = subprocess.run(
-            [sys.executable, "-I", "-m", "naseri_markets.brooks_replay",
-             "--worker", str(Path(legacy_source).absolute())],
+            [sys.executable, "-I", "-c",
+             "import sys; from pathlib import Path; "
+             "sys.path.insert(0, sys.argv[1]); "
+             "from naseri_markets.brooks_replay import _run_worker; "
+             "raise SystemExit(_run_worker(Path(sys.argv[2])))",
+             str(Path(__file__).resolve().parent.parent),
+             str(Path(legacy_source).absolute())],
             input=replay_json, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
             check=False, timeout=timeout_seconds,
             env={"PYTHONDONTWRITEBYTECODE": "1", "PYTHONNOUSERSITE": "1",
@@ -265,6 +296,9 @@ def replay_once(*, state_dir: str | Path, legacy_source: str | Path,
             or obj.get("snapshot_id", "").split(":")[-1] !=
             str(int(bars[-1]["close_time"].timestamp() * 1000))):
         raise BrooksReplayRefused("BROOKS_ENGINE_RESULT_PROVENANCE_INVALID")
+    expected_id, expected_hash = canonical_snapshot_identity(raw, bars)
+    if obj["snapshot_id"] != expected_id or obj["snapshot_hash"] != expected_hash:
+        raise BrooksReplayRefused("BROOKS_ENGINE_SNAPSHOT_MISMATCH")
     if obj["decision"] == "NO_SIGNAL":
         if obj.get("entry") is not None or obj.get("targets"):
             raise BrooksReplayRefused("BROOKS_NO_SIGNAL_HAS_GEOMETRY")
