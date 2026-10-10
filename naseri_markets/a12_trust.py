@@ -143,6 +143,8 @@ def parse_grant(raw: bytes) -> tuple[dict, bytes]:
 @dataclass(frozen=True, slots=True)
 class AdmissionSnapshot:
     engine_id: str
+    engine_version: str
+    manifest_sha256: str
     generation: int
     serial: str
     license_expires_at: int
@@ -326,7 +328,8 @@ def verify_grant(raw: bytes, *, policy: dict, installation_id: str,
     except InvalidSignature as exc:
         raise AdmissionRefused("A12_SIGNATURE_INVALID") from exc
     return AdmissionSnapshot(
-        grant["engine_id"], grant["generation"], grant["serial"],
+        grant["engine_id"], grant["engine_version"],
+        grant["manifest_sha256"], grant["generation"], grant["serial"],
         grant["expires_at"], grant["owner_dns"],
         policy["owner_cert_sha256"], policy["ca_sha256"],
     )
