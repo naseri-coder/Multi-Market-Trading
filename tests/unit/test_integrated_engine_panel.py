@@ -8,10 +8,10 @@ from unittest.mock import AsyncMock
 import pytest
 
 pytest.importorskip("telegram")
-from telegram.ext import Application, CommandHandler
+from telegram.ext import CommandHandler
 
 from naseri_markets.bot_admin_app import (
-    BotStartupRefused, build_admin_application, main,
+    build_admin_application, main,
 )
 from naseri_markets.custom_admin_panel import _token
 from naseri_markets.custom_cli import _export_demo
