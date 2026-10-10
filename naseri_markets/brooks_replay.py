@@ -34,8 +34,8 @@ MAX_REPLAY_BYTES = 524288
 MAX_WORKER_BYTES = 32768
 MIN_BARS = 60
 MAX_BARS = 256
-SECONDS = {"1m": 60, "5m": 300, "15m": 900, "1h": 3600,
-           "4h": 14400, "1d": 86400}
+SECONDS = {"1m": 60, "5m": 300, "15m": 900, "30m": 1800,
+           "1h": 3600, "4h": 14400, "12h": 43200, "1d": 86400}
 SCHEMA_FIELDS = frozenset({
     "schema_version", "origin", "market", "provider", "symbol", "timezone",
     "quote_currency", "exchange", "market_type", "timeframe", "candles",

@@ -16,11 +16,18 @@ from .custom_admin_panel import (
     _resolve, _safe_title, _token,
 )
 from .engine_control_store import (
-    OWNER_CORE_ID, EngineControlStore, MARKET_SCOPES, TIMEFRAMES,
+    BROOKS_ENGINE_ID, OWNER_CORE_ID, EngineControlStore, MARKET_SCOPES, TIMEFRAMES,
+)
+from .futures_venues import (
+    FUTURES_VENUES, get_venue, paper_feed_verified,
+    iran_status_text, feed_status_text,
 )
 from .trusted_custom import LocalCustomRefused
 
 _MORE = re.compile(r"em:(settings|tf|market|env):([0-9a-f]{12})(?::([0-9]+))?\Z")
+_EXCHANGE = re.compile(r"ex:(list|set):([0-9a-f]{12}):([0-9]+)(?::([0-9]+))?\Z")
+_TF = re.compile(r"et:(list|set):([0-9a-f]{12})(?::([0-9]+))?(?::([0-9]+))?\Z")
+_PAGE_SIZE = 5
 
 
 class IntegratedEnginePanel(CustomAdminPanel):
@@ -46,7 +53,9 @@ class IntegratedEnginePanel(CustomAdminPanel):
                 worker = (host.brooks_worker_status()
                           if engine.engine_kind == "BUILTIN_BROOKS" else None)
                 if worker is not None and worker["connected"]:
-                    badge = "🟢" if engine.requested_enabled else "⏸"
+                    armed_feed = paper_feed_verified(
+                        host.preferences(engine.engine_id)["futures_exchange"])
+                    badge = "🟢" if engine.requested_enabled and armed_feed else "⏸"
                 elif engine.runtime_status == "RUNTIME_NOT_MOUNTED":
                     badge = "🟡" if engine.requested_enabled else "🔒"
                 else:
@@ -101,7 +110,8 @@ class IntegratedEnginePanel(CustomAdminPanel):
         paper_armed = bool(
             brooks and brooks.requested_enabled and prefs
             and prefs["signal_environment"] == "PAPER"
-            and prefs["market_scope"] in ("all", "crypto"))
+            and prefs["market_scope"] in ("all", "crypto")
+            and paper_feed_verified(prefs["futures_exchange"]))
         paper_active = bool(
             paper_armed and worker["connected"]
             and worker["phase"] in ("WAITING", "ANALYZING"))
@@ -141,7 +151,8 @@ class IntegratedEnginePanel(CustomAdminPanel):
         if worker is not None and worker["connected"]:
             status = ("🟢 تحلیل PAPER آماده/درحال اجرا"
                       if state.requested_enabled and
-                      prefs["signal_environment"] == "PAPER" else
+                      prefs["signal_environment"] == "PAPER"
+                      and paper_feed_verified(prefs["futures_exchange"]) else
                       "⏸ سرویس حاضر است؛ تحلیل از پنل خاموش است")
         elif state.runtime_status == "RUNTIME_NOT_MOUNTED":
             status = ("🟡 درخواست فعال‌سازی ثبت شده" if state.requested_enabled
@@ -163,7 +174,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
             replay_line = (
                 f"اسکن‌های واقعی Replay: {replay['scans']}\n"
                 f"اسکن‌های بدون سیگنال: {replay['no_signal']}\n"
-                f"سرویس Kraken Futures: {worker['phase']}\n"
+                f"سرویس Futures PAPER: {worker['phase']}\n"
                 f"آخرین کندل: {worker['last_closed_candle'] or 'ثبت نشده'}\n"
                 f"چرخه‌های موفق: {worker['completed_cycles']} | "
                 f"خطاهای کنترل‌شده: {worker['refused_cycles']}\n"
@@ -174,6 +185,9 @@ class IntegratedEnginePanel(CustomAdminPanel):
         return (
             f"{label}\nشناسه: {engine_id}\n"
             f"وضعیت: {status}\nنسخه تنظیمات هسته: {state.revision}\n"
+            f"صرافی فیوچرز: {get_venue(prefs['futures_exchange']).name if worker is not None else '—'}\n"
+            f"آمادگی فید: {feed_status_text(prefs['futures_exchange']) if worker is not None else '—'}\n"
+            f"دسترسی کاربران ایران: {iran_status_text(prefs['futures_exchange']) if worker is not None else '—'}\n"
             f"بازه زمانی انتخابی: {prefs['timeframe']} "
             f"({'مؤثر بر سرویس PAPER مستقل' if worker is not None else 'تنظیم'})\n"
             f"بازار انتخابی: {prefs['market_scope']}\n"
@@ -187,7 +201,17 @@ class IntegratedEnginePanel(CustomAdminPanel):
 
     def settings_text(self, host: EngineControlStore, engine_id: str) -> str:
         preferences = host.preferences(engine_id)
+        venue_line = ""
+        if engine_id == BROOKS_ENGINE_ID:
+            venue = get_venue(preferences["futures_exchange"])
+            venue_line = (
+                f"صرافی فیوچرز: {venue.name}\n"
+                f"وضعیت فید: {feed_status_text(venue.key)}\n"
+                f"وضعیت ایران: {iran_status_text(venue.key)}\n"
+                "⚠️ وجود صرافی در فهرست به‌معنای مجاز بودن برای ایران نیست.\n"
+                "فقط صرافی با فید اعتبارسنجی‌شده قابلیت تحلیل PAPER دارد.\n")
         return (f"⚙️ تنظیمات {engine_id}\n"
+                + venue_line +
                 f"تایم‌فریم: {preferences['timeframe']} "
                 f"({'مؤثر در سرویس مستقل PAPER' if engine_id == 'brooks_price_action' else 'اطلاعاتی'})\n"
                 f"بازار: {preferences['market_scope']}\n"
@@ -200,19 +224,128 @@ class IntegratedEnginePanel(CustomAdminPanel):
         prefs = host.preferences(engine_id)
         token = _token(engine_id)
         revision = prefs["revision"]
-        return InlineKeyboardMarkup([
-            [Button("⏱ تغییر تایم‌فریم",
-                    callback_data=f"em:tf:{token}:{revision}")],
+        options = [
+            [Button("⏱ انتخاب تایم‌فریم",
+                    callback_data=f"et:list:{token}")] if engine_id == BROOKS_ENGINE_ID
+            else [Button("⏱ تغییر تایم‌فریم",
+                         callback_data=f"em:tf:{token}:{revision}")],
+            *([[Button("🏦 انتخاب صرافی فیوچرز (۲۰ مورد)",
+                       callback_data=f"ex:list:{token}:0")]]
+              if engine_id == BROOKS_ENGINE_ID else []),
             [Button("🌍 تغییر بازار",
                     callback_data=f"em:market:{token}:{revision}")],
             [Button("🧪 PAPER / خاموش",
                     callback_data=f"em:env:{token}:{revision}")],
             [Button("🔙 بازگشت به هسته", callback_data=f"cm:open:{token}")],
-        ])
+        ]
+        return InlineKeyboardMarkup(options)
+
+    def exchange_keyboard(self, host: EngineControlStore, engine_id: str,
+                          page: int):
+        """Paged stable allowlist; Telegram callback payloads stay <64 bytes."""
+        from telegram import InlineKeyboardButton as Button, InlineKeyboardMarkup
+        if engine_id != BROOKS_ENGINE_ID or not 0 <= page < 4:
+            raise AdminCustomPanelRefused("BROOKS_EXCHANGE_PAGE_DENIED")
+        prefs = host.preferences(engine_id)
+        token = _token(engine_id)
+        start = page * _PAGE_SIZE
+        rows = []
+        for index in range(start, min(start + _PAGE_SIZE, len(FUTURES_VENUES))):
+            venue = FUTURES_VENUES[index]
+            flag = ("⛔" if venue.iran_access == "EXPLICIT_RESTRICTION"
+                    else "🧪" if paper_feed_verified(venue.key) else "⚪")
+            selected = "✅" if venue.key == prefs["futures_exchange"] else ""
+            rows.append([Button(
+                f"{selected}{flag} {venue.name}",
+                callback_data=f"ex:set:{token}:{index}:{prefs['revision']}")])
+        nav = []
+        if page:
+            nav.append(Button("◀ قبلی", callback_data=f"ex:list:{token}:{page-1}"))
+        if page < 3:
+            nav.append(Button("بعدی ▶", callback_data=f"ex:list:{token}:{page+1}"))
+        if nav:
+            rows.append(nav)
+        rows.append([Button("🔙 تنظیمات", callback_data=f"em:settings:{token}")])
+        return InlineKeyboardMarkup(rows)
+
+    def timeframe_keyboard(self, host: EngineControlStore, engine_id: str):
+        from telegram import InlineKeyboardButton as Button, InlineKeyboardMarkup
+        if engine_id != BROOKS_ENGINE_ID:
+            raise AdminCustomPanelRefused("BROOKS_TIMEFRAME_ONLY")
+        prefs = host.preferences(engine_id)
+        token = _token(engine_id)
+        names = {
+            "1m": "۱ دقیقه", "5m": "۵ دقیقه", "15m": "۱۵ دقیقه",
+            "30m": "۳۰ دقیقه", "1h": "۱ ساعت", "4h": "۴ ساعت",
+            "12h": "۱۲ ساعت", "1d": "روزانه",
+        }
+        rows = []
+        for index in range(0, len(TIMEFRAMES), 2):
+            rows.append([
+                Button(("✅ " if prefs["timeframe"] == TIMEFRAMES[j] else "")
+                       + names[TIMEFRAMES[j]],
+                       callback_data=f"et:set:{token}:{j}:{prefs['revision']}")
+                for j in range(index, index + 2)])
+        rows.append([Button("🔙 تنظیمات", callback_data=f"em:settings:{token}")])
+        return InlineKeyboardMarkup(rows)
 
     async def callback(self, update, context) -> None:
         query = getattr(update, "callback_query", None)
         if query is None:
+            return
+        if (query.data or "").startswith(("ex:", "et:")):
+            if not _private_admin(update, self.admin_ids):
+                await query.answer("دسترسی مجاز نیست", show_alert=True)
+                return
+            is_exchange = (query.data or "").startswith("ex:")
+            match = (_EXCHANGE if is_exchange else _TF).fullmatch(
+                query.data or "")
+            if match is None:
+                await query.answer("درخواست نامعتبر", show_alert=True)
+                return
+            await query.answer()
+            try:
+                with self._open(update.effective_user.id) as host:
+                    state = _resolve(host, match.group(2))
+                    if state.engine_id != BROOKS_ENGINE_ID:
+                        raise LocalCustomRefused("BROOKS_SETTING_ONLY")
+                    prefs = host.preferences(BROOKS_ENGINE_ID)
+                    if match.group(1) == "set":
+                        if match.group(4) is None or (
+                                int(match.group(4)) != prefs["revision"]):
+                            raise LocalCustomRefused("ENGINE_STALE_SETTING_REVISION")
+                        choices = (FUTURES_VENUES if is_exchange else TIMEFRAMES)
+                        index = int(match.group(3))
+                        if not 0 <= index < len(choices):
+                            raise LocalCustomRefused("ENGINE_CHOICE_OUT_OF_BOUNDS")
+                        value = (choices[index].key if is_exchange
+                                 else choices[index])
+                        host.change_preference(
+                            state.engine_id,
+                            field=("futures_exchange" if is_exchange
+                                   else "timeframe"),
+                            value=value, expected_revision=prefs["revision"],
+                            actor_id=update.effective_user.id)
+                    if is_exchange:
+                        page = (int(match.group(3)) // _PAGE_SIZE
+                                if match.group(1) == "set"
+                                else int(match.group(3)))
+                        markup = self.exchange_keyboard(host, state.engine_id, page)
+                        message = (
+                            f"🏦 صرافی انتخاب‌شده: "
+                            f"{get_venue(host.preferences(state.engine_id)['futures_exchange']).name}\n"
+                            "⛔ = ایران رسماً محدود | ⚪ = دسترسی ایران نامشخص\n"
+                            "این فهرست تضمین دسترسی قانونی یا فید آماده نیست.")
+                    else:
+                        markup = self.timeframe_keyboard(host, state.engine_id)
+                        message = (
+                            f"⏱ تایم‌فریم: {host.preferences(state.engine_id)['timeframe']}\n"
+                            "هشت دوره استاندارد؛ هر تغییر، تنظیمات تحلیل PAPER را به‌روزرسانی می‌کند.")
+                if query.message is not None:
+                    await query.message.reply_text(message, reply_markup=markup)
+            except (LocalCustomRefused, AdminCustomPanelRefused, ValueError):
+                if query.message is not None:
+                    await query.message.reply_text("⚠️ انتخاب نامعتبر یا قدیمی است؛ تنظیمات را تازه کنید.")
             return
         if (query.data or "").startswith("bp:"):
             if not _private_admin(update, self.admin_ids):
@@ -288,7 +421,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
         # register the integrated settings and Brooks publication callbacks,
         # otherwise Telegram silently drops taps on their inline buttons.
         application.add_handler(
-            CallbackQueryHandler(self.callback, pattern=r"^(?:em:|bp:)"),
+            CallbackQueryHandler(self.callback, pattern=r"^(?:em:|bp:|ex:|et:)"),
             group=0)
         application.add_handler(
             CommandHandler("engines", self.panel, filters=filters.ChatType.PRIVATE),

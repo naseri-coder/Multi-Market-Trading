@@ -40,6 +40,7 @@ def revoke(folder):
 def report(*, now=CLOCK, outcome="RECORDED", timeframe="15m"):
     return {
         "symbol": "PF_XBTUSD",
+        "selected_exchange": "kraken",
         "market_feed": "KRAKEN_FUTURES_TRADE_PUBLIC_HTTPS",
         "outcome": outcome, "decision": "NO_SIGNAL",
         "telegram_sent": False, "live_publication_enabled": False,
@@ -225,14 +226,14 @@ async def test_private_admin_panel_displays_actual_heartbeat_and_toggle(tmp_path
     with EngineControlStore(folder) as host:
         host.brooks_worker_claim(worker_id=owner, now=int(CLOCK.timestamp()))
         # Details must not claim an active worker when heartbeat becomes stale.
-        assert "سرویس Kraken Futures: STALE" in panel.detail(
+        assert "سرویس Futures PAPER: STALE" in panel.detail(
             host, BROOKS_ENGINE_ID)
     # For actual fresh state, use real wall-clock time in the lease.
     import time
     with EngineControlStore(folder) as host:
         host.brooks_worker_heartbeat(
             worker_id=owner, now=int(time.time()), phase="IDLE")
-        assert "سرویس Kraken Futures: IDLE" in panel.detail(host, BROOKS_ENGINE_ID)
+        assert "سرویس Futures PAPER: IDLE" in panel.detail(host, BROOKS_ENGINE_ID)
         keyboard = panel.keyboard(host, BROOKS_ENGINE_ID)
         actions = [b.callback_data for row in keyboard.inline_keyboard for b in row]
         assert f"cm:enable:{_token(BROOKS_ENGINE_ID)}:1" in actions

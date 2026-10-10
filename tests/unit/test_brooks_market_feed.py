@@ -56,6 +56,10 @@ def state(tmp_path):
             BROOKS_ENGINE_ID, field="signal_environment",
             value="PAPER", expected_revision=preferences["revision"],
             actor_id=123)
+        preferences = store.preferences(BROOKS_ENGINE_ID)
+        store.change_preference(
+            BROOKS_ENGINE_ID, field="futures_exchange", value="binance",
+            expected_revision=preferences["revision"], actor_id=123)
     return private
 
 

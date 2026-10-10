@@ -12,11 +12,12 @@ from dataclasses import dataclass
 from pathlib import Path
 import time
 
+from .futures_venues import VENUE_BY_KEY, get_venue
 from .trusted_custom import LocalCustomRefused, TrustedLocalCustomHost
 
 BROOKS_ENGINE_ID = "brooks_price_action"
 OWNER_CORE_ID = "ny_first_reversal"  # reserved identity only; NO private source
-TIMEFRAMES = ("1m", "5m", "15m", "1h", "4h", "1d")
+TIMEFRAMES = ("1m", "5m", "15m", "30m", "1h", "4h", "12h", "1d")
 MARKET_SCOPES = ("all", "crypto", "forex", "index", "metal")
 SIGNAL_ENVS = ("OFF", "PAPER")
 _NONPUBLIC = "OWNER_CUSTOM"
@@ -58,10 +59,20 @@ class EngineControlStore:
             engine_id TEXT PRIMARY KEY,
             timeframe TEXT NOT NULL DEFAULT '15m',
             market_scope TEXT NOT NULL DEFAULT 'all',
+            futures_exchange TEXT NOT NULL DEFAULT 'kraken',
             signal_environment TEXT NOT NULL DEFAULT 'PAPER'
               CHECK(signal_environment IN ('OFF','PAPER')),
             revision INTEGER NOT NULL DEFAULT 1 CHECK(revision>=1)
         )""")
+        # Additive and preserves all existing preference revisions; no
+        # production migration or exchange reassignment. Old PAPER remains
+        # Kraken-only until an explicit CAS-backed admin switch.
+        pref_cols = {row["name"] for row in self._db.execute(
+            "PRAGMA table_info(managed_engine_preferences)")}
+        if "futures_exchange" not in pref_cols:
+            self._db.execute(
+                "ALTER TABLE managed_engine_preferences "
+                "ADD COLUMN futures_exchange TEXT NOT NULL DEFAULT 'kraken'")
         self._db.execute("""CREATE TABLE IF NOT EXISTS managed_engine_publication(
             engine_id TEXT PRIMARY KEY,
             requested_publication INTEGER NOT NULL DEFAULT 0
@@ -166,6 +177,11 @@ class EngineControlStore:
         return {
             "engine_id": engine_id, "timeframe": row["timeframe"] if row else "15m",
             "market_scope": row["market_scope"] if row else "all",
+            "futures_exchange": row["futures_exchange"] if row else "kraken",
+            "futures_feed_status": get_venue(
+                row["futures_exchange"] if row else "kraken").feed_status,
+            "futures_iran_access": get_venue(
+                row["futures_exchange"] if row else "kraken").iran_access,
             "signal_environment": row["signal_environment"] if row else "PAPER",
             "revision": row["revision"] if row else 0,
             "timeframe_runtime_applied": False,
@@ -179,6 +195,9 @@ class EngineControlStore:
             "timeframe": TIMEFRAMES, "market_scope": MARKET_SCOPES,
             "signal_environment": SIGNAL_ENVS,
         }
+        if engine_id == BROOKS_ENGINE_ID:
+            options["futures_exchange"] = tuple(VENUE_BY_KEY)
+
         if (field not in options or type(value) is not str
                 or value not in options[field]
                 or type(expected_revision) is not int
