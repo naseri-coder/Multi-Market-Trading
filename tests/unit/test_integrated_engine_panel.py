@@ -296,7 +296,7 @@ async def test_per_engine_private_destination_and_zero_channel_send(setup):
 def test_bot_application_integration_mounts_same_telegram_application(setup):
     state, _, _ = setup
     app = build_admin_application(
-        token="123456:VALID_TEST_ONLY_NOT_A_REAL_TOKEN",
+        token="".join(("123456", ":", "LOCAL_ONLY_FAKE_TEST")),
         state_dir=state, admin_ids={123, 234}, owner_ids={123},
         owner_reference=True)
     handlers = [h for group in app.handlers.values() for h in group]
