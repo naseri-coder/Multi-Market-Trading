@@ -12,7 +12,6 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import hmac
-import os
 import sqlite3
 import tempfile
 from dataclasses import dataclass
@@ -118,7 +117,7 @@ class UnifiedAuthorizationLedger:
                 descriptor_sha256 TEXT NOT NULL,
                 a24_sha256 TEXT NOT NULL, a25_sha256 TEXT NOT NULL,
                 a24_sequence INTEGER NOT NULL, a25_sequence INTEGER NOT NULL,
-                expires_at INTEGER NOT NULL,
+                valid_from INTEGER NOT NULL, expires_at INTEGER NOT NULL,
                 generation INTEGER NOT NULL CHECK(generation>0),
                 state TEXT NOT NULL CHECK(state IN ('SEALED','ACTIVE','REVOKED'))
             )""")
@@ -133,12 +132,13 @@ class UnifiedAuthorizationLedger:
                     "SELECT * FROM a27_grant WHERE singleton=1").fetchone()
                 if previous is None:
                     self._db.execute(
-                        "INSERT INTO a27_grant VALUES (1,?,?,?,?,?,?,?,?,?,'SEALED')",
+                        "INSERT INTO a27_grant VALUES (1,?,?,?,?,?,?,?,?,?,?,'SEALED')",
                         (installation_id, contract.engine_id,
                          contract.approved_descriptor_sha256,
                          hashlib.sha256(a24_envelope).hexdigest(),
                          hashlib.sha256(release).hexdigest(),
-                         self._auth[0], self._auth[1], self._auth[2], 1))
+                         self._auth[0], self._auth[1], self._auth[2],
+                         self._auth[3], 1))
                 else:
                     if not self._matches(previous):
                         raise RecoveryFenceRefused("A27_EXISTING_GRANT_IDENTITY_CHANGED")
@@ -166,6 +166,7 @@ class UnifiedAuthorizationLedger:
         claim24 = _parse_envelope(self.a24_envelope)[0]
         claim25 = _parse_signed_bundle(self.release)[0]
         return (a24.sequence, a25.bundle_sequence,
+                max(claim24["issued_at"], claim25["issued_at"]),
                 min(claim24["expires_at"], claim25["expires_at"]))
 
     def _matches(self, row) -> bool:
@@ -179,7 +180,8 @@ class UnifiedAuthorizationLedger:
                     row["a25_sha256"], hashlib.sha256(self.release).hexdigest())
                 and row["a24_sequence"] == self._auth[0]
                 and row["a25_sequence"] == self._auth[1]
-                and row["expires_at"] == self._auth[2])
+                and row["valid_from"] == self._auth[2]
+                and row["expires_at"] == self._auth[3])
 
     def receipt(self) -> RecoveryReceipt:
         row = self._db.execute("SELECT * FROM a27_grant WHERE singleton=1").fetchone()
@@ -206,7 +208,7 @@ class UnifiedAuthorizationLedger:
             if (row is None or not self._matches(row)
                     or row["state"] == "REVOKED"
                     or row["generation"] != expected_generation
-                    or now >= row["expires_at"]):
+                    or not row["valid_from"] <= now < row["expires_at"]):
                 raise RecoveryFenceRefused("A27_RECOVERY_REVOKED_OR_STALE")
             # Recovery always rotates generation, including after clean exit.
             generation = row["generation"] + 1
@@ -292,7 +294,7 @@ class UnifiedAuthorizationLedger:
                     or not state.enabled
                     or state.descriptor_sha256 != self.contract.approved_descriptor_sha256
                     or not bridge._paper_enabled
-                    or not 0 < now < row["expires_at"]):
+                    or not row["valid_from"] <= now < row["expires_at"]):
                 raise RecoveryFenceRefused("A27_REVOKED_STALE_OR_EXPIRED_AT_COMMIT")
             for engine_id, signal_id, digest, payload in prepared:
                 old = self._db.execute(
@@ -363,7 +365,7 @@ class RecoveredFixedPaperSession:
     def launch(self, *, now: int):
         receipt = self.ledger.receipt()
         if (not receipt.armed_this_process or receipt.state != "ACTIVE"
-                or now >= self.ledger._auth[2]):
+                or not self.ledger._auth[2] <= now < self.ledger._auth[3]):
             raise RecoveryFenceRefused("A27_OPERATOR_RECOVERY_REQUIRED")
         return self.sandbox.launch(
             approved_sha256=self.ledger.contract.approved_descriptor_sha256)
