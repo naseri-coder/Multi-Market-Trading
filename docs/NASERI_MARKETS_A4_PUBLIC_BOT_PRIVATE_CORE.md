@@ -1,53 +1,54 @@
-# NASERI MARKETS A4 — PUBLIC Bot / PRIVATE Strategy Core Split
+# NASERI MARKETS A4 — Public Bot / Private Engine Boundary
 
-## Ownership / visibility (2026-10-09)
+**Scope:** source-code-only public A4 module, not a live service. The user wants
+the generic bot to be public and reusable by anyone, while private NYFR logic
+remains accessible only in a separate private GitHub repository.
 
-- PUBLIC: \`naseri-coder/crypto-price-action\` — NASERI MARKETS platform,
-  generic source code for the signal bot, quote transport, state machines,
-  validation, analytics, and eventual Telegram delivery adapters.
-- PRIVATE: \`naseri-coder/NY-First-Reversal\` — NY First-Reversal strategy
-  logic, US30 session interpretation, strategy-specific settings, and private
-  input-to-intent conversion. Public consumers CANNOT generate NYFR signals
-  from the public bot code alone.
+## Repository ownership
 
-## Public API / behavior
+- **PUBLIC:** `naseri-coder/Multi-Market-Trading` — generic, reusable signal
+  publisher, market-data adapters, risk/identity contracts, SQLite outbox
+  and independent analytics.
+- **PRIVATE:** `naseri-coder/NY-First-Reversal` — strategy decision engine,
+  original NY session interpretation, and private decision-to-envelope code.
 
-- \`naseri_markets.public_signal_bot.PublicSignalBot\` consumes **only**
-  \`SignalIntent\`, \`EngineRegistry\`, \`ChannelRoute\`, \`SignalLedger\` and a
-  \`PrivateChannelTransport\`. It never imports \`r0_engine\`, \`NYFRPrivateCore\`,
-  any private code, or any broker order API.
-- Generic Telegram transport uses getMe/getChat/getChatMember for independent
-  private channel and publisher-permission checks. It is **disabled by default**,
-  and the bot token is injected by the operator at runtime, never stored.
-- An ambiguous send means no blind retry after restart. Only a confirmed
-  Telegram message_id permits a SENT acknowledgment.
-- Historical/paper messages may not be misrepresented as real-time forward
-  publication; stale signals and unauthenticated feeds are rejected.
-- \`naseri_markets.mt5_readonly_bridge\` is an optional read-only price source;
-  NO strategy parameters or trade execution functions are present.
-- A **public bot** means anyone can inspect/modify/run their copy of the bot.
-  They still do not get the private NYFR strategy. The user retains control
-  of who has GitHub collaborator access to the private core.
+## Independent public bot
 
-## Licensing without a heavyweight authority
+- `naseri_markets.public_signal_bot.PublicSignalBot` consumes standardized
+  `SignalIntent`, `EngineRegistry`, `ChannelRoute`, and a
+  `PrivateChannelTransport`. No import of private NYFR source is permitted.
+- `TelegramPrivateChannel` uses the official Telegram Bot API
+  `getMe`/`getChat`/`getChatMember` to verify a channel without a public
+  username and the bot's right to post. Delivery is disabled by default.
+- Transport uses an operator-injected token. No credential, broker account,
+  real channel ID, local market data or strategy settings are committed.
+- An external verified **forward-live** feed attestation is required;
+  caller-supplied boolean alone is NOT independent authentication of a
+  proprietary engine, nor proof of source licensing or market-data quality.
+- Publication is transactionally claimed before one send attempt.
+  Unknown Telegram delivery means **manual reconciliation; never retry
+  blindly after an ambiguous network response**.
+- `naseri_markets.mt5_readonly_bridge` optionally emits sanitized quotes
+  from an already-authorized local MetaTrader5 terminal. It does not
+  call any order function and cannot produce a NYFR signal by itself.
 
-For this research stage, private GitHub source access is the NYFR intellectual
-property boundary. An approved operator may run the private strategy locally
-or on a future controlled host and feed its signals to the public bot.
+## Licensing principle
 
-End users get **signal access only**, via a separately managed private Telegram
-channel with manual membership/expiry. No public Python source licenses can
-prevent someone from running their **own** generic signal bot; that is expected.
+Everyone may read, fork, modify and run the generic public bot according to
+its repository licence. This does not distribute any NYFR source. GitHub
+private collaborator permissions control who can access the private strategy.
 
-An execution-capable MT5 EA or distributing a private core binary is a separate
-future stage requiring signed, short-lived entitlements and revocation. No
-end-user executable license service is implemented here.
+Users who only receive private-channel signals do not need repository access.
+A future source/binary distribution or licensed MT5 execution client would
+require an independently authorized, signed, revocable entitlement service.
+There is no heavyweight license server in A4.
 
-## Status / evidence limitations
+## Exact limitations
 
-This is a stacked development PR based on A3 #128, not deployed. A1–A3
-are review branches, not on main. No broker feed or Telegram token has been
-configured. In-process unit tests are not evidence of market profitability
-or successful real Telegram publication.
+This is not wired into the frozen `production_source` Docker image,
+`app.main` entrypoint, or release v0.3.2 runtime. These public modules are
+code-reviewable development libraries; no server, BotFather, MT5 terminal,
+broker, channel or Telegram message was used during creation.
 
-**Do not copy any private source into this public repo, including Git history.**
+**Neither an offline unit test nor a successfully merged PR proves an
+end-to-end live Telegram publication or actual trading profitability.**

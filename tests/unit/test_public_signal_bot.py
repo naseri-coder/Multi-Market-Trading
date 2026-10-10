@@ -156,3 +156,54 @@ def test_formatting_contains_no_proprietary_logic(tmp_path):
     assert "example_core" in msg
     assert "US30" not in msg
     assert "breakout" not in msg.lower()
+
+
+
+def test_private_channel_verifier_requires_real_private_admin(monkeypatch):
+    from naseri_markets.public_signal_bot import TelegramPrivateChannel
+    client = TelegramPrivateChannel("fixture-token")
+    calls = []
+
+    def mocked(method, payload):
+        calls.append(method)
+        if method == "getMe":
+            return {"id": 123}
+        if method == "getChat":
+            return {"type": "channel", "id": -1001112223334}
+        if method == "getChatMember":
+            return {"status": "administrator", "can_post_messages": True}
+        raise AssertionError(method)
+
+    monkeypatch.setattr(client, "_api", mocked)
+    assert client.verify_private_channel(-1001112223334)
+    assert calls == ["getMe", "getChat", "getChatMember"]
+
+
+@pytest.mark.parametrize("chat, member", [
+    ({"type": "supergroup"}, {"status": "administrator", "can_post_messages": True}),
+    ({"type": "channel", "username": "public_chan"}, {"status": "administrator", "can_post_messages": True}),
+    ({"type": "channel"}, {"status": "member"}),
+    ({"type": "channel"}, {"status": "administrator", "can_post_messages": False}),
+])
+def test_telegram_channel_privacy_and_post_permission_fail_closed(monkeypatch, chat, member):
+    from naseri_markets.public_signal_bot import TelegramPrivateChannel
+    client = TelegramPrivateChannel("fixture-token")
+
+    def fake(method, payload):
+        if method == "getMe":
+            return {"id": 123}
+        if method == "getChat":
+            return chat
+        return member
+
+    monkeypatch.setattr(client, "_api", fake)
+    assert not client.verify_private_channel(-1001112223334)
+
+
+def test_no_proprietary_strategy_imports_in_public_bot():
+    import inspect
+    import naseri_markets.public_signal_bot as public_bot
+    source = inspect.getsource(public_bot)
+    assert "from r0_engine" not in source
+    assert "import private_nyfr_core" not in source
+    assert "order_send(" not in source
