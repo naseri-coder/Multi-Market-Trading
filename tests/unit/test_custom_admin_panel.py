@@ -1,9 +1,8 @@
 """Custom Telegram admin panel: real local PAPER state and fake Bot API, no sends."""
 from __future__ import annotations
 
-import hashlib
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 
