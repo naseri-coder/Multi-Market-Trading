@@ -63,7 +63,7 @@ def enable(bridge, name="custom_demo"):
 
 def sample(name="custom_demo", *, tick=None, **extra):
     t = tick if tick is not None else quote()
-    return packet(t, engine_id=name, engine_version="1.2.3", **extra)
+    return packet(t, **{"engine_id": name, "engine_version": "1.2.3", **extra})
 
 
 @pytest.mark.asyncio
