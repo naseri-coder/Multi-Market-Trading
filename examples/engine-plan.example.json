@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "engines": [
+    {
+      "engine_id": "brooks_crypto",
+      "version": "0.3.2",
+      "market": "crypto",
+      "source": "bundled_legacy",
+      "enabled": false
+    },
+    {
+      "engine_id": "nyfr",
+      "version": "0.1.0",
+      "market": "index",
+      "source": "private_external",
+      "enabled": false
+    }
+  ]
+}

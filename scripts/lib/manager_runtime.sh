@@ -261,7 +261,7 @@ update_bot() {
 
   require_command git || return 1
   repo_is_git_checkout || { fail "Update requires an official Git checkout."; return 1; }
-  official_remote_ok || { fail "Origin is not the official NASERI CODER repository."; return 1; }
+  official_remote_ok || { fail "Origin is not the canonical Multi-Market-Trading repository. Verify origin manually before updating."; return 1; }
   branch="$(git_branch)"
   [[ "$branch" == "main" ]] || {
     fail "Safe update is allowed only from the main branch; current branch: $branch"
