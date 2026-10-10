@@ -163,7 +163,12 @@ def test_mid_fetch_pair_change_fails_closed_before_worker_or_journal(tmp_path):
         assert host.brooks_replay_status()["scans"] == 0
 
 
-def test_worker_passes_selected_pair_not_hardcoded_btc(tmp_path):
+def test_worker_passes_selected_pair_not_hardcoded_btc(tmp_path, monkeypatch):
+    # Unit fixture for the former public research-only loop, NOT a venue
+    # approval in the real policy.
+    monkeypatch.setattr(
+        "naseri_markets.brooks_paper_service.iran_futures_approved",
+        lambda venue: venue == "kraken")
     with EngineControlStore(tmp_path) as host:
         enable(host)
         change(host, "futures_symbol", "PF_SOLUSD")
