@@ -25,6 +25,16 @@ sudo -u postgres psql -v ON_ERROR_STOP=1 -c   "CREATE ROLE a6bot LOGIN CREATEDB 
 sudo -u postgres createdb -O a6bot a6_legacy
 sudo -u postgres createdb -O a6bot a6_restored
 export PGPASSWORD="a6_disposable_pg16_only"
+# Migration reads the v0.3.2 Settings contract. All effectful modes are
+# explicitly disabled on this disposable CI runner.
+export APP_ENV=test
+export PTB_TIMEDELTA=1
+export TELEGRAM_RUNTIME_ENABLED=false
+export BROOKS_RUNTIME_ENABLED=false
+export BROOKS_OPERATIONS_ENABLED=false
+export PAPER_RUNTIME_ENABLED=false
+export PERFORMANCE_REPORTS_ENABLED=false
+export DB_ECHO=false
 export PYTHONPATH="$GITHUB_WORKSPACE"
 legacy="postgresql+asyncpg://a6bot:a6_disposable_pg16_only@localhost/a6_legacy?host=/var/run/postgresql"
 cp -a production_source/app ./app
