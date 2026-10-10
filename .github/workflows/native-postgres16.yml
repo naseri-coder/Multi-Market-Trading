@@ -97,9 +97,9 @@ jobs:
           )
           PY
           sudo pg_ctlcluster 16 main start
-          sudo -u postgres psql -v ON_ERROR_STOP=1 -c "CREATE ROLE ch6synthetic WITH LOGIN CREATEDB PASSWORD 'ch6synthetic_ci_password_2026';"
-          sudo -u postgres createdb -O ch6synthetic ch6synthetic
-          sudo -u postgres createdb -O ch6synthetic fullcorpus
+          sudo -u postgres psql -h "$CH6_NATIVE_SOCKET_DIR" -v ON_ERROR_STOP=1 -c "CREATE ROLE ch6synthetic WITH LOGIN CREATEDB PASSWORD 'ch6synthetic_ci_password_2026';"
+          sudo -u postgres createdb -h "$CH6_NATIVE_SOCKET_DIR" -O ch6synthetic ch6synthetic
+          sudo -u postgres createdb -h "$CH6_NATIVE_SOCKET_DIR" -O ch6synthetic fullcorpus
 
           export PGPASSWORD="ch6synthetic_ci_password_2026"
           test "$(psql -h "$CH6_NATIVE_SOCKET_DIR" -U ch6synthetic -d ch6synthetic -Atqc 'SELECT 1')" = "1"
