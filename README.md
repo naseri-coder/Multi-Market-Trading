@@ -40,6 +40,16 @@
 > [!NOTE]
 > **A28 final product-readiness freeze (2026-10-10):** The A-series infrastructure roadmap closes at A28; no planned A29/A30. The current multi-market candidate remains an **offline preview, not a deployable product**. The next authorized work should prioritize one usable installed Custom PAPER workflow, dependency closure, operator UX and explicit migration planning, rather than additional security layers. **NY First-Reversal stays OWNER_ONLY and never publicly installable, including encrypted versions.** See [A28 final audit and minimal product backlog](docs/MULTI_MARKET_TRADING_A28_FINAL_PRODUCT_AUDIT.md).
 
+> [!NOTE]
+> **Trusted LOCAL Custom PAPER engines (non-production):** The isolated
+> `multi-market-trading==0.4.0rc1` preview now offers `naseri-custom`
+> for explicit operator-approved Python Custom scripts (separately pinned,
+> disabled by default), deterministic replay and PAPER journal inspection.
+> This is real **trusted code execution**, NOT a sandbox for unknown plugins,
+> an activated Telegram bot, or live trading. **NY First-Reversal remains
+> OWNER_ONLY and never publicly installable, even encrypted.**
+> [Custom plugin ABI, tested quickstart and limitations](docs/TRUSTED_LOCAL_CUSTOM_PAPER_MVP.md).
+
 > [!IMPORTANT]
 > **The current manager is branded Multi Market Trading; its historic v0.3.2 runtime identity remains unchanged.** The project does **not** claim profitability and is **not approved for live trading**.
 >
