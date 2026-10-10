@@ -57,7 +57,12 @@ jobs:
           print("A6_INSTALLED_WHEEL_ISOLATION_PASS")
           PY
       - name: Run negative tests for safety and frozen-release preservation
-        run: python -m pytest -q tests/unit/test_a6_preview.py
+        run: |
+          set -Eeuo pipefail
+          # tests/conftest.py imports the frozen legacy app. The isolated A6
+          # wheel was independently verified in a SEPARATE venv above.
+          python -m pip install -e ".[dev]"
+          python -m pytest -q tests/unit/test_a6_preview.py
 
   docker-offline:
     name: A6 nonroot, no-network Docker image
