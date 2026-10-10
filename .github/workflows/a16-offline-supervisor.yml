@@ -1,0 +1,83 @@
+name: A16 Multi Market Trading offline signed fixture supervisor
+
+on:
+  push:
+    branches: [feature/a16-offline-private-service-supervisor]
+  pull_request:
+    paths:
+      - "naseri_markets/a16_supervisor.py"
+      - "tests/unit/test_a16_supervisor.py"
+      - "docs/MULTI_MARKET_TRADING_A16_SUPERVISOR.md"
+      - ".github/workflows/a16-offline-supervisor.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  a16-real-inert-process:
+    name: A16 separate process, fresh signed health, stop and crash recovery
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Frozen historical manifest and public preview integrity
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+      - name: Real ephemeral A16 worker and A12-A15 signed grants regressions
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m pip install "cryptography==46.0.3"
+          python -m pytest -q \
+            tests/unit/test_a16_supervisor.py \
+            tests/unit/test_a15_releases.py \
+            tests/unit/test_a14_packages.py \
+            tests/unit/test_a13_provisioning.py \
+            tests/unit/test_a12_trust.py
+      - name: Strict fixture-only static and Python lint fence
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check --select E4,F \
+            naseri_markets/a16_supervisor.py tests/unit/test_a16_supervisor.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          root = Path("naseri_markets/a16_supervisor.py")
+          forbidden = {
+              "socket", "requests", "urllib", "httpx", "aiohttp",
+              "importlib", "MetaTrader5", "r0_engine", "private_nyfr_core"
+          }
+          tree = ast.parse(root.read_bytes())
+          for node in ast.walk(tree):
+              if isinstance(node, ast.Import):
+                  assert all(a.name.split(".")[0] not in forbidden for a in node.names)
+              if isinstance(node, ast.ImportFrom):
+                  assert (node.module or "").split(".")[0] not in forbidden
+          source = root.read_text()
+          assert "shell=True" not in source
+          assert "from app." not in source
+          assert "production_source" not in source
+          print("A16_INERT_STATIC_PROCESS_NO_PRIVATE_IMPORT_PASS")
+          PY
+      - name: Isolated public-only wheel contents and no private keys
+        run: |
+          set -Eeuo pipefail
+          python -m pip install "setuptools==80.9.0" "wheel==0.45.1"
+          python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/a16-wheel"
+          test -f "$RUNNER_TEMP/a16-wheel/naseri_markets/a16_supervisor.py"
+          test ! -e "$RUNNER_TEMP/a16-wheel/naseri_markets/private_nyfr_core.py"
+          test ! -e "$RUNNER_TEMP/a16-wheel/naseri_markets/r0_engine.py"
+          python - <<'PY'
+          from pathlib import Path
+          src = Path("naseri_markets/a16_supervisor.py").read_text()
+          assert "Ed25519PrivateKey" not in src
+          print("A16_NO_PRIVATE_STRATEGY_OR_SIGNER_SECRETS_PASS")
+          PY
