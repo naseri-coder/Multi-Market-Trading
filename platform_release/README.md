@@ -36,3 +36,16 @@ PAPER enable/disable, verified private channel destination configuration
 (**delivery remains disabled**), PAPER signal previews and audit history.
 This is **not** integrated into the old frozen production bot or deployed.
 See [Custom admin panel guide](../docs/CUSTOM_TELEGRAM_ADMIN_PANEL.md).
+
+
+## New product Telegram engine manager (nonproduction)
+
+The installed `naseri-engine-admin` command can perform a local offline
+`--check` and only under explicit development flags mount a single Telegram
+Application with `/engines` and `/custom`. It lists Al Brooks as a built-in
+reference, with **non-operational requested enable/disable** until the legacy
+Brooks runtime is bridged. NY First-Reversal is a protected, owner-only
+Custom **metadata reference** (opt-in `--owner-reference`); no private code
+is installed or exposed. Per-engine OFF/PAPER, market, timeframe preferences,
+private channel settings and admin audit are available. No auto channel
+sending or live trading. See [integrated engine management](../docs/INTEGRATED_ENGINE_MANAGEMENT.md).
