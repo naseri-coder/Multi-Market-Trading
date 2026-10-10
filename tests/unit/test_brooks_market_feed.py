@@ -116,10 +116,15 @@ def test_insufficient_stale_and_nonfinite_feed_fail_closed():
             symbol="BTCUSDT", timeframe="15m", bars=72,
             now=CLOCK + timedelta(hours=2),
             transport=mock_transport(klines()))
-    with pytest.raises(BrooksMarketFeedRefused, match="JSON"):
+    # Binance errors are syntactically valid JSON, but never OHLCV arrays.
+    with pytest.raises(BrooksMarketFeedRefused, match="KLINES_SCHEMA"):
         closed_candle_payload(
             symbol="BTCUSDT", timeframe="15m", bars=72, now=CLOCK,
             transport=lambda *args: b'{"code":-1003,"msg":"rate limit"}')
+    with pytest.raises(BrooksMarketFeedRefused, match="JSON_INVALID"):
+        closed_candle_payload(
+            symbol="BTCUSDT", timeframe="15m", bars=72, now=CLOCK,
+            transport=lambda *args: b'{not-json')
 
 
 def test_actual_frozen_brooks_on_market_closed_candles_and_idempotency(state):
