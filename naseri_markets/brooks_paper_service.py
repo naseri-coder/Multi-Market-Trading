@@ -24,6 +24,7 @@ from .brooks_kraken_feed import poll_once
 from .brooks_replay import BrooksReplayRefused, SECONDS, verify_legacy_source
 from .engine_control_store import BROOKS_ENGINE_ID, EngineControlStore
 from .futures_venues import paper_feed_verified
+from .futures_pairs import pair_is_verified_paper
 from .trusted_custom import LocalCustomRefused
 
 DEFAULT_SYMBOL = "PF_XBTUSD"
@@ -108,7 +109,9 @@ class BrooksPaperService:
                 return {"phase": "IDLE", "attempted": False}
             # A catalog entry is NOT a verified market-data integration.
             # No automatic fallback to Kraken when another venue was selected.
-            if not paper_feed_verified(prefs["futures_exchange"]):
+            if (not paper_feed_verified(prefs["futures_exchange"])
+                    or not pair_is_verified_paper(
+                        prefs["futures_exchange"], prefs["futures_symbol"])):
                 self.next_attempt_at = 0
                 self.last_config = None
                 store.brooks_worker_heartbeat(
@@ -132,8 +135,9 @@ class BrooksPaperService:
         try:
             report = self.reader(
                 state_dir=self.state_dir, legacy_source=self.legacy_source,
-                symbol=DEFAULT_SYMBOL, bars=72)
-            if (type(report) is not dict or report.get("symbol") != DEFAULT_SYMBOL
+                symbol=prefs["futures_symbol"], bars=72)
+            if (type(report) is not dict
+                    or report.get("symbol") != prefs["futures_symbol"]
                     or report.get("market_feed") !=
                     "KRAKEN_FUTURES_TRADE_PUBLIC_HTTPS"
                     or report.get("outcome") not in

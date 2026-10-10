@@ -13,6 +13,7 @@ from pathlib import Path
 import time
 
 from .futures_venues import VENUE_BY_KEY, get_venue
+from .futures_pairs import initial_pair, pair_choices
 from .trusted_custom import LocalCustomRefused, TrustedLocalCustomHost
 
 BROOKS_ENGINE_ID = "brooks_price_action"
@@ -60,6 +61,7 @@ class EngineControlStore:
             timeframe TEXT NOT NULL DEFAULT '15m',
             market_scope TEXT NOT NULL DEFAULT 'all',
             futures_exchange TEXT NOT NULL DEFAULT 'kraken',
+            futures_symbol TEXT NOT NULL DEFAULT 'PF_XBTUSD',
             signal_environment TEXT NOT NULL DEFAULT 'PAPER'
               CHECK(signal_environment IN ('OFF','PAPER')),
             revision INTEGER NOT NULL DEFAULT 1 CHECK(revision>=1)
@@ -73,6 +75,15 @@ class EngineControlStore:
             self._db.execute(
                 "ALTER TABLE managed_engine_preferences "
                 "ADD COLUMN futures_exchange TEXT NOT NULL DEFAULT 'kraken'")
+        if "futures_symbol" not in pref_cols:
+            self._db.execute(
+                "ALTER TABLE managed_engine_preferences "
+                "ADD COLUMN futures_symbol TEXT NOT NULL DEFAULT 'PF_XBTUSD'")
+            # Existing venue selections from before pair selection inherit
+            # that exact venue's default, without losing revision or flags.
+            self._db.execute(
+                "UPDATE managed_engine_preferences SET futures_symbol='BTCUSDT' "
+                "WHERE futures_exchange != 'kraken'")
         self._db.execute("""CREATE TABLE IF NOT EXISTS managed_engine_publication(
             engine_id TEXT PRIMARY KEY,
             requested_publication INTEGER NOT NULL DEFAULT 0
@@ -178,6 +189,7 @@ class EngineControlStore:
             "engine_id": engine_id, "timeframe": row["timeframe"] if row else "15m",
             "market_scope": row["market_scope"] if row else "all",
             "futures_exchange": row["futures_exchange"] if row else "kraken",
+            "futures_symbol": row["futures_symbol"] if row else "PF_XBTUSD",
             "futures_feed_status": get_venue(
                 row["futures_exchange"] if row else "kraken").feed_status,
             "futures_iran_access": get_venue(
@@ -197,6 +209,9 @@ class EngineControlStore:
         }
         if engine_id == BROOKS_ENGINE_ID:
             options["futures_exchange"] = tuple(VENUE_BY_KEY)
+            if field == "futures_symbol":
+                options["futures_symbol"] = pair_choices(
+                    self.preferences(engine_id)["futures_exchange"])
 
         if (field not in options or type(value) is not str
                 or value not in options[field]
@@ -216,10 +231,19 @@ class EngineControlStore:
                 self._db.execute(
                     "INSERT INTO managed_engine_preferences(engine_id) VALUES(?)",
                     (engine_id,))
-            # Column is selected from a constant internal allowlist.
-            self._db.execute(
-                f"UPDATE managed_engine_preferences SET {field}=?,"
-                " revision=revision+1 WHERE engine_id=?", (value, engine_id))
+            # Provider transitions atomically reset an incompatible pair.
+            # A stale pair callback cannot select a symbol on another venue.
+            if field == "futures_exchange":
+                self._db.execute(
+                    "UPDATE managed_engine_preferences SET "
+                    "futures_exchange=?,futures_symbol=?,revision=revision+1 "
+                    "WHERE engine_id=?", (value, initial_pair(value), engine_id))
+            else:
+                # Column is selected from the internal allowlist.
+                self._db.execute(
+                    f"UPDATE managed_engine_preferences SET {field}=?,"
+                    " revision=revision+1 WHERE engine_id=?",
+                    (value, engine_id))
             self._db.execute(
                 "INSERT INTO custom_admin_audit "
                 "(engine_id,actor_id,action,engine_revision) VALUES(?,?,?,?)",

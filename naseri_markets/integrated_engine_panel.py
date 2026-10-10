@@ -22,11 +22,13 @@ from .futures_venues import (
     FUTURES_VENUES, get_venue, paper_feed_verified,
     iran_status_text, feed_status_text,
 )
+from .futures_pairs import pair_choices, pair_is_verified_paper
 from .trusted_custom import LocalCustomRefused
 
 _MORE = re.compile(r"em:(settings|tf|market|env):([0-9a-f]{12})(?::([0-9]+))?\Z")
 _EXCHANGE = re.compile(r"ex:(list|set):([0-9a-f]{12}):([0-9]+)(?::([0-9]+))?\Z")
 _TF = re.compile(r"et:(list|set):([0-9a-f]{12})(?::([0-9]+))?(?::([0-9]+))?\Z")
+_PAIR = re.compile(r"ep:(list|set):([0-9a-f]{12})(?::([0-9]+))?(?::([0-9]+))?\Z")
 _PAGE_SIZE = 5
 
 
@@ -55,6 +57,9 @@ class IntegratedEnginePanel(CustomAdminPanel):
                 if worker is not None and worker["connected"]:
                     armed_feed = paper_feed_verified(
                         host.preferences(engine.engine_id)["futures_exchange"])
+                    armed_feed = armed_feed and pair_is_verified_paper(
+                        host.preferences(engine.engine_id)["futures_exchange"],
+                        host.preferences(engine.engine_id)["futures_symbol"])
                     badge = "🟢" if engine.requested_enabled and armed_feed else "⏸"
                 elif engine.runtime_status == "RUNTIME_NOT_MOUNTED":
                     badge = "🟡" if engine.requested_enabled else "🔒"
@@ -111,7 +116,9 @@ class IntegratedEnginePanel(CustomAdminPanel):
             brooks and brooks.requested_enabled and prefs
             and prefs["signal_environment"] == "PAPER"
             and prefs["market_scope"] in ("all", "crypto")
-            and paper_feed_verified(prefs["futures_exchange"]))
+            and paper_feed_verified(prefs["futures_exchange"])
+            and pair_is_verified_paper(
+                prefs["futures_exchange"], prefs["futures_symbol"]))
         paper_active = bool(
             paper_armed and worker["connected"]
             and worker["phase"] in ("WAITING", "ANALYZING"))
@@ -152,7 +159,9 @@ class IntegratedEnginePanel(CustomAdminPanel):
             status = ("🟢 تحلیل PAPER آماده/درحال اجرا"
                       if state.requested_enabled and
                       prefs["signal_environment"] == "PAPER"
-                      and paper_feed_verified(prefs["futures_exchange"]) else
+                      and paper_feed_verified(prefs["futures_exchange"])
+                      and pair_is_verified_paper(
+                          prefs["futures_exchange"], prefs["futures_symbol"]) else
                       "⏸ سرویس حاضر است؛ تحلیل از پنل خاموش است")
         elif state.runtime_status == "RUNTIME_NOT_MOUNTED":
             status = ("🟡 درخواست فعال‌سازی ثبت شده" if state.requested_enabled
@@ -188,6 +197,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
             f"صرافی فیوچرز: {get_venue(prefs['futures_exchange']).name if worker is not None else '—'}\n"
             f"آمادگی فید: {feed_status_text(prefs['futures_exchange']) if worker is not None else '—'}\n"
             f"دسترسی کاربران ایران: {iran_status_text(prefs['futures_exchange']) if worker is not None else '—'}\n"
+            f"جفت‌ارز فیوچرز: {prefs['futures_symbol'] if worker is not None else '—'}\n"
             f"بازه زمانی انتخابی: {prefs['timeframe']} "
             f"({'مؤثر بر سرویس PAPER مستقل' if worker is not None else 'تنظیم'})\n"
             f"بازار انتخابی: {prefs['market_scope']}\n"
@@ -206,6 +216,12 @@ class IntegratedEnginePanel(CustomAdminPanel):
             venue = get_venue(preferences["futures_exchange"])
             venue_line = (
                 f"صرافی فیوچرز: {venue.name}\n"
+                f"جفت‌ارز فیوچرز: {preferences['futures_symbol']}\n"
+                + ("🧪 این قرارداد قابلیت تحلیل PAPER دارد.\n"
+                   if pair_is_verified_paper(
+                       preferences["futures_exchange"],
+                       preferences["futures_symbol"])
+                   else "⚪ این نماد صرفاً نامزد است؛ فید PAPER فعال نیست.\n") +
                 f"وضعیت فید: {feed_status_text(venue.key)}\n"
                 f"وضعیت ایران: {iran_status_text(venue.key)}\n"
                 "⚠️ وجود صرافی در فهرست به‌معنای مجاز بودن برای ایران نیست.\n"
@@ -230,7 +246,9 @@ class IntegratedEnginePanel(CustomAdminPanel):
             else [Button("⏱ تغییر تایم‌فریم",
                          callback_data=f"em:tf:{token}:{revision}")],
             *([[Button("🏦 انتخاب صرافی فیوچرز (۲۰ مورد)",
-                       callback_data=f"ex:list:{token}:0")]]
+                       callback_data=f"ex:list:{token}:0")],
+               [Button("💱 انتخاب جفت‌ارز فیوچرز",
+                       callback_data=f"ep:list:{token}")]]
               if engine_id == BROOKS_ENGINE_ID else []),
             [Button("🌍 تغییر بازار",
                     callback_data=f"em:market:{token}:{revision}")],
@@ -289,16 +307,41 @@ class IntegratedEnginePanel(CustomAdminPanel):
         rows.append([Button("🔙 تنظیمات", callback_data=f"em:settings:{token}")])
         return InlineKeyboardMarkup(rows)
 
+    def pair_keyboard(self, host: EngineControlStore, engine_id: str):
+        """Pairs are scoped to the saved venue; no spot symbols or free text."""
+        from telegram import InlineKeyboardButton as Button, InlineKeyboardMarkup
+        if engine_id != BROOKS_ENGINE_ID:
+            raise AdminCustomPanelRefused("BROOKS_PAIR_SELECTION_DENIED")
+        pref = host.preferences(engine_id)
+        options = pair_choices(pref["futures_exchange"])
+        token = _token(engine_id)
+        rows = []
+        for idx in range(0, len(options), 2):
+            row = []
+            for index in range(idx, min(idx + 2, len(options))):
+                pair = options[index]
+                current = "✅ " if pref["futures_symbol"] == pair else ""
+                status = ("🧪 " if pair_is_verified_paper(
+                    pref["futures_exchange"], pair) else "⚪ ")
+                row.append(Button(
+                    current + status + pair,
+                    callback_data=f"ep:set:{token}:{index}:{pref['revision']}"))
+            rows.append(row)
+        rows.append([Button("🔙 تنظیمات", callback_data=f"em:settings:{token}")])
+        return InlineKeyboardMarkup(rows)
+
     async def callback(self, update, context) -> None:
         query = getattr(update, "callback_query", None)
         if query is None:
             return
-        if (query.data or "").startswith(("ex:", "et:")):
+        if (query.data or "").startswith(("ex:", "et:", "ep:")):
             if not _private_admin(update, self.admin_ids):
                 await query.answer("دسترسی مجاز نیست", show_alert=True)
                 return
             is_exchange = (query.data or "").startswith("ex:")
-            match = (_EXCHANGE if is_exchange else _TF).fullmatch(
+            is_pair = (query.data or "").startswith("ep:")
+            match = (_EXCHANGE if is_exchange else
+                     _PAIR if is_pair else _TF).fullmatch(
                 query.data or "")
             if match is None:
                 await query.answer("درخواست نامعتبر", show_alert=True)
@@ -314,7 +357,10 @@ class IntegratedEnginePanel(CustomAdminPanel):
                         if match.group(4) is None or (
                                 int(match.group(4)) != prefs["revision"]):
                             raise LocalCustomRefused("ENGINE_STALE_SETTING_REVISION")
-                        choices = (FUTURES_VENUES if is_exchange else TIMEFRAMES)
+                        choices = (
+                            FUTURES_VENUES if is_exchange else
+                            pair_choices(prefs["futures_exchange"]) if is_pair
+                            else TIMEFRAMES)
                         index = int(match.group(3))
                         if not 0 <= index < len(choices):
                             raise LocalCustomRefused("ENGINE_CHOICE_OUT_OF_BOUNDS")
@@ -323,6 +369,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
                         host.change_preference(
                             state.engine_id,
                             field=("futures_exchange" if is_exchange
+                                   else "futures_symbol" if is_pair
                                    else "timeframe"),
                             value=value, expected_revision=prefs["revision"],
                             actor_id=update.effective_user.id)
@@ -336,6 +383,14 @@ class IntegratedEnginePanel(CustomAdminPanel):
                             f"{get_venue(host.preferences(state.engine_id)['futures_exchange']).name}\n"
                             "⛔ = ایران رسماً محدود | ⚪ = دسترسی ایران نامشخص\n"
                             "این فهرست تضمین دسترسی قانونی یا فید آماده نیست.")
+                    elif is_pair:
+                        markup = self.pair_keyboard(host, state.engine_id)
+                        current = host.preferences(state.engine_id)
+                        message = (
+                            f"💱 جفت‌ارز انتخاب‌شده: {current['futures_symbol']}\n"
+                            f"صرافی: {get_venue(current['futures_exchange']).name}\n"
+                            "🧪=تحلیل PAPER معتبر | ⚪=صرفاً نامزد؛ بدون فید\n"
+                            "ثبت نماد به‌تنهایی به معنی صدور سیگنال نیست.")
                     else:
                         markup = self.timeframe_keyboard(host, state.engine_id)
                         message = (
@@ -421,7 +476,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
         # register the integrated settings and Brooks publication callbacks,
         # otherwise Telegram silently drops taps on their inline buttons.
         application.add_handler(
-            CallbackQueryHandler(self.callback, pattern=r"^(?:em:|bp:|ex:|et:)"),
+            CallbackQueryHandler(self.callback, pattern=r"^(?:em:|bp:|ex:|et:|ep:)"),
             group=0)
         application.add_handler(
             CommandHandler("engines", self.panel, filters=filters.ChatType.PRIVATE),

@@ -22,6 +22,7 @@ from pathlib import Path
 from .contracts import Direction, EvidenceMode, Instrument, Market, SignalIntent
 from .delivery_ledger import IdentityConflict, _wire_intent
 from .engine_control_store import BROOKS_ENGINE_ID, EngineControlStore
+from .futures_pairs import KRAKEN_PAIRS
 from .trusted_custom import LocalCustomRefused
 
 # SHA-256 of the authoritative checked-in 362-entry frozen manifest.
@@ -256,7 +257,7 @@ def _evaluate_legacy(root: Path, payload: bytes, *,
         if (raw["provider"] != "kraken_futures_trade_public"
                 or raw["exchange"] != "kraken_futures"
                 or raw["market_type"] != "futures"
-                or raw["symbol"] != "PF_XBTUSD"
+                or raw["symbol"] not in KRAKEN_PAIRS
                 or raw["quote_currency"] != "USD"):
             raise BrooksReplayRefused("BROOKS_KRAKEN_TICK_IDENTITY_DENIED")
         tick = _decimal(kraken_tick_size)
@@ -266,7 +267,7 @@ def _evaluate_legacy(root: Path, payload: bytes, *,
             policy, context=replace(
                 policy.context,
                 futures_tick_sizes=policy.context.futures_tick_sizes +
-                (("PF_XBTUSD", tick),),
+                ((raw["symbol"], tick),),
             ),
         )
     engine = BrooksTrilogyFullCoreEngine(policy=policy)
@@ -300,7 +301,8 @@ def _run_worker(root: Path, kraken_tick_size: str | None = None) -> int:
     return 0
 
 
-def _check_requested(store: EngineControlStore, timeframe: str) -> tuple[int, int]:
+def _check_requested(store: EngineControlStore, timeframe: str,
+                     raw: dict | None = None) -> tuple[int, int]:
     state = store.get(BROOKS_ENGINE_ID)
     preferences = store.preferences(BROOKS_ENGINE_ID)
     if (state is None or not state.requested_enabled
@@ -308,6 +310,16 @@ def _check_requested(store: EngineControlStore, timeframe: str) -> tuple[int, in
             or preferences["timeframe"] != timeframe
             or preferences["market_scope"] not in ("all", "crypto")):
         raise BrooksReplayRefused("BROOKS_PAPER_NOT_ENABLED_OR_SCOPE_DENIED")
+    # Never allow a Kraken snapshot to be committed for a different
+    # operator-selected pair or provider, including during the child process.
+    if raw is not None and raw["provider"] == "kraken_futures_trade_public":
+        if (raw["exchange"] != "kraken_futures"
+                or raw["symbol"] not in KRAKEN_PAIRS
+                or raw["quote_currency"] != "USD"
+                or raw["market_type"] != "futures"
+                or preferences["futures_exchange"] != "kraken"
+                or preferences["futures_symbol"] != raw["symbol"]):
+            raise BrooksReplayRefused("BROOKS_SELECTED_PAIR_SOURCE_MISMATCH")
     return state.revision, preferences["revision"]
 
 
@@ -323,7 +335,7 @@ def replay_once(*, state_dir: str | Path, legacy_source: str | Path,
                 or raw["provider"] != "kraken_futures_trade_public"
                 or raw["exchange"] != "kraken_futures"
                 or raw["market_type"] != "futures"
-                or raw["symbol"] != "PF_XBTUSD"
+                or raw["symbol"] not in KRAKEN_PAIRS
                 or raw["quote_currency"] != "USD"):
             raise BrooksReplayRefused("BROOKS_KRAKEN_TICK_IDENTITY_DENIED")
         value = _decimal(kraken_tick_size)
@@ -331,7 +343,7 @@ def replay_once(*, state_dir: str | Path, legacy_source: str | Path,
             raise BrooksReplayRefused("BROOKS_KRAKEN_TICK_BOUNDS")
     with EngineControlStore(state_dir) as store:
         engine_revision, preference_revision = _check_requested(
-            store, raw["timeframe"])
+            store, raw["timeframe"], raw)
     source_digest = verify_legacy_source(Path(legacy_source))
     try:
         proc = subprocess.run(
@@ -418,7 +430,7 @@ def replay_once(*, state_dir: str | Path, legacy_source: str | Path,
         db.execute("BEGIN IMMEDIATE")
         try:
             current_engine_revision, current_preference_revision = _check_requested(
-                store, raw["timeframe"])
+                store, raw["timeframe"], raw)
             if (current_engine_revision != engine_revision
                     or current_preference_revision != preference_revision):
                 raise BrooksReplayRefused("BROOKS_CONFIGURATION_CHANGED_DURING_SCAN")
