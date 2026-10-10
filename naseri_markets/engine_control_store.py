@@ -19,7 +19,6 @@ TIMEFRAMES = ("1m", "5m", "15m", "1h", "4h", "1d")
 MARKET_SCOPES = ("all", "crypto", "forex", "index", "metal")
 SIGNAL_ENVS = ("OFF", "PAPER")
 _NONPUBLIC = "OWNER_CUSTOM"
-_OWNER_REFERENCE = re.compile(r"[a-z][a-z0-9_]{2,39}\Z")
 
 
 @dataclass(frozen=True, slots=True)
