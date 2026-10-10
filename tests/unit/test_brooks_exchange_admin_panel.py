@@ -33,9 +33,8 @@ def test_exchanges_are_all_reachable_by_four_pages_and_revision_bounded(tmp_path
             callbacks = [b.callback_data for row in markup.inline_keyboard for b in row]
             exchange_options.extend(x for x in callbacks if x.startswith("ex:set:"))
             assert all(len(x) <= 64 for x in callbacks)
-        assert len(exchange_options) == len(set(exchange_options)) == 20
-        assert exchange_options[0] == f"ex:set:{token}:0:1"
-        assert exchange_options[-1] == f"ex:set:{token}:19:1"
+        assert exchange_options == []  # Zero verified resident-eligible venues.
+        assert all("ex:set:" not in x for x in exchange_options)
         tf = panel.timeframe_keyboard(host, BROOKS_ENGINE_ID)
         choices = [b.callback_data for row in tf.inline_keyboard for b in row
                    if b.callback_data.startswith("et:set:")]
@@ -70,25 +69,25 @@ async def test_admin_exchange_then_timeframe_persist_cas_no_telegram_send(tmp_pa
 
     click, msg = update(f"ex:set:{token}:11:1")
     await panel.callback(click, SimpleNamespace())
-    assert "LBank" in msg.reply_text.await_args.args[0]
+    assert "نامعتبر" in msg.reply_text.await_args.args[0]
     with EngineControlStore(path) as host:
-        assert host.preferences(BROOKS_ENGINE_ID)["futures_exchange"] == "lbank"
-        assert host.preferences(BROOKS_ENGINE_ID)["revision"] == 2
+        assert host.preferences(BROOKS_ENGINE_ID)["futures_exchange"] == "kraken"
+        assert host.preferences(BROOKS_ENGINE_ID)["revision"] == 1
     await panel.callback(click, SimpleNamespace())
     with EngineControlStore(path) as host:
-        assert host.preferences(BROOKS_ENGINE_ID)["revision"] == 2
+        assert host.preferences(BROOKS_ENGINE_ID)["revision"] == 1
 
-    click, msg = update(f"et:set:{token}:6:2")
+    click, msg = update(f"et:set:{token}:6:1")
     await panel.callback(click, SimpleNamespace())
     assert "12h" in msg.reply_text.await_args.args[0]
     with EngineControlStore(path) as host:
         assert host.preferences(BROOKS_ENGINE_ID)["timeframe"] == "12h"
-        assert host.preferences(BROOKS_ENGINE_ID)["revision"] == 3
+        assert host.preferences(BROOKS_ENGINE_ID)["revision"] == 2
         assert host.route(BROOKS_ENGINE_ID)["delivery_mode"] == "DISABLED"
         assert host.publication(BROOKS_ENGINE_ID)["effective_publication"] is False
 
-    click, msg = update(f"ex:set:{token}:30:3")
+    click, msg = update(f"ex:set:{token}:30:2")
     await panel.callback(click, SimpleNamespace())
     assert "نامعتبر" in msg.reply_text.await_args.args[0]
     with EngineControlStore(path) as host:
-        assert host.preferences(BROOKS_ENGINE_ID)["revision"] == 3
+        assert host.preferences(BROOKS_ENGINE_ID)["revision"] == 2
