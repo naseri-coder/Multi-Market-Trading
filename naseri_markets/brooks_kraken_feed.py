@@ -138,7 +138,7 @@ def verified_kraken_tick(
     return str(tick)
 
 
-def closed_kraken_candles(* symbol: str, timeframe: str, bars: int = 72,
+def closed_kraken_candles(*, symbol: str, timeframe: str, bars: int = 72,
                           now: datetime | None = None,
                           transport: Callable[[str, str, int, int], bytes] | None = None,
                           timeout: int = 10) -> tuple[bytes, datetime]:
