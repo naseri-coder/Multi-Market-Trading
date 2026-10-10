@@ -300,6 +300,11 @@ class SignedGuardianController:
                 pass
             raise
         if self._a20_ci_scoped:
+            # Terminal leases must fail as NOT_RUNNING, not as alleged
+            # attestation tampering because the terminated PID is gone.
+            observed_status = self._control("HELLO")
+            if observed_status.state != "RUNNING" or not observed_status.worker_alive:
+                raise GuardianRefused("A18_GUARDIAN_REJECTED_A18_NOT_RUNNING")
             try:
                 from .a20_hardening import verify_worker_report
                 observed = self._persisted()
