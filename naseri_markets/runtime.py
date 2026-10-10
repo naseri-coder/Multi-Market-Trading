@@ -82,8 +82,10 @@ class MultiEngineRunner:
         slot.faulted = False
         slot.error_code = None
 
-    async def process(self, tick: QuoteTick, *, now, trusted_live_source: bool = False
-                      ) -> DispatchResult:
+    async def process(
+        self, tick: QuoteTick, *, now, trusted_live_source: bool = False,
+        allowed_engine_ids: frozenset[str] | None = None,
+    ) -> DispatchResult:
         if not self._active:
             return DispatchResult(QuoteVerdict.UNVERIFIED, {}, ())
         quality = self._gate.inspect(tick, now=now, trusted_live_source=trusted_live_source)
@@ -93,6 +95,10 @@ class MultiEngineRunner:
         faults: list[str] = []
         for engine_id, slot in self._slots.items():
             bind = slot.binding
+            # A8 optional settings gate MUST run BEFORE calling engine callbacks.
+            # A None filter preserves A2/A7 behavior for existing callers.
+            if allowed_engine_ids is not None and engine_id not in allowed_engine_ids:
+                continue
             if slot.faulted or not bind.enabled or tick.instrument not in bind.instruments:
                 continue
             if not bind.session_policy.is_open(tick.occurred_at):

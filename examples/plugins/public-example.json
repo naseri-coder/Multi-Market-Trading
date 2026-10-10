@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "engine_id": "public_demo",
+  "engine_version": "1.0.0",
+  "publisher": "community.demo",
+  "visibility": "public",
+  "adapter": "in_process",
+  "abi_version": 1,
+  "markets": [
+    "index"
+  ],
+  "permissions": [
+    "paper_analysis"
+  ]
+}
