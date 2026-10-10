@@ -42,12 +42,16 @@ jobs:
       - name: Create isolated checkout
         run: |
           set -Eeuo pipefail
-          isolated="$(mktemp -d /tmp/mmt-nativepg-XXXXXXXX)"
-          mkdir -p "$isolated/repo"
+          isolated="$(mktemp -d /tmp/ch6-nativepg-XXXXXXXX)"
+          mkdir -p "$isolated/repo" "$isolated/socket"
+          chmod 0755 "$isolated"
+          chmod 0777 "$isolated/socket"
           tar --exclude=.git -cf - . | tar -xf - -C "$isolated/repo"
           {
             echo "MMT_NATIVE_ROOT=$isolated"
             echo "MMT_NATIVE_SOURCE=$isolated/repo"
+            echo "CH6_ISOLATED_SOURCE=$isolated/repo"
+            echo "CH6_NATIVE_SOCKET_DIR=$isolated/socket"
           } >> "$GITHUB_ENV"
           echo "NATIVE_PG_ISOLATED_CHECKOUT_PASS"
 
@@ -76,12 +80,16 @@ jobs:
           psql --version | grep -E '^psql \(PostgreSQL\) 16\.'
           test -f /etc/postgresql/16/main/pg_hba.conf
 
-          sudo python3 - <<'PY'
+          sudo python3 - "$CH6_NATIVE_SOCKET_DIR" <<'PY'
+          import sys
           from pathlib import Path
+          socket_dir = Path(sys.argv[1]).resolve()
+          if not str(socket_dir).startswith("/tmp/ch6-") or not socket_dir.is_dir():
+              raise SystemExit("NATIVE_PG_SOCKET_ISOLATION_FAILED")
           conf = Path("/etc/postgresql/16/main/postgresql.conf")
           hba = Path("/etc/postgresql/16/main/pg_hba.conf")
           # This only modifies the fresh, GitHub-hosted ephemeral runner.
-          conf.write_text(conf.read_text() + "\nlisten_addresses = ''\n")
+          conf.write_text(conf.read_text() + f"\nlisten_addresses = ''\nunix_socket_directories = '{socket_dir}'\n")
           hba.write_text(
               "local all postgres peer\n"
               "local all ch6synthetic scram-sha-256\n"
@@ -94,14 +102,15 @@ jobs:
           sudo -u postgres createdb -O ch6synthetic fullcorpus
 
           export PGPASSWORD="ch6synthetic_ci_password_2026"
-          test "$(psql -h /var/run/postgresql -U ch6synthetic -d ch6synthetic -Atqc 'SELECT 1')" = "1"
+          test "$(psql -h "$CH6_NATIVE_SOCKET_DIR" -U ch6synthetic -d ch6synthetic -Atqc 'SELECT 1')" = "1"
           test "$(psql -h /var/run/postgresql -U ch6synthetic -d fullcorpus -Atqc 'SELECT 1')" = "1"
-          test "$(sudo -u postgres psql -Atqc 'SHOW listen_addresses')" = ""
+          test "$(sudo -u postgres psql -h "$CH6_NATIVE_SOCKET_DIR" -Atqc 'SHOW listen_addresses')" = ""
+          test "$(sudo -u postgres psql -h "$CH6_NATIVE_SOCKET_DIR" -Atqc 'SHOW unix_socket_directories')" = "$CH6_NATIVE_SOCKET_DIR"
           test -z "$(sudo ss -lntp | grep -E ':(5432)\b' || true)"
           {
-            echo "CH6_DISPOSABLE_DATABASE_URL=postgresql+asyncpg://ch6synthetic:ch6synthetic_ci_password_2026@localhost/ch6synthetic?host=/var/run/postgresql"
-            echo "TEST_DATABASE_URL=postgresql+asyncpg://ch6synthetic:ch6synthetic_ci_password_2026@localhost/fullcorpus?host=/var/run/postgresql"
-            echo "DATABASE_URL=postgresql+asyncpg://ch6synthetic:ch6synthetic_ci_password_2026@localhost/ch6synthetic?host=/var/run/postgresql"
+            echo "CH6_DISPOSABLE_DATABASE_URL=postgresql+asyncpg://ch6synthetic:ch6synthetic_ci_password_2026@localhost/ch6synthetic?host=${CH6_NATIVE_SOCKET_DIR}"
+            echo "TEST_DATABASE_URL=postgresql+asyncpg://ch6synthetic:ch6synthetic_ci_password_2026@localhost/fullcorpus?host=${CH6_NATIVE_SOCKET_DIR}"
+            echo "DATABASE_URL=postgresql+asyncpg://ch6synthetic:ch6synthetic_ci_password_2026@localhost/ch6synthetic?host=${CH6_NATIVE_SOCKET_DIR}"
           } >> "$GITHUB_ENV"
           echo "NATIVE_POSTGRESQL_16_SOCKET_ONLY_PASS"
 
@@ -130,7 +139,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           sudo pg_ctlcluster 16 main stop || true
-          if [[ -n "${MMT_NATIVE_ROOT:-}" && "${MMT_NATIVE_ROOT}" == /tmp/mmt-nativepg-* ]]; then
+          if [[ -n "${MMT_NATIVE_ROOT:-}" && "${MMT_NATIVE_ROOT}" == /tmp/ch6-nativepg-* ]]; then
             rm -rf -- "${MMT_NATIVE_ROOT}"
           fi
           echo "NATIVE_PG_EPHEMERAL_CLEANUP_PASS"
