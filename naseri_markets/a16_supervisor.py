@@ -385,6 +385,19 @@ class OfflineFixtureSupervisor:
                 return self._status(state)
             return self._status(state, admitted=True)
 
+    def quarantine_owned_for_a17(self):
+        """Fail-closed kill of only the child this A16 instance owns.
+
+        The A17 watchdog invokes this on unexpected monitor faults.
+        It cannot adopt an arbitrary PID or reset signed release floors.
+        """
+        with self._locked():
+            state = self._load()
+            if state["state"] == "RUNNING" and self._child is not None:
+                self._halt_owned()
+                self._commit(state, "QUARANTINED", "A17_WATCHDOG_EXCEPTION")
+            return self._status(state)
+
     def stop(self, *, expected_revision: int):
         """STOP remains available even when A12/A15 grants have been revoked."""
         with self._locked():
