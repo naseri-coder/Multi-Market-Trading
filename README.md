@@ -6,8 +6,8 @@
 
 **تبدیل مفاهیم پرایس‌اکشن البروکس به قواعد صریح، قابل‌آزمایش و قابل‌ردیابی برای سیگنال‌های کریپتو**
 
-[![Publication safety](https://github.com/naseri-coder/crypto-price-action/actions/workflows/publication-safety.yml/badge.svg?branch=main)](https://github.com/naseri-coder/crypto-price-action/actions/workflows/publication-safety.yml)
-[![Public tests](https://github.com/naseri-coder/crypto-price-action/actions/workflows/public-test-corpus.yml/badge.svg)](https://github.com/naseri-coder/crypto-price-action/actions/workflows/public-test-corpus.yml)
+[![Publication safety](https://github.com/naseri-coder/Multi-Market-Trading/actions/workflows/publication-safety.yml/badge.svg?branch=main)](https://github.com/naseri-coder/Multi-Market-Trading/actions/workflows/publication-safety.yml)
+[![Public tests](https://github.com/naseri-coder/Multi-Market-Trading/actions/workflows/public-test-corpus.yml/badge.svg)](https://github.com/naseri-coder/Multi-Market-Trading/actions/workflows/public-test-corpus.yml)
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-async-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
@@ -28,6 +28,8 @@
 > [!NOTE]
 > **NASERI MARKETS is a planned multi-market identity.** The current v0.3.2 public snapshot remains primarily a crypto price-action system. The new `naseri_markets/` foundation is offline-only; no FX, index, NYFR or MT5 runtime is active in this repository.
 > See [architecture](docs/NASERI_MARKETS_FOUNDATION.md) and [GitHub migration plan](docs/NASERI_MARKETS_MIGRATION.md).
+>
+> **Public bot, private NYFR:** The open-source, disabled-by-default, strategy-neutral signal publisher and optional MT5 read-only quote bridge are in `naseri_markets/public_signal_bot.py` and `naseri_markets/mt5_readonly_bridge.py`. They **do not** include the private NY First-Reversal decision engine. See [public/private boundary](docs/NASERI_MARKETS_A4_PUBLIC_BOT_PRIVATE_CORE.md). Historical release names, Compose and Python package identity remain v0.3.2 until a separately validated migration.
 
 > [!IMPORTANT]
 > **Current main includes the NASERI CODER Bot Manager while the package version remains v0.3.2.** The project does **not** claim profitability and is **not approved for live trading**.
@@ -138,7 +140,7 @@ The public source currently uses **Binance USD-M Futures** as the supported mark
 Use this single installation entry point:
 
 ```bash
-git clone https://github.com/naseri-coder/crypto-price-action.git
+git clone https://github.com/naseri-coder/Multi-Market-Trading.git
 cd crypto-price-action
 bash naseri.sh
 ```
@@ -592,6 +594,6 @@ This sequence is a development direction, not a promise of production or live-tr
 
 ### Built for reproducible research, review, testing, and disciplined validation.
 
-[Repository](https://github.com/naseri-coder/crypto-price-action) · [Issues](https://github.com/naseri-coder/crypto-price-action/issues) · [Actions](https://github.com/naseri-coder/crypto-price-action/actions) · [Security](SECURITY.md)
+[Repository](https://github.com/naseri-coder/Multi-Market-Trading) · [Issues](https://github.com/naseri-coder/Multi-Market-Trading/issues) · [Actions](https://github.com/naseri-coder/Multi-Market-Trading/actions) · [Security](SECURITY.md)
 
 </div>
