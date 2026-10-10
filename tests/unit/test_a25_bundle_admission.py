@@ -100,8 +100,11 @@ def release(ctx, *, a24=None, package=None, sequence=1, pub_key=None,
 
 
 @pytest.fixture
-def case(a24_ctx, tmp_path):
-    ctx = a24_ctx
+def case(request, tmp_path):
+    # Explicit dependency on the imported A24 fixture without shadowing its
+    # function name (which strict Ruff correctly flags as F811).
+    assert callable(a24_ctx)
+    ctx = request.getfixturevalue("a24_ctx")
     package = pack(ctx[1])
     a24 = signed_a24(ctx)
     admission = admit_a24(ctx, a24)
