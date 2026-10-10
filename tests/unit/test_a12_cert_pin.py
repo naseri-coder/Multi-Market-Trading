@@ -6,6 +6,10 @@ import hashlib
 from datetime import datetime, timedelta, timezone
 
 import pytest
+
+# Historical full-corpus jobs deliberately install no optional crypto extra.
+# The dedicated A12 security job installs it and MUST run every test here.
+pytest.importorskip("cryptography", reason="A12 cryptography tested in its dedicated CI")
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
