@@ -11,6 +11,7 @@ import fcntl
 import os
 import queue
 import tempfile
+import time
 import threading
 from dataclasses import dataclass
 from pathlib import Path
@@ -192,14 +193,19 @@ class ContinuousFixtureWatchdog:
                     fault = "A17_MONITOR_EXCEPTION"
 
         self._ready.put(True)
+        next_probe = 0.0
         try:
             while True:
-                try:
-                    cmd, response = self._queue.get(
-                        timeout=self._interval if active else None,
-                    )
-                except queue.Empty:
+                # A fixed monotonic due-time avoids starvation: rapid STATUS
+                # commands must never defer mandatory revocation checks.
+                if active and time.monotonic() >= next_probe:
                     cmd, response = "TICK", None
+                else:
+                    remaining = max(0.0, next_probe - time.monotonic()) if active else None
+                    try:
+                        cmd, response = self._queue.get(timeout=remaining)
+                    except queue.Empty:
+                        cmd, response = "TICK", None
                 result = None
                 try:
                     if cmd == "CLOSE":
@@ -254,6 +260,9 @@ class ContinuousFixtureWatchdog:
                             "core_bytes": resource.prlimit(child.pid, resource.RLIMIT_CORE),
                         }
                     if cmd == "TICK":
+                        # Reset only after executing a due probe, NEVER on
+                        # an unrelated status or operator command.
+                        next_probe = time.monotonic() + self._interval
                         try:
                             health = supervisor.health(
                                 admission=admission, now=self._clock())
