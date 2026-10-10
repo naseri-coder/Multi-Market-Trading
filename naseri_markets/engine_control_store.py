@@ -61,6 +61,12 @@ class EngineControlStore:
               CHECK(signal_environment IN ('OFF','PAPER')),
             revision INTEGER NOT NULL DEFAULT 1 CHECK(revision>=1)
         )""")
+        self._db.execute("""CREATE TABLE IF NOT EXISTS managed_engine_publication(
+            engine_id TEXT PRIMARY KEY,
+            requested_publication INTEGER NOT NULL DEFAULT 0
+              CHECK(requested_publication IN (0,1)),
+            revision INTEGER NOT NULL DEFAULT 1 CHECK(revision>=1)
+        )""")
         self._db.execute("""CREATE TABLE IF NOT EXISTS managed_engine_routes(
             engine_id TEXT PRIMARY KEY,
             channel_id INTEGER,
@@ -293,6 +299,59 @@ class EngineControlStore:
             self._db.execute("ROLLBACK")
             raise
         return self.route(engine_id)
+
+    def publication(self, engine_id: str) -> dict:
+        state = self._require(engine_id)
+        row = self._db.execute(
+            "SELECT requested_publication,revision FROM managed_engine_publication "
+            "WHERE engine_id=?", (engine_id,)).fetchone()
+        requested = bool(row["requested_publication"]) if row else False
+        return {
+            "engine_id": engine_id,
+            "requested_publication": requested,
+            "revision": row["revision"] if row else 0,
+            "effective_publication": False,
+            "runtime_connected": state.runtime_status != "RUNTIME_NOT_MOUNTED",
+            "reason": "NO_AUTHENTICATED_FORWARD_PUBLISHER",
+        }
+
+    def request_publication(self, engine_id: str, *, enabled: bool,
+                            expected_revision: int, actor_id: int) -> dict:
+        state = self._require(engine_id)
+        if (state.engine_kind != "BUILTIN_BROOKS"
+                or type(enabled) is not bool
+                or type(expected_revision) is not int
+                or type(actor_id) is not int or actor_id <= 0):
+            raise LocalCustomRefused("ENGINE_PUBLICATION_PERMISSION_DENIED")
+        self._db.execute("BEGIN IMMEDIATE")
+        try:
+            row = self._db.execute(
+                "SELECT revision FROM managed_engine_publication WHERE engine_id=?",
+                (engine_id,)).fetchone()
+            revision = row["revision"] if row else 0
+            if revision != expected_revision:
+                raise LocalCustomRefused("ENGINE_STALE_PUBLICATION_REVISION")
+            if row is None:
+                self._db.execute(
+                    "INSERT INTO managed_engine_publication "
+                    "(engine_id,requested_publication,revision) VALUES(?,?,1)",
+                    (engine_id, int(enabled)))
+            else:
+                self._db.execute(
+                    "UPDATE managed_engine_publication "
+                    "SET requested_publication=?,revision=revision+1 "
+                    "WHERE engine_id=?", (int(enabled), engine_id))
+            self._db.execute(
+                "INSERT INTO custom_admin_audit "
+                "(engine_id,actor_id,action,engine_revision) VALUES(?,?,?,?)",
+                (engine_id, actor_id,
+                 "REQUEST_PUBLICATION_ENABLE_NOT_CONNECTED" if enabled
+                 else "REQUEST_PUBLICATION_DISABLE", state.revision))
+            self._db.execute("COMMIT")
+        except BaseException:
+            self._db.execute("ROLLBACK")
+            raise
+        return self.publication(engine_id)
 
     def signals(self, engine_id: str) -> list[dict]:
         state = self._require(engine_id)
