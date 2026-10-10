@@ -6,7 +6,6 @@ production database, Telegram send, private NYFR source or broker orders.
 from __future__ import annotations
 
 import json
-import subprocess
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
