@@ -77,11 +77,14 @@ class CustomPaperRuntimeBridge:
     """
 
     def __init__(self, catalog: CustomContractCatalog, journal: PaperJournal, *,
-                 paper_enabled: bool = False, require_atomic_fence: bool = False):
+                 paper_enabled: bool = False, require_atomic_fence: bool = False,
+                 atomic_fence_kind: str = "a26"):
         if (type(catalog) is not CustomContractCatalog
                 or type(journal) is not PaperJournal
                 or type(paper_enabled) is not bool
-                or type(require_atomic_fence) is not bool):
+                or type(require_atomic_fence) is not bool
+                or atomic_fence_kind not in ("a26", "a27")
+                or type(atomic_fence_kind) is not str):
             raise CustomRuntimeRefused("A22_EXACT_PUBLIC_PAPER_DEPENDENCIES")
         self._catalog = catalog
         self._journal = journal
@@ -92,6 +95,7 @@ class CustomPaperRuntimeBridge:
         self._states: dict[str, CustomRuntimeState] = {}
         self._paper_enabled = paper_enabled
         self._require_atomic_fence = require_atomic_fence
+        self._atomic_fence_kind = atomic_fence_kind
         self._epoch = 0
         self._gate = asyncio.Lock()
 
@@ -204,7 +208,10 @@ class CustomPaperRuntimeBridge:
             raise CustomRuntimeRefused("A26_ATOMIC_FENCE_REQUIRED")
         if atomic_fence is not None:
             from .a26_atomic_fence import AtomicPaperCommitFence
-            if (type(atomic_fence) is not AtomicPaperCommitFence
+            from .a27_unified_ledger import UnifiedPaperCommitFence
+            expected_type = (AtomicPaperCommitFence if self._atomic_fence_kind == "a26"
+                             else UnifiedPaperCommitFence)
+            if (type(atomic_fence) is not expected_type
                     or atomic_fence.bridge is not self
                     or atomic_fence.journal is not self._journal
                     or type(authorization_now) is not int):
