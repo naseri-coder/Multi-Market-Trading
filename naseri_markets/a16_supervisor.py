@@ -54,6 +54,23 @@ for data in sys.stdin.buffer:
 """
 
 
+@dataclass(frozen=True, slots=True)
+class FixtureProcessLimits:
+    """Bounded Linux child resource ceilings; never a sandbox."""
+    memory_bytes: int = 256 * 1024 * 1024
+    cpu_seconds: int = 5
+    open_files: int = 48
+
+    def __post_init__(self):
+        if (type(self.memory_bytes) is not int
+                or not 128 * 1024 * 1024 <= self.memory_bytes <= 512 * 1024 * 1024
+                or type(self.cpu_seconds) is not int
+                or not 2 <= self.cpu_seconds <= 20
+                or type(self.open_files) is not int
+                or not 24 <= self.open_files <= 128):
+            raise ValueError("A17_FIXTURE_LIMITS_OUT_OF_BOUNDS")
+
+
 class ServiceRefused(ValueError):
     """A16 fails closed rather than claiming fixture service health."""
 
@@ -78,7 +95,8 @@ class OfflineFixtureSupervisor:
     """
 
     def __init__(self, root: str | Path, *, signed: SignedMockDeploymentManager,
-                 engine_id: str, installation_id: str) -> None:
+                 engine_id: str, installation_id: str,
+                 process_limits: FixtureProcessLimits | None = None) -> None:
         if not isinstance(signed, SignedMockDeploymentManager):
             raise ServiceRefused("A16_SIGNED_A15_REQUIRED")
         if (type(engine_id) is not str or not _ID.fullmatch(engine_id)
@@ -105,6 +123,9 @@ class OfflineFixtureSupervisor:
         self._signed = signed
         self._engine = engine_id
         self._installation = installation_id
+        if process_limits is not None and not isinstance(process_limits, FixtureProcessLimits):
+            raise ServiceRefused("A17_TYPED_LIMITS_REQUIRED")
+        self._process_limits = process_limits
         self._state_path = root / "service-state.json"
         self._state_lock = root / "service-state.lock"
         self._worker_lock = root / "service-worker.lock"
@@ -306,8 +327,21 @@ class OfflineFixtureSupervisor:
             self._reserve()
             try:
                 self._token = secrets.token_hex(16)
+                source = _FIXED_WORKER
+                if self._process_limits is not None:
+                    ceiling = self._process_limits
+                    # Fixed stdlib preamble runs INSIDE the child; preexec_fn
+                    # is not safe when the parent has active threads.
+                    source = (
+                        "import resource\n"
+                        f"resource.setrlimit(resource.RLIMIT_AS, ({ceiling.memory_bytes}, {ceiling.memory_bytes}))\n"
+                        f"resource.setrlimit(resource.RLIMIT_CPU, ({ceiling.cpu_seconds}, {ceiling.cpu_seconds}))\n"
+                        f"resource.setrlimit(resource.RLIMIT_NOFILE, ({ceiling.open_files}, {ceiling.open_files}))\n"
+                        "resource.setrlimit(resource.RLIMIT_CORE, (0, 0))\n"
+                        + _FIXED_WORKER
+                    )
                 self._child = subprocess.Popen(
-                    [sys.executable, "-I", "-S", "-u", "-c", _FIXED_WORKER,
+                    [sys.executable, "-I", "-S", "-u", "-c", source,
                      self._token, digest],
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                     stderr=subprocess.DEVNULL, cwd=self._root,
@@ -350,6 +384,19 @@ class OfflineFixtureSupervisor:
                 self._commit(state, "QUARANTINED", "FAIL_CLOSED_HEALTH")
                 return self._status(state)
             return self._status(state, admitted=True)
+
+    def quarantine_owned_for_a17(self):
+        """Fail-closed kill of only the child this A16 instance owns.
+
+        The A17 watchdog invokes this on unexpected monitor faults.
+        It cannot adopt an arbitrary PID or reset signed release floors.
+        """
+        with self._locked():
+            state = self._load()
+            if state["state"] == "RUNNING" and self._child is not None:
+                self._halt_owned()
+                self._commit(state, "QUARANTINED", "A17_WATCHDOG_EXCEPTION")
+            return self._status(state)
 
     def stop(self, *, expected_revision: int):
         """STOP remains available even when A12/A15 grants have been revoked."""

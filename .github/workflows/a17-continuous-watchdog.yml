@@ -1,0 +1,81 @@
+name: A17 Multi Market Trading continuous fixture watchdog
+
+on:
+  push:
+    branches: [feature/a17-continuous-fixture-watchdog]
+  pull_request:
+    paths:
+      - "naseri_markets/a16_supervisor.py"
+      - "naseri_markets/a17_watchdog.py"
+      - "tests/unit/test_a17_watchdog.py"
+      - "docs/MULTI_MARKET_TRADING_A17_WATCHDOG.md"
+      - ".github/workflows/a17-continuous-watchdog.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  continuous-fixture-security:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Frozen historical source and public preview
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+      - name: Signed A12-A17 process heartbeat and resource isolation regression
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m pip install "cryptography==46.0.3"
+          python -m pytest -q \
+            tests/unit/test_a17_watchdog.py \
+            tests/unit/test_a16_supervisor.py \
+            tests/unit/test_a15_releases.py \
+            tests/unit/test_a14_packages.py \
+            tests/unit/test_a13_provisioning.py \
+            tests/unit/test_a12_trust.py
+      - name: Static fixture-only safety guard and lint
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check --select E4,F \
+            naseri_markets/a16_supervisor.py \
+            naseri_markets/a17_watchdog.py \
+            tests/unit/test_a17_watchdog.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          banned = {"socket", "requests", "urllib", "httpx", "aiohttp",
+                    "importlib", "MetaTrader5", "r0_engine", "private_nyfr_core"}
+          for path in (Path("naseri_markets/a16_supervisor.py"),
+                       Path("naseri_markets/a17_watchdog.py")):
+              tree = ast.parse(path.read_bytes())
+              for n in ast.walk(tree):
+                  if isinstance(n, ast.Import):
+                      assert all(a.name.split(".")[0] not in banned for a in n.names)
+                  if isinstance(n, ast.ImportFrom):
+                      assert (n.module or "").split(".")[0] not in banned
+              src = path.read_text()
+              assert "shell=True" not in src
+              assert "preexec_fn=" not in src
+              assert "Ed25519PrivateKey" not in src
+          print("A17_NO_NETWORK_PRIVATE_IMPORT_OR_SIGNER_SECRET_PASS")
+          PY
+      - name: Verify public-only wheel preview contains watchdog but no strategy
+        run: |
+          set -Eeuo pipefail
+          python -m pip install "setuptools==80.9.0" "wheel==0.45.1"
+          python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/a17-wheel"
+          test -f "$RUNNER_TEMP/a17-wheel/naseri_markets/a17_watchdog.py"
+          test -f "$RUNNER_TEMP/a17-wheel/naseri_markets/a16_supervisor.py"
+          test ! -e "$RUNNER_TEMP/a17-wheel/naseri_markets/private_nyfr_core.py"
+          test ! -e "$RUNNER_TEMP/a17-wheel/naseri_markets/r0_engine.py"
+          echo "A17_PUBLIC_ONLY_PREVIEW_PASS"
