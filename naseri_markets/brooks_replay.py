@@ -23,6 +23,12 @@ from .delivery_ledger import IdentityConflict, _wire_intent
 from .engine_control_store import BROOKS_ENGINE_ID, EngineControlStore
 from .trusted_custom import LocalCustomRefused
 
+# SHA-256 of the authoritative checked-in 362-entry frozen manifest.
+# Pin it independently so changing BOTH source and manifest is not sufficient
+# to silently substitute a different Brooks engine.
+LEGACY_MANIFEST_SHA256 = (
+    "e614c6f64c21d95b284dfd67d35a9d5e569923b1cff32df61871c0860ad6c96b"
+)
 MAX_REPLAY_BYTES = 524288
 MAX_WORKER_BYTES = 32768
 MIN_BARS = 60
@@ -179,6 +185,8 @@ def verify_legacy_source(source_root: Path) -> str:
             or manifest.is_symlink()):
         raise BrooksReplayRefused("BROOKS_FROZEN_SOURCE_REQUIRED")
     data = manifest.read_bytes()
+    if hashlib.sha256(data).hexdigest() != LEGACY_MANIFEST_SHA256:
+        raise BrooksReplayRefused("BROOKS_FROZEN_MANIFEST_PIN_CHANGED")
     lines = data.decode("utf-8").splitlines()
     if len(lines) != 362:
         raise BrooksReplayRefused("BROOKS_FROZEN_MANIFEST_COUNT")
@@ -195,6 +203,11 @@ def verify_legacy_source(source_root: Path) -> str:
             raise BrooksReplayRefused("BROOKS_BAD_MANIFEST_ENTRY")
         seen.add(name)
         file = root / rel
+        parent = root
+        for component in rel.parts[:-1]:
+            parent = parent / component
+            if parent.is_symlink():
+                raise BrooksReplayRefused("BROOKS_FROZEN_DIRECTORY_SYMLINK")
         if (not file.is_file() or file.is_symlink()
                 or hashlib.sha256(file.read_bytes()).hexdigest() != digest):
             raise BrooksReplayRefused("BROOKS_FROZEN_SOURCE_DIGEST_CHANGED")
