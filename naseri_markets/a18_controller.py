@@ -9,6 +9,7 @@ from __future__ import annotations
 import fcntl
 import json
 import os
+import pwd
 import re
 import secrets
 import socket
@@ -55,7 +56,8 @@ class SignedGuardianController:
 
     def __init__(self, root: str | Path, *, signed: SignedMockDeploymentManager,
                  engine_id: str, installation_id: str,
-                 lease_seconds: float = 0.8, heartbeat_seconds: float = 0.1):
+                 lease_seconds: float = 0.8, heartbeat_seconds: float = 0.1,
+                 a20_ci_scoped: bool = False):
         if not isinstance(signed, SignedMockDeploymentManager):
             raise GuardianRefused("A18_A15_SIGNED_FACADE_REQUIRED")
         if (type(engine_id) is not str or not _ID.fullmatch(engine_id)
@@ -84,6 +86,16 @@ class SignedGuardianController:
         base.mkdir(mode=0o700, parents=True, exist_ok=True)
         if not base.is_dir() or base.stat().st_mode & 0o077:
             raise GuardianRefused("A18_ROOT_PERMISSIONS")
+        if type(a20_ci_scoped) is not bool:
+            raise GuardianRefused("A20_PROFILE_MUST_BE_BOOL")
+        if a20_ci_scoped:
+            if (os.environ.get("GITHUB_ACTIONS") != "true"
+                    or not os.environ.get("RUNNER_TEMP")
+                    or os.geteuid() == 0
+                    or not Path("/usr/bin/systemd-run").is_file()
+                    or not Path("/usr/bin/sudo").is_file()):
+                raise GuardianRefused("A20_EPHEMERAL_NONROOT_CI_ONLY")
+        self._a20_ci_scoped = a20_ci_scoped
         self._root = base
         self._signed = signed
         self._lease = float(lease_seconds)
@@ -186,24 +198,60 @@ class SignedGuardianController:
         if previous is not None and previous["state"] != "RECOVERED_STOPPED":
             raise GuardianRefused("A18_EXPLICIT_RECONCILIATION_REQUIRED")
         token = secrets.token_hex(32)
-        readfd, writefd = os.pipe()
         path = Path(__file__).with_name("a18_guardian.py").resolve()
-        try:
+        if self._a20_ci_scoped:
+            # The systemd transient scope contains Guardian AND worker.
+            # All cgroup controls are real and bounded on disposable CI.
+            from .a20_hardening import MEM_MAX, MEM_HIGH, CPU_PERCENT, TASKS_MAX
+            scope = "mmt-a20-" + secrets.token_hex(6)
+            runner = pwd.getpwuid(os.geteuid()).pw_name
+            if not runner or runner == "root":
+                raise GuardianRefused("A20_SEPARATE_CI_OPERATOR_REQUIRED")
+            command = [
+                "/usr/bin/sudo", "-n", "/usr/bin/systemd-run", "--scope",
+                "--unit=" + scope,
+                "--property=MemoryMax=" + str(MEM_MAX),
+                "--property=MemoryHigh=" + str(MEM_HIGH),
+                "--property=CPUQuota=" + str(CPU_PERCENT) + "%",
+                "--property=TasksMax=" + str(TASKS_MAX),
+                "--", "/usr/bin/sudo", "-n", "-u", runner, "--",
+                "/usr/bin/python3", "-I", "-S", "-u", str(path),
+                str(self._root), digest, "0", str(self._lease),
+                str(self._heartbeat), "offline_paper_a20_ci",
+            ]
             child = subprocess.Popen(
-                [sys.executable, "-I", "-S", "-u", str(path),
-                 str(self._root), digest, str(readfd),
-                 str(self._lease), str(self._heartbeat), "offline_paper_only"],
-                cwd=self._root, env={"PYTHONNOUSERSITE": "1"},
-                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                command, cwd=self._root,
+                env={"PATH": "/usr/bin:/bin", "PYTHONNOUSERSITE": "1"},
+                stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL, close_fds=True,
-                pass_fds=(readfd,), start_new_session=True,
+                start_new_session=True,
             )
-        finally:
-            os.close(readfd)
-        try:
-            os.write(writefd, token.encode("ascii"))
-        finally:
-            os.close(writefd)
+            try:
+                if child.stdin is None:
+                    raise GuardianRefused("A20_NO_PRIVATE_TOKEN_PIPE")
+                child.stdin.write(token.encode("ascii"))
+                child.stdin.flush()
+            finally:
+                if child.stdin is not None:
+                    child.stdin.close()
+        else:
+            readfd, writefd = os.pipe()
+            try:
+                child = subprocess.Popen(
+                    [sys.executable, "-I", "-S", "-u", str(path),
+                     str(self._root), digest, str(readfd),
+                     str(self._lease), str(self._heartbeat), "offline_paper_only"],
+                    cwd=self._root, env={"PYTHONNOUSERSITE": "1"},
+                    stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL, close_fds=True,
+                    pass_fds=(readfd,), start_new_session=True,
+                )
+            finally:
+                os.close(readfd)
+            try:
+                os.write(writefd, token.encode("ascii"))
+            finally:
+                os.close(writefd)
         self._child = child
         self._token = token
         self._digest = digest
@@ -225,6 +273,12 @@ class SignedGuardianController:
             if (started.state != "RUNNING" or not started.worker_alive
                     or not started.sandbox_verified):
                 raise GuardianRefused("A18_UNVERIFIED_SANDBOX_START")
+            if self._a20_ci_scoped:
+                from .a20_hardening import verify_worker_report
+                observed = self._persisted()
+                if observed is None:
+                    raise GuardianRefused("A20_MISSING_GUARDIAN_RECORD")
+                verify_worker_report(self._root, observed["guardian_pid"])
             return GuardianStatus(started.state, started.revision,
                                   started.worker_alive, started.guardian_alive,
                                   started.sandbox_verified, True)
@@ -245,6 +299,24 @@ class SignedGuardianController:
             except GuardianRefused:
                 pass
             raise
+        if self._a20_ci_scoped:
+            # Terminal leases must fail as NOT_RUNNING, not as alleged
+            # attestation tampering because the terminated PID is gone.
+            observed_status = self._control("HELLO")
+            if observed_status.state != "RUNNING" or not observed_status.worker_alive:
+                raise GuardianRefused("A18_GUARDIAN_REJECTED_A18_NOT_RUNNING")
+            try:
+                from .a20_hardening import verify_worker_report
+                observed = self._persisted()
+                if observed is None:
+                    raise GuardianRefused("A20_MISSING_RENEW_GUARDIAN_RECORD")
+                verify_worker_report(self._root, observed["guardian_pid"])
+            except (ValueError, OSError):
+                try:
+                    self._control("STOP")
+                except GuardianRefused:
+                    pass
+                raise
         state = self._control("RENEW")
         if (state.state != "RUNNING" or not state.worker_alive
                 or not state.sandbox_verified):

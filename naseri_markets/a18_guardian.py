@@ -135,7 +135,7 @@ def receive(fd: int, *, timeout: float) -> str:
 
 class Guardian:
     def __init__(self, root: Path, digest: str, secret: str, ttl: float,
-                 heartbeat: float):
+                 heartbeat: float, *, a20_strict: bool = False):
         temp = Path(tempfile.gettempdir()).resolve()
         if (not root.is_absolute() or root.is_symlink()
                 or root.resolve() == temp
@@ -146,6 +146,12 @@ class Guardian:
                 or not 0.35 <= ttl <= 5.0
                 or not 0.05 <= heartbeat <= ttl / 2):
             raise ValueError("A18_INVALID_GUARDIAN_START")
+        self.a20_strict = a20_strict
+        self.a20_worker_pid = None
+        if a20_strict:
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            from a20_hardening import verify_scoped_pid
+            verify_scoped_pid(os.getpid())
         self.root = root
         self.digest = digest
         self.secret = secret
@@ -233,19 +239,52 @@ class Guardian:
     def start_worker(self):
         if self.state != "WAITING":
             raise ValueError("A18_NOT_WAITING")
+        if self.a20_strict:
+            from a20_hardening import STRICT_WORKER
+            # Sudo is allowed on the disposable CI runner only.
+            command = ["/usr/bin/sudo", "-n", "-u", "nobody", "--",
+                       "/usr/bin/python3", "-I", "-S", "-u", "-c",
+                       STRICT_WORKER, self.child_token, self.digest]
+        else:
+            command = [sys.executable, "-I", "-S", "-u", "-c",
+                       WORKER, self.child_token, self.digest]
         self.child = subprocess.Popen(
-            [sys.executable, "-I", "-S", "-u", "-c", WORKER,
-             self.child_token, self.digest],
-            cwd=self.root, env={"PYTHONNOUSERSITE": "1"},
+            command, cwd=self.root, env={"PYTHONNOUSERSITE": "1"},
             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL, close_fds=True,
         )
         try:
-            expected = ("READY|" + self.child_token + "|" + self.digest
-                        + "|NNP1|SECCOMP2|NET_DENIED")
-            if receive(self.child.stdout.fileno(), timeout=1.2) != expected:
-                raise ValueError("A18_SANDBOX_ATTESTATION_FAILED")
+            response = receive(self.child.stdout.fileno(), timeout=2.0)
+            if self.a20_strict:
+                from a20_hardening import verify_scoped_pid
+                prefix = "READY|" + self.child_token + "|" + self.digest + "|UID|"
+                if not response.startswith(prefix):
+                    raise ValueError("A20_STRICT_WORKER_ATTESTATION_FAILED")
+                fields = response[len(prefix):].split("|")
+                if (len(fields) != 6 or fields[1] != "PID"
+                        or fields[3:] != ["NNP1", "STRICT2", "NET_OPEN_FORK_DENIED"]):
+                    raise ValueError("A20_STRICT_WORKER_FORMAT")
+                uid, pid = int(fields[0]), int(fields[2])
+                if uid == 0 or uid == os.geteuid():
+                    raise ValueError("A20_SEPARATE_UID_NOT_VERIFIED")
+                proof = verify_scoped_pid(pid)
+                if not proof.limits_enforced:
+                    raise ValueError("A20_CGROUP_ENFORCEMENT_MISSING")
+                self.a20_worker_pid = pid
+            else:
+                expected = ("READY|" + self.child_token + "|" + self.digest
+                            + "|NNP1|SECCOMP2|NET_DENIED")
+                if response != expected:
+                    raise ValueError("A18_SANDBOX_ATTESTATION_FAILED")
             self.ask_worker("PING")
+            if self.a20_strict:
+                atomic_status(self.root / "a20-kernel-report.json", {
+                    "schema": 1, "worker_pid": self.a20_worker_pid,
+                    "worker_uid": uid, "guardian_pid": os.getpid(),
+                    "denied_socket": True, "denied_open": True,
+                    "denied_fork": True, "no_new_privs": True,
+                    "strict_seccomp": True, "cgroup_verified": True,
+                })
         except BaseException:
             self.halt()
             self.transition("QUARANTINED")
@@ -351,13 +390,14 @@ def main():
     if len(sys.argv) != 7:
         raise SystemExit("A18_FIXTURE_ARGS_REQUIRED")
     _, base, digest, secret_fd, ttl, interval, _marker = sys.argv
-    if _marker != "offline_paper_only":
+    if _marker not in ("offline_paper_only", "offline_paper_a20_ci"):
         raise SystemExit("A18_FIXTURE_ONLY")
     try:
         fd = int(secret_fd)
         secret = os.read(fd, 64).decode("ascii")
         os.close(fd)
-        owner = Guardian(Path(base), digest, secret, float(ttl), float(interval))
+        owner = Guardian(Path(base), digest, secret, float(ttl), float(interval),
+                         a20_strict=(_marker == "offline_paper_a20_ci"))
         owner.run()
     except (OSError, ValueError, BlockingIOError):
         raise SystemExit(2)
