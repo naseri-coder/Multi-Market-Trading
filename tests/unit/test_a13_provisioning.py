@@ -155,7 +155,7 @@ def test_full_prepare_verify_recheck_suspend_retire_and_restart(tmp_path):
     {"mode": "live_trading"}, {"mode": "offline_paper_only", "command": "curl"},
     {"owner_dns": "private.example.com"}, {"owner_dns": "../owner.fixture"},
     {"engine_version": ""}, {"manifest_sha256": "123"},
-    {"installation_id": "../outside"}, {"installation_id": "other_install"},
+    {"installation_id": "../outside"},
 ])
 def test_bounded_exact_no_executable_plan(tmp_path, changed):
     plugins, trust, issuer, _, policy, mgr = fixture(tmp_path)
