@@ -203,8 +203,7 @@ async def test_private_telegram_pair_choices_and_callback_revision(tmp_path):
         keyboard = panel.pair_keyboard(host, BROOKS_ENGINE_ID)
         choices = [b.callback_data for row in keyboard.inline_keyboard for b in row
                    if b.callback_data.startswith("ep:set:")]
-        assert len(choices) == 3
-        assert max(map(len, choices)) <= 64
+        assert choices == []  # Legacy Kraken is not selectable for Iran.
         assert "ep:list:" + token in [
             b.callback_data for row in panel.settings_keyboard(
                 host, BROOKS_ENGINE_ID).inline_keyboard for b in row]
@@ -221,8 +220,8 @@ async def test_private_telegram_pair_choices_and_callback_revision(tmp_path):
     update, msg = req(f"ep:set:{token}:1:1", 123)
     await panel.callback(update, SimpleNamespace())
     with EngineControlStore(folder) as host:
-        assert host.preferences(BROOKS_ENGINE_ID)["futures_symbol"] == "PF_ETHUSD"
-        assert host.preferences(BROOKS_ENGINE_ID)["revision"] == 2
+        assert host.preferences(BROOKS_ENGINE_ID)["futures_symbol"] == "PF_XBTUSD"
+        assert host.preferences(BROOKS_ENGINE_ID)["revision"] == 1
     await panel.callback(update, SimpleNamespace())
     with EngineControlStore(folder) as host:
-        assert host.preferences(BROOKS_ENGINE_ID)["revision"] == 2
+        assert host.preferences(BROOKS_ENGINE_ID)["revision"] == 1
