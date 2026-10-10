@@ -22,6 +22,7 @@ from pathlib import Path
 from .contracts import Direction, EvidenceMode, Instrument, Market, SignalIntent
 from .delivery_ledger import IdentityConflict, _wire_intent
 from .engine_control_store import BROOKS_ENGINE_ID, EngineControlStore
+from .futures_pairs import KRAKEN_PAIRS
 from .trusted_custom import LocalCustomRefused
 
 # SHA-256 of the authoritative checked-in 362-entry frozen manifest.
@@ -256,7 +257,7 @@ def _evaluate_legacy(root: Path, payload: bytes, *,
         if (raw["provider"] != "kraken_futures_trade_public"
                 or raw["exchange"] != "kraken_futures"
                 or raw["market_type"] != "futures"
-                or raw["symbol"] != "PF_XBTUSD"
+                or raw["symbol"] not in KRAKEN_PAIRS
                 or raw["quote_currency"] != "USD"):
             raise BrooksReplayRefused("BROOKS_KRAKEN_TICK_IDENTITY_DENIED")
         tick = _decimal(kraken_tick_size)
@@ -266,7 +267,7 @@ def _evaluate_legacy(root: Path, payload: bytes, *,
             policy, context=replace(
                 policy.context,
                 futures_tick_sizes=policy.context.futures_tick_sizes +
-                (("PF_XBTUSD", tick),),
+                ((raw["symbol"], tick),),
             ),
         )
     engine = BrooksTrilogyFullCoreEngine(policy=policy)
@@ -323,7 +324,7 @@ def replay_once(*, state_dir: str | Path, legacy_source: str | Path,
                 or raw["provider"] != "kraken_futures_trade_public"
                 or raw["exchange"] != "kraken_futures"
                 or raw["market_type"] != "futures"
-                or raw["symbol"] != "PF_XBTUSD"
+                or raw["symbol"] not in KRAKEN_PAIRS
                 or raw["quote_currency"] != "USD"):
             raise BrooksReplayRefused("BROOKS_KRAKEN_TICK_IDENTITY_DENIED")
         value = _decimal(kraken_tick_size)
