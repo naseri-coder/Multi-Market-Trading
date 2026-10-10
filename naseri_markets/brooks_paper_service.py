@@ -24,6 +24,7 @@ from .brooks_kraken_feed import poll_once
 from .brooks_replay import BrooksReplayRefused, SECONDS, verify_legacy_source
 from .engine_control_store import BROOKS_ENGINE_ID, EngineControlStore
 from .futures_venues import paper_feed_verified
+from .iran_futures_eligibility import iran_futures_approved
 from .futures_pairs import pair_is_verified_paper
 from .trusted_custom import LocalCustomRefused
 
@@ -107,6 +108,16 @@ class BrooksPaperService:
                 store.brooks_worker_heartbeat(
                     worker_id=self.worker_id, now=now, phase="IDLE")
                 return {"phase": "IDLE", "attempted": False}
+            # Operator-facing eligibility is separate from the ability to
+            # retrieve public data. Legacy Kraken is research-only for Iran.
+            # Never emit new PAPER signal intents for ineligible venues.
+            if not iran_futures_approved(prefs["futures_exchange"]):
+                self.next_attempt_at = 0
+                self.last_config = None
+                store.brooks_worker_heartbeat(
+                    worker_id=self.worker_id, now=now, phase="IDLE")
+                return {"phase": "IDLE", "attempted": False,
+                        "reason": "BROOKS_IRAN_FUTURES_ELIGIBILITY_UNVERIFIED"}
             # A catalog entry is NOT a verified market-data integration.
             # No automatic fallback to Kraken when another venue was selected.
             if (not paper_feed_verified(prefs["futures_exchange"])
