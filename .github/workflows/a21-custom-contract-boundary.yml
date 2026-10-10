@@ -1,0 +1,89 @@
+name: A21 Multi Market Trading Custom ABI and protected owner boundary
+
+on:
+  push:
+    branches: [feature/a21-custom-contract-protected-owner-core]
+  pull_request:
+    paths:
+      - "naseri_markets/a21_custom_contract.py"
+      - "tests/unit/test_a21_custom_contract.py"
+      - "docs/MULTI_MARKET_TRADING_A21_CUSTOM_ABI.md"
+      - ".github/workflows/a21-custom-contract-boundary.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  a21-custom-contract-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Immutable history and public-only release preflight
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+      - name: A21 Custom envelope and public-owner distribution firewall
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m pip install "cryptography==46.0.3"
+          python -m pytest -q \
+            tests/unit/test_a21_custom_contract.py \
+            tests/unit/test_a8_plugin_framework.py \
+            tests/unit/test_a7_replay_pipeline.py \
+            tests/unit/test_a20_integration.py \
+            tests/unit/test_a19_hardening.py \
+            tests/unit/test_a18_guardian.py \
+            tests/unit/test_a17_watchdog.py \
+            tests/unit/test_a16_supervisor.py \
+            tests/unit/test_a15_releases.py \
+            tests/unit/test_a14_packages.py \
+            tests/unit/test_a13_provisioning.py \
+            tests/unit/test_a12_trust.py
+      - name: Public module has zero code execution or private artifact delivery
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check --select E4,F \
+            naseri_markets/a21_custom_contract.py \
+            tests/unit/test_a21_custom_contract.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          path = Path("naseri_markets/a21_custom_contract.py")
+          data = path.read_text()
+          tree = ast.parse(data)
+          banned = {"os", "sys", "subprocess", "socket", "requests",
+                    "httpx", "aiohttp", "importlib", "runpy", "zipfile",
+                    "pickle", "ctypes", "base64", "cryptography"}
+          for node in ast.walk(tree):
+              if isinstance(node, ast.Import):
+                  assert all(n.name.split(".")[0] not in banned for n in node.names)
+              elif isinstance(node, ast.ImportFrom):
+                  assert (node.module or "").split(".")[0] not in banned
+          for text in ("shell=True", "preexec_fn", "exec(", "eval(",
+                       "decode_artifact", "decrypt_bundle"):
+              assert text not in data
+          print("A21_CONTRACT_NO_CODE_LOADER_PASS")
+          PY
+      - name: Verify public preview is metadata/code interface only without private core
+        run: |
+          set -Eeuo pipefail
+          python -m pip install "setuptools==80.9.0" "wheel==0.45.1"
+          python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/a21-preview"
+          test -f "$RUNNER_TEMP/a21-preview/naseri_markets/a21_custom_contract.py"
+          test ! -e "$RUNNER_TEMP/a21-preview/naseri_markets/private_nyfr_core.py"
+          test ! -e "$RUNNER_TEMP/a21-preview/naseri_markets/r0_engine.py"
+          if find "$RUNNER_TEMP/a21-preview" -type f \
+             \( -name '*.enc' -o -name '*.age' -o -name '*.zip' \
+                -o -name '*.so' -o -name '*.pyd' -o -name '*.bin' \) | grep -q .; then
+            echo "A21_PROTECTED_BINARY_LEAK_BLOCKED"; exit 1
+          fi
+          echo "A21_PUBLIC_NO_ENCRYPTED_PRIVATE_DELIVERY_PASS"
