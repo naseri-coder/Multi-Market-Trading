@@ -1,0 +1,32 @@
+# EXAMPLE ONLY — NOT INSTALLED OR ACTIVATED BY THIS REPOSITORY.
+# Use solely on an independently authorized, dedicated NONPRODUCTION host.
+# Never install on the existing legacy production Telegram-bot host.
+[Unit]
+Description=Multi Market Trading - isolated Brooks Kraken Futures PAPER worker (DEV)
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/opt/mmt-paper-checkout/production_source/SHA256SUMS
+
+[Service]
+Type=simple
+User=mmt-paper-dev
+Group=mmt-paper-dev
+WorkingDirectory=/opt/mmt-paper-checkout
+Environment=MMT_NONPRODUCTION=1
+ExecStart=/opt/mmt-paper-venv/bin/naseri-brooks-paper-service --state-dir /var/lib/mmt-paper-dev --legacy-source /opt/mmt-paper-checkout/production_source --ack-nonproduction-standalone-paper
+Restart=on-failure
+RestartSec=10s
+TimeoutStopSec=70
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/mmt-paper-dev
+CapabilityBoundingSet=
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target
