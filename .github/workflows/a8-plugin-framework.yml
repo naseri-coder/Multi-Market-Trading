@@ -1,0 +1,84 @@
+name: A8 universal plugin framework offline security and E2E
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  a8-offline-plugin-validation:
+    name: A8 public/private plugin settings and offline PAPER E2E
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout locked review source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Freeze legacy manifest and manager identity
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+      - name: Install existing locked test suite without other services
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m pytest -q tests/unit/test_a8_plugin_framework.py
+          python -m pytest -q tests/unit/test_a7_replay_pipeline.py
+      - name: Check A8 modules for unsafe imports and lint
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check --select E4,F \
+            naseri_markets/plugin_descriptor.py \
+            naseri_markets/plugin_manager.py \
+            naseri_markets/plugin_runtime.py \
+            examples/plugins/public_template.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          roots = {"importlib", "subprocess", "socket", "requests",
+                   "urllib", "MetaTrader5", "private_nyfr_core", "r0_engine"}
+          files = [
+              "naseri_markets/plugin_descriptor.py",
+              "naseri_markets/plugin_manager.py",
+              "naseri_markets/plugin_runtime.py",
+          ]
+          for name in files:
+              for node in ast.walk(ast.parse(Path(name).read_bytes())):
+                  if isinstance(node, ast.Import):
+                      assert all(x.name.split(".")[0] not in roots for x in node.names)
+                  if isinstance(node, ast.ImportFrom):
+                      assert (node.module or "").split(".")[0] not in roots
+          print("A8_NO_DYNAMIC_PLUGIN_LOADING_OR_LIVE_IO_PASS")
+          PY
+      - name: Validate new wheel includes A8 plugin framework without old app
+        run: |
+          set -Eeuo pipefail
+          python -m pip install "setuptools==80.9.0" "wheel==0.45.1"
+          python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/a8-wheel"
+          mkdir -p "$RUNNER_TEMP/a8-dist"
+          python -m pip wheel --no-build-isolation --no-deps \
+            --wheel-dir "$RUNNER_TEMP/a8-dist" "$RUNNER_TEMP/a8-wheel"
+          python -m venv "$RUNNER_TEMP/a8-venv"
+          "$RUNNER_TEMP/a8-venv/bin/python" -m pip install --no-deps \
+            "$RUNNER_TEMP/a8-dist/multi_market_trading-0.4.0rc1-py3-none-any.whl"
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/a8-venv/bin/python" - <<'PY'
+          import importlib.util
+          from naseri_markets.plugin_manager import PluginManager
+          from naseri_markets.plugin_descriptor import PluginDescriptor
+          assert PluginManager and PluginDescriptor
+          assert importlib.util.find_spec("app") is None
+          print("A8_STANDALONE_WHEEL_CONTAINS_PLUGIN_FRAMEWORK_PASS")
+          PY
