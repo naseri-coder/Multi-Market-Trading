@@ -260,7 +260,6 @@ async def test_authenticated_private_connector_end_to_end_paper_journal(tmp_path
     registry = EngineRegistry()
     runner = MultiEngineRunner(registry, active=True)
     journal = PaperJournal(tmp_path / "paper.db")
-    from naseri_markets.plugin_runtime import ManagedPaperPlatform
     platform = ManagedPaperPlatform(
         manager, registry, runner, journal, enabled=True,
     )
