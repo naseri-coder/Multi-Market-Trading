@@ -78,7 +78,7 @@ def ctx(tmp_path):
         tmp_path / "watchdog", session_factory=factory,
         trusted_clock=lambda: clock[0], interval_seconds=0.06,
     )
-    yield watcher, guard, clock, auth if False else authority, mock, made_on, tmp_path
+    yield watcher, guard, clock, authority, mock, made_on, tmp_path
     watcher.close()
     mock.close()
     authority.close()
