@@ -1,0 +1,63 @@
+name: A14 Multi Market Trading private mock package deployment
+
+on:
+  push:
+    branches: [feature/a14-private-package-mock-deployment]
+  pull_request:
+    paths:
+      - "naseri_markets/a14_packages.py"
+      - "tests/unit/test_a14_packages.py"
+      - "docs/MULTI_MARKET_TRADING_A14_MOCK_DEPLOYMENT.md"
+      - ".github/workflows/a14-private-mock-deployment.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  a14-disposable-linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Verify preserved public source baseline
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+      - name: Real A14 and integrated A12/A13 tests
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m pip install "cryptography==46.0.3"
+          python -m pytest -q tests/unit/test_a14_packages.py tests/unit/test_a13_provisioning.py
+      - name: Static safety and lint
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check --select E4,F naseri_markets/a14_packages.py tests/unit/test_a14_packages.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          tree = ast.parse(Path("naseri_markets/a14_packages.py").read_bytes())
+          forbidden = {"socket", "requests", "urllib", "httpx", "aiohttp",
+                       "importlib", "MetaTrader5", "r0_engine", "private_nyfr_core"}
+          for n in ast.walk(tree):
+              if isinstance(n, ast.Import):
+                  assert all(a.name.split(".")[0] not in forbidden for a in n.names)
+              elif isinstance(n, ast.ImportFrom):
+                  assert (n.module or "").split(".")[0] not in forbidden
+          print("A14_NO_PRIVATE_ENGINE_OR_NETWORK_IMPORT_PASS")
+          PY
+      - name: Public-only wheel packaging fence
+        run: |
+          set -Eeuo pipefail
+          python -m pip install "setuptools==80.9.0" "wheel==0.45.1"
+          python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/a14-wheel"
+          test -f "$RUNNER_TEMP/a14-wheel/naseri_markets/a14_packages.py"
+          test ! -e "$RUNNER_TEMP/a14-wheel/naseri_markets/r0_engine.py"
+          test ! -e "$RUNNER_TEMP/a14-wheel/naseri_markets/private_nyfr_core.py"
