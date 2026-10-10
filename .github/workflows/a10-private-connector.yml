@@ -1,0 +1,81 @@
+name: A10 private connector offline authentication and replay security
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  a10-private-protocol:
+    name: A10 HMAC protocol, revocation and mock owner security E2E
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout reviewed revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Configure Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Confirm existing frozen source and packaging
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+      - name: Authenticate fixture owner and run negative security tests
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m pytest -q tests/unit/test_a10_private_connector.py
+          python -m pytest -q tests/unit/test_a9_plugin_lifecycle.py
+      - name: Fail if connector imports network, broker or private source
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check --select E4,F \
+            naseri_markets/private_protocol.py \
+            naseri_markets/private_connector.py \
+            tests/unit/test_a10_private_connector.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          roots = {"socket", "requests", "urllib", "httpx", "aiohttp",
+                   "subprocess", "importlib", "MetaTrader5",
+                   "private_nyfr_core", "r0_engine"}
+          for name in ("private_protocol.py", "private_connector.py"):
+              tree = ast.parse((Path("naseri_markets") / name).read_bytes())
+              for node in ast.walk(tree):
+                  if isinstance(node, ast.Import):
+                      assert all(x.name.split(".")[0] not in roots
+                                 for x in node.names)
+                  if isinstance(node, ast.ImportFrom):
+                      assert (node.module or "").split(".")[0] not in roots
+          print("A10_NO_UNAUTHORIZED_REMOTE_OR_PRIVATE_SOURCE_IMPORTS_PASS")
+          PY
+      - name: Verify independent wheel includes connector without legacy app
+        run: |
+          set -Eeuo pipefail
+          python -m pip install "setuptools==80.9.0" "wheel==0.45.1"
+          python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/a10-wheel"
+          mkdir -p "$RUNNER_TEMP/a10-dist"
+          python -m pip wheel --no-build-isolation --no-deps \
+            --wheel-dir "$RUNNER_TEMP/a10-dist" "$RUNNER_TEMP/a10-wheel"
+          python -m venv "$RUNNER_TEMP/a10-venv"
+          "$RUNNER_TEMP/a10-venv/bin/python" -m pip install --no-deps \
+            "$RUNNER_TEMP/a10-dist/multi_market_trading-0.4.0rc1-py3-none-any.whl"
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/a10-venv/bin/python" - <<'PY'
+          import importlib.util
+          from naseri_markets.private_connector import PrivatePaperConnector
+          from naseri_markets.private_protocol import ReplayFence, sign_packet
+          assert PrivatePaperConnector and ReplayFence and sign_packet
+          assert importlib.util.find_spec("app") is None
+          print("A10_PUBLIC_WHEEL_NO_LEGACY_APP_OR_PRIVATE_NYFR_PASS")
+          PY
