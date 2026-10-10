@@ -10,7 +10,6 @@ from __future__ import annotations
 import asyncio
 import base64
 import binascii
-import json
 import secrets
 import time
 from collections.abc import Awaitable, Callable
