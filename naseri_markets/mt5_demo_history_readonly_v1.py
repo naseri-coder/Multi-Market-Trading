@@ -256,11 +256,17 @@ class MT5DemoHistoryReaderV1:
                 (order_result, MT5HistoricalOrder.parse, orders),
                 (deal_result, MT5HistoricalDeal.parse, deals),
             ):
+                current_slice: set[int] = set()
                 for entry in raw:
                     item = factory(entry)
                     previous = target.get(item.ticket)
                     if previous is not None and previous != item:
                         raise MT5HistoryRefused("MT5_HISTORY_TICKET_REPLAY_CONFLICT")
+                    # Adjacent *slices* may overlap legitimately. Repeated
+                    # tickets inside a single SDK response are never valid.
+                    if item.ticket in current_slice:
+                        raise MT5HistoryRefused("MT5_HISTORY_DUPLICATE_TICKET_IN_SLICE")
+                    current_slice.add(item.ticket)
                     target[item.ticket] = item
             if len(orders) + len(deals) > self._max_rows:
                 raise MT5HistoryRefused("MT5_HISTORY_TOO_MANY_ROWS")
