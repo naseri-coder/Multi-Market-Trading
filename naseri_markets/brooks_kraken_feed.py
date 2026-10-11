@@ -22,6 +22,7 @@ from .brooks_replay import (
     BrooksReplayRefused, parse_candle_replay, replay_once,
 )
 from .engine_control_store import BROOKS_ENGINE_ID, EngineControlStore
+from .iran_futures_eligibility import iran_futures_approved
 from .futures_pairs import KRAKEN_PAIRS
 
 _SYMBOL = "PF_XBTUSD"  # verified Kraken USD linear perpetual, NOT BTCUSDT
@@ -238,6 +239,7 @@ def poll_once(*, state_dir: str | Path, legacy_source: str | Path,
         engine = store.get(BROOKS_ENGINE_ID)
         pref = store.preferences(BROOKS_ENGINE_ID)
         if (engine is None or not engine.requested_enabled
+                or not iran_futures_approved("kraken")
                 or symbol not in KRAKEN_PAIRS
                 or pref["futures_symbol"] != symbol
                 or pref["futures_exchange"] != "kraken"
@@ -254,6 +256,7 @@ def poll_once(*, state_dir: str | Path, legacy_source: str | Path,
         engine = store.get(BROOKS_ENGINE_ID)
         pref = store.preferences(BROOKS_ENGINE_ID)
         if (engine is None or not engine.requested_enabled
+                or not iran_futures_approved("kraken")
                 or engine.revision != rev or pref["revision"] != pref_rev
                 or pref["signal_environment"] != "PAPER"
                 or pref["futures_exchange"] != "kraken"
