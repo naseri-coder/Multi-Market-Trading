@@ -29,11 +29,13 @@ from .iran_futures_eligibility import (
     review_status,
 )
 from .trusted_custom import LocalCustomRefused
+from .brooks_stage10_paper_bridge import panel_stage10_overview
 
 _MORE = re.compile(r"em:(settings|tf|market|env):([0-9a-f]{12})(?::([0-9]+))?\Z")
 _EXCHANGE = re.compile(r"ex:(list|set):([0-9a-f]{12}):([0-9]+)(?::([0-9]+))?\Z")
 _TF = re.compile(r"et:(list|set):([0-9a-f]{12})(?::([0-9]+))?(?::([0-9]+))?\Z")
 _PAIR = re.compile(r"ep:(list|set):([0-9a-f]{12})(?::([0-9]+))?(?::([0-9]+))?\Z")
+_STAGE10 = re.compile(r"s10:view:([0-9a-f]{12})\\Z")
 _PAGE_SIZE = 5
 _RESEARCH = re.compile(r"vr:list:([0-9a-f]{12}):([0-9]+)\Z")
 
@@ -95,6 +97,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
             callback_data=f"cm:{'disable' if requested else 'enable'}:"
                           f"{idtoken}:{state.revision}")]]
         if state.engine_kind == "BUILTIN_BROOKS":
+            rows.append([Button("🧮 دفتر سفارش PAPER (فقط مشاهده)", callback_data=f"s10:view:{idtoken}")])
             pub = host.publication(selected)
             rows.append([Button(
                 "📡 لغو درخواست انتشار" if pub["requested_publication"]
@@ -141,7 +144,9 @@ class IntegratedEnginePanel(CustomAdminPanel):
             f"هسته‌های قابل مشاهده: {len(items)} | PAPER فعال واقعی: {active}\n"
             f"درخواست فعال، فاقد اتصال موتور: {pending}\n"
             "پرایس اکشن البروکس: تحلیل PAPER با سرویس مستقل اختیاری.\n"
-            + worker_line + owner_line +
+            + worker_line + "دفتر مستقل سفارش PAPER: "
+            + panel_stage10_overview(self.state_dir)["status"] + "\n"
+            + owner_line +
             "کانال‌ها تنها تنظیم می‌شوند؛ ارسال خودکار: 🔒 خاموش.")
 
     def detail(self, host: EngineControlStore, engine_id: str) -> str:
@@ -405,6 +410,36 @@ class IntegratedEnginePanel(CustomAdminPanel):
         query = getattr(update, "callback_query", None)
         if query is None:
             return
+        if (query.data or "").startswith("s10:"):
+            if not _private_admin(update, self.admin_ids):
+                await query.answer("دسترسی مجاز نیست", show_alert=True)
+                return
+            match = _STAGE10.fullmatch(query.data or "")
+            if match is None:
+                await query.answer("درخواست نامعتبر", show_alert=True)
+                return
+            await query.answer()
+            try:
+                with self._open(update.effective_user.id) as host:
+                    selected = _resolve(host, match.group(1))
+                    if selected.engine_id != BROOKS_ENGINE_ID:
+                        raise LocalCustomRefused("STAGE10_BROOKS_ONLY")
+                    report = panel_stage10_overview(self.state_dir)
+                    markup = self.keyboard(host, BROOKS_ENGINE_ID)
+                msg = (
+                    "🧮 دفتر PAPER مستقل (فقط مشاهده)\n"
+                    f"وضعیت: {report[\'status\']}\n"
+                    f"سفارش‌ها: {report[\'linked_orders\']}\n"
+                    f"رزرو ریسک فعال: {report[\'active_paper_reservations\']}\n"
+                    "معاملات واقعی: 🔒 خاموش | انتشار سیگنال: 🔒 خاموش\n"
+                    "ایجاد سفارش فقط با دستور مستقل و تأیید اپراتور."
+                )
+                if query.message is not None:
+                    await query.message.reply_text(msg, reply_markup=markup)
+            except (LocalCustomRefused, AdminCustomPanelRefused, ValueError):
+                if query.message is not None:
+                    await query.message.reply_text("⚠️ دفتر PAPER در دسترس نیست.")
+            return
         if (query.data or "").startswith("vr:"):
             if not _private_admin(update, self.admin_ids):
                 await query.answer("دسترسی مجاز نیست", show_alert=True)
@@ -571,7 +606,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
         # register the integrated settings and Brooks publication callbacks,
         # otherwise Telegram silently drops taps on their inline buttons.
         application.add_handler(
-            CallbackQueryHandler(self.callback, pattern=r"^(?:em:|bp:|ex:|et:|ep:|vr:)"),
+            CallbackQueryHandler(self.callback, pattern=r"^(?:em:|bp:|ex:|et:|ep:|vr:|s10:)"),
             group=0)
         application.add_handler(
             CommandHandler("engines", self.panel, filters=filters.ChatType.PRIVATE),
