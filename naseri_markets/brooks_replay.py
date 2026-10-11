@@ -23,6 +23,7 @@ from .contracts import Direction, EvidenceMode, Instrument, Market, SignalIntent
 from .delivery_ledger import IdentityConflict, _wire_intent
 from .engine_control_store import BROOKS_ENGINE_ID, EngineControlStore
 from .futures_pairs import KRAKEN_PAIRS
+from .brooks_paper_receipts import make_receipt, record_receipt
 from .trusted_custom import LocalCustomRefused
 
 # SHA-256 of the authoritative checked-in 362-entry frozen manifest.
@@ -473,6 +474,15 @@ def replay_once(*, state_dir: str | Path, legacy_source: str | Path,
                      obj.get("setup_type"), report["signal_id"], source_digest))
                 outcome = ("NO_SIGNAL" if signal is None else
                            "RECORDED" if recorded else "DUPLICATE_SIGNAL")
+                # Snapshot, validated risk geometry and provenance are
+                # committed atomically with the scan and its PAPER intent.
+                # Never backfill a pre-stage-3 scan with invented evidence.
+                audit = make_receipt(
+                    scan_id=scan_key, raw=raw,
+                    snapshot_hash=obj["snapshot_hash"],
+                    source_digest=source_digest, decision=obj["decision"],
+                    signal=signal, outcome=outcome)
+                record_receipt(db, audit)
             db.execute("COMMIT")
         except BaseException:
             db.execute("ROLLBACK")
