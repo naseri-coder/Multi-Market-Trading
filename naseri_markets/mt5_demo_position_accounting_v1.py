@@ -59,6 +59,12 @@ def diagnose_position_history(
             "net_cash": ZERO, "reversal_count": 0,
         })
         current["net_cash"] += cash
+        if (
+            margin_mode == MODE_NETTING and current["signed_lots"] != ZERO
+            and current["position_ids"]
+            and deal.position_id not in current["position_ids"]
+        ):
+            flag("NETTING_POSITION_ID_CHANGED_WITH_OPEN_EXPOSURE", deal)
         current["position_ids"].add(deal.position_id)
         if current["symbol"] != deal.symbol:
             flag("POSITION_ID_SYMBOL_CONFLICT", deal)
