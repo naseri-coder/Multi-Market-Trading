@@ -70,7 +70,7 @@ cancel acknowledgement and confirmed close fills separately.
 Run on a clean Python 3.12 development runner:
 
 ```bash
-python -m pip install pytest==9.1.1
+python -m pip install pytest==9.1.1 pytest-asyncio==1.4.0
 python -m pytest -q --confcutdir=tests/unit tests/unit/test_execution_architecture_v1.py
 ```
 
