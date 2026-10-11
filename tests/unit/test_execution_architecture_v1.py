@@ -8,10 +8,14 @@ import pytest
 
 from naseri_markets.contracts import Direction, EvidenceMode, Instrument, Market
 from naseri_markets.execution_contract_v1 import (
-    OrderKind, OrderSpec, RiskEnvelope, size_linear_paper_order,
+    OrderKind,
+    OrderSpec,
+    RiskEnvelope,
+    size_linear_paper_order,
 )
 from naseri_markets.position_lifecycle_simulator import (
-    LifecycleRefused, PositionLifecycleSimulator,
+    LifecycleRefused,
+    PositionLifecycleSimulator,
 )
 
 
