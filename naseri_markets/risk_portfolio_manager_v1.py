@@ -8,11 +8,12 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+from collections.abc import Callable, Mapping
 from dataclasses import asdict
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, Callable, Mapping
+from typing import Any
 
 from .contracts import EvidenceMode, Instrument
 from .execution_contract_v1 import OrderSpec, identity, positive
@@ -80,7 +81,7 @@ class PaperRiskPortfolioManager:
         self._db.execute("PRAGMA journal_mode=WAL")
         self._db.execute("PRAGMA synchronous=FULL")
         self._db.execute("PRAGMA foreign_keys=ON")
-        self._clock = clock or (lambda: datetime.now(timezone.utc).date())
+        self._clock = clock or (lambda: datetime.now(UTC).date())
         self._db.executescript(
             "CREATE TABLE IF NOT EXISTS risk_portfolios ("
             "portfolio_id TEXT PRIMARY KEY, policy TEXT NOT NULL, "
