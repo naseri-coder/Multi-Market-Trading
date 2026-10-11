@@ -382,7 +382,7 @@ def stage11_panel_summary(state_dir: str | Path) -> dict[str, Any]:
     path = Path(state_dir).absolute() / STAGE10_FILENAME
     empty = {"status": "NOT_CONFIGURED", "replayed_orders": 0,
              "closed_paper_trades": 0, "aggregate_net_pnl": "0",
-             "broker_execution": False}
+             "net_pnl_by_currency": {}, "broker_execution": False}
     if path.is_symlink() or not path.is_file():
         return empty
     from urllib.parse import quote
