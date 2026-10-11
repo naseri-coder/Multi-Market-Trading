@@ -55,3 +55,15 @@ Only the 15 *exactly* enumerated research branch names and their audited HEAD SH
 - **Three preserved branches:** `main`, protected `develop/v0.3.0`, and the still-incomplete `feature/brooks-real-http-nonprod-e2e` / PR #160.
 - **Cleanup permissions removed:** the temporary `.github/workflows/research-branch-cleanup-once.yml` workflow is removed via a separate PR after the verified deletion run. No recurring branch-delete automation is authorized.
 - No source code, deployment, production bot, PAPER database, broker account, Telegram channel or private NY First-Reversal module was changed by this branch cleanup.
+
+## Supplemental research closure — Brooks real HTTP E2E (2026-10-11)
+
+**Disposition:** close [PR #160](https://github.com/naseri-coder/Multi-Market-Trading/pull/160) **without merge**, then retire only the obsolete, nonprotected branch `feature/brooks-real-http-nonprod-e2e` pinned to **`6e4c14e734c90abd2489c483327542a8841d3907`**.
+
+- Exact branch head at approval: `6e4c14e734c90abd2489c483327542a8841d3907`; target repository: `naseri-coder/Multi-Market-Trading`.
+- Actual one-shot GitHub runner contacted the fixed Binance Futures public HTTPS endpoint on 2026-10-10. The response was **HTTP 451** and the strict smoke returned `BROOKS_FEED_HTTP_451` / `BLOCKED_EXTERNAL_MARKET_FEED`. The intended two-cycle real-public-HTTP PAPER evaluation **did not complete**.
+- [First external HTTPS evidence run](https://github.com/naseri-coder/Multi-Market-Trading/actions/runs/38075302151); PR #160 description and its historical CI evidence remain intact.
+- The branch contained a disposable no-VPS HTTP smoke workflow, a one-off script, tests and research documentation. It was **not** a deployable Brooks provider integration, a real feed pass, or an approved exchange for Iranian residents.
+- Closing the PR and deleting the **single exact pinned research ref** is a housekeeping decision, not a claim that access to Binance is restored. **No VPN, proxy, geographic restriction bypass, live trade execution, production deployment, Telegram publication, or strategy threshold change is authorized.**
+- The still-preserved active `main` Brooks source, independent PAPER framework and previous offline checks continue unchanged. The protected `develop/v0.3.0` branch remains preserved.
+- The temporary `.github/workflows/retire-brooks-http451-branch-once.yml` file is intended for one-time SHA-pinned deletion and must be removed from `main` after the delete job and independent branch listing are verified.
