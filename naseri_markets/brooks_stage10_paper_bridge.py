@@ -35,7 +35,7 @@ def _sha(raw: str) -> str:
 
 
 def _checked_positive(raw: object) -> Decimal:
-    if type(raw) is not str or re.fullmatch(r"[0-9]{1,16}(?:\\.[0-9]{1,8})?", raw) is None:
+    if type(raw) is not str or re.fullmatch(r"[0-9]{1,16}(?:\.[0-9]{1,8})?", raw) is None:
         raise BrooksStage10Refused("STAGE10_EXPLICIT_DECIMAL_REQUIRED")
     try:
         value = Decimal(raw)
