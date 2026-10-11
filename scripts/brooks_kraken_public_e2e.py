@@ -15,6 +15,7 @@ from pathlib import Path
 from naseri_markets.brooks_kraken_feed import KrakenFeedRefused, poll_once
 from naseri_markets.brooks_replay import BrooksReplayRefused, verify_legacy_source
 from naseri_markets.engine_control_store import BROOKS_ENGINE_ID, EngineControlStore
+from naseri_markets.iran_futures_eligibility import iran_futures_approved
 
 
 def run(*, source: Path) -> dict:
@@ -50,7 +51,40 @@ def run(*, source: Path) -> dict:
             assert not store.publication(BROOKS_ENGINE_ID)["effective_publication"]
             assert store.route(BROOKS_ENGINE_ID)["delivery_mode"] == "DISABLED"
 
-        # Two actual network reads with a physical 30-second pause.
+        # As of 2026-10-11 Kraken derivatives explicitly prohibit Iranian
+        # residents. This former public-network E2E must NOT silently bypass
+        # the newly enforced resident policy to make CI green. The safe
+        # expected result is zero requests and zero new PAPER signals.
+        if not iran_futures_approved("kraken"):
+            try:
+                poll_once(
+                    state_dir=state, legacy_source=source,
+                    symbol="PF_XBTUSD", transport=forbidden,
+                    metadata_transport=forbidden)
+                raise AssertionError("ineligible Kraken unexpectedly analyzed")
+            except KrakenFeedRefused as error:
+                assert str(error) == "KRAKEN_FEED_PAPER_NOT_ARMED"
+            assert not network_calls
+            with EngineControlStore(state) as store:
+                status = store.brooks_replay_status()
+                assert status["scans"] == 0
+                assert status["paper_signals"] == 0
+                assert not store.publication(
+                    BROOKS_ENGINE_ID)["effective_publication"]
+                assert store.route(
+                    BROOKS_ENGINE_ID)["delivery_mode"] == "DISABLED"
+            return {
+                "verdict": "PASS_IRAN_FUTURES_ELIGIBILITY_FENCE_NO_HTTP",
+                "utc_completed_at": datetime.now(UTC).isoformat(),
+                "public_metadata_endpoint_verified_live": False,
+                "http_cycles": 0, "unique_scans": 0,
+                "paper_signal_count": 0,
+                "telegram_sent": False, "broker_orders": False,
+                "production_db_touched": False, "source_pin": pinned,
+            }
+
+        # Historical two-network-cycle test runs only if official
+        # Iranian-resident eligibility is subsequently positively verified.
         first = poll_once(
             state_dir=state, legacy_source=source, symbol="PF_XBTUSD",
             bars=72)
