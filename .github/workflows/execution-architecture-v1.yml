@@ -1,0 +1,71 @@
+name: Execution Architecture V1 PAPER Simulator
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/execution_contract_v1.py"
+      - "naseri_markets/position_lifecycle_simulator.py"
+      - "tests/unit/test_execution_architecture_v1.py"
+      - "docs/EXECUTION_ARCHITECTURE_V1_PAPER_SIMULATOR.md"
+      - ".github/workflows/execution-architecture-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  paper-simulator-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install focused testing dependencies (no broker client)
+        run: python -m pip install pytest==9.1.1 pytest-asyncio==1.4.0 ruff==0.16.9
+      - name: Check execution code and acceptance suite syntax
+        run: |
+          python -m compileall -q \
+            naseri_markets/execution_contract_v1.py \
+            naseri_markets/position_lifecycle_simulator.py \
+            tests/unit/test_execution_architecture_v1.py
+          python -m ruff check --select E4,F,I \
+            naseri_markets/execution_contract_v1.py \
+            naseri_markets/position_lifecycle_simulator.py \
+            tests/unit/test_execution_architecture_v1.py
+      - name: Isolated PAPER-only acceptance
+        env:
+          MMT_NONPRODUCTION: "1"
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          python -m pytest -q --confcutdir=tests/unit tests/unit/test_execution_architecture_v1.py
+      - name: Verify no provider-trading imports or live send entrypoint
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          paths = [
+              Path("naseri_markets/execution_contract_v1.py"),
+              Path("naseri_markets/position_lifecycle_simulator.py"),
+          ]
+          denied = ("MetaTrader5", "ccxt", "binance", "requests", "httpx")
+          for path in paths:
+              source = path.read_text(encoding="utf-8")
+              tree = ast.parse(source)
+              modules = [
+                  n.module for n in ast.walk(tree)
+                  if isinstance(n, ast.ImportFrom) and n.module
+              ]
+              modules += [
+                  a.name for n in ast.walk(tree)
+                  if isinstance(n, ast.Import) for a in n.names
+              ]
+              assert not any(
+                  name.startswith(denied) for name in modules
+              ), (path, modules)
+              assert "order_send" not in source
+          print("PASS: simulated-only, no broker / network client imports")
+          PY
