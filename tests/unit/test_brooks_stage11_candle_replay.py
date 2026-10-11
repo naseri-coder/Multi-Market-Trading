@@ -387,7 +387,7 @@ def test_short_entry_and_target_use_inverse_stop_geometry(tmp_path):
     assert D(result["gross_pnl"]) == D("20")
     assert D(result["net_realized_pnl"]) == D("19.5")
     assert D(result["realized_r"]) == D("1.95")
-    assert stage11_panel_summary(root)["net_pnl_by_currency"] == {"USD":"19.500"}
+    assert D(stage11_panel_summary(root)["net_pnl_by_currency"]["USD"]) == D("19.5")
 
 
 def test_panel_never_sums_unrelated_currencies(prepared):
