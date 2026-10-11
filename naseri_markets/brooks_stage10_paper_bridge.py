@@ -172,8 +172,8 @@ class BrooksStage10PaperBridge:
         root = Path(state_dir).absolute()
         self.state_dir = root
         self.paper_db = Path(paper_db) if paper_db is not None else root / STAGE10_FILENAME
-        if self.paper_db.absolute() == root / "custom_paper.db":
-            raise BrooksStage10Refused("STAGE10_SEPARATE_PAPER_DATABASE_REQUIRED")
+        if self.paper_db.absolute() != root / STAGE10_FILENAME:
+            raise BrooksStage10Refused("STAGE10_DEDICATED_PAPER_DATABASE_REQUIRED")
 
     def link(self, *, signal_id: str, account_id: str, quantity: str,
              ack_paper_risk: bool = False) -> dict[str, Any]:
@@ -208,15 +208,14 @@ class BrooksStage10PaperBridge:
                 }
                 digest = _sha(json.dumps(content, sort_keys=True, separators=(",", ":")))
                 with PaperExecutionOrchestratorV1(self.paper_db) as core:
-                    core._db.execute(
-                        "CREATE TABLE IF NOT EXISTS brooks_stage10_links("
-                        "account_id TEXT NOT NULL,signal_id TEXT NOT NULL,"
-                        "order_id TEXT NOT NULL UNIQUE, request_digest TEXT NOT NULL,"
-                        "content_json TEXT NOT NULL,"
-                        "PRIMARY KEY(account_id,signal_id))"
-                    )
-
                     def reserve_once() -> dict[str, Any]:
+                        core._db.execute(
+                            "CREATE TABLE IF NOT EXISTS brooks_stage10_links("
+                            "account_id TEXT NOT NULL,signal_id TEXT NOT NULL,"
+                            "order_id TEXT NOT NULL UNIQUE, request_digest TEXT NOT NULL,"
+                            "content_json TEXT NOT NULL,"
+                            "PRIMARY KEY(account_id,signal_id))"
+                        )
                         existing = core._db.execute(
                             "SELECT order_id,request_digest FROM brooks_stage10_links "
                             "WHERE account_id=? AND signal_id=?",
