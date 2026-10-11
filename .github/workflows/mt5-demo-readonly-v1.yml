@@ -1,0 +1,86 @@
+name: Stage 5 MT5 DEMO Read-Only and PAPER Diagnostics
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/mt5_demo_readonly_adapter_v1.py"
+      - "naseri_markets/mt5_demo_exposure_audit_v1.py"
+      - "naseri_markets/mt5_demo_readonly_probe.py"
+      - "tests/unit/test_mt5_demo_readonly_v1.py"
+      - "docs/MT5_DEMO_READONLY_ADAPTER_V1.md"
+      - ".github/workflows/mt5-demo-readonly-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mt5-demo-readonly:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install test tools, never MT5 or broker SDK in CI
+        run: python -m pip install pytest==9.1.1 pytest-asyncio==1.4.0 ruff==0.16.9
+      - name: Compile and lint stage-5 and regression contracts
+        run: |
+          python -m compileall -q \
+            naseri_markets/mt5_demo_readonly_adapter_v1.py \
+            naseri_markets/mt5_demo_exposure_audit_v1.py \
+            naseri_markets/mt5_demo_readonly_probe.py \
+            tests/unit/test_mt5_demo_readonly_v1.py
+          python -m ruff check --select E4,F,I,B,UP \
+            naseri_markets/mt5_demo_readonly_adapter_v1.py \
+            naseri_markets/mt5_demo_exposure_audit_v1.py \
+            naseri_markets/mt5_demo_readonly_probe.py \
+            tests/unit/test_mt5_demo_readonly_v1.py
+      - name: Stages 1-5 isolated offline acceptance
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          MMT_NONPRODUCTION: "1"
+        run: |
+          python -m pytest -q --confcutdir=tests/unit \
+            tests/unit/test_mt5_demo_readonly_v1.py \
+            tests/unit/test_paper_position_reconciler_v1.py \
+            tests/unit/test_execution_position_core_v1.py \
+            tests/unit/test_risk_portfolio_manager_v1.py \
+            tests/unit/test_execution_architecture_v1.py
+      - name: Prove stage-5 module never sends or mutates broker orders
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          names = (
+              "mt5_demo_readonly_adapter_v1.py",
+              "mt5_demo_exposure_audit_v1.py",
+              "mt5_demo_readonly_probe.py",
+          )
+          blocked_calls = {
+              "order_send", "order_check", "login", "symbol_select",
+              "copy_ticks_range", "history_deals_get", "history_orders_get",
+          }
+          for filename in names:
+              path = Path("naseri_markets") / filename
+              tree = ast.parse(path.read_text(encoding="utf-8"))
+              calls = {
+                  node.func.attr for node in ast.walk(tree)
+                  if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+              }
+              assert not blocked_calls.intersection(calls), (path, calls)
+              if filename != "mt5_demo_readonly_probe.py":
+                  assert not any(
+                      isinstance(node, ast.Import)
+                      and any(alias.name == "MetaTrader5" for alias in node.names)
+                      for node in ast.walk(tree)
+                  ), filename
+              else:
+                  assert calls.intersection({"initialize", "shutdown"}) == {
+                      "initialize", "shutdown"
+                  }
+          print("PASS: No order sends or terminal modifications; DEMO opt-in only")
+          PY
