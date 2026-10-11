@@ -97,3 +97,23 @@ def available_futures_venues() -> tuple[FuturesVenue, ...]:
     """Visibility filter: exclude explicitly restricted AND unverified."""
     approved = {item.key for item in ranked_iran_futures_venues()}
     return tuple(venue for venue in FUTURES_VENUES if venue.key in approved)
+
+
+def require_iran_resident_futures_selection(exchange: str) -> None:
+    """Mutations and PAPER execution must enforce the same policy as the UI.
+
+    This does not prohibit independently reading an unauthenticated public
+    market instrument listing for research. It prohibits selecting such a
+    venue to generate or publish signals in the Iran-resident product.
+    """
+    if not iran_futures_approved(exchange):
+        raise ValueError("IRAN_RESIDENT_FUTURES_VENUE_NOT_VERIFIED")
+
+
+def resident_paper_feed_ready(exchange: str, symbol: str) -> bool:
+    """Shared policy: lawful eligibility, validated public feed AND pair."""
+    from .futures_pairs import pair_is_verified_paper
+    from .futures_venues import paper_feed_verified
+    return (iran_futures_approved(exchange)
+            and paper_feed_verified(exchange)
+            and pair_is_verified_paper(exchange, symbol))
