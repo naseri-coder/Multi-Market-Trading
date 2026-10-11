@@ -178,6 +178,9 @@ def test_worker_passes_selected_pair_not_hardcoded_btc(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "naseri_markets.brooks_paper_service.iran_futures_approved",
         lambda venue: venue == "kraken")
+    monkeypatch.setattr(
+        "naseri_markets.brooks_paper_service.resident_paper_feed_ready",
+        lambda venue, symbol: venue == "kraken" and symbol == "PF_SOLUSD")
     with EngineControlStore(tmp_path) as host:
         enable(host)
         change(host, "futures_symbol", "PF_SOLUSD")
