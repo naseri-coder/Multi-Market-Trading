@@ -5,11 +5,11 @@ import json
 import sqlite3
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal as D
-from pathlib import Path
 from types import SimpleNamespace as NS
 
 import pytest
 
+from naseri_markets.mt5_demo_custody_probe import run_once
 from naseri_markets.mt5_demo_evidence_custody_v1 import (
     DemoHistoryEvidenceCustodyV1,
     EvidenceCustodyRefused,
@@ -459,3 +459,78 @@ def test_reject_nonregular_custody_file(tmp_path):
     link.symlink_to(folder)
     with pytest.raises(EvidenceCustodyRefused, match="NONREGULAR_CUSTODY_PATH"):
         DemoHistoryEvidenceCustodyV1(link)
+
+
+def test_one_shot_operator_cli_captures_then_shuts_sdk(tmp_path):
+    from argparse import Namespace
+
+    class InitializedFake(FakeMT5):
+        def initialize(self):
+            self.calls.append("initialize")
+            return True
+
+        def shutdown(self):
+            self.calls.append("shutdown")
+
+    provider = InitializedFake()
+    args = Namespace(
+        connect_existing_demo_terminal=True,
+        account_id="demo-a", expected_login=1234567,
+        expected_server="Fixture-Demo",
+        start_utc=START.isoformat(), end_utc=MID.isoformat(),
+        custody_db=str(tmp_path / "cli-custody.sqlite"),
+        action_id="capture-cli-1",
+    )
+    report = run_once(args, provider)
+    assert report["receipt"]["content_digest"]
+    assert report["local_integrity"]["windows"] == 1
+    assert not report["may_send_order"]
+    assert not report["may_unlock_stage4"]
+    assert provider.calls[0] == "initialize"
+    assert provider.calls[-1] == "shutdown"
+    assert "order_send" not in provider.calls
+
+
+def test_one_shot_cli_denies_non_demo_and_still_shutdown(tmp_path):
+    from argparse import Namespace
+
+    class InitializedFake(FakeMT5):
+        def initialize(self):
+            self.calls.append("initialize")
+            return True
+
+        def shutdown(self):
+            self.calls.append("shutdown")
+
+    provider = InitializedFake()
+    provider.account.trade_mode = 2
+    args = Namespace(
+        connect_existing_demo_terminal=True,
+        account_id="demo-a", expected_login=1234567,
+        expected_server="Fixture-Demo", start_utc=START.isoformat(),
+        end_utc=MID.isoformat(),
+        custody_db=str(tmp_path / "custody.sqlite"),
+        action_id="capture-cli-real",
+    )
+    with pytest.raises(ValueError, match="REAL_OR_UNKNOWN_ACCOUNT_FORBIDDEN"):
+        run_once(args, provider)
+    assert provider.calls[-1] == "shutdown"
+    with DemoHistoryEvidenceCustodyV1(tmp_path / "custody.sqlite") as store:
+        with pytest.raises(EvidenceCustodyRefused, match="NOT_ENROLLED"):
+            store.verify("demo-a")
+
+
+def test_cli_requires_opt_in_before_initializer(tmp_path):
+    from argparse import Namespace
+
+    provider = FakeMT5()
+    args = Namespace(
+        connect_existing_demo_terminal=False,
+        account_id="demo-a", expected_login=1234567,
+        expected_server="Fixture-Demo", start_utc=START.isoformat(),
+        end_utc=MID.isoformat(), custody_db=str(tmp_path / "custody.sqlite"),
+        action_id="reject",
+    )
+    with pytest.raises(EvidenceCustodyRefused, match="OPT_IN_REQUIRED"):
+        run_once(args, provider)
+    assert provider.calls == []
