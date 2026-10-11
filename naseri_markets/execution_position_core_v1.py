@@ -80,13 +80,28 @@ class PaperExecutionOrchestratorV1:
         self.close()
 
     def _transaction(self, callback: Callable[[], _T]) -> _T:
-        self._db.execute("BEGIN IMMEDIATE")
+        """Owner-controlled transactions, with bounded nested savepoints.
+
+        Stage 4 may atomically reconcile several Stage-3 events and its
+        checkpoint. A nested failure must not commit a partial repair.
+        """
+        nested = self._db.in_transaction
+        if nested:
+            self._db.execute("SAVEPOINT paper_stage3_nested")
+        else:
+            self._db.execute("BEGIN IMMEDIATE")
         try:
             result = callback()
-            self._db.execute("COMMIT")
+            self._db.execute(
+                "RELEASE SAVEPOINT paper_stage3_nested" if nested else "COMMIT"
+            )
             return result
         except BaseException:
-            self._db.execute("ROLLBACK")
+            if nested:
+                self._db.execute("ROLLBACK TO SAVEPOINT paper_stage3_nested")
+                self._db.execute("RELEASE SAVEPOINT paper_stage3_nested")
+            else:
+                self._db.execute("ROLLBACK")
             raise
 
     def _action(
