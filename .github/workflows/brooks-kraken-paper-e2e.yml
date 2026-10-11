@@ -1,4 +1,4 @@
-name: Brooks Kraken futures real HTTPS to genuine V5 PAPER (ephemeral)
+name: Brooks Kraken historical V5 and Iran eligibility safety (ephemeral)
 
 on:
   pull_request:
@@ -66,7 +66,7 @@ jobs:
           if python -m scripts.brooks_kraken_public_e2e --legacy-source production_source; then
             echo "KRAKEN_UNACKNOWLEDGED_SMOKE_EXECUTED"; exit 1
           fi
-      - name: TWO REAL Kraken Futures HTTPS cycles into V5 isolated PAPER
+      - name: Iran-resident policy fence; no Kraken HTTPS or PAPER issuance when denied
         timeout-minutes: 5
         run: |
           set -Eeuo pipefail

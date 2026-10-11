@@ -22,6 +22,16 @@ from naseri_markets.futures_venues import (
 )
 from naseri_markets.trusted_custom import LocalCustomRefused
 
+
+@pytest.fixture(autouse=True)
+def _legacy_mock_research_scope(monkeypatch):
+    # Historical 2026 public-OHLCV fixtures exercise the V5 engine only.
+    # These overrides are local to this test module: the real installed
+    # Iran-resident product policy remains deny-by-default.
+    monkeypatch.setattr("naseri_markets.engine_control_store.require_iran_resident_futures_selection", lambda venue: None)
+    monkeypatch.setattr("naseri_markets.brooks_market_feed.iran_futures_approved", lambda venue: True)
+    monkeypatch.setattr("naseri_markets.brooks_kraken_feed.iran_futures_approved", lambda venue: True)
+
 LEGACY = Path(__file__).resolve().parents[2] / "production_source"
 PERIODS = ("1m", "5m", "15m", "30m", "1h", "4h", "12h", "1d")
 

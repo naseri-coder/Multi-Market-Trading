@@ -18,9 +18,9 @@ import time
 from pathlib import Path
 
 from .engine_control_store import BROOKS_ENGINE_ID, EngineControlStore
-from .futures_pairs import pair_is_verified_paper
-from .futures_venues import paper_feed_verified
-from .iran_futures_eligibility import iran_futures_approved
+from .iran_futures_eligibility import (
+    iran_futures_approved, resident_paper_feed_ready,
+)
 from .trusted_custom import LocalCustomRefused
 
 
@@ -92,9 +92,8 @@ def _status(state: Path) -> dict:
         prefs = host.preferences(BROOKS_ENGINE_ID)
         worker = host.brooks_worker_status()
         approved = iran_futures_approved(prefs["futures_exchange"])
-        ready = (approved and paper_feed_verified(prefs["futures_exchange"])
-                 and pair_is_verified_paper(
-                     prefs["futures_exchange"], prefs["futures_symbol"]))
+        ready = resident_paper_feed_ready(
+            prefs["futures_exchange"], prefs["futures_symbol"])
         return {
             "product": "Multi Market Trading",
             "mode": "ISOLATED_DEVELOPMENT_ONLY",
@@ -180,6 +179,11 @@ def main(argv: list[str] | None = None) -> int:
     initialize = actions.add_parser("init", help="Initialize private isolated PAPER state")
     initialize.add_argument("--ack-nonproduction-init", action="store_true")
     actions.add_parser("status", help="Local health inspection; no Telegram/HTTPS")
+    contracts = actions.add_parser(
+        "contracts", help="Official futures instrument metadata; READ-ONLY research")
+    contracts.add_argument("--venue", required=True, choices=("kraken", "kucoin"))
+    contracts.add_argument("--max-results", type=int, default=100)
+    contracts.add_argument("--ack-public-metadata-research", action="store_true")
     panel = actions.add_parser("panel", help="Explicit foreground development bot")
     panel.add_argument("--admin-ids", required=True)
     panel.add_argument("--owner-ids", default="")
@@ -208,6 +212,13 @@ def main(argv: list[str] | None = None) -> int:
         state = _state_dir(args.state_dir)
         if args.command == "status":
             print(json.dumps(_status(state), sort_keys=True))
+            return 0
+        if args.command == "contracts":
+            if not args.ack_public_metadata_research:
+                raise DevPreviewRefused("DEV_PUBLIC_RESEARCH_ACK_REQUIRED")
+            from .public_futures_contracts import discover_public_contracts
+            print(json.dumps(discover_public_contracts(
+                args.venue, max_results=args.max_results), sort_keys=True))
             return 0
         if args.command == "panel":
             if not args.ack_nonproduction_panel:

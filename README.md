@@ -41,6 +41,18 @@
 > **A28 final product-readiness freeze (2026-10-10):** The A-series infrastructure roadmap closes at A28; no planned A29/A30. The current multi-market candidate remains an **offline preview, not a deployable product**. The next authorized work should prioritize one usable installed Custom PAPER workflow, dependency closure, operator UX and explicit migration planning, rather than additional security layers. **NY First-Reversal stays OWNER_ONLY and never publicly installable, including encrypted versions.** See [A28 final audit and minimal product backlog](docs/MULTI_MARKET_TRADING_A28_FINAL_PRODUCT_AUDIT.md).
 
 > [!NOTE]
+> [!NOTE]
+> **Product Stage 2 — futures provider policy vs public API research:** The
+> isolated new-product `mmt-dev contracts` command can inspect the **official
+> public Kraken Futures and KuCoin Futures perpetual-contract listings** and
+> report exact native symbols and tick sizes. This is metadata research only:
+> **Iran-resident futures eligibility remains unverified/denied**, so the
+> installed panel and Brooks PAPER worker cannot select those venues or issue
+> new signals. Old saved venue selections remain audit-only. Direct poller
+> entrypoints and SQLite selection mutations also enforce this policy, not
+> merely the Telegram menu. No live orders or channel publication.
+> [Stage-2 eligibility / public API guide](docs/PRODUCT_FUTURES_POLICY_AND_PUBLIC_API_R2.md).
+
 > **Trusted LOCAL Custom PAPER engines (non-production):** The isolated
 > `multi-market-trading==0.4.0rc1` preview now offers `naseri-custom`
 > for explicit operator-approved Python Custom scripts (separately pinned,

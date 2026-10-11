@@ -14,6 +14,7 @@ import time
 
 from .futures_venues import VENUE_BY_KEY, get_venue
 from .futures_pairs import initial_pair, pair_choices
+from .iran_futures_eligibility import require_iran_resident_futures_selection
 from .trusted_custom import LocalCustomRefused, TrustedLocalCustomHost
 
 BROOKS_ENGINE_ID = "brooks_price_action"
@@ -227,6 +228,18 @@ class EngineControlStore:
             version = existing["revision"] if existing else 0
             if version != expected_revision:
                 raise LocalCustomRefused("ENGINE_STALE_SETTING_REVISION")
+            # The SQLite preferences were once a research catalogue and may
+            # still contain an old prohibited venue. Keep those rows readable,
+            # but prohibit any new selection of unverified venues or pairs.
+            if field in ("futures_exchange", "futures_symbol"):
+                chosen_venue = (value if field == "futures_exchange"
+                                else existing["futures_exchange"]
+                                if existing is not None else "kraken")
+                try:
+                    require_iran_resident_futures_selection(chosen_venue)
+                except ValueError as exc:
+                    raise LocalCustomRefused(
+                        "ENGINE_IRAN_FUTURES_ELIGIBILITY_DENIED") from exc
             if existing is None:
                 self._db.execute(
                     "INSERT INTO managed_engine_preferences(engine_id) VALUES(?)",
