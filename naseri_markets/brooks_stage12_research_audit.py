@@ -279,7 +279,7 @@ def evaluate_brooks_stage12(state_dir: str | Path, manifest_bytes: bytes) -> dic
                     (link["order_id"],),
                 ).fetchone()
                 risk_row = paper.execute(
-                    "SELECT status,contract_json FROM paper_risk_reservations "
+                    "SELECT status,contract_json,risk,notional FROM paper_risk_reservations "
                     "WHERE order_id=?", (link["order_id"],),
                 ).fetchone()
                 if order_row is None or risk_row is None:
