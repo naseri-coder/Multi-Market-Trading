@@ -174,7 +174,8 @@ def test_mock_transport_accepts_only_validated_data(monkeypatch):
         size=int.from_bytes(framed[:4], 'big')
         assert framed[4:4+size] == SOURCE
         request=json.loads(framed[4+size:])
-        assert request['abi_major'] == 1\n        assert request['event']['binding']['instrument']['symbol'] == 'ALPHAUSD'
+        assert request['abi_major'] == 1
+        assert request['event']['binding']['instrument']['symbol'] == 'ALPHAUSD'
         assert request['input_digest'] == good.input_digest
         assert 'account' not in request and 'api_key' not in request
         seen.append(name)
