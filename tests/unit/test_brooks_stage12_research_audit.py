@@ -283,3 +283,43 @@ def test_noncanonical_or_missing_study_manifest_fails_closed(local, bytestring):
     root, _ = local
     with pytest.raises(Stage12ResearchRefused):
         evaluate_brooks_stage12(root, bytestring)
+
+
+def test_changed_fee_policy_refuses_instead_of_recalculating_favorable_history(local):
+    root, _ = local
+    finish(root)
+    with sqlite3.connect(root/"brooks_stage10_paper.sqlite") as conn:
+        raw = conn.execute(
+            "SELECT policy FROM risk_accounts WHERE account_id=?", (ACCOUNT,),
+        ).fetchone()[0]
+        policy = json.loads(raw)
+        policy["roundtrip_fee_fraction"] = "0"
+        conn.execute(
+            "UPDATE risk_accounts SET policy=? WHERE account_id=?",
+            (json.dumps(policy), ACCOUNT),
+        )
+    with pytest.raises(Stage12ResearchRefused, match="POLICY_OR_RESERVATION_CHANGED"):
+        evaluate(root)
+
+
+def test_bar_timestamp_mutation_does_not_pass_causal_audit(local):
+    root, oid = local
+    finish(root)
+    with sqlite3.connect(root/"brooks_stage10_paper.sqlite") as conn:
+        conn.execute(
+            "UPDATE brooks_stage11_bars SET close_time_utc=? "
+            "WHERE order_id=? AND seq=1",
+            ("2026-10-01T10:00:00+00:00", oid),
+        )
+    with pytest.raises(Stage12ResearchRefused, match="BAR_TIME_OR_DECISION_DRIFT"):
+        evaluate(root)
+
+
+def test_duplicate_json_manifest_keys_refused(local):
+    root, _ = local
+    raw = encoded().decode()
+    duplicate = raw.replace(
+        '"schema_version": 1,', '"schema_version": 1, "schema_version": 1,',
+    )
+    with pytest.raises(Stage12ResearchRefused, match="DUPLICATE_MANIFEST_FIELD"):
+        evaluate_brooks_stage12(root, duplicate.encode())
