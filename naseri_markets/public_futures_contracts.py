@@ -171,7 +171,10 @@ def parse_public_contracts(venue: str, raw: bytes) -> tuple[FuturesContract, ...
             tradeable = row["status"] == "Open"
             tick = row.get("tickSize")
             # KuCoin response contains BOTH dated and perpetual futures.
-            if row.get("expireDate") is not None:
+            # Absence of expiry metadata is not proof of a perpetual.
+            if "expireDate" not in row:
+                raise PublicContractsRefused("PUBLIC_CONTRACT_EXPIRY_UNKNOWN")
+            if row["expireDate"] is not None:
                 continue
             contract_kind = "PERPETUAL"
         contracts.append(FuturesContract(
