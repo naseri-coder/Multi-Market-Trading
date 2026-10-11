@@ -238,7 +238,7 @@ class BrooksStage11CandleReplay:
                             or order["spec"]["signal_id"] != signal_id
                             or order["spec"]["engine_id"] != signal.engine_id
                             or order["spec"]["kind"] != "LIMIT"
-                            or order["spec"]["mode"] != "PAPER"
+                            or order["spec"]["mode"] != "paper"
                             or order["spec"]["reference_entry"] != str(signal.entry)
                             or order["spec"]["stop"] != str(signal.stop)
                             or order["spec"]["target"] != str(signal.targets[0])
