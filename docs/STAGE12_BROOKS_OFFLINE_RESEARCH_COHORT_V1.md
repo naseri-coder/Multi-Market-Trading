@@ -73,8 +73,11 @@ JSON (example is a **synthetic study declaration**, not real data):
 - The Stage-12 tool opens both existing SQLite stores in read-only mode
   with `PRAGMA query_only=ON`. It never creates schemas, reruns strategy,
   sends events, modifies reservations, changes runtime toggles, or produces
-  artificial backtest returns. Historical source vs PAPER store is NOT a
-  distributed atomic snapshot; recheck on any conflicting custody.
+  artificial backtest returns. An SQLite WAL read-only open can still
+  create -wal / -shm shared-memory sidecar files; this does not modify
+  trading rows or execute a database transaction write. Historical source
+  vs PAPER store is NOT a distributed atomic snapshot; recheck on any
+  conflicting custody.
 
 ## Run only in a private nonproduction environment
 
