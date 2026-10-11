@@ -47,3 +47,11 @@ In all these cases, `runtime_approval=DENIED_RESEARCH_ONLY` or equivalent non-au
 Only the 15 *exactly* enumerated research branch names and their audited HEAD SHAs may be deleted. Their PRs #113–#125 must be closed **without merge** and with final explanation. A changed SHA, protected ref, missing documentation or any unexpected branch identity must fail closed and be left for manual review. Historical PR comments, associated workflow evidence, archive document and `main` source must remain. Do not amend/delete tags or unrelated branches.
 
 **No successful automated cleanup claims until GitHub has independently verified each ref is gone.**
+
+## Verified completion
+
+- **2026-10-11:** PR #180 merged as `1d0afd27cdc105a422b7ea12874f6588d4793cc1`; its one-time GitHub Actions `prune-once` job succeeded. GitHub REST branches listing independently confirmed **all 15 specified research heads absent**.
+- **PRs #113–#125:** closed, not merged. All original research conclusions remain in the PR descriptions and this archive.
+- **Three preserved branches:** `main`, protected `develop/v0.3.0`, and the still-incomplete `feature/brooks-real-http-nonprod-e2e` / PR #160.
+- **Cleanup permissions removed:** the temporary `.github/workflows/research-branch-cleanup-once.yml` workflow is removed via a separate PR after the verified deletion run. No recurring branch-delete automation is authorized.
+- No source code, deployment, production bot, PAPER database, broker account, Telegram channel or private NY First-Reversal module was changed by this branch cleanup.
