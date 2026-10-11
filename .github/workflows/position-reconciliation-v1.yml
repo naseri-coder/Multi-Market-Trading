@@ -34,6 +34,7 @@ jobs:
             naseri_markets/paper_position_reconciler_v1.py \
             naseri_markets/execution_position_core_v1.py \
             tests/unit/test_paper_position_reconciler_v1.py
+          python -m ruff check --select I --diff tests/unit/test_paper_position_reconciler_v1.py
           python -m ruff check --select E4,F,I,B,UP \
             naseri_markets/offline_broker_fixture_v1.py \
             naseri_markets/paper_position_reconciler_v1.py \
