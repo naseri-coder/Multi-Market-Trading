@@ -78,7 +78,8 @@ result = host.evaluate(operator_supplied_core_input)  # CoreInput; no side effec
    rejected, not silently interpreted as old A7 envelopes.
 2. Input history consists of closed, timezone-aware bars (1–512) or a single
    timestamped Bid/Ask tick. Future, overlapping and malformed bars are refused.
-   Market-hour session gaps are intentionally **not** auto-filled or declared
+   Candle duration must match the selected host timeframe (daily bars may
+   span 23–25 hours around DST). Market-hour session gaps are intentionally **not** auto-filled or declared
    invalid in this Stage 3 contract; data-quality/session validation is a
    separate host responsibility in Stage 5.
 3. `DataOrigin` permits `SYNTHETIC` and `REPLAY` only. It cannot represent an
