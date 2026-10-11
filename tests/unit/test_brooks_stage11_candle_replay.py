@@ -325,3 +325,85 @@ def test_file_symlink_denied(prepared, tmp_path):
     )
     with pytest.raises(BrooksStage11Refused, match="FILE_INVALID"):
         run_once(args, environment={"MMT_NONPRODUCTION":"1"})
+
+
+def test_short_entry_and_target_use_inverse_stop_geometry(tmp_path):
+    """Short setup must not accidentally apply long OHLC hit semantics."""
+    import hashlib
+    from naseri_markets.contracts import Direction, EvidenceMode, SignalIntent
+    from naseri_markets.brooks_paper_receipts import make_receipt
+    from naseri_markets.delivery_ledger import _wire_intent
+    from naseri_markets.engine_control_store import BROOKS_ENGINE_ID, EngineControlStore
+    from test_brooks_stage10_paper_bridge import (
+        SCAN, SNAPSHOT, SOURCE, VERSION, instrument,
+    )
+
+    root = tmp_path / "short-dev"
+    create_source(root)
+    short = SignalIntent(
+        signal_id=SIGNAL, engine_id=BROOKS_ENGINE_ID,
+        engine_version=VERSION, instrument=instrument(),
+        direction=Direction.SHORT, observed_at=WHEN,
+        entry=D("100"), stop=D("110"),
+        targets=(D("80"), D("70")), evidence_mode=EvidenceMode.PAPER,
+    )
+    canonical = _wire_intent(short)
+    receipt = make_receipt(
+        scan_id=SCAN, raw={
+            "exchange": "kraken_futures", "provider": "kraken_futures_trade_public",
+            "symbol": "PF_XBTUSD", "quote_currency": "USD", "timeframe": "15m",
+            "market_type": "futures",
+            "candles": [{"close_time": WHEN.isoformat()}],
+        },
+        snapshot_hash=SNAPSHOT, source_digest=SOURCE,
+        decision="SHORT", signal=short, outcome="RECORDED",
+    )
+    receipt_wire = json.dumps(receipt, sort_keys=True, separators=(",", ":"))
+    with EngineControlStore(root) as store:
+        store._db.execute(
+            "UPDATE a7_paper_intents SET payload=?,digest=? "
+            "WHERE signal_id=?", (
+                canonical, hashlib.sha256(canonical.encode()).hexdigest(), SIGNAL,
+            ),
+        )
+        store._db.execute(
+            "UPDATE brooks_replay_scans SET decision='SHORT' WHERE scan_id=?",
+            (SCAN,),
+        )
+        store._db.execute(
+            "UPDATE brooks_paper_receipts "
+            "SET receipt_json=?,receipt_sha256=? WHERE scan_id=?", (
+                receipt_wire, hashlib.sha256(receipt_wire.encode()).hexdigest(), SCAN,
+            ),
+        )
+    configure_simulator(root)
+    assert linker(root)["order_status"] == "CREATED"
+    result = run(root, [
+        bar(0, o="95", h="101", l="90", c="97"),
+        bar(1, o="90", h="95", l="75", c="82"),
+    ])
+    assert result["status"] == "CLOSED"
+    assert result["exit_reason"] == "TARGET"
+    assert D(result["gross_pnl"]) == D("20")
+    assert D(result["net_realized_pnl"]) == D("19.5")
+    assert D(result["realized_r"]) == D("1.95")
+    assert stage11_panel_summary(root)["net_pnl_by_currency"] == {"USD":"19.500"}
+
+
+def test_panel_never_sums_unrelated_currencies(prepared):
+    root, oid = prepared
+    run(root, [bar(0), bar(1, o="110", h="125", l="101", c="122")])
+    with sqlite3.connect(root / "brooks_stage10_paper.sqlite") as db:
+        db.execute(
+            "INSERT INTO brooks_stage11_positions "
+            "(order_id,metadata_json,state_sha256) VALUES (?,?,?)",
+            ("fixture-eur-separate", json.dumps({
+                "quote_currency": "EUR", "net_realized_pnl": "7",
+                "risk_released": True,
+            }), "0" * 64),
+        )
+    summary = stage11_panel_summary(root)
+    assert summary["closed_paper_trades"] == 2
+    assert summary["aggregate_net_pnl"] == "MULTI_CURRENCY_NOT_ADDITIVE"
+    assert D(summary["net_pnl_by_currency"]["USD"]) == D("19.4")
+    assert D(summary["net_pnl_by_currency"]["EUR"]) == D("7")
