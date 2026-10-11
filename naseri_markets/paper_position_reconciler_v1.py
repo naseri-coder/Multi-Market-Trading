@@ -202,7 +202,7 @@ class PaperPositionReconcilerV1:
     def _reconcile_locked(
         self, account_id: str, snapshot: BrokerSnapshot,
     ) -> dict:
-        account = self._core._risk._account(account_id)
+        self._core._risk._account(account_id)
         fence = self._core._db.execute(
             "SELECT * FROM paper_recovery_fences WHERE account_id=?",
             (account_id,),
