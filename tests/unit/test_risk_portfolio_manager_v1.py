@@ -165,8 +165,8 @@ def test_contract_quantity_step_account_per_order_and_margin_caps(managed):
     with pytest.raises(RiskRefused, match="PER_ORDER_RISK_CAP"):
         reserve(managed, "over-order", quantity="3")
     with pytest.raises(RiskRefused, match="ACCOUNT_NOTIONAL_CAP"):
-        managed.reserve(replace(order("notional"), quantity=D("25"),
-                                stop=D("99"), target=D("120")),
+        managed.reserve(replace(order("notional"), quantity=D("21"),
+                                stop=D("99.9"), target=D("120")),
                         action_id="large-notional")
     # Already failed reservations never consume portfolio funds.
     assert managed.snapshot("portfolio-1")["active_orders"] == 0
@@ -216,7 +216,7 @@ def test_halt_wrong_account_cannot_cross_portfolio(managed):
     managed.configure_account(ap("account-other-portfolio", portfolio_id="portfolio-2"))
     with pytest.raises(RiskRefused, match="HALT_ACCOUNT_PORTFOLIO_MISMATCH"):
         managed.halt(portfolio_id="portfolio-1", scope="account",
-                     subject_id="another", action_id="wrong")
+                     subject_id="account-other-portfolio", action_id="wrong")
     with pytest.raises(RiskRefused, match="PORTFOLIO_HALT_ID_MISMATCH"):
         managed.halt(portfolio_id="portfolio-1", scope="portfolio",
                      subject_id="other-portfolio", action_id="wrong2")
