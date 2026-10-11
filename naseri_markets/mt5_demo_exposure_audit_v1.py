@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from contextlib import closing
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
@@ -73,9 +74,9 @@ def compare_demo_to_paper(
     if path.is_symlink() or not path.is_file():
         raise MT5ComparisonRefused("PAPER_LEDGER_NOT_REGULAR_FILE")
     # SQLite is opened with *mode=ro*; no schema writes and no mutating PRAGMA.
-    uri = "file:" + quote(str(path.resolve()), safe="/") + "?mode=ro"
+    uri = "file:" + quote(path.resolve().as_posix(), safe="/:") + "?mode=ro"
     try:
-        with sqlite3.connect(uri, uri=True, timeout=2) as connection:
+        with closing(sqlite3.connect(uri, uri=True, timeout=2)) as connection:
             connection.row_factory = sqlite3.Row
             connection.execute("PRAGMA query_only=ON")
             rows = connection.execute("SELECT snapshot FROM paper_orders").fetchall()
