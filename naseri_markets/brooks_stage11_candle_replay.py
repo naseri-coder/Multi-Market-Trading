@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from .brooks_stage10_paper_bridge import (
-    BrooksStage10Refused, STAGE10_FILENAME, _evidence,
+    STAGE10_FILENAME, _evidence,
 )
 from .brooks_replay import SECONDS, _unique
 from .engine_control_store import EngineControlStore
