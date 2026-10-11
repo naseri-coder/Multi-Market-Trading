@@ -197,7 +197,11 @@ class BrokerSnapshot:
 
     @property
     def digest(self) -> str:
-        return hashlib.sha256(_canon(self.wire()).encode("utf-8")).hexdigest()
+        # Capture timestamps are transport metadata, not provider revisions.
+        # A repeated account revision must be stable despite a later read.
+        payload = self.wire()
+        payload.pop("captured_at")
+        return hashlib.sha256(_canon(payload).encode("utf-8")).hexdigest()
 
 
 class IndependentPaperBrokerV1:
