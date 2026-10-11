@@ -8,7 +8,9 @@ import sys
 from pathlib import Path
 
 from naseri_markets.reliability_acceptance_v1 import (
-    AcceptanceRefused, LedgerPaths, evaluate_offline_reliability,
+    AcceptanceRefused,
+    LedgerPaths,
+    evaluate_offline_reliability,
 )
 
 
