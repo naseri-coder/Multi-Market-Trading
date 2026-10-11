@@ -22,6 +22,7 @@ from .brooks_replay import (
     BrooksReplayRefused, parse_candle_replay, replay_once,
 )
 from .engine_control_store import BROOKS_ENGINE_ID, EngineControlStore
+from .iran_futures_eligibility import iran_futures_approved
 
 _SYMBOL = re.compile(r"[A-Z0-9]{2,16}USDT\Z")
 _ENDPOINT = "https://fapi.binance.com/fapi/v1/klines"
@@ -165,6 +166,8 @@ def poll_once(*, state_dir: str | Path, legacy_source: str | Path,
         engine = store.get(BROOKS_ENGINE_ID)
         preferences = store.preferences(BROOKS_ENGINE_ID)
         if (engine is None or not engine.requested_enabled
+                or not iran_futures_approved("binance")
+                or symbol != preferences["futures_symbol"]
                 or preferences["futures_exchange"] != "binance"
                 or preferences["signal_environment"] != "PAPER"
                 or preferences["market_scope"] not in ("all", "crypto")):
@@ -179,6 +182,8 @@ def poll_once(*, state_dir: str | Path, legacy_source: str | Path,
         engine = store.get(BROOKS_ENGINE_ID)
         prefs = store.preferences(BROOKS_ENGINE_ID)
         if (engine is None or engine.revision != engine_revision
+                or not iran_futures_approved("binance")
+                or symbol != prefs["futures_symbol"]
                 or prefs["revision"] != preferences_revision
                 or not engine.requested_enabled
                 or prefs["signal_environment"] != "PAPER"
