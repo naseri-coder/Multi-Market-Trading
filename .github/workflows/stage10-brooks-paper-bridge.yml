@@ -1,0 +1,124 @@
+name: Stage 10 Brooks verified PAPER signal to independent risk-reserved order
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/brooks_stage10_paper_bridge.py"
+      - "naseri_markets/brooks_stage10_cli.py"
+      - "naseri_markets/integrated_engine_panel.py"
+      - "tests/unit/test_brooks_stage10_paper_bridge.py"
+      - "tests/unit/test_stage10_telegram_paper_view.py"
+      - "docs/STAGE10_BROOKS_PAPER_BRIDGE_V1.md"
+      - ".github/workflows/stage10-brooks-paper-bridge.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stage10-brooks-risk-bridge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install pinned isolated test dependencies
+        run: python -m pip install -e ".[dev]"
+      - name: Compile, Ruff and frozen Brooks source
+        run: |
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+          python -m compileall -q \
+            naseri_markets/brooks_stage10_paper_bridge.py \
+            naseri_markets/brooks_stage10_cli.py \
+            naseri_markets/integrated_engine_panel.py \
+            tests/unit/test_brooks_stage10_paper_bridge.py \
+            tests/unit/test_stage10_telegram_paper_view.py
+          python -m ruff check --select E4,F \
+            naseri_markets/brooks_stage10_paper_bridge.py \
+            naseri_markets/brooks_stage10_cli.py \
+            naseri_markets/integrated_engine_panel.py \
+            tests/unit/test_brooks_stage10_paper_bridge.py \
+            tests/unit/test_stage10_telegram_paper_view.py
+      - name: Actual Stage10 source-to-Stage3 PAPER and private Telegram tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          MMT_NONPRODUCTION: "1"
+        run: |
+          python -m pytest -q --confcutdir=tests/unit \
+            tests/unit/test_brooks_stage10_paper_bridge.py \
+            tests/unit/test_stage10_telegram_paper_view.py \
+            tests/unit/test_execution_position_core_v1.py \
+            tests/unit/test_risk_portfolio_manager_v1.py \
+            tests/unit/test_paper_position_reconciler_v1.py \
+            tests/unit/test_brooks_paper_receipts.py \
+            tests/unit/test_brooks_real_offline_replay.py \
+            tests/unit/test_integrated_engine_panel.py \
+            tests/unit/test_brooks_paper_service.py \
+            tests/unit/test_brooks_pair_selection.py \
+            tests/unit/test_public_brooks_publication_controls.py
+      - name: No broker, publication, production source or auto fill routes
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          paths=[
+              Path("naseri_markets/brooks_stage10_paper_bridge.py"),
+              Path("naseri_markets/brooks_stage10_cli.py"),
+          ]
+          forbidden={
+              "order_send", "order_check", "login", "send_message",
+              "publish", "poll_once", "replay_once", "initialize",
+              "run_polling", "configure_account", "configure_portfolio",
+              "register_instrument", "ack", "fill",
+          }
+          for p in paths:
+              tree=ast.parse(p.read_text(encoding="utf-8"))
+              calls={
+                  n.func.attr for n in ast.walk(tree)
+                  if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute)
+              }
+              assert not forbidden.intersection(calls),(p,calls)
+              assert not any(
+                  isinstance(n,ast.Import) and any(
+                      alias.name in ("MetaTrader5","telegram","httpx","requests")
+                      for alias in n.names
+                  )
+                  for n in ast.walk(tree)
+              ),p
+          print("PASS: Stage10 strict local PAPER-only, no trade/feed/Telegram operations")
+          PY
+      - name: Installed-wheel Stage10 user-facing CLI availability
+        run: |
+          python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/stage10-wheel"
+          python -m venv "$RUNNER_TEMP/stage10-clean"
+          "$RUNNER_TEMP/stage10-clean/bin/python" -m pip install \
+            "$RUNNER_TEMP/stage10-wheel[telegram-admin]" >/dev/null
+          "$RUNNER_TEMP/stage10-clean/bin/python" - <<'PY'
+          from naseri_markets.brooks_stage10_paper_bridge import (
+              BrooksStage10PaperBridge, panel_stage10_overview,
+          )
+          from naseri_markets.brooks_stage10_cli import main
+          assert callable(BrooksStage10PaperBridge)
+          assert callable(panel_stage10_overview) and callable(main)
+          print("PASS: Stage10 installed in clean public product wheel")
+          PY
+          mkdir -m 700 "$RUNNER_TEMP/stage10-view"
+          "$RUNNER_TEMP/stage10-clean/bin/python" -m naseri_markets.brooks_stage10_cli \
+            --status --state-dir "$RUNNER_TEMP/stage10-view" \
+            > "$RUNNER_TEMP/stage10-result.json"
+          "$RUNNER_TEMP/stage10-clean/bin/python" - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          raw = json.loads(
+              (Path(os.environ["RUNNER_TEMP"])/"stage10-result.json").read_text()
+          )
+          assert raw["status"]=="NOT_CONFIGURED"
+          assert raw["broker_execution"] is False
+          print("PASS: Stage10 clean-wheel status never enables any trade")
+          PY
