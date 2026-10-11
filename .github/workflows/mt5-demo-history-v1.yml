@@ -1,0 +1,86 @@
+name: Stage 6 MT5 DEMO Historical Orders and Deals Read-Only
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/mt5_demo_history_readonly_v1.py"
+      - "naseri_markets/mt5_demo_history_audit_v1.py"
+      - "naseri_markets/mt5_demo_history_probe.py"
+      - "tests/unit/test_mt5_demo_history_readonly_v1.py"
+      - "docs/MT5_DEMO_HISTORY_READONLY_V1.md"
+      - ".github/workflows/mt5-demo-history-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mt5-demo-history-readonly:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Offline quality tools, no MT5 SDK or broker secrets
+        run: python -m pip install pytest==9.1.1 pytest-asyncio==1.4.0 ruff==0.16.9
+      - name: Compile and Ruff strict
+        run: |
+          python -m compileall -q \
+            naseri_markets/mt5_demo_history_readonly_v1.py \
+            naseri_markets/mt5_demo_history_audit_v1.py \
+            naseri_markets/mt5_demo_history_probe.py \
+            tests/unit/test_mt5_demo_history_readonly_v1.py
+          python -m ruff check --select E4,F,I,B,UP \
+            naseri_markets/mt5_demo_history_readonly_v1.py \
+            naseri_markets/mt5_demo_history_audit_v1.py \
+            naseri_markets/mt5_demo_history_probe.py \
+            tests/unit/test_mt5_demo_history_readonly_v1.py
+      - name: Stages 1 through 6 isolated offline acceptance
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          MMT_NONPRODUCTION: "1"
+        run: |
+          python -m pytest -q --confcutdir=tests/unit \
+            tests/unit/test_mt5_demo_history_readonly_v1.py \
+            tests/unit/test_mt5_demo_readonly_v1.py \
+            tests/unit/test_paper_position_reconciler_v1.py \
+            tests/unit/test_execution_position_core_v1.py \
+            tests/unit/test_risk_portfolio_manager_v1.py \
+            tests/unit/test_execution_architecture_v1.py
+      - name: Prohibit mutating broker/order APIs and production access
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          paths = tuple(Path("naseri_markets") / name for name in (
+              "mt5_demo_history_readonly_v1.py",
+              "mt5_demo_history_audit_v1.py",
+              "mt5_demo_history_probe.py",
+          ))
+          forbidden = {
+              "order_send", "order_check", "login", "symbol_select",
+              "copy_ticks_range", "apply", "release", "reserve", "halt",
+              "create", "configure_account", "configure_portfolio",
+          }
+          for path in paths:
+              source = path.read_text(encoding="utf-8")
+              tree = ast.parse(source)
+              calls = {
+                  node.func.attr for node in ast.walk(tree)
+                  if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+              }
+              assert not forbidden.intersection(calls), (path, calls)
+              if path.name != "mt5_demo_history_probe.py":
+                  assert not any(
+                      isinstance(node, ast.Import)
+                      and any(alias.name == "MetaTrader5" for alias in node.names)
+                      for node in ast.walk(tree)
+                  ), path
+              else:
+                  assert {"initialize", "shutdown"} <= calls, path
+          print("PASS: Strict DEMO read-only, no brokerage/PAPER mutation route")
+          PY
