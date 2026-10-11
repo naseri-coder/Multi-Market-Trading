@@ -14,8 +14,8 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
-from urllib.parse import quote
 from typing import Any
+from urllib.parse import quote
 
 from .execution_contract_v1 import identity
 from .mt5_demo_history_readonly_v1 import (
@@ -131,6 +131,7 @@ class DemoHistoryEvidenceCustodyV1:
             "PRIMARY KEY(account_id,kind,ticket), "
             "FOREIGN KEY(account_id) REFERENCES mt5_demo_accounts(account_id))"
         )
+
     def close(self) -> None:
         self._sessions.clear()
         self._db.close()
