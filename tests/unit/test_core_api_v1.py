@@ -34,12 +34,13 @@ def candle(start, o, h, l, c, *, minutes=15):
 
 def event_for(latest="long", current_binding=None) -> CoreInput:
     b = current_binding or binding()
-    previous = candle(T0, 100, 102, 98, 100)
-    nxt = (candle(T0 + timedelta(minutes=15), 100, 108, 99, 106)
+    mins = {"1m":1,"5m":5,"15m":15,"30m":30,"1h":60,"4h":240,"12h":720,"1d":1440}[b.timeframe]
+    previous = candle(T0, 100, 102, 98, 100, minutes=mins)
+    nxt = (candle(T0 + timedelta(minutes=mins), 100, 108, 99, 106, minutes=mins)
            if latest == "long" else
-           candle(T0 + timedelta(minutes=15), 100, 101, 93, 94)
+           candle(T0 + timedelta(minutes=mins), 100, 101, 93, 94, minutes=mins)
            if latest == "short" else
-           candle(T0 + timedelta(minutes=15), 100, 101, 99, 100))
+           candle(T0 + timedelta(minutes=mins), 100, 101, 99, 100, minutes=mins))
     return CoreInput(CORE.manifest.core_id, CORE.manifest.core_version, b,
                      CoreEventType.CLOSED_CANDLE, nxt.close_at, DataOrigin.SYNTHETIC,
                      "offline_test_fixture", (previous, nxt))
@@ -113,6 +114,13 @@ def test_invalid_candle_future_or_overlapping_refused():
         replace(e, candles=(e.candles[0], e.candles[0]))
     with pytest.raises(CoreContractError, match="INVALID_OHLC"):
         candle(T0, 100, 90, 95, 100)
+
+
+def test_host_binding_timeframe_is_enforced_and_not_just_metadata():
+    e = event_for()
+    bad = candle(T0 + timedelta(minutes=15), 100, 108, 99, 106, minutes=5)
+    with pytest.raises(CoreContractError, match="CANDLE_TIMEFRAME_MISMATCH"):
+        replace(e, candles=(e.candles[0], bad))
 
 
 def test_empty_future_unclosed_event_refused():
