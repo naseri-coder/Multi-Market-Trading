@@ -12,7 +12,7 @@ import json
 import os
 import stat
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
@@ -87,9 +87,9 @@ async def admin_acceptance(state: Path, checks: list[str]) -> None:
             b.callback_data.startswith("ep:set:")
             for row in pair_menu.inline_keyboard for b in row),
             "unapproved_pair_hidden_in_ui", checks)
-        check("فیـ" not in panel.settings_text(host, BROOKS_ENGINE_ID)
-              or not iran_futures_approved("kraken"),
-              "no_residency_claim", checks)
+        check("غیرمجاز برای انتخاب" in
+              panel.settings_text(host, BROOKS_ENGINE_ID),
+              "ui_displays_residency_restriction", checks)
 
     # Unauthorized callback must not change saved state or produce a signal.
     bad, bad_msg, bad_query = fake_update(
