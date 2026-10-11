@@ -23,6 +23,7 @@ from .futures_venues import (
     iran_status_text, feed_status_text,
 )
 from .futures_pairs import pair_choices, pair_is_verified_paper
+from .futures_research_priority import operator_futures_research
 from .iran_futures_eligibility import (
     available_futures_venues, iran_futures_approved, resident_paper_feed_ready,
     review_status,
@@ -34,6 +35,7 @@ _EXCHANGE = re.compile(r"ex:(list|set):([0-9a-f]{12}):([0-9]+)(?::([0-9]+))?\Z")
 _TF = re.compile(r"et:(list|set):([0-9a-f]{12})(?::([0-9]+))?(?::([0-9]+))?\Z")
 _PAIR = re.compile(r"ep:(list|set):([0-9a-f]{12})(?::([0-9]+))?(?::([0-9]+))?\Z")
 _PAGE_SIZE = 5
+_RESEARCH = re.compile(r"vr:list:([0-9a-f]{12}):([0-9]+)\Z")
 
 
 class IntegratedEnginePanel(CustomAdminPanel):
@@ -260,7 +262,9 @@ class IntegratedEnginePanel(CustomAdminPanel):
             *([[Button("🏦 صرافی‌های فیوچرز مجاز برای ایران",
                        callback_data=f"ex:list:{token}:0")],
                [Button("💱 انتخاب جفت‌ارز فیوچرز",
-                       callback_data=f"ep:list:{token}")]]
+                       callback_data=f"ep:list:{token}")],
+               [Button("🔎 اولویت پژوهش صرافی‌ها (۹ مورد)",
+                       callback_data=f"vr:list:{token}:0")]]
               if engine_id == BROOKS_ENGINE_ID else []),
             [Button("🌍 تغییر بازار",
                     callback_data=f"em:market:{token}:{revision}")],
@@ -269,6 +273,48 @@ class IntegratedEnginePanel(CustomAdminPanel):
             [Button("🔙 بازگشت به هسته", callback_data=f"cm:open:{token}")],
         ]
         return InlineKeyboardMarkup(options)
+
+    def research_keyboard(self, host: EngineControlStore, engine_id: str,
+                          page: int):
+        """Operator preference only, never return a venue-selection callback."""
+        from telegram import InlineKeyboardButton as Button, InlineKeyboardMarkup
+        if engine_id != BROOKS_ENGINE_ID or type(page) is not int:
+            raise AdminCustomPanelRefused("BROOKS_RESEARCH_PAGE_DENIED")
+        research = operator_futures_research()
+        pages = (len(research) + _PAGE_SIZE - 1) // _PAGE_SIZE
+        if page < 0 or page >= pages:
+            raise AdminCustomPanelRefused("BROOKS_RESEARCH_PAGE_DENIED")
+        token = _token(engine_id)
+        nav = []
+        if page:
+            nav.append(Button("◀ قبلی", callback_data=f"vr:list:{token}:{page-1}"))
+        if page + 1 < pages:
+            nav.append(Button("بعدی ▶", callback_data=f"vr:list:{token}:{page+1}"))
+        buttons = [nav] if nav else []
+        buttons.append([Button("🔙 تنظیمات", callback_data=f"em:settings:{token}")])
+        return InlineKeyboardMarkup(buttons)
+
+    def research_text(self, host: EngineControlStore, engine_id: str,
+                      page: int) -> str:
+        if engine_id != BROOKS_ENGINE_ID:
+            raise AdminCustomPanelRefused("BROOKS_RESEARCH_ONLY")
+        items = operator_futures_research()
+        if type(page) is not int or not 0 <= page < (len(items)+4)//5:
+            raise AdminCustomPanelRefused("BROOKS_RESEARCH_PAGE_DENIED")
+        body = []
+        for item in items[page*_PAGE_SIZE:(page+1)*_PAGE_SIZE]:
+            state = ("⛔ محدودیت رسمی/سیاستی" if item[
+                "iran_resident_eligibility"] == "RESTRICTED_OR_POLICY_BLOCKED"
+                else "⚪ دسترسی فیوچرز برای ایران تأیید نشده")
+            evidence = ("API فیوچرز مستند" if item[
+                "futures_api_evidence"] == "OFFICIAL_FUTURES_API_DOCUMENTED"
+                else "بازار فیوچرز مستند، API رسمی تأیید نشده")
+            body.append(
+                f"{item['priority']}. {item['name']} — {state} | {evidence}")
+        return ("🔎 اولویت پژوهشی پیشنهادی مدیر (نه رتبه واقعی حجم معاملات)\n"
+                + "\n".join(body)
+                + "\n\n⚠️ این منو فقط اطلاع‌رسانی است: هیچ صرافی از این فهرست "
+                  "مجوز معامله کاربران ایران یا فعال‌سازی PAPER ندارد.")
 
     def exchange_keyboard(self, host: EngineControlStore, engine_id: str,
                           page: int):
@@ -358,6 +404,28 @@ class IntegratedEnginePanel(CustomAdminPanel):
     async def callback(self, update, context) -> None:
         query = getattr(update, "callback_query", None)
         if query is None:
+            return
+        if (query.data or "").startswith("vr:"):
+            if not _private_admin(update, self.admin_ids):
+                await query.answer("دسترسی مجاز نیست", show_alert=True)
+                return
+            match = _RESEARCH.fullmatch(query.data or "")
+            if match is None:
+                await query.answer("درخواست نامعتبر", show_alert=True)
+                return
+            await query.answer()
+            try:
+                with self._open(update.effective_user.id) as host:
+                    state = _resolve(host, match.group(1))
+                    page = int(match.group(2))
+                    markup = self.research_keyboard(host, state.engine_id, page)
+                    message = self.research_text(host, state.engine_id, page)
+                if query.message is not None:
+                    await query.message.reply_text(message, reply_markup=markup)
+            except (LocalCustomRefused, AdminCustomPanelRefused, ValueError):
+                if query.message is not None:
+                    await query.message.reply_text(
+                        "⚠️ فهرست پژوهش نامعتبر است؛ تنظیمات را تازه کنید.")
             return
         if (query.data or "").startswith(("ex:", "et:", "ep:")):
             if not _private_admin(update, self.admin_ids):
@@ -503,7 +571,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
         # register the integrated settings and Brooks publication callbacks,
         # otherwise Telegram silently drops taps on their inline buttons.
         application.add_handler(
-            CallbackQueryHandler(self.callback, pattern=r"^(?:em:|bp:|ex:|et:|ep:)"),
+            CallbackQueryHandler(self.callback, pattern=r"^(?:em:|bp:|ex:|et:|ep:|vr:)"),
             group=0)
         application.add_handler(
             CommandHandler("engines", self.panel, filters=filters.ChatType.PRIVATE),
