@@ -357,7 +357,7 @@ def test_hedging_multiple_opposite_positions_same_symbol_are_separate():
     )
     out = diagnose_position_history(deals, margin_mode="HEDGING")
     assert len(out["positions"]) == 2
-    assert [p["signed_lots_window_only"] for p in out["positions"]] == ["1.0", "-2.0"]
+    assert [D(p["signed_lots_window_only"]) for p in out["positions"]] == [D("1"), D("-2")]
     assert out["issues"] == []
 
 
