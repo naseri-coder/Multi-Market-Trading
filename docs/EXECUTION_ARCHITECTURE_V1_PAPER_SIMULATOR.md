@@ -71,7 +71,7 @@ Run on a clean Python 3.12 development runner:
 
 ```bash
 python -m pip install pytest==9.1.1
-python -m pytest -q tests/unit/test_execution_architecture_v1.py
+python -m pytest -q --confcutdir=tests/unit tests/unit/test_execution_architecture_v1.py
 ```
 
 Covered: fail-closed PAPER contract, long/short geometry; stop-aware
