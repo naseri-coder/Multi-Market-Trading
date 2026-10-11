@@ -1,0 +1,129 @@
+# One-time clean-up: retire only the immutable blocked Brooks HTTP451 research ref.
+# Remove this privileged workflow from main after GitHub verifies deletion.
+name: One-time retire blocked Brooks HTTP451 research branch
+
+on:
+  pull_request:
+    paths:
+      - "docs/RESEARCH_BRANCH_ARCHIVE_2026_10_11.md"
+      - ".github/workflows/retire-brooks-http451-branch-once.yml"
+  push:
+    branches: [main]
+    paths:
+      - "docs/RESEARCH_BRANCH_ARCHIVE_2026_10_11.md"
+      - ".github/workflows/retire-brooks-http451-branch-once.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-brooks-archive:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate exactly pinned research evidence before approval
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path("docs/RESEARCH_BRANCH_ARCHIVE_2026_10_11.md").read_text()
+          assert "Supplemental research closure — Brooks real HTTP E2E" in s
+          assert "6e4c14e734c90abd2489c483327542a8841d3907" in s
+          assert "BROOKS_FEED_HTTP_451" in s
+          assert "pull/160" in s
+          assert "develop/v0.3.0" in s
+          print("PASS: exact failed research branch identity and HTTP 451 evidence archived")
+          PY
+
+  retire-brooks-once:
+    if: >
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      startsWith(github.event.head_commit.message, 'chore: archive and retire blocked Brooks HTTP451 research branch')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify immutable SHA lease, closed unmerged PR, protected refs; delete
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import time
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+          from pathlib import Path
+
+          repo="naseri-coder/Multi-Market-Trading"
+          target="feature/brooks-real-http-nonprod-e2e"
+          sha="6e4c14e734c90abd2489c483327542a8841d3907"
+          assert os.environ["GITHUB_REPOSITORY"] == repo
+          archive=Path("docs/RESEARCH_BRANCH_ARCHIVE_2026_10_11.md").read_text()
+          assert "Supplemental research closure — Brooks real HTTP E2E" in archive
+          assert sha in archive and target in archive and "pull/160" in archive
+          assert "BROOKS_FEED_HTTP_451" in archive
+
+          root="https://api.github.com/repos/"+repo
+          def request(method,path):
+              req=urllib.request.Request(
+                  root+path,method=method,
+                  headers={
+                      "Authorization": "Bearer "+os.environ["GITHUB_TOKEN"],
+                      "Accept": "application/vnd.github+json",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                      "User-Agent": "mmt-one-time-blocked-brooks-ref-retirement"
+                  }
+              )
+              try:
+                  with urllib.request.urlopen(req,timeout=20) as response:
+                      data=response.read()
+                      return json.loads(data) if data else None
+              except urllib.error.HTTPError as err:
+                  if err.code==404 and method=="GET":
+                      return None
+                  raise
+
+          pr=request("GET","/pulls/160")
+          if (
+              pr is None or pr["state"]!="closed" or pr["merged"] or
+              pr["head"]["ref"]!=target or pr["head"]["sha"]!=sha
+          ):
+              raise RuntimeError("REFUSED: PR160 still open, merged, or target SHA changed")
+          open_prs=request("GET","/pulls?state=open&per_page=100")
+          if any(p["head"]["ref"]==target for p in open_prs):
+              raise RuntimeError("REFUSED: still open pull request for Brooks target")
+          bs=request("GET","/branches?per_page=100")
+          current={x["name"]:x for x in bs}
+          for keep in ("main","develop/v0.3.0"):
+              b=current.get(keep)
+              if not b or not b["protected"]:
+                  raise RuntimeError("REFUSED: missing/unprotected baseline "+keep)
+          candidate=current.get(target)
+          if candidate:
+              if candidate["protected"] or candidate["commit"]["sha"]!=sha:
+                  raise RuntimeError("REFUSED: Brooks ref protected or unexpected SHA")
+              request("DELETE","/git/refs/heads/"+urllib.parse.quote(target,safe="/"))
+              print("DELETED only:",target)
+          else:
+              print("IDEMPOTENT: target already absent")
+
+          for _ in range(5):
+              remaining=request("GET","/branches?per_page=100")
+              names={b["name"] for b in remaining}
+              if target not in names: break
+              time.sleep(2)
+          if target in names:
+              raise RuntimeError("REFUSED: deletion was not verified")
+          assert {"main","develop/v0.3.0"} <= names
+          print("PASS: blocked Brooks ref absent, protected baseline intact")
+          PY
