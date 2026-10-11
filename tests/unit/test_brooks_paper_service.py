@@ -19,6 +19,9 @@ def _isolate_legacy_public_research_paper_tests(monkeypatch):
     # with an injected policy; real resident-facing policy remains fail closed.
     monkeypatch.setattr(
         service, "iran_futures_approved", lambda key: key == "kraken")
+    monkeypatch.setattr(
+        service, "resident_paper_feed_ready",
+        lambda exchange, symbol: exchange == "kraken" and symbol == "PF_XBTUSD")
 
 
 SOURCE = Path(__file__).resolve().parents[2] / "production_source"
