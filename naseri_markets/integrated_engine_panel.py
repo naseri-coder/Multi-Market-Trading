@@ -30,6 +30,7 @@ from .iran_futures_eligibility import (
 )
 from .trusted_custom import LocalCustomRefused
 from .brooks_stage10_paper_bridge import panel_stage10_overview
+from .brooks_stage11_candle_replay import stage11_panel_summary
 
 _MORE = re.compile(r"em:(settings|tf|market|env):([0-9a-f]{12})(?::([0-9]+))?\Z")
 _EXCHANGE = re.compile(r"ex:(list|set):([0-9a-f]{12}):([0-9]+)(?::([0-9]+))?\Z")
@@ -198,10 +199,15 @@ class IntegratedEnginePanel(CustomAdminPanel):
                    f"{recent['target_reward_r'][0] if recent['target_reward_r'] else '—'}\n"
                    if recent else "رسید جدیدی ثبت نشده است.\n"))
             bridge_status = panel_stage10_overview(self.state_dir)
+            lifecycle_status = stage11_panel_summary(self.state_dir)
             replay_line = (
                 f"سفارش‌های PAPER: {bridge_status['linked_orders']} | "
                 f"رزروهای ریسک فعال: {bridge_status['active_paper_reservations']}\n"
                 f"وضعیت دفتر مستقل: {bridge_status['status']} (بدون ارسال سفارش)\n"
+                f"بازپخش کندلی آفلاین: {lifecycle_status['replayed_orders']} "
+                f"| معاملات بسته‌شده: {lifecycle_status['closed_paper_trades']}\n"
+                f"سود/زیان خالص شبیه‌سازی‌شده: "
+                f"{lifecycle_status['aggregate_net_pnl']} (بدون بروکر)\n"
                 f"اسکن‌های واقعی Replay: {replay['scans']}\n"
                 f"{audit_line}"
                 f"اسکن‌های بدون سیگنال: {replay['no_signal']}\n"
@@ -436,7 +442,11 @@ class IntegratedEnginePanel(CustomAdminPanel):
                     f"سفارش‌ها: {report['linked_orders']}\n"
                     f"رزرو ریسک فعال: {report['active_paper_reservations']}\n"
                     "معاملات واقعی: 🔒 خاموش | انتشار سیگنال: 🔒 خاموش\n"
-                    "ایجاد سفارش فقط با دستور مستقل و تأیید اپراتور."
+                    "ایجاد سفارش فقط با دستور مستقل و تأیید اپراتور.\n"
+                    f"بازپخش کندلی: {stage11_panel_summary(self.state_dir)['replayed_orders']} "
+                    f"| بسته‌شده: {stage11_panel_summary(self.state_dir)['closed_paper_trades']}\n"
+                    f"سود/زیان خالص PAPER: "
+                    f"{stage11_panel_summary(self.state_dir)['aggregate_net_pnl']}"
                 )
                 if query.message is not None:
                     await query.message.reply_text(msg, reply_markup=markup)
