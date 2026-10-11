@@ -16,6 +16,7 @@ from .futures_venues import VENUE_BY_KEY, get_venue
 from .futures_pairs import initial_pair, pair_choices
 from .iran_futures_eligibility import require_iran_resident_futures_selection
 from .trusted_custom import LocalCustomRefused, TrustedLocalCustomHost
+from .brooks_paper_receipts import SCHEMA as RECEIPTS_SCHEMA, read_receipts
 
 BROOKS_ENGINE_ID = "brooks_price_action"
 OWNER_CORE_ID = "ny_first_reversal"  # reserved identity only; NO private source
@@ -97,6 +98,9 @@ class EngineControlStore:
             scan_id TEXT PRIMARY KEY, snapshot_hash TEXT NOT NULL,
             decision TEXT NOT NULL, setup_type TEXT,
             signal_id TEXT, source_sha256 TEXT NOT NULL)""")
+        # One optional immutable receipt per NEW scan, atomic with A7 intents.
+        # Historic scans are NOT backfilled as if they had passed a new check.
+        self._db.execute(RECEIPTS_SCHEMA)
         # This is ONLY a visibility/lease record for a separately launched
         # DEVELOPMENT worker. It never spawns a service or enables forwarding.
         self._db.execute("""CREATE TABLE IF NOT EXISTS brooks_paper_worker(
@@ -534,6 +538,10 @@ class EngineControlStore:
         if cursor.rowcount != 1:
             raise LocalCustomRefused("BROOKS_WORKER_STALE_OWNER")
 
+    def brooks_paper_receipts(self, *, limit: int = 8) -> list[dict]:
+        self._require(BROOKS_ENGINE_ID)
+        return read_receipts(self._db, limit=limit)
+
     def brooks_replay_status(self) -> dict:
         """Diagnostics only: replay scans, not claims of running live engine."""
         self._require(BROOKS_ENGINE_ID)
@@ -544,6 +552,9 @@ class EngineControlStore:
         return {"scans": int(row["total"]),
                 "no_signal": int(row["no_signal"]),
                 "paper_signals": len(self.signals(BROOKS_ENGINE_ID)),
+                "receipts": int(self._db.execute(
+                    "SELECT COUNT(*) AS n FROM brooks_paper_receipts"
+                ).fetchone()["n"]),
                 "live_runtime_connected": False, "telegram_sent": False}
 
     def admin_history(self, engine_id: str) -> list[dict]:
