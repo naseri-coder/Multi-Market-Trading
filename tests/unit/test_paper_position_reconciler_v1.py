@@ -21,7 +21,7 @@ from naseri_markets.offline_broker_fixture_v1 import (
     order_digest,
 )
 from naseri_markets.paper_position_reconciler_v1 import PaperPositionReconcilerV1
-from naseri_markets.risk_portfolio_contract_v1 import AccountRiskPolicy, PortfolioRiskPolicy
+from naseri_markets.risk_portfolio_contract_v1 import (\n    AccountRiskPolicy,\n    PortfolioRiskPolicy,\n)
 from naseri_markets.risk_portfolio_manager_v1 import RiskRefused
 
 
