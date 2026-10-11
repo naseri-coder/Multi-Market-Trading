@@ -432,9 +432,9 @@ class IntegratedEnginePanel(CustomAdminPanel):
                     markup = self.keyboard(host, BROOKS_ENGINE_ID)
                 msg = (
                     "🧮 دفتر PAPER مستقل (فقط مشاهده)\n"
-                    f"وضعیت: {report[\'status\']}\n"
-                    f"سفارش‌ها: {report[\'linked_orders\']}\n"
-                    f"رزرو ریسک فعال: {report[\'active_paper_reservations\']}\n"
+                    f"وضعیت: {report['status']}\n"
+                    f"سفارش‌ها: {report['linked_orders']}\n"
+                    f"رزرو ریسک فعال: {report['active_paper_reservations']}\n"
                     "معاملات واقعی: 🔒 خاموش | انتشار سیگنال: 🔒 خاموش\n"
                     "ایجاد سفارش فقط با دستور مستقل و تأیید اپراتور."
                 )
