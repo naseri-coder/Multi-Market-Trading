@@ -24,7 +24,8 @@ from .futures_venues import (
 )
 from .futures_pairs import pair_choices, pair_is_verified_paper
 from .iran_futures_eligibility import (
-    available_futures_venues, iran_futures_approved, review_status,
+    available_futures_venues, iran_futures_approved, resident_paper_feed_ready,
+    review_status,
 )
 from .trusted_custom import LocalCustomRefused
 
@@ -58,11 +59,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
                 worker = (host.brooks_worker_status()
                           if engine.engine_kind == "BUILTIN_BROOKS" else None)
                 if worker is not None and worker["connected"]:
-                    armed_feed = paper_feed_verified(
-                        host.preferences(engine.engine_id)["futures_exchange"])
-                    armed_feed = armed_feed and iran_futures_approved(
-                        host.preferences(engine.engine_id)["futures_exchange"])
-                    armed_feed = armed_feed and pair_is_verified_paper(
+                    armed_feed = resident_paper_feed_ready(
                         host.preferences(engine.engine_id)["futures_exchange"],
                         host.preferences(engine.engine_id)["futures_symbol"])
                     badge = "🟢" if engine.requested_enabled and armed_feed else "⏸"
@@ -121,9 +118,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
             brooks and brooks.requested_enabled and prefs
             and prefs["signal_environment"] == "PAPER"
             and prefs["market_scope"] in ("all", "crypto")
-            and iran_futures_approved(prefs["futures_exchange"])
-            and paper_feed_verified(prefs["futures_exchange"])
-            and pair_is_verified_paper(
+            and resident_paper_feed_ready(
                 prefs["futures_exchange"], prefs["futures_symbol"]))
         paper_active = bool(
             paper_armed and worker["connected"]
@@ -165,9 +160,7 @@ class IntegratedEnginePanel(CustomAdminPanel):
             status = ("🟢 تحلیل PAPER آماده/درحال اجرا"
                       if state.requested_enabled and
                       prefs["signal_environment"] == "PAPER"
-                      and iran_futures_approved(prefs["futures_exchange"])
-                      and paper_feed_verified(prefs["futures_exchange"])
-                      and pair_is_verified_paper(
+                      and resident_paper_feed_ready(
                           prefs["futures_exchange"], prefs["futures_symbol"]) else
                       "⏸ سرویس حاضر است؛ تحلیل از پنل خاموش است")
         elif state.runtime_status == "RUNTIME_NOT_MOUNTED":
