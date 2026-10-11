@@ -221,7 +221,13 @@ def test_readonly_does_not_create_files_or_advance_lifecycle(local):
     first = evaluate(root)
     second = evaluate(root)
     assert first == second
-    assert set(p.name for p in root.iterdir()) == before
+    extra = {p.name for p in root.iterdir()} - before
+    # Opening an existing SQLite WAL database in mode=ro can create WAL-index
+    # and shared-memory sidecars; these are not transactional row writes.
+    assert extra <= {
+        "custom_paper.db-wal", "custom_paper.db-shm",
+        "brooks_stage10_paper.sqlite-wal", "brooks_stage10_paper.sqlite-shm",
+    }
     with sqlite3.connect(root/"brooks_stage10_paper.sqlite") as conn:
         after = conn.execute(
             "SELECT COUNT(*) FROM paper_order_events WHERE order_id=?", (oid,),
