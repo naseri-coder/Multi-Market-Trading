@@ -361,7 +361,7 @@ def test_provider_exception_from_history_does_not_bypass_shutdown(provider):
 
 def test_duplicate_provider_history_ticket_is_never_accepted(provider):
     provider.orders.append(order())
-    with pytest.raises(MT5ReadRefused, match="TICKET_REPLAY_CONFLICT"):
+    with pytest.raises(MT5ReadRefused, match="DUPLICATE_TICKET_IN_SLICE"):
         run_once(args(), provider, now=NOW)
 
 
