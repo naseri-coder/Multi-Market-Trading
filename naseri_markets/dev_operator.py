@@ -180,6 +180,11 @@ def main(argv: list[str] | None = None) -> int:
     initialize = actions.add_parser("init", help="Initialize private isolated PAPER state")
     initialize.add_argument("--ack-nonproduction-init", action="store_true")
     actions.add_parser("status", help="Local health inspection; no Telegram/HTTPS")
+    contracts = actions.add_parser(
+        "contracts", help="Official futures instrument metadata; READ-ONLY research")
+    contracts.add_argument("--venue", required=True, choices=("kraken", "kucoin"))
+    contracts.add_argument("--max-results", type=int, default=100)
+    contracts.add_argument("--ack-public-metadata-research", action="store_true")
     panel = actions.add_parser("panel", help="Explicit foreground development bot")
     panel.add_argument("--admin-ids", required=True)
     panel.add_argument("--owner-ids", default="")
@@ -208,6 +213,13 @@ def main(argv: list[str] | None = None) -> int:
         state = _state_dir(args.state_dir)
         if args.command == "status":
             print(json.dumps(_status(state), sort_keys=True))
+            return 0
+        if args.command == "contracts":
+            if not args.ack_public_metadata_research:
+                raise DevPreviewRefused("DEV_PUBLIC_RESEARCH_ACK_REQUIRED")
+            from .public_futures_contracts import discover_public_contracts
+            print(json.dumps(discover_public_contracts(
+                args.venue, max_results=args.max_results), sort_keys=True))
             return 0
         if args.command == "panel":
             if not args.ack_nonproduction_panel:
