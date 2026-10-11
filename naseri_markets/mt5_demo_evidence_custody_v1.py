@@ -14,6 +14,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
+from urllib.parse import quote
 from typing import Any
 
 from .execution_contract_v1 import identity
@@ -77,17 +78,35 @@ class DemoHistoryEvidenceCustodyV1:
     cannot authorize a new history capture. No token can authorize trading.
     """
 
-    def __init__(self, path: str | Path):
+    def __init__(self, path: str | Path, *, read_only: bool = False):
         p = Path(path)
         if p.is_symlink() or (p.exists() and not p.is_file()):
             raise EvidenceCustodyRefused("NONREGULAR_CUSTODY_PATH")
-        p.parent.mkdir(parents=True, exist_ok=True)
-        self._db = sqlite3.connect(str(p), timeout=5, isolation_level=None)
+        self._read_only = read_only
+        if read_only and not p.is_file():
+            raise EvidenceCustodyRefused("CUSTODY_READ_ONLY_SOURCE_MISSING")
+        if not read_only:
+            p.parent.mkdir(parents=True, exist_ok=True)
+        uri = (
+            "file:" + quote(p.resolve().as_posix(), safe="/:") + "?mode=ro"
+            if read_only else str(p)
+        )
+        self._db = sqlite3.connect(
+            uri, timeout=5, isolation_level=None, uri=read_only,
+        )
         self._db.row_factory = sqlite3.Row
         self._db.execute("PRAGMA busy_timeout=5000")
-        self._db.execute("PRAGMA journal_mode=WAL")
-        self._db.execute("PRAGMA synchronous=FULL")
-        self._db.execute("PRAGMA foreign_keys=ON")
+        if read_only:
+            self._db.execute("PRAGMA query_only=ON")
+        else:
+            self._db.execute("PRAGMA journal_mode=WAL")
+            self._db.execute("PRAGMA synchronous=FULL")
+            self._db.execute("PRAGMA foreign_keys=ON")
+        if not read_only:
+            self._install_schema()
+        self._sessions: dict[str, tuple[str, str]] = {}
+
+    def _install_schema(self) -> None:
         self._db.execute(
             "CREATE TABLE IF NOT EXISTS mt5_demo_accounts ("
             "account_id TEXT PRIMARY KEY, login INTEGER NOT NULL, "
@@ -112,8 +131,6 @@ class DemoHistoryEvidenceCustodyV1:
             "PRIMARY KEY(account_id,kind,ticket), "
             "FOREIGN KEY(account_id) REFERENCES mt5_demo_accounts(account_id))"
         )
-        self._sessions: dict[str, tuple[str, str]] = {}
-
     def close(self) -> None:
         self._sessions.clear()
         self._db.close()
@@ -222,6 +239,8 @@ class DemoHistoryEvidenceCustodyV1:
         self, provider: Any, expected: DemoAccountExpectation,
     ) -> str:
         """Only a *fresh* pinned DEMO identity may open a new local session."""
+        if self._read_only:
+            raise EvidenceCustodyRefused("READONLY_CUSTODY_CANNOT_MUTATE")
         if not isinstance(expected, DemoAccountExpectation):
             raise TypeError("EXPECTED_DEMO_ACCOUNT_REQUIRED")
         guard = MT5DemoReadOnlyAdapterV1(provider, expected)
@@ -257,6 +276,8 @@ class DemoHistoryEvidenceCustodyV1:
         session: str, action_id: str, captured_at: datetime | None = None,
     ) -> dict[str, Any]:
         """Read a complete bounded window before storing it atomically."""
+        if self._read_only:
+            raise EvidenceCustodyRefused("READONLY_CUSTODY_CANNOT_MUTATE")
         if not isinstance(expected, DemoAccountExpectation):
             raise TypeError("EXPECTED_DEMO_ACCOUNT_REQUIRED")
         allowed = self._sessions.get(expected.account_id)
@@ -281,6 +302,8 @@ class DemoHistoryEvidenceCustodyV1:
         mode: str, action_id: str,
     ) -> dict[str, Any]:
         """Write only freshly captured DEMO snapshots; internal integration seam."""
+        if self._read_only:
+            raise EvidenceCustodyRefused("READONLY_CUSTODY_CANNOT_MUTATE")
         identity(action_id, "action_id")
         if (
             not isinstance(snapshot, MT5DemoHistorySnapshot)
@@ -384,6 +407,36 @@ class DemoHistoryEvidenceCustodyV1:
             "replayed": replayed,
             "broker_authenticated": False, "may_send_order": False,
             "may_unlock_recovery": False, "may_release_risk": False,
+        }
+
+    def verified_window(
+        self, account_id: str, start_utc: datetime, end_utc: datetime,
+    ) -> dict[str, Any]:
+        """Read exact persisted window only after full local integrity verification."""
+        from datetime import UTC
+
+        def normalized(value: datetime) -> str:
+            if (
+                not isinstance(value, datetime) or value.tzinfo is None
+                or value.utcoffset() is None
+            ):
+                raise EvidenceCustodyRefused("UTC_AWARE_WINDOW_REQUIRED")
+            return value.astimezone(UTC).isoformat()
+
+        self.verify(account_id)
+        row = self._db.execute(
+            "SELECT payload,digest,chain_hash FROM mt5_demo_receipts "
+            "WHERE account_id=? AND window_start=? AND window_end=?",
+            (account_id, normalized(start_utc), normalized(end_utc)),
+        ).fetchone()
+        if row is None:
+            raise EvidenceCustodyRefused("CUSTODY_EXACT_WINDOW_NOT_FOUND")
+        content = json.loads(row["payload"])
+        if _snapshot_digest(content) != row["digest"]:
+            raise EvidenceCustodyRefused("CUSTODY_WINDOW_DIGEST_MISMATCH")
+        return {
+            "payload": content, "digest": row["digest"],
+            "chain_hash": row["chain_hash"],
         }
 
     def accounting(self, account_id: str) -> dict[str, Any]:
