@@ -10,7 +10,7 @@ import hashlib
 import json
 import re
 from dataclasses import asdict, dataclass, is_dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from enum import StrEnum
 from typing import Protocol
@@ -22,7 +22,9 @@ ABI_MINOR = 0
 _ID = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{1,79}$")
 _TOKEN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
 _HASH = re.compile(r"^[0-9a-f]{64}$")
-_TIMEFRAMES = frozenset({"1m", "5m", "15m", "30m", "1h", "4h", "12h", "1d"})
+_TIMEFRAME_MINUTES = {"1m": 1, "5m": 5, "15m": 15, "30m": 30,
+                      "1h": 60, "4h": 240, "12h": 720, "1d": 1440}
+_TIMEFRAMES = frozenset(_TIMEFRAME_MINUTES)
 
 
 class CoreContractError(ValueError):
@@ -274,6 +276,14 @@ class CoreInput:
             raise CoreContractError("OVERLAPPING_CANDLE_WINDOW")
         if any(c.close_at > at for c in self.candles):
             raise CoreContractError("FUTURE_CANDLE")
+        interval = timedelta(minutes=_TIMEFRAME_MINUTES[self.binding.timeframe])
+        for candle in self.candles:
+            duration = candle.close_at - candle.open_at
+            # Daily bars across session DST transitions can be 23 or 25 hours.
+            if ((self.binding.timeframe != "1d" and duration != interval) or
+                    (self.binding.timeframe == "1d" and
+                     not timedelta(hours=23) <= duration <= timedelta(hours=25))):
+                raise CoreContractError("CANDLE_TIMEFRAME_MISMATCH")
         if self.event is CoreEventType.CLOSED_CANDLE:
             if not self.candles or self.candles[-1].close_at != at or self.tick or self.position:
                 raise CoreContractError("INVALID_CLOSED_CANDLE_EVENT")
