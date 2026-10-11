@@ -509,3 +509,60 @@ def test_nonregular_path_refused(tmp_path):
     link.symlink_to(directory)
     with pytest.raises(OrchestrationRefused, match="NONREGULAR"):
         PaperExecutionOrchestratorV1(link)
+
+
+def test_short_position_direction_and_realized_loss_are_correct(core):
+    spec = OrderSpec(
+        order_id="short-1", signal_id="s-short", account_id="account-1",
+        engine_id="brooks", instrument=instrument(), direction=Direction.SHORT,
+        kind=OrderKind.MARKET, quantity=D("1"),
+        reference_entry=D("100"), stop=D("110"), target=D("80"),
+    )
+    core.create(spec, action_id="create-short")
+    submit(core, "short-1", action="submit-short")
+    ack(core, "short-1", action="ack-short")
+    fill(core, "short-1", action="fill-short", price="100")
+    result = core.apply(
+        "short-1", action_id="close-short", event="CLOSE_FILL",
+        quantity="1", price="120",
+    )
+    assert result["risk_released"]
+    assert D(result["modeled_realized_loss"]) > D("20")
+    assert D(risk(core)["daily_realized_loss_magnitude"]) > D("20")
+
+
+def test_direct_shared_manager_writes_require_orchestrator_transaction(core):
+    with pytest.raises(RiskRefused, match="SHARED_TRANSACTION_REQUIRED"):
+        core._risk.reserve(order(), action_id="direct-risk-unsafe")
+    with pytest.raises(LifecycleRefused, match="SHARED_TRANSACTION_REQUIRED"):
+        core._orders.create(order(), action_id="direct-order-unsafe")
+    assert risk(core)["active_orders"] == 0
+    assert state(core) is None
+
+
+def test_loss_post_failure_rolls_back_close_fill_and_budget(core, monkeypatch):
+    core.create(order(), action_id="create")
+    submit(core)
+    ack(core)
+    fill(core)
+    original = core._risk.record_loss
+    before_budget = risk(core)
+    before_events = len(core.order_events("order-1"))
+
+    def simulate_failure(*_args, **_kwargs):
+        raise RuntimeError("PAPER_LOSS_POSTING_FAILED")
+
+    monkeypatch.setattr(core._risk, "record_loss", simulate_failure)
+    with pytest.raises(RuntimeError, match="PAPER_LOSS_POSTING_FAILED"):
+        core.apply(
+            "order-1", action_id="close-post", event="CLOSE_FILL",
+            quantity="1", price="50",
+        )
+    assert state(core)["status"] == "FILLED"
+    assert risk(core) == before_budget
+    assert len(core.order_events("order-1")) == before_events
+    monkeypatch.setattr(core._risk, "record_loss", original)
+    assert core.apply(
+        "order-1", action_id="close-post", event="CLOSE_FILL",
+        quantity="1", price="50",
+    )["risk_released"]
