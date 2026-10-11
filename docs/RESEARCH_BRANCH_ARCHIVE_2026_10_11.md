@@ -67,3 +67,5 @@ Only the 15 *exactly* enumerated research branch names and their audited HEAD SH
 - Closing the PR and deleting the **single exact pinned research ref** is a housekeeping decision, not a claim that access to Binance is restored. **No VPN, proxy, geographic restriction bypass, live trade execution, production deployment, Telegram publication, or strategy threshold change is authorized.**
 - The still-preserved active `main` Brooks source, independent PAPER framework and previous offline checks continue unchanged. The protected `develop/v0.3.0` branch remains preserved.
 - The temporary `.github/workflows/retire-brooks-http451-branch-once.yml` file is intended for one-time SHA-pinned deletion and must be removed from `main` after the delete job and independent branch listing are verified.
+
+**Cleanup completion:** PR #160 closed unmerged. PR #182 merged. The one-shot cleanup job succeeded (GitHub Actions run 38144678713), and a fresh GitHub branches listing confirmed that only protected `main` and `develop/v0.3.0` remain. The temporary cleanup workflow is removed separately. No other branch or trading runtime was changed.
