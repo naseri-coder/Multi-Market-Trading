@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 from datetime import UTC, date, datetime
 from decimal import Decimal as D
 
@@ -277,7 +276,6 @@ def test_wrong_engine_signal_and_missing_id_rejected(env):
 
 def test_wrong_venue_pair_selected_rejected(env):
     with EngineControlStore(env) as store:
-        old = store.preferences(BROOKS_ENGINE_ID)
         # A manually modified preferences value is an untrusted / conflicting
         # admin state; never use it to authorize a historical Kraken receipt.
         store._db.execute(
