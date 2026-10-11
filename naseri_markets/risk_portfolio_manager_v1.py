@@ -507,7 +507,10 @@ class PaperRiskPortfolioManager:
         """Cumulative positive PAPER losses; no netting a profit to erase a trip."""
         identity(account_id, "account_id")
         identity(action_id, "action_id")
-        positive(amount, "loss")
+        try:
+            positive(amount, "loss")
+        except ValueError as exc:
+            raise RiskRefused("INVALID_LOSS_AMOUNT") from exc
         digest = _digest({"type": "LOSS", "account_id": account_id, "amount": str(amount)})
         self._begin()
         try:
