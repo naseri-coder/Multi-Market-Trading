@@ -403,15 +403,26 @@ def stage11_panel_summary(state_dir: str | Path) -> dict[str, Any]:
                 "SELECT metadata_json FROM brooks_stage11_positions"
             ).fetchall()
             reports = [json.loads(x[0]) for x in rows]
-            net = sum(
-                (Decimal(x["net_realized_pnl"]) for x in reports),
-                Decimal(0),
+            per_currency: dict[str, Decimal] = {}
+            for item in reports:
+                currency = item["quote_currency"]
+                if not isinstance(currency, str) or not currency:
+                    raise ValueError("NO_QUOTE_CURRENCY")
+                per_currency[currency] = (
+                    per_currency.get(currency, Decimal(0))
+                    + Decimal(item["net_realized_pnl"])
+                )
+            total = (
+                str(next(iter(per_currency.values())))
+                if len(per_currency) == 1
+                else "0" if not per_currency else "MULTI_CURRENCY_NOT_ADDITIVE"
             )
             return {
                 "status": "OFFLINE_PAPER_ONLY",
                 "replayed_orders": len(rows),
                 "closed_paper_trades": sum(x["risk_released"] is True for x in reports),
-                "aggregate_net_pnl": str(net),
+                "aggregate_net_pnl": total,
+                "net_pnl_by_currency": {key: str(value) for key, value in sorted(per_currency.items())},
                 "broker_execution": False,
             }
         finally:
