@@ -70,12 +70,18 @@ class PaperRiskPortfolioManager:
     balances, profits, engine grants or geographic trading permissions exist.
     """
 
-    def __init__(self, path: str | Path, *, clock: Callable[[], date] | None = None):
+    def __init__(
+        self, path: str | Path, *, clock: Callable[[], date] | None = None,
+        shared_connection: sqlite3.Connection | None = None,
+    ):
         p = Path(path)
         if p.is_symlink() or (p.exists() and not p.is_file()):
             raise RiskRefused("NONREGULAR_RISK_DB_PATH")
         p.parent.mkdir(parents=True, exist_ok=True)
-        self._db = sqlite3.connect(str(p), timeout=5, isolation_level=None)
+        self._owns_connection = shared_connection is None
+        self._db = shared_connection or sqlite3.connect(
+            str(p), timeout=5, isolation_level=None
+        )
         self._db.row_factory = sqlite3.Row
         self._db.execute("PRAGMA busy_timeout=5000")
         self._db.execute("PRAGMA journal_mode=WAL")
@@ -116,7 +122,8 @@ class PaperRiskPortfolioManager:
         )
 
     def close(self) -> None:
-        self._db.close()
+        if self._owns_connection:
+            self._db.close()
 
     def __enter__(self) -> PaperRiskPortfolioManager:
         return self
@@ -125,13 +132,18 @@ class PaperRiskPortfolioManager:
         self.close()
 
     def _begin(self) -> None:
-        self._db.execute("BEGIN IMMEDIATE")
+        if self._owns_connection:
+            self._db.execute("BEGIN IMMEDIATE")
+        elif not self._db.in_transaction:
+            raise RiskRefused("SHARED_TRANSACTION_REQUIRED")
 
     def _commit(self) -> None:
-        self._db.execute("COMMIT")
+        if self._owns_connection:
+            self._db.execute("COMMIT")
 
     def _rollback(self) -> None:
-        self._db.execute("ROLLBACK")
+        if self._owns_connection:
+            self._db.execute("ROLLBACK")
 
     def _today(self) -> str:
         day = self._clock()

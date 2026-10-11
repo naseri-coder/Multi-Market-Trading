@@ -58,12 +58,17 @@ class PositionLifecycleSimulator:
     reconciliation evidence, not retransmitted.
     """
 
-    def __init__(self, path: str | Path) -> None:
+    def __init__(
+        self, path: str | Path, *, shared_connection: sqlite3.Connection | None = None,
+    ) -> None:
         p = Path(path)
         if p.is_symlink() or (p.exists() and not p.is_file()):
             raise LifecycleRefused("NONREGULAR_SIMULATOR_PATH")
         p.parent.mkdir(parents=True, exist_ok=True)
-        self._db = sqlite3.connect(str(p), isolation_level=None, timeout=5)
+        self._owns_connection = shared_connection is None
+        self._db = shared_connection or sqlite3.connect(
+            str(p), isolation_level=None, timeout=5
+        )
         self._db.row_factory = sqlite3.Row
         self._db.execute("PRAGMA busy_timeout=5000")
         self._db.execute("PRAGMA journal_mode=WAL")
@@ -80,7 +85,8 @@ class PositionLifecycleSimulator:
         self._db.execute("PRAGMA foreign_keys=ON")
 
     def close(self) -> None:
-        self._db.close()
+        if self._owns_connection:
+            self._db.close()
 
     def __enter__(self) -> PositionLifecycleSimulator:
         return self
@@ -107,7 +113,18 @@ class PositionLifecycleSimulator:
         ]
 
     def _begin(self) -> None:
-        self._db.execute("BEGIN IMMEDIATE")
+        if self._owns_connection:
+            self._db.execute("BEGIN IMMEDIATE")
+        elif not self._db.in_transaction:
+            raise LifecycleRefused("SHARED_TRANSACTION_REQUIRED")
+
+    def _commit(self) -> None:
+        if self._owns_connection:
+            self._db.execute("COMMIT")
+
+    def _rollback(self) -> None:
+        if self._owns_connection:
+            self._db.execute("ROLLBACK")
 
     def _receipt(self, order_id: str, action_id: str, digest: str) -> dict[str, Any] | None:
         row = self._db.execute(
@@ -140,7 +157,7 @@ class PositionLifecycleSimulator:
         try:
             old = self._receipt(spec.order_id, action_id, digest)
             if old is not None:
-                self._db.execute("COMMIT")
+                self._commit()
                 return old
             existing = self._db.execute(
                 "SELECT spec_digest FROM paper_orders WHERE order_id=?", (spec.order_id,)
@@ -161,10 +178,10 @@ class PositionLifecycleSimulator:
                 (spec.order_id, digest, _canonical(snapshot)),
             )
             self._write_event(spec.order_id, action_id, digest, "CREATE", snapshot)
-            self._db.execute("COMMIT")
+            self._commit()
             return snapshot
         except BaseException:
-            self._db.execute("ROLLBACK")
+            self._rollback()
             raise
 
     def apply(
@@ -195,7 +212,7 @@ class PositionLifecycleSimulator:
         try:
             previous = self._receipt(order_id, action_id, digest)
             if previous is not None:
-                self._db.execute("COMMIT")
+                self._commit()
                 return previous
             row = self._db.execute(
                 "SELECT snapshot FROM paper_orders WHERE order_id=?", (order_id,)
@@ -213,10 +230,10 @@ class PositionLifecycleSimulator:
                 (_canonical(state), order_id),
             )
             self._write_event(order_id, action_id, digest, event, state)
-            self._db.execute("COMMIT")
+            self._commit()
             return state
         except BaseException:
-            self._db.execute("ROLLBACK")
+            self._rollback()
             raise
 
     @staticmethod

@@ -1,0 +1,76 @@
+name: Stage 3 Atomic PAPER Execution and Position Lifecycle
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/execution_position_core_v1.py"
+      - "naseri_markets/position_lifecycle_simulator.py"
+      - "naseri_markets/risk_portfolio_manager_v1.py"
+      - "tests/unit/test_execution_position_core_v1.py"
+      - "docs/EXECUTION_POSITION_CORE_V1_PAPER.md"
+      - ".github/workflows/execution-position-core-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  atomic-paper-execution:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install test tools only, no trading SDKs
+        run: python -m pip install pytest==9.1.1 pytest-asyncio==1.4.0 ruff==0.16.9
+      - name: Validate changed runtime and tests
+        run: |
+          python -m compileall -q \
+            naseri_markets/execution_position_core_v1.py \
+            naseri_markets/position_lifecycle_simulator.py \
+            naseri_markets/risk_portfolio_manager_v1.py \
+            tests/unit/test_execution_position_core_v1.py
+          python -m ruff check --select E4,F,I,B,UP \
+            naseri_markets/execution_position_core_v1.py \
+            naseri_markets/position_lifecycle_simulator.py \
+            naseri_markets/risk_portfolio_manager_v1.py \
+            tests/unit/test_execution_position_core_v1.py
+      - name: Stage 1+2+3 atomic PAPER lifecycle acceptance
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          MMT_NONPRODUCTION: "1"
+        run: |
+          python -m pytest -q --confcutdir=tests/unit \
+            tests/unit/test_execution_position_core_v1.py \
+            tests/unit/test_risk_portfolio_manager_v1.py \
+            tests/unit/test_execution_architecture_v1.py
+      - name: Refuse any broker terminal network or Telegram execution access
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          paths = (
+              Path("naseri_markets/execution_position_core_v1.py"),
+              Path("naseri_markets/position_lifecycle_simulator.py"),
+              Path("naseri_markets/risk_portfolio_manager_v1.py"),
+          )
+          banned = ("MetaTrader5", "ccxt", "binance", "httpx", "requests",
+                    "socket", "subprocess", "telegram")
+          for p in paths:
+              source = p.read_text(encoding="utf-8")
+              tree = ast.parse(source)
+              imports = [
+                  n.module for n in ast.walk(tree)
+                  if isinstance(n, ast.ImportFrom) and n.module
+              ] + [
+                  name.name for n in ast.walk(tree)
+                  if isinstance(n, ast.Import) for name in n.names
+              ]
+              assert not any(m.startswith(banned) for m in imports), (p, imports)
+              assert "order_send" not in source, p
+          print("PASS PAPER only: no broker, network, or Telegram trading entrypoint")
+          PY
