@@ -23,9 +23,9 @@ from typing import Callable
 from .brooks_kraken_feed import poll_once
 from .brooks_replay import BrooksReplayRefused, SECONDS, verify_legacy_source
 from .engine_control_store import BROOKS_ENGINE_ID, EngineControlStore
-from .futures_venues import paper_feed_verified
-from .iran_futures_eligibility import iran_futures_approved
-from .futures_pairs import pair_is_verified_paper
+from .iran_futures_eligibility import (
+    iran_futures_approved, resident_paper_feed_ready,
+)
 from .trusted_custom import LocalCustomRefused
 
 DEFAULT_SYMBOL = "PF_XBTUSD"
@@ -120,9 +120,8 @@ class BrooksPaperService:
                         "reason": "BROOKS_IRAN_FUTURES_ELIGIBILITY_UNVERIFIED"}
             # A catalog entry is NOT a verified market-data integration.
             # No automatic fallback to Kraken when another venue was selected.
-            if (not paper_feed_verified(prefs["futures_exchange"])
-                    or not pair_is_verified_paper(
-                        prefs["futures_exchange"], prefs["futures_symbol"])):
+            if not resident_paper_feed_ready(
+                    prefs["futures_exchange"], prefs["futures_symbol"]):
                 self.next_attempt_at = 0
                 self.last_config = None
                 store.brooks_worker_heartbeat(
