@@ -172,7 +172,9 @@ def parse_core_result(blob: bytes, manifest: CoreManifest, event: CoreInput) -> 
                 direction=_optional_enum(Direction, raw.get("direction")),
                 entry=_price(raw.get("entry")), stop=_price(raw.get("stop")),
                 targets=tuple(_price(v) for v in ts),
-                expires_at=(\n                    _when(raw["expires_at"]) if raw.get("expires_at") is not None else None\n                ),
+                expires_at=(
+                    _when(raw["expires_at"]) if raw.get("expires_at") is not None else None
+                ),
                 action=action, position_id=raw.get("position_id"),
                 expected_position_revision=raw.get("expected_position_revision"),
                 new_stop=_price(raw.get("new_stop")),
