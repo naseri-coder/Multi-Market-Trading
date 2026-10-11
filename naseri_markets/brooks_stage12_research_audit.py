@@ -17,7 +17,7 @@ from typing import Any
 from urllib.parse import quote
 
 from .brooks_paper_receipts import _digest as receipt_digest
-from .brooks_replay import SECONDS, _unique
+from .brooks_replay import SECONDS
 from .brooks_stage10_paper_bridge import STAGE10_FILENAME, _signal
 from .brooks_stage11_candle_replay import _sha
 from .engine_control_store import BROOKS_ENGINE_ID
@@ -66,12 +66,21 @@ def _readonly(path: Path) -> sqlite3.Connection:
     return con
 
 
+def _no_duplicate_fields(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    obj: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in obj:
+            raise Stage12ResearchRefused("STUDY_DUPLICATE_MANIFEST_FIELD")
+        obj[key] = value
+    return obj
+
+
 def _manifest(raw: bytes) -> dict[str, Any]:
     if type(raw) is not bytes or not 0 < len(raw) <= MAX_MANIFEST_BYTES:
         raise Stage12ResearchRefused("STUDY_MANIFEST_BOUNDS")
     try:
         data = json.loads(
-            raw, object_pairs_hook=_unique,
+            raw, object_pairs_hook=_no_duplicate_fields,
             parse_constant=lambda _: (_ for _ in ()).throw(
                 Stage12ResearchRefused("STUDY_NONFINITE_JSON")
             ),
@@ -112,7 +121,7 @@ def _manifest(raw: bytes) -> dict[str, Any]:
             or any(not (c.isalnum() and c.isascii() or c in "._:-") for c in value)
         ):
             raise Stage12ResearchRefused("INVALID_STUDY_IDENTITY_" + field)
-    if data["timeframe"] not in SECONDS:
+    if type(data["timeframe"]) is not str or data["timeframe"] not in SECONDS:
         raise Stage12ResearchRefused("UNSUPPORTED_TIMEFRAME")
     starts = [_clock(data[key]) for key in (
         "window_start_utc", "training_end_utc", "validation_end_utc", "window_end_utc",
