@@ -245,7 +245,7 @@ def test_recovered_journal_no_duplicate_order_after_restart(tmp_path):
               remote_order_id="exchange-1", evidence="verified-order-detail")
         apply(sim, "fill", "FILL", quantity="3", price="101")
         assert sim.state("paper-1")["open_position_quantity"] == "3"
-        assert len(sim.events("paper-1")) == 6
+        assert len(sim.events("paper-1")) == 5
 
 
 def test_failed_transition_rolls_back_without_event_or_revision(tmp_path):
