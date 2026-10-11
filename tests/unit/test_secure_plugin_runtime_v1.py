@@ -7,7 +7,6 @@ import os
 import subprocess
 import sys
 import re
-from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal as D
 
@@ -15,7 +14,7 @@ import pytest
 
 from naseri_markets.contracts import Instrument, Market
 from naseri_markets.core_api_v1 import (
-    CoreBinding, CoreEventType, CoreInput, DataOrigin, ClosedCandle,
+    ClosedCandle, CoreBinding, CoreEventType, CoreInput, DataOrigin,
 )
 from naseri_markets.example_dual_setup_core_v1 import DualSetupExampleCore
 from naseri_markets.secure_plugin_runtime_v1 import (
@@ -175,7 +174,7 @@ def test_mock_transport_accepts_only_validated_data(monkeypatch):
         size=int.from_bytes(framed[:4], 'big')
         assert framed[4:4+size] == SOURCE
         request=json.loads(framed[4+size:])
-        assert request['abi_major'] == 1 and request['event']['binding']['instrument']['symbol'] == 'ALPHAUSD'
+        assert request['abi_major'] == 1\n        assert request['event']['binding']['instrument']['symbol'] == 'ALPHAUSD'
         assert request['input_digest'] == good.input_digest
         assert 'account' not in request and 'api_key' not in request
         seen.append(name)
