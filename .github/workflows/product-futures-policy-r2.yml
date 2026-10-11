@@ -1,0 +1,100 @@
+name: Stage 2 public futures metadata and Iran eligibility boundary
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/public_futures_contracts.py"
+      - "naseri_markets/iran_futures_eligibility.py"
+      - "naseri_markets/engine_control_store.py"
+      - "naseri_markets/integrated_engine_panel.py"
+      - "naseri_markets/brooks_paper_service.py"
+      - "naseri_markets/brooks_kraken_feed.py"
+      - "naseri_markets/brooks_market_feed.py"
+      - "naseri_markets/dev_operator.py"
+      - "tests/unit/test_public_futures_contracts.py"
+      - "docs/PRODUCT_FUTURES_POLICY_AND_PUBLIC_API_R2.md"
+      - ".github/workflows/product-futures-policy-r2.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-api-eligibility-r2:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with: {python-version: "3.12"}
+      - name: Immutable historical source and release contract
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+      - name: Lint all direct provider and permission entrypoints
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m ruff check --select E4,F \
+            naseri_markets/public_futures_contracts.py \
+            naseri_markets/iran_futures_eligibility.py \
+            naseri_markets/engine_control_store.py \
+            naseri_markets/integrated_engine_panel.py \
+            naseri_markets/brooks_paper_service.py \
+            naseri_markets/brooks_kraken_feed.py \
+            naseri_markets/brooks_market_feed.py \
+            naseri_markets/dev_operator.py \
+            tests/unit/test_public_futures_contracts.py
+      - name: Real engine and public metadata research separation unit suite
+        run: |
+          set -Eeuo pipefail
+          python -m pytest -q \
+            tests/unit/test_public_futures_contracts.py \
+            tests/unit/test_product_dev_operator.py \
+            tests/unit/test_brooks_kraken_feed.py \
+            tests/unit/test_brooks_market_feed.py \
+            tests/unit/test_brooks_futures_exchanges.py \
+            tests/unit/test_brooks_pair_selection.py \
+            tests/unit/test_brooks_paper_service.py \
+            tests/unit/test_iran_futures_eligibility.py \
+            tests/unit/test_brooks_real_offline_replay.py \
+            tests/unit/test_integrated_engine_panel.py
+      - name: Isolated installed-wheel research CLI and no unapproved polling
+        env:
+          MMT_NONPRODUCTION: "1"
+        run: |
+          set -Eeuo pipefail
+          python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/r2-wheel-src" >/dev/null
+          python -m venv "$RUNNER_TEMP/r2-clean-venv"
+          "$RUNNER_TEMP/r2-clean-venv/bin/pip" install \
+            "$RUNNER_TEMP/r2-wheel-src[telegram-admin]" >/dev/null
+          "$RUNNER_TEMP/r2-clean-venv/bin/python" - <<'PY'
+          import json
+          from naseri_markets.public_futures_contracts import (
+              discover_public_contracts, PUBLIC_INSTRUMENT_ENDPOINTS,
+          )
+          assert tuple(PUBLIC_INSTRUMENT_ENDPOINTS) == ("kraken", "kucoin")
+          payload = json.dumps({
+              "result": "success", "instruments": [{
+                  "symbol": "PF_XBTUSD", "tradeable": True,
+                  "type": "futures_vanilla", "tickSize": "0.5"
+              }]
+          }).encode()
+          r = discover_public_contracts(
+              "kraken", transport=lambda v: payload)
+          assert [c["symbol"] for c in r["contracts"]] == ["PF_XBTUSD"]
+          assert r["iran_resident_futures_approved"] is False
+          assert r["paper_signal_generation_authorized"] is False
+          assert r["account_trading_authorized"] is False
+          print("INSTALLED_PUBLIC_FUTURES_RESEARCH_ONLY_NO_AUTHORIZATION_PASS")
+          PY
+          set +e
+          "$RUNNER_TEMP/r2-clean-venv/bin/python" -m \
+            naseri_markets.public_futures_contracts \
+            --venue kucoin > "$RUNNER_TEMP/denied.log" 2>&1
+          rc=$?
+          set -e
+          test "$rc" -eq 2
+          grep -q "NONPRODUCTION_ACK_REQUIRED" "$RUNNER_TEMP/denied.log"
