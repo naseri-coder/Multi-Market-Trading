@@ -4,7 +4,6 @@ from __future__ import annotations
 import argparse
 import sqlite3
 from datetime import UTC, datetime, timedelta
-from decimal import Decimal as D
 from types import SimpleNamespace as NS
 
 import pytest
