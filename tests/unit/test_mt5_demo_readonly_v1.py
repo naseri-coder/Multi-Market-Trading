@@ -28,7 +28,6 @@ from naseri_markets.risk_portfolio_contract_v1 import (
     PortfolioRiskPolicy,
 )
 
-
 NOW = datetime(2026, 10, 11, 12, 0, tzinfo=UTC)
 
 
