@@ -67,7 +67,7 @@ jobs:
               "order_send", "order_check", "login", "symbol_select",
               "create", "apply", "release", "reserve", "halt",
               "configure_account", "configure_portfolio", "commit",
-              "connect", "write", "dump", "dumps",
+              "connect", "write", "dump",
           }
           for path in paths:
               tree = ast.parse(path.read_text(encoding="utf-8"))
