@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+import uuid
 from collections.abc import Callable, Mapping
 from datetime import date
 from decimal import Decimal
@@ -53,6 +54,8 @@ class PaperExecutionOrchestratorV1:
         p.parent.mkdir(parents=True, exist_ok=True)
         self._db = sqlite3.connect(str(p), timeout=5, isolation_level=None)
         self._db.row_factory = sqlite3.Row
+        # A restart requires fresh external PAPER reconciliation before new risk.
+        self._recovery_instance_id = uuid.uuid4().hex
         self._db.execute("PRAGMA busy_timeout=5000")
         self._db.execute("PRAGMA journal_mode=WAL")
         self._db.execute("PRAGMA synchronous=FULL")
@@ -80,13 +83,28 @@ class PaperExecutionOrchestratorV1:
         self.close()
 
     def _transaction(self, callback: Callable[[], _T]) -> _T:
-        self._db.execute("BEGIN IMMEDIATE")
+        """Owner-controlled transactions, with bounded nested savepoints.
+
+        Stage 4 may atomically reconcile several Stage-3 events and its
+        checkpoint. A nested failure must not commit a partial repair.
+        """
+        nested = self._db.in_transaction
+        if nested:
+            self._db.execute("SAVEPOINT paper_stage3_nested")
+        else:
+            self._db.execute("BEGIN IMMEDIATE")
         try:
             result = callback()
-            self._db.execute("COMMIT")
+            self._db.execute(
+                "RELEASE SAVEPOINT paper_stage3_nested" if nested else "COMMIT"
+            )
             return result
         except BaseException:
-            self._db.execute("ROLLBACK")
+            if nested:
+                self._db.execute("ROLLBACK TO SAVEPOINT paper_stage3_nested")
+                self._db.execute("RELEASE SAVEPOINT paper_stage3_nested")
+            else:
+                self._db.execute("ROLLBACK")
             raise
 
     def _action(
@@ -136,6 +154,20 @@ class PaperExecutionOrchestratorV1:
         payload = {"operation": "CREATE", "spec": _order(spec)}
 
         def create_atomically() -> dict[str, Any]:
+            fence_exists = self._db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' "
+                "AND name='paper_recovery_fences'"
+            ).fetchone()
+            if fence_exists:
+                fence = self._db.execute(
+                    "SELECT state,owner_instance FROM paper_recovery_fences "
+                    "WHERE account_id=?", (spec.account_id,),
+                ).fetchone()
+                if fence is not None and (
+                    fence["state"] != "READY"
+                    or fence["owner_instance"] != self._recovery_instance_id
+                ):
+                    raise OrchestrationRefused("ACCOUNT_RECONCILIATION_REQUIRED")
             reservation = self._risk.reserve(spec, action_id=action_id)
             order = self._orders.create(spec, action_id=action_id)
             return {
