@@ -112,6 +112,10 @@ def _status(state: Path) -> dict:
             "refused_cycles": worker["refused_cycles"],
             "last_error": worker["last_error"],
             "paper_signal_count": host.brooks_replay_status()["paper_signals"],
+            "paper_receipt_count": host.brooks_replay_status()["receipts"],
+            "most_recent_receipt": (
+                host.brooks_paper_receipts(limit=1)[0]
+                if host.brooks_replay_status()["receipts"] else None),
             "effective_channel_publication": host.publication(
                 BROOKS_ENGINE_ID)["effective_publication"],
             "legacy_database_attached": False,
@@ -179,6 +183,9 @@ def main(argv: list[str] | None = None) -> int:
     initialize = actions.add_parser("init", help="Initialize private isolated PAPER state")
     initialize.add_argument("--ack-nonproduction-init", action="store_true")
     actions.add_parser("status", help="Local health inspection; no Telegram/HTTPS")
+    receipts = actions.add_parser(
+        "receipts", help="Local immutable PAPER scan and risk receipts, no network")
+    receipts.add_argument("--limit", type=int, default=8)
     contracts = actions.add_parser(
         "contracts", help="Official futures instrument metadata; READ-ONLY research")
     contracts.add_argument("--venue", required=True, choices=("kraken", "kucoin"))
@@ -212,6 +219,13 @@ def main(argv: list[str] | None = None) -> int:
         state = _state_dir(args.state_dir)
         if args.command == "status":
             print(json.dumps(_status(state), sort_keys=True))
+            return 0
+        if args.command == "receipts":
+            with EngineControlStore(state) as host:
+                data = host.brooks_paper_receipts(limit=args.limit)
+            print(json.dumps({"mode": "OFFLINE_PAPER_AUDIT_ONLY",
+                              "receipts": data, "telegram_sent": False,
+                              "orders_placed": False}, sort_keys=True))
             return 0
         if args.command == "contracts":
             if not args.ack_public_metadata_research:

@@ -180,8 +180,19 @@ class IntegratedEnginePanel(CustomAdminPanel):
         replay_line = ""
         if state.engine_kind == "BUILTIN_BROOKS":
             replay = host.brooks_replay_status()
+            receipts = host.brooks_paper_receipts(limit=1)
+            recent = receipts[0] if receipts else None
+            audit_line = (
+                f"رسید حسابرسی PAPER: {replay['receipts']}\n"
+                + (f"آخرین اسکن: {recent['symbol']} / {recent['timeframe']} "
+                   f"({recent['decision']})\n"
+                   f"اعتبارسنجی ریسک: {recent['risk_check']} "
+                   f"| R هدف اول: "
+                   f"{recent['target_reward_r'][0] if recent['target_reward_r'] else '—'}\n"
+                   if recent else "رسید جدیدی ثبت نشده است.\n"))
             replay_line = (
                 f"اسکن‌های واقعی Replay: {replay['scans']}\n"
+                f"{audit_line}"
                 f"اسکن‌های بدون سیگنال: {replay['no_signal']}\n"
                 f"سرویس Futures PAPER: {worker['phase']}\n"
                 f"آخرین کندل: {worker['last_closed_candle'] or 'ثبت نشده'}\n"

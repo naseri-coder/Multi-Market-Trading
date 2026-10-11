@@ -1,0 +1,87 @@
+name: Stage 3 Brooks PAPER scan receipts restart and private admin audit
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/brooks_paper_receipts.py"
+      - "naseri_markets/brooks_replay.py"
+      - "naseri_markets/engine_control_store.py"
+      - "naseri_markets/integrated_engine_panel.py"
+      - "naseri_markets/dev_operator.py"
+      - "tests/unit/test_brooks_paper_receipts.py"
+      - "docs/PRODUCT_BROOKS_PAPER_AUDIT_R3.md"
+      - ".github/workflows/product-brooks-paper-audit-r3.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  paper-risk-receipts-r3:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with: {python-version: "3.12"}
+      - name: Frozen V5 source manifest and release contract
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+      - name: Stage 3 static and real Brooks/restart regression suite
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m ruff check --select E4,F \
+            naseri_markets/brooks_paper_receipts.py \
+            naseri_markets/brooks_replay.py \
+            naseri_markets/engine_control_store.py \
+            naseri_markets/integrated_engine_panel.py \
+            naseri_markets/dev_operator.py \
+            tests/unit/test_brooks_paper_receipts.py
+          python -m pytest -q \
+            tests/unit/test_brooks_paper_receipts.py \
+            tests/unit/test_brooks_real_offline_replay.py \
+            tests/unit/test_product_dev_operator.py \
+            tests/unit/test_brooks_paper_service.py \
+            tests/unit/test_brooks_pair_selection.py \
+            tests/unit/test_iran_futures_eligibility.py \
+            tests/unit/test_integrated_engine_panel.py
+      - name: Isolated new wheel installed and local receipts CLI gated
+        env:
+          MMT_NONPRODUCTION: "1"
+        run: |
+          set -Eeuo pipefail
+          python scripts/a6_prepare_package.py \
+            --destination "$RUNNER_TEMP/r3-wheel-src" >/dev/null
+          python -m venv "$RUNNER_TEMP/r3-clean"
+          "$RUNNER_TEMP/r3-clean/bin/python" -m pip install \
+            "$RUNNER_TEMP/r3-wheel-src[telegram-admin]" >/dev/null
+          "$RUNNER_TEMP/r3-clean/bin/python" - <<'PY'
+          from naseri_markets.brooks_paper_receipts import SCHEMA, make_receipt
+          from naseri_markets.dev_operator import main
+          assert "brooks_paper_receipts" in SCHEMA
+          assert callable(make_receipt) and callable(main)
+          print("STAGE3_WHEEL_RECEIPTS_PRESENT")
+          PY
+          mkdir -m 700 "$RUNNER_TEMP/preview-state"
+          "$RUNNER_TEMP/r3-clean/bin/python" -m naseri_markets.dev_operator \
+            --state-dir "$RUNNER_TEMP/preview-state" \
+            init --ack-nonproduction-init > "$RUNNER_TEMP/r3-init.json"
+          "$RUNNER_TEMP/r3-clean/bin/python" -m naseri_markets.dev_operator \
+            --state-dir "$RUNNER_TEMP/preview-state" \
+            receipts --limit 3 > "$RUNNER_TEMP/r3-receipts.json"
+          "$RUNNER_TEMP/r3-clean/bin/python" - <<'PY'
+          import json
+          from pathlib import Path
+          import os
+          state = Path(os.environ["RUNNER_TEMP"])
+          r = json.loads((state / "r3-receipts.json").read_text())
+          assert r["mode"] == "OFFLINE_PAPER_AUDIT_ONLY"
+          assert r["receipts"] == []
+          assert r["orders_placed"] is False
+          assert r["telegram_sent"] is False
+          print("STAGE3_CLEAN_WHEEL_NO_SIGNALS_NO_TELEGRAM_PASS")
+          PY
