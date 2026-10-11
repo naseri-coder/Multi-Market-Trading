@@ -136,10 +136,10 @@ def test_multitarget_partial_and_complete(tmp_path):
     with s:
         fill(s,oid)
         a=s.step_closed_bar(oid,candle(BASE+timedelta(minutes=45),open="107",high="111",low="104",close="109"),operator_ack=True)
-        assert len(a["exits"])==1 and a["exits"][0]["quantity"]=="0.40"
+        assert len(a["exits"])==1 and D(a["exits"][0]["quantity"])==D("0.40")
         assert s.risk_snapshot("portfolio")["active_orders"]==1
         b=s.step_closed_bar(oid,candle(BASE+timedelta(minutes=60),open="109",high="114",low="108",close="113"),operator_ack=True)
-        assert b["status"]=="CLOSED" and b["exits"][0]["quantity"]=="0.60"
+        assert b["status"]=="CLOSED" and D(b["exits"][0]["quantity"])==D("0.60")
         assert s.risk_snapshot("portfolio")["active_orders"]==0
         assert len(s.performance(oid)["exits"])==2
 
