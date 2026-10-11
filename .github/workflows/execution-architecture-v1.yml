@@ -41,7 +41,7 @@ jobs:
           MMT_NONPRODUCTION: "1"
           PYTHONPATH: ${{ github.workspace }}
         run: |
-          python -m pytest -q tests/unit/test_execution_architecture_v1.py
+          python -m pytest -q --confcutdir=tests/unit tests/unit/test_execution_architecture_v1.py
       - name: Verify no provider-trading imports or live send entrypoint
         run: |
           python - <<'PY'
