@@ -334,6 +334,32 @@ def evaluate_brooks_stage12(state_dir: str | Path, manifest_bytes: bytes) -> dic
                     or count[1] != 1 or count[2] != meta["bars_committed"]
                 ):
                     raise Stage12ResearchRefused("STUDY_BAR_JOURNAL_INCOMPLETE")
+                journal = paper.execute(
+                    "SELECT seq,decision,close_time_utc FROM brooks_stage11_bars "
+                    "WHERE order_id=? ORDER BY seq",
+                    (link["order_id"],),
+                ).fetchall()
+                decisions = {
+                    "WAITING_ENTRY", "ENTRY_ONLY", "ENTRY_AND_STOP_SAME_BAR",
+                    "STOP", "STOP_WORST_CASE", "TARGET", "HOLD",
+                }
+                step = timedelta(seconds=SECONDS[study["timeframe"]])
+                for index, event in enumerate(journal):
+                    if (
+                        event["seq"] != index+1
+                        or event["decision"] not in decisions
+                        or _clock(event["close_time_utc"]) != when + step*(index+1)
+                        or _clock(event["close_time_utc"]) > bounds[3]
+                    ):
+                        raise Stage12ResearchRefused("STUDY_BAR_TIME_OR_DECISION_DRIFT")
+                if order["status"] == "CLOSED" and (
+                    meta.get("exit_time_utc") != journal[-1]["close_time_utc"]
+                    or meta.get("exit_reason") != journal[-1]["decision"]
+                    or meta.get("entry_time_utc") not in {
+                        event["close_time_utc"] for event in journal
+                    }
+                ):
+                    raise Stage12ResearchRefused("STUDY_TERMINAL_BAR_EVIDENCE_CONFLICT")
                 if order["status"] != "CLOSED":
                     if risk_row["status"] != "ACTIVE" or meta.get("risk_released") is not False:
                         raise Stage12ResearchRefused("STUDY_OPEN_RISK_INCONSISTENT")
