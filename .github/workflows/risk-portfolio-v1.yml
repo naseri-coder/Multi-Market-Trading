@@ -1,0 +1,66 @@
+name: Risk Portfolio V1 PAPER Safety
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/risk_portfolio_contract_v1.py"
+      - "naseri_markets/risk_portfolio_manager_v1.py"
+      - "tests/unit/test_risk_portfolio_manager_v1.py"
+      - "docs/RISK_PORTFOLIO_MANAGER_V1_PAPER.md"
+      - ".github/workflows/risk-portfolio-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  risk-portfolio-paper:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install test tools only, never broker SDKs
+        run: python -m pip install pytest==9.1.1 pytest-asyncio==1.4.0 ruff==0.16.9
+      - name: Compile and lint standalone PAPER risk contract
+        run: |
+          python -m compileall -q \
+            naseri_markets/risk_portfolio_contract_v1.py \
+            naseri_markets/risk_portfolio_manager_v1.py \
+            tests/unit/test_risk_portfolio_manager_v1.py
+          python -m ruff check --select E4,F,I,B,UP \
+            naseri_markets/risk_portfolio_contract_v1.py \
+            naseri_markets/risk_portfolio_manager_v1.py \
+            tests/unit/test_risk_portfolio_manager_v1.py
+      - name: PAPER risk acceptance and Stage-1 compatibility
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          MMT_NONPRODUCTION: "1"
+        run: |
+          python -m pytest -q --confcutdir=tests/unit \
+            tests/unit/test_risk_portfolio_manager_v1.py \
+            tests/unit/test_execution_architecture_v1.py
+      - name: Reject exchange, terminal and network execution imports
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          for name in ("risk_portfolio_contract_v1", "risk_portfolio_manager_v1"):
+              path = Path("naseri_markets") / (name + ".py")
+              source = path.read_text(encoding="utf-8")
+              tree = ast.parse(source)
+              imports = [n.module for n in ast.walk(tree)
+                         if isinstance(n, ast.ImportFrom) and n.module]
+              imports += [a.name for n in ast.walk(tree)
+                          if isinstance(n, ast.Import) for a in n.names]
+              forbidden = ("MetaTrader5", "ccxt", "binance", "httpx",
+                           "requests", "socket", "subprocess")
+              assert not any(x.startswith(forbidden) for x in imports), imports
+              assert "order_send" not in source
+              assert "trade_executed" not in source
+          print("PASS: risk layer cannot connect or place orders")
+          PY
