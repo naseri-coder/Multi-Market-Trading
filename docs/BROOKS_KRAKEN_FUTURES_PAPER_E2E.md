@@ -1,3 +1,14 @@
+> **Current product-policy update (2026-10-11):** The original
+> real HTTPS two-cycle Kraken test belongs to historical public-data
+> research evidence, **not** Iranian-resident futures onboarding. With
+> the new centrally enforced Iran residency policy, the current GitHub
+> Action deliberately expects
+> `PASS_IRAN_FUTURES_ELIGIBILITY_FENCE_NO_HTTP`: zero new Kraken
+> requests, zero new PAPER signals and disabled publication. This is a
+> **policy gate pass**, explicitly **not** evidence that the latest Kraken
+> endpoint was fetched or trading permission was obtained. See
+> [Stage 2 contract/API separation](PRODUCT_FUTURES_POLICY_AND_PUBLIC_API_R2.md).
+>
 # Nonproduction Kraken Futures BTC/USD → genuine Brooks V5 → PAPER
 
 **Stage result is conditional on actual GitHub Actions E2E, not a mocked PASS.**
