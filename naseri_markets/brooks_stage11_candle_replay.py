@@ -273,6 +273,7 @@ class BrooksStage11CandleReplay:
                             if order["status"] != "CREATED" or len(core.order_events(order_id)) != 1:
                                 raise BrooksStage11Refused("NON_STAGE11_ORDER_ALREADY_MUTATED")
                             meta = {
+                                "quote_currency": order["spec"]["instrument"]["quote_currency"],
                                 "bars_committed": 0, "entry_time_utc": None,
                                 "exit_time_utc": None, "exit_reason": None,
                                 "entry_price": None, "exit_price": None,
@@ -283,6 +284,8 @@ class BrooksStage11CandleReplay:
                             }
                         else:
                             meta = json.loads(existing["metadata_json"])
+                            if meta.get("quote_currency") != order["spec"]["instrument"]["quote_currency"]:
+                                raise BrooksStage11Refused("STAGE11_QUOTE_CURRENCY_DRIFT")
                             if _sha(order) != existing["state_sha256"]:
                                 raise BrooksStage11Refused("STAGE11_ORDER_STATE_DRIFT")
                         seen = int(meta["bars_committed"])
