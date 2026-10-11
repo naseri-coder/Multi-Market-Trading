@@ -1,0 +1,76 @@
+name: Stage 4 PAPER Broker Reconciliation and Crash Recovery
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/offline_broker_fixture_v1.py"
+      - "naseri_markets/paper_position_reconciler_v1.py"
+      - "naseri_markets/execution_position_core_v1.py"
+      - "tests/unit/test_paper_position_reconciler_v1.py"
+      - "docs/POSITION_RECONCILIATION_CRASH_RECOVERY_V1_PAPER.md"
+      - ".github/workflows/position-reconciliation-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-paper-reconciliation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install offline-only testing tools
+        run: python -m pip install pytest==9.1.1 pytest-asyncio==1.4.0 ruff==0.16.9
+      - name: Compile, lint and validate safety contract
+        run: |
+          python -m compileall -q \
+            naseri_markets/offline_broker_fixture_v1.py \
+            naseri_markets/paper_position_reconciler_v1.py \
+            naseri_markets/execution_position_core_v1.py \
+            tests/unit/test_paper_position_reconciler_v1.py
+          python -m ruff check --select E4,F,I,B,UP \
+            naseri_markets/offline_broker_fixture_v1.py \
+            naseri_markets/paper_position_reconciler_v1.py \
+            naseri_markets/execution_position_core_v1.py \
+            tests/unit/test_paper_position_reconciler_v1.py
+      - name: Stages 1-4 PAPER acceptance, no production configuration
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          MMT_NONPRODUCTION: "1"
+        run: |
+          python -m pytest -q --confcutdir=tests/unit \
+            tests/unit/test_paper_position_reconciler_v1.py \
+            tests/unit/test_execution_position_core_v1.py \
+            tests/unit/test_risk_portfolio_manager_v1.py \
+            tests/unit/test_execution_architecture_v1.py
+      - name: Require offline code only, prohibit provider or Telegram imports
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          paths = [
+              Path("naseri_markets/offline_broker_fixture_v1.py"),
+              Path("naseri_markets/paper_position_reconciler_v1.py"),
+              Path("naseri_markets/execution_position_core_v1.py"),
+          ]
+          forbidden = ("MetaTrader5", "ccxt", "binance", "httpx", "requests",
+                       "socket", "subprocess", "telegram", "urllib", "asyncio")
+          for path in paths:
+              source = path.read_text(encoding="utf-8")
+              tree = ast.parse(source)
+              imported = [n.module for n in ast.walk(tree)
+                          if isinstance(n, ast.ImportFrom) and n.module]
+              imported += [a.name for n in ast.walk(tree)
+                           if isinstance(n, ast.Import) for a in n.names]
+              assert not any(name.startswith(forbidden) for name in imported), (
+                  path, imported,
+              )
+              assert "order_send" not in source, path
+          print("PASS: standalone offline PAPER fixture/reconciliation only")
+          PY
