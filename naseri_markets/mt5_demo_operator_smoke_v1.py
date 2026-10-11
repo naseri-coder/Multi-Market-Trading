@@ -11,10 +11,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from .mt5_demo_evidence_custody_v1 import _margin_mode
-from .mt5_demo_history_readonly_v1 import (
-    MT5DemoHistoryReaderV1,
-    MT5HistoryRefused,
-)
+from .mt5_demo_history_readonly_v1 import MT5DemoHistoryReaderV1
 from .mt5_demo_readonly_adapter_v1 import (
     DemoAccountExpectation,
     MT5DemoReadOnlyAdapterV1,
@@ -118,13 +115,9 @@ def observe_demo_smoke(
     # The first account read must be a guarded official trade mode check.
     margin_before = _margin_mode(provider, adapter)
     active_before = adapter.capture(observed_at=last)
-    try:
-        history = MT5DemoHistoryReaderV1(provider, expected).capture(
-            first, last, captured_at=last,
-        )
-    except Exception:
-        # No partial evidence on query failures.
-        raise
+    history = MT5DemoHistoryReaderV1(provider, expected).capture(
+        first, last, captured_at=last,
+    )
     active_after = adapter.capture(observed_at=last)
     margin_after = _margin_mode(provider, adapter)
     if margin_before != margin_after:
