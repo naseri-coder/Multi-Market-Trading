@@ -38,7 +38,7 @@ def pp(**kwargs):
         portfolio_id="portfolio-1", currency="USD",
         max_reserved_risk=D("100"), max_notional=D("10000"),
         max_daily_loss=D("100"), max_group_risk=D("50"),
-        max_engine_risk=D("80"), max_active_orders=20,
+        max_engine_risk=D("70"), max_active_orders=20,
     )
     return PortfolioRiskPolicy(**(values | kwargs))
 
@@ -129,7 +129,7 @@ def test_portfolio_cap_across_accounts_and_groups(managed):
     reserve(managed, "b1", quantity="2")
     reserve(managed, "s1", account="account-2", symbol="SOL-PAPER", quantity="2")
     with pytest.raises(RiskRefused, match="CORRELATION_GROUP_CAP"):
-        reserve(managed, "e1", symbol="ETH-PAPER", quantity="3")
+        reserve(managed, "e1", symbol="ETH-PAPER", quantity="2.8")
     assert managed.snapshot("portfolio-1")["active_orders"] == 2
 
 
@@ -142,7 +142,7 @@ def test_engine_concentration_cap_across_accounts(managed):
         reserve(managed, "no-4", engine="same-engine", symbol="BTC-PAPER")
     with pytest.raises(RiskRefused, match="ENGINE_CONCENTRATION_CAP"):
         reserve(managed, "no-alt", engine="same-engine",
-                symbol="SOL-PAPER", quantity="3.2")
+                symbol="SOL-PAPER", quantity="2.8")
 
 
 def test_unregistered_instrument_and_currency_never_sneak_in(managed):
@@ -212,6 +212,8 @@ def test_halts_one_way_and_keep_existing_risk_reserved(managed):
 
 
 def test_halt_wrong_account_cannot_cross_portfolio(managed):
+    managed.configure_portfolio(pp(portfolio_id="portfolio-2"))
+    managed.configure_account(ap("account-other-portfolio", portfolio_id="portfolio-2"))
     with pytest.raises(RiskRefused, match="HALT_ACCOUNT_PORTFOLIO_MISMATCH"):
         managed.halt(portfolio_id="portfolio-1", scope="account",
                      subject_id="another", action_id="wrong")
