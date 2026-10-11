@@ -169,6 +169,7 @@ def _report(core: PaperExecutionOrchestratorV1, order_id: str, meta: dict) -> di
     result = {
         "mode": "BROOKS_STAGE11_OFFLINE_CANDLE_PAPER_ONLY",
         "order_id": order_id,
+        "quote_currency": order["spec"]["instrument"]["quote_currency"],
         "status": order["status"],
         "bars_committed": meta["bars_committed"],
         "entry_time_utc": meta["entry_time_utc"],
