@@ -86,6 +86,7 @@ def test_real_exchange_native_contract_symbols_are_not_catalog_guesses():
     ("kucoin", b'{"code":"200001","data":[]}'),
     ("kucoin", b'{"code":"200000","data":[{"symbol":"../BTC","type":"FFWCSX","status":"Open","quoteCurrency":"USDT","tickSize":0.1}]}'),
     ("kucoin", b'{"code":"200000","data":[{"symbol":"BTCUSDTM","type":"FFWCSX","status":"Open","quoteCurrency":"USDT","tickSize":"Infinity"}]}'),
+    ("kucoin", b'{"code":"200000","data":[{"symbol":"BTCUSDTM","type":"FFWCSX","status":"Open","quoteCurrency":"USDT","tickSize":"0.1"}]}'),
 ])
 def test_metadata_fail_closed_invalid_exchange_response(venue, body):
     with pytest.raises(contracts.PublicContractsRefused):
