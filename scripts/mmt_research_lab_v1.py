@@ -7,7 +7,9 @@ import sys
 from pathlib import Path
 
 from naseri_markets.strategy_research_lab_v1 import (
-    MAX_MANIFEST, ResearchLabRefused, evaluate_stage9_research,
+    MAX_MANIFEST,
+    ResearchLabRefused,
+    evaluate_stage9_research,
 )
 
 
