@@ -18,6 +18,15 @@ from naseri_markets.brooks_market_feed import (
 from naseri_markets.brooks_replay import parse_candle_replay
 from naseri_markets.engine_control_store import BROOKS_ENGINE_ID, EngineControlStore
 
+
+@pytest.fixture(autouse=True)
+def _legacy_mock_research_scope(monkeypatch):
+    # Historical 2026 public-OHLCV fixtures exercise the V5 engine only.
+    # These overrides are local to this test module: the real installed
+    # Iran-resident product policy remains deny-by-default.
+    monkeypatch.setattr("naseri_markets.engine_control_store.require_iran_resident_futures_selection", lambda venue: None)
+    monkeypatch.setattr("naseri_markets.brooks_market_feed.iran_futures_approved", lambda venue: True)
+
 LEGACY = Path(__file__).resolve().parents[2] / "production_source"
 START = datetime(2026, 1, 1, tzinfo=UTC)
 CLOCK = START + timedelta(minutes=15 * 72 + 5)
