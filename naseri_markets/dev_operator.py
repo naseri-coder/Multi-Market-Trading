@@ -18,9 +18,9 @@ import time
 from pathlib import Path
 
 from .engine_control_store import BROOKS_ENGINE_ID, EngineControlStore
-from .futures_pairs import pair_is_verified_paper
-from .futures_venues import paper_feed_verified
-from .iran_futures_eligibility import iran_futures_approved
+from .iran_futures_eligibility import (
+    iran_futures_approved, resident_paper_feed_ready,
+)
 from .trusted_custom import LocalCustomRefused
 
 
@@ -92,9 +92,8 @@ def _status(state: Path) -> dict:
         prefs = host.preferences(BROOKS_ENGINE_ID)
         worker = host.brooks_worker_status()
         approved = iran_futures_approved(prefs["futures_exchange"])
-        ready = (approved and paper_feed_verified(prefs["futures_exchange"])
-                 and pair_is_verified_paper(
-                     prefs["futures_exchange"], prefs["futures_symbol"]))
+        ready = resident_paper_feed_ready(
+            prefs["futures_exchange"], prefs["futures_symbol"])
         return {
             "product": "Multi Market Trading",
             "mode": "ISOLATED_DEVELOPMENT_ONLY",
