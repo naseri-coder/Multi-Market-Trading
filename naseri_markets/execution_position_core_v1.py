@@ -13,9 +13,11 @@ import json
 import sqlite3
 from collections.abc import Callable, Mapping
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, TypeVar
 
+from .contracts import Instrument
 from .execution_contract_v1 import OrderSpec, identity
 from .position_lifecycle_simulator import PositionLifecycleSimulator
 from .risk_portfolio_contract_v1 import AccountRiskPolicy, PortfolioRiskPolicy
@@ -119,7 +121,7 @@ class PaperExecutionOrchestratorV1:
         self._transaction(lambda: self._risk.configure_account(policy))
 
     def register_instrument(
-        self, *, portfolio_id: str, instrument: Any, group_id: str,
+        self, *, portfolio_id: str, instrument: Instrument, group_id: str,
     ) -> None:
         self._transaction(
             lambda: self._risk.register_instrument(
@@ -184,11 +186,37 @@ class PaperExecutionOrchestratorV1:
                 quantity=quantity, price=price, stop=stop,
                 remote_order_id=remote_order_id, evidence=evidence,
             )
-            filled = updated["filled_quantity"]
-            closed = updated["closed_quantity"]
+            filled = Decimal(updated["filled_quantity"])
+            closed = Decimal(updated["closed_quantity"])
+            paper_loss = Decimal("0")
+            if event in {"CLOSE_FILL", "EMERGENCY_CLOSE"}:
+                delta = closed - Decimal(current["closed_quantity"])
+                if delta <= 0:
+                    raise OrchestrationRefused("CLOSE_DELTA_REQUIRED")
+                entry = Decimal(updated["average_fill_price"])
+                exit_price = Decimal(price)
+                policy = json.loads(self._risk._account(
+                    current["spec"]["account_id"]
+                )["policy"])
+                multiplier = Decimal(policy["contract_multiplier"])
+                friction = (
+                    Decimal(policy["roundtrip_fee_fraction"])
+                    + Decimal(policy["worst_slippage_fraction"])
+                )
+                direction = Decimal("1") if current["spec"]["direction"] == "long" else Decimal("-1")
+                gross = direction * (exit_price - entry) * delta * multiplier
+                modeled_cost = max(entry, exit_price) * delta * multiplier * friction
+                paper_loss = max(Decimal("0"), modeled_cost - gross)
+                if paper_loss > 0:
+                    loss_action = "internal-loss-" + _hash({
+                        "order": order_id, "action_id": action_id,
+                    })[:40]
+                    self._risk.record_loss(
+                        current["spec"]["account_id"],
+                        action_id=loss_action, amount=paper_loss,
+                    )
             terminal = (
-                (updated["status"] in {"CANCELED", "REJECTED"} and
-                 float(filled) == 0)
+                (updated["status"] in {"CANCELED", "REJECTED"} and filled == 0)
                 or (updated["status"] == "CLOSED" and filled == closed)
             )
             release: dict[str, Any] | None = None
@@ -205,6 +233,7 @@ class PaperExecutionOrchestratorV1:
                 "mode": "PAPER_ONLY", "operation": event, "order": updated,
                 "risk_released": release is not None,
                 "risk_release": release,
+                "modeled_realized_loss": str(paper_loss),
             }
 
         return self._action(
