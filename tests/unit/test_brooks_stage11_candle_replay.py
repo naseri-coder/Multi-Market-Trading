@@ -6,7 +6,6 @@ import json
 import sqlite3
 from datetime import timedelta
 from decimal import Decimal as D
-from pathlib import Path
 
 import pytest
 
