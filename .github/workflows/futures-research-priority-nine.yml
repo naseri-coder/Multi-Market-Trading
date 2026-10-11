@@ -1,0 +1,80 @@
+name: Nine exchange operator priority remains research-only
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/futures_research_priority.py"
+      - "naseri_markets/integrated_engine_panel.py"
+      - "naseri_markets/dev_operator.py"
+      - "tests/unit/test_futures_research_priority.py"
+      - "docs/FUTURES_RESEARCH_OPERATOR_PRIORITY_NINE.md"
+      - ".github/workflows/futures-research-priority-nine.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  futures-research-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with: {python-version: "3.12"}
+      - name: Historical source SHA pin and preview release unchanged
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+      - name: Static analysis and strict operator research priority tests
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -e ".[dev]"
+          python -m ruff check --select E4,F \
+            naseri_markets/futures_research_priority.py \
+            naseri_markets/integrated_engine_panel.py \
+            naseri_markets/dev_operator.py \
+            tests/unit/test_futures_research_priority.py
+          python -m pytest -q \
+            tests/unit/test_futures_research_priority.py \
+            tests/unit/test_iran_futures_eligibility.py \
+            tests/unit/test_brooks_exchange_admin_panel.py \
+            tests/unit/test_public_futures_contracts.py \
+            tests/unit/test_product_dev_operator.py \
+            tests/unit/test_integrated_engine_panel.py
+      - name: Clean wheel read-only research view must not mutate eligibility
+        env:
+          MMT_NONPRODUCTION: "1"
+        run: |
+          set -Eeuo pipefail
+          python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/venue-wheel" > /dev/null
+          python -m venv "$RUNNER_TEMP/venue-venv"
+          "$RUNNER_TEMP/venue-venv/bin/pip" install \
+            "$RUNNER_TEMP/venue-wheel[telegram-admin]" >/dev/null
+          "$RUNNER_TEMP/venue-venv/bin/python" - <<'PY'
+          from naseri_markets.futures_research_priority import operator_futures_research
+          from naseri_markets.iran_futures_eligibility import available_futures_venues
+          x = operator_futures_research()
+          assert [row["exchange"] for row in x] == [
+              "binance", "bybit", "mexc", "lbank", "xt",
+              "toobit", "bitunix", "bigone", "kcex",
+          ]
+          assert not available_futures_venues()
+          assert all(not row["paper_signal_authorized"] for row in x)
+          print("OPERATOR_RESEARCH_PRIORITY_NOT_EXECUTABLE_PASS")
+          PY
+          "$RUNNER_TEMP/venue-venv/bin/python" -m naseri_markets.dev_operator \
+            --state-dir "$RUNNER_TEMP/venue-state" init \
+            --ack-nonproduction-init >/dev/null
+          "$RUNNER_TEMP/venue-venv/bin/python" -m naseri_markets.dev_operator \
+            --state-dir "$RUNNER_TEMP/venue-state" venues > "$RUNNER_TEMP/venues.json"
+          "$RUNNER_TEMP/venue-venv/bin/python" - "$RUNNER_TEMP/venues.json" <<'PY'
+          import json, sys
+          r = json.load(open(sys.argv[1]))
+          assert len(r["venues"]) == 9
+          assert r["resident_futures_access_granted"] is False
+          assert r["signal_delivery_enabled"] is False
+          assert r["orders_enabled"] is False
+          PY

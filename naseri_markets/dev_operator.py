@@ -183,6 +183,7 @@ def main(argv: list[str] | None = None) -> int:
     initialize = actions.add_parser("init", help="Initialize private isolated PAPER state")
     initialize.add_argument("--ack-nonproduction-init", action="store_true")
     actions.add_parser("status", help="Local health inspection; no Telegram/HTTPS")
+    actions.add_parser("venues", help="Offline non-executable operator research priority")
     receipts = actions.add_parser(
         "receipts", help="Local immutable PAPER scan and risk receipts, no network")
     receipts.add_argument("--limit", type=int, default=8)
@@ -219,6 +220,20 @@ def main(argv: list[str] | None = None) -> int:
         state = _state_dir(args.state_dir)
         if args.command == "status":
             print(json.dumps(_status(state), sort_keys=True))
+            return 0
+        if args.command == "venues":
+            from .futures_research_priority import (
+                RANKING_BASIS, RESEARCHED_AT, operator_futures_research,
+            )
+            print(json.dumps({
+                "mode": "OFFLINE_RESEARCH_ONLY",
+                "ranking_basis": RANKING_BASIS,
+                "researched_at": RESEARCHED_AT,
+                "venues": operator_futures_research(),
+                "resident_futures_access_granted": False,
+                "signal_delivery_enabled": False,
+                "orders_enabled": False,
+            }, sort_keys=True))
             return 0
         if args.command == "receipts":
             with EngineControlStore(state) as host:
