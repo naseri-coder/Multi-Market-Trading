@@ -356,18 +356,50 @@ def evaluate_brooks_stage12(state_dir: str | Path, manifest_bytes: bytes) -> dic
                 if fees < 0 or slip < 0 or gross-fees-slip != net:
                     raise Stage12ResearchRefused("STUDY_NET_ACCOUNTING_CONFLICT")
                 quantity = _amount(spec["quantity"], "QUANTITY")
-                init_risk = abs(Decimal(spec["reference_entry"]) - Decimal(spec["stop"])) * quantity
-                # Stage-11 policy multiplier is not carried in the immutable
-                # order specification. Check recorded R's implicit multiplier
-                # remains strictly positive and agrees with computed gross.
-                multiplier = (
-                    gross / ((Decimal(meta["exit_price"])-Decimal(meta["entry_price"]))
-                             * quantity * (1 if spec["direction"] == "long" else -1))
-                    if gross else None
+                entry = _amount(meta.get("entry_price"), "ENTRY")
+                exit_price = _amount(meta.get("exit_price"), "EXIT")
+                if entry != _amount(spec["reference_entry"], "SPEC_ENTRY"):
+                    raise Stage12ResearchRefused("STUDY_PAPER_ENTRY_PRICE_DRIFT")
+                policy_row = paper.execute(
+                    "SELECT policy FROM risk_accounts WHERE account_id=?",
+                    (study["account_id"],),
+                ).fetchone()
+                if policy_row is None:
+                    raise Stage12ResearchRefused("STUDY_MISSING_ACCOUNT_RISK_POLICY")
+                policy = json.loads(policy_row["policy"])
+                multiplier = _amount(policy["contract_multiplier"], "MULTIPLIER")
+                fee_rate = _amount(policy["roundtrip_fee_fraction"], "FEE_RATE")
+                slippage_rate = _amount(policy["worst_slippage_fraction"], "SLIP_RATE")
+                if (
+                    quantity <= 0 or multiplier <= 0 or entry <= 0 or exit_price <= 0
+                    or fee_rate < 0 or slippage_rate < 0
+                ):
+                    raise Stage12ResearchRefused("STUDY_INVALID_POLICY_PARAMETERS")
+                risk_notional = (
+                    abs(entry-Decimal(spec["stop"])) * quantity * multiplier
+                )
+                budget = quantity * multiplier * (
+                    abs(entry-Decimal(spec["stop"]))
+                    + entry*(fee_rate + slippage_rate)
                 )
                 if (
-                    multiplier is None or not multiplier.is_finite() or multiplier <= 0
-                    or init_risk <= 0 or net/(init_risk*multiplier) != rvalue
+                    budget != _amount(risk_row["risk"], "RISK_RESERVATION")
+                    or entry*quantity*multiplier != _amount(
+                        risk_row["notional"], "RESERVED_NOTIONAL"
+                    )
+                ):
+                    raise Stage12ResearchRefused("STUDY_RISK_POLICY_OR_RESERVATION_CHANGED")
+                direction = 1 if spec["direction"] == "long" else -1
+                gross_expected = Decimal(direction) * (exit_price-entry)*quantity*multiplier
+                charge_base = max(entry, exit_price) * quantity * multiplier
+                if (
+                    gross != gross_expected
+                    or fees != charge_base * fee_rate
+                    or slip != charge_base * slippage_rate
+                ):
+                    raise Stage12ResearchRefused("STUDY_MODELED_COST_OR_GROSS_CONFLICT")
+                if (
+                    risk_notional <= 0 or net/risk_notional != rvalue
                     or meta.get("entry_time_utc") is None
                     or meta.get("exit_time_utc") is None
                 ):
@@ -376,7 +408,7 @@ def evaluate_brooks_stage12(state_dir: str | Path, manifest_bytes: bytes) -> dic
                     "segment": segment, "when": when, "outcome": "CLOSED_PAPER",
                     "net_pnl": net, "gross_pnl": gross, "fees": fees,
                     "slippage": slip, "realized_r": rvalue,
-                    "risk_notional": init_risk*multiplier,
+                    "risk_notional": risk_notional,
                 })
             ordered = sorted(results, key=lambda r: (r["when"], r["segment"]))
             stats = {seg: _metrics([r for r in ordered if r["segment"] == seg])
