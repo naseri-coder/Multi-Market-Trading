@@ -1,0 +1,87 @@
+name: Stage 8 MT5 DEMO Independent Requery and Position Lifecycle
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/mt5_demo_evidence_custody_v1.py"
+      - "naseri_markets/mt5_demo_independent_reverify_v1.py"
+      - "naseri_markets/mt5_demo_reverify_probe.py"
+      - "tests/unit/test_mt5_demo_independent_reverify_v1.py"
+      - "docs/MT5_DEMO_INDEPENDENT_REQUERY_V1.md"
+      - ".github/workflows/mt5-demo-requery-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mt5-demo-requery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install isolated testing tools (no broker SDK)
+        run: python -m pip install pytest==9.1.1 pytest-asyncio==1.4.0 ruff==0.16.9
+      - name: Compile and strict Ruff Stage-8
+        run: |
+          python -m compileall -q \
+            naseri_markets/mt5_demo_independent_reverify_v1.py \
+            naseri_markets/mt5_demo_reverify_probe.py \
+            naseri_markets/mt5_demo_evidence_custody_v1.py \
+            tests/unit/test_mt5_demo_independent_reverify_v1.py
+          python -m ruff check --select E4,F,I,B,UP \
+            naseri_markets/mt5_demo_independent_reverify_v1.py \
+            naseri_markets/mt5_demo_reverify_probe.py \
+            naseri_markets/mt5_demo_evidence_custody_v1.py \
+            tests/unit/test_mt5_demo_independent_reverify_v1.py
+      - name: Stages 1 through 8 isolated offline regressions
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          MMT_NONPRODUCTION: "1"
+        run: |
+          python -m pytest -q --confcutdir=tests/unit \
+            tests/unit/test_mt5_demo_independent_reverify_v1.py \
+            tests/unit/test_mt5_demo_evidence_custody_v1.py \
+            tests/unit/test_mt5_demo_history_readonly_v1.py \
+            tests/unit/test_mt5_demo_readonly_v1.py \
+            tests/unit/test_paper_position_reconciler_v1.py \
+            tests/unit/test_execution_position_core_v1.py \
+            tests/unit/test_risk_portfolio_manager_v1.py \
+            tests/unit/test_execution_architecture_v1.py
+      - name: Require absence of broker writes and PAPER mutation routes
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          paths = [
+              Path("naseri_markets/mt5_demo_independent_reverify_v1.py"),
+              Path("naseri_markets/mt5_demo_reverify_probe.py"),
+          ]
+          forbidden = {
+              "order_send", "order_check", "login", "symbol_select",
+              "apply", "release", "reserve", "halt",
+              "configure_account", "configure_portfolio",
+              "record_loss",
+          }
+          for p in paths:
+              tree = ast.parse(p.read_text(encoding="utf-8"))
+              calls = {
+                  x.func.attr for x in ast.walk(tree)
+                  if isinstance(x, ast.Call) and isinstance(x.func, ast.Attribute)
+              }
+              assert not calls.intersection(forbidden), (p, calls)
+              if p.name == "mt5_demo_independent_reverify_v1.py":
+                  assert not any(
+                      isinstance(n, ast.Import)
+                      and any(a.name == "MetaTrader5" for a in n.names)
+                      for n in ast.walk(tree)
+                  ), p
+              else:
+                  assert {"initialize", "shutdown"} <= calls
+          print("PASS: strict DEMO-only read/requery without dispatch authority")
+          PY
