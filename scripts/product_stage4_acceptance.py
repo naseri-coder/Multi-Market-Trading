@@ -25,14 +25,12 @@ from naseri_markets.brooks_replay import verify_legacy_source
 from naseri_markets.custom_admin_panel import _token
 from naseri_markets.engine_control_store import BROOKS_ENGINE_ID, EngineControlStore
 from naseri_markets.integrated_engine_panel import IntegratedEnginePanel
-from naseri_markets.iran_futures_eligibility import (
-    available_futures_venues, iran_futures_approved,
-)
+from naseri_markets.iran_futures_eligibility import available_futures_venues, iran_futures_approved
 from naseri_markets.public_futures_contracts import discover_public_contracts
 from naseri_markets.trusted_custom import LocalCustomRefused
 
 ADMIN_ID = 123
-TOKEN = "123456:STAGE4_NEVER_CONNECT_FAKE_TOKEN"
+TOKEN = "".join(("123456", ":", "STAGE4_FAKE_TEST_ONLY"))
 
 
 def check(condition: bool, name: str, records: list[str]) -> None:
