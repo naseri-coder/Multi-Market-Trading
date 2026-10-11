@@ -1,0 +1,1 @@
+{"accepted_events":["closed_candle"],"abi_major":1,"abi_minor":0,"core_id":"sample_public_core","core_version":"0.1.0","entrypoint":"plugin.py","minimum_closed_candles":2,"setups":[{"description":"Example no-trading setup (not a profitable strategy)","may_manage_stop":false,"setup_id":"example"}],"schema_version":1,"supported_markets":["crypto","forex"]}
