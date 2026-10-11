@@ -1,0 +1,104 @@
+name: Product Stage 4 — isolated offline acceptance and recovery
+
+on:
+  pull_request:
+    paths:
+      - "scripts/product_stage4_acceptance.py"
+      - "docs/PRODUCT_STAGE4_OFFLINE_ACCEPTANCE.md"
+      - ".github/workflows/product-stage4-acceptance.yml"
+      - "scripts/install_platform_dev.sh"
+      - "naseri_markets/dev_operator.py"
+      - "naseri_markets/engine_control_store.py"
+      - "naseri_markets/brooks_paper_service.py"
+      - "naseri_markets/integrated_engine_panel.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  product-acceptance:
+    name: Fresh install, panel, settings, outage, recovery, no delivery
+    runs-on: ubuntu-24.04
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with: {python-version: "3.12"}
+      - name: Stage 4 safety and frozen source preflight
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+          python -m pip install -e ".[dev]"
+          python -m ruff check --select E4,F scripts/product_stage4_acceptance.py
+          python -m pytest -q \
+            tests/unit/test_product_dev_operator.py \
+            tests/unit/test_public_futures_contracts.py \
+            tests/unit/test_iran_futures_eligibility.py \
+            tests/unit/test_brooks_paper_service.py \
+            tests/unit/test_integrated_engine_panel.py
+      - name: Run installed new-product acceptance with no market/server connections
+        env:
+          MMT_NONPRODUCTION: "1"
+        run: |
+          set -Eeuo pipefail
+          export DEV_ROOT="$RUNNER_TEMP/stage4-clean-install"
+          bash scripts/install_platform_dev.sh \
+            --destination "$DEV_ROOT" --ack-isolated-dev-install \
+            > "$RUNNER_TEMP/stage4-install.log"
+          test "$(stat -c '%a' "$DEV_ROOT/state")" = 700
+          "$DEV_ROOT/venv/bin/python" -m pip check
+          # Explicitly use installed package, not repository Python modules.
+          cd "$RUNNER_TEMP"
+          "$DEV_ROOT/venv/bin/python" -I \
+            "$GITHUB_WORKSPACE/scripts/product_stage4_acceptance.py" \
+            --state-dir "$DEV_ROOT/state" \
+            --legacy-source "$GITHUB_WORKSPACE/production_source" \
+            --report "$RUNNER_TEMP/product-stage4-acceptance.json" \
+            > "$RUNNER_TEMP/product-stage4-run.log"
+          "$DEV_ROOT/mmt-dev" status > "$RUNNER_TEMP/product-stage4-status.json"
+          "$DEV_ROOT/venv/bin/python" - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          base = Path(os.environ["RUNNER_TEMP"])
+          a = json.loads((base/"product-stage4-acceptance.json").read_text())
+          s = json.loads((base/"product-stage4-status.json").read_text())
+          assert a["verdict"] == "PASS_NONPRODUCTION_OFFLINE_STAGE4_ACCEPTANCE"
+          assert a["scenario_count"] == len(a["passed"]) >= 25
+          assert a["real_telegram_messages"] == a["real_market_http_requests"] == 0
+          assert a["broker_orders"] == a["iran_resident_eligible_venues"] == 0
+          assert not a["production_data_or_servers_modified"]
+          assert s["worker_phase"] == "STOPPED"
+          assert not s["worker_connected"]
+          assert s["timeframe"] == "5m"
+          assert s["paper_signal_count"] == 0
+          assert s["effective_channel_publication"] is False
+          assert s["real_orders_enabled"] is False
+          assert s["legacy_database_attached"] is False
+          print("PRODUCT_STAGE4_ACCEPTANCE_VERIFIED", a["scenario_count"])
+          PY
+          cat "$RUNNER_TEMP/product-stage4-run.log"
+      - name: Post-acceptance repository provenance and no private code
+        env:
+          MMT_NONPRODUCTION: "1"
+        run: |
+          set -Eeuo pipefail
+          test ! -e "$RUNNER_TEMP/stage4-clean-install/state/production_source"
+          test ! -e "$RUNNER_TEMP/stage4-clean-install/venv/lib/python3.12/site-packages/naseri_markets/private_nyfr_core.py"
+          ( cd production_source && sha256sum -c SHA256SUMS --status )
+          test -s "$RUNNER_TEMP/product-stage4-acceptance.json"
+          echo "PRODUCT_STAGE4_IMMUTABLE_SOURCE_PASS"
+      - name: Preserve downloadable sanitized acceptance report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: product-stage4-offline-acceptance
+          path: |
+            ${{ runner.temp }}/product-stage4-acceptance.json
+            ${{ runner.temp }}/product-stage4-status.json
+            ${{ runner.temp }}/product-stage4-run.log
+          if-no-files-found: ignore
+          retention-days: 30
