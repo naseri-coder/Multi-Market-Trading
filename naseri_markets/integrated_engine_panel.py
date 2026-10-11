@@ -35,7 +35,7 @@ _MORE = re.compile(r"em:(settings|tf|market|env):([0-9a-f]{12})(?::([0-9]+))?\Z"
 _EXCHANGE = re.compile(r"ex:(list|set):([0-9a-f]{12}):([0-9]+)(?::([0-9]+))?\Z")
 _TF = re.compile(r"et:(list|set):([0-9a-f]{12})(?::([0-9]+))?(?::([0-9]+))?\Z")
 _PAIR = re.compile(r"ep:(list|set):([0-9a-f]{12})(?::([0-9]+))?(?::([0-9]+))?\Z")
-_STAGE10 = re.compile(r"s10:view:([0-9a-f]{12})\\Z")
+_STAGE10 = re.compile("s10:view:([0-9a-f]{12})" + chr(92) + "Z")
 _PAGE_SIZE = 5
 _RESEARCH = re.compile(r"vr:list:([0-9a-f]{12}):([0-9]+)\Z")
 
@@ -197,7 +197,11 @@ class IntegratedEnginePanel(CustomAdminPanel):
                    f"| R هدف اول: "
                    f"{recent['target_reward_r'][0] if recent['target_reward_r'] else '—'}\n"
                    if recent else "رسید جدیدی ثبت نشده است.\n"))
+            bridge_status = panel_stage10_overview(self.state_dir)
             replay_line = (
+                f"سفارش‌های PAPER: {bridge_status['linked_orders']} | "
+                f"رزروهای ریسک فعال: {bridge_status['active_paper_reservations']}\n"
+                f"وضعیت دفتر مستقل: {bridge_status['status']} (بدون ارسال سفارش)\n"
                 f"اسکن‌های واقعی Replay: {replay['scans']}\n"
                 f"{audit_line}"
                 f"اسکن‌های بدون سیگنال: {replay['no_signal']}\n"
