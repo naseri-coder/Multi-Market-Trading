@@ -81,3 +81,18 @@ requires Brooks explicitly requested ON in PAPER with a compatible market
 and timeframe in the development admin panel. It never activates itself
 during installation, starts a Telegram bot, places orders or sends channels.
 See [Brooks market PAPER polling](../docs/BROOKS_MARKET_PAPER_POLLING.md).
+
+
+## Installed public toy PAPER journey (nonproduction)
+
+The installed `naseri-paper-demo` CLI provides an explicit, restartable **public toy only**
+`init -> enable -> replay -> replay (duplicate) -> inspect -> disable` path.
+It reuses the existing `TrustedLocalCustomHost` authorization and durable
+SQLite PAPER journal rather than adding a new trading engine. It requires
+`MMT_NONPRODUCTION=1`, a **new private absolute state directory**, exact
+manifest SHA-256 and CAS revisions, and explicit acknowledgements before
+the bundled trusted toy can run. See the [installed PAPER guide](../docs/PAPER_MVP_INSTALLED_USER_JOURNEY_V1.md).
+
+This toy is not a connected Stage 3–12 universal runtime, real historical
+backtest, sandbox for untrusted developers, Telegram publisher, market-feed
+client or order executor. Public/LIVE readiness remains **BLOCKED**.
