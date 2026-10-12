@@ -219,3 +219,28 @@ def test_owner_private_trust_and_explicit_nonproduction_required(tmp_path, monke
     folder.mkdir(mode=0o755)
     with pytest.raises(SignedCandidateRefused, match="OWNER_PRIVATE"):
         SignedCandidateWitness(folder / "public.db", **args)
+
+
+def test_reopen_with_different_key_pair_does_not_reanchor_issuer(trusted):
+    witness, _publisher, operator, path = trusted
+    impostor = Ed25519PrivateKey.generate()
+    witness.close()
+    with pytest.raises(SignedCandidateRefused, match="ISSUER_KEYS_CHANGED_ON_REOPEN"):
+        SignedCandidateWitness(
+            path, publisher_public_key=key_bytes(impostor),
+            publisher_key_sha256=sha(key_bytes(impostor)),
+            operator_public_key=key_bytes(operator),
+            operator_key_sha256=sha(key_bytes(operator)), operator_ack=True)
+
+
+def test_signed_source_upgrade_same_binding_denied_even_with_valid_signatures(trusted):
+    witness, _pub, _op, _path = trusted
+    original = signed(trusted)
+    admit(trusted, original)
+    with pytest.raises(SignedCandidateRefused, match="SOURCE_CHANGE_REQUIRES_NEW_BINDING"):
+        admit(trusted, signed(trusted, sequence=2, source_sha256=sha(b"other source")),
+              source=b"other source")
+    assert witness.current(
+        original, source=SOURCE, manifest=CORE.manifest,
+        binding=event().binding, tenant_id=TENANT, publisher=PUB,
+        publisher_key_id=KEY_ID, image=IMAGE, now=NOW).sequence == 1
