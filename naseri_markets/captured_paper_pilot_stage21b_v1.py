@@ -33,6 +33,7 @@ from .offline_runtime_supervisor_v1 import OfflineRuntimeSupervisor
 from .offline_signal_lifecycle_v1 import OfflineSignalLifecycle
 from .paper_order_lifecycle_v1 import OfflinePaperPositionLifecycle
 from .paper_contract_economics_stage21d_v1 import PaperContractEconomics
+from .paper_contract_audit_stage21d_v1 import audit_paper_contract_economics
 from .reliability_acceptance_v1 import LedgerPaths, evaluate_offline_reliability
 from .risk_portfolio_contract_v1 import AccountRiskPolicy, PortfolioRiskPolicy
 from .trading_control_center_v1 import CoreListing, OfflineTradingControlCenter
@@ -342,7 +343,16 @@ def run_captured_paper_pilot(
             or (proof is not None and (proof.blocking_effects
                 or proof.exact_local_effects != expected_effects))):
         raise CapturedPaperRefused("CROSS_LEDGER_AUDIT_FAILED")
+    economy_audit = (audit_paper_contract_economics(
+        paths["paper"], expected=contract_economics,
+        expected_orders=len(scheduled)) if contract_economics is not None
+        else None)
     rows = [results[b.binding_id] for b in bindings]
+    if economy_audit is not None and (
+            D(economy_audit.total_net) !=
+            sum((D(item.get("modeled_realized_net", "0"))
+                 for item in rows), D(0))):
+        raise CapturedPaperRefused("PER_CONTRACT_PNL_AUDIT_DRIFT")
     return {
         "mode": ("STAGE21D_UNATTESTED_CONTRACT_AWARE_OFFLINE_PAPER"
                  if contract_economics is not None else
@@ -368,6 +378,9 @@ def run_captured_paper_pilot(
         "provider_origin_independently_attested": False,
         "real_network_used": False, "provider_contract_size_verified": False,
         "modeled_per_contract_economics_applied": contract_economics is not None,
+        "local_economic_audit": (economy_audit.state if economy_audit is not None
+                                 else "NOT_APPLICABLE_LEGACY_PAPER"),
+        "economic_audited_orders": economy_audit.orders if economy_audit else 0,
         "per_contract_metadata_sha256": (provider_snapshot.raw_sha256
                                          if contract_economics else None),
         "real_futures_pnl_proven": False, "profitability_proven": False,
