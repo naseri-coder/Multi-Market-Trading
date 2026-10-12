@@ -67,6 +67,6 @@ The capture describes public HTTPS provenance as `PUBLIC_HTTPS_UNATTESTED`. SHA2
 
 CI uses fixed public-format fixtures and checks refusal on nonproduction/consent fences, invalid contract geometry, historic lookback, incomplete bars, tampering, no network on refusal, two-source forward capture, optional offline PAPER replay plus clean installed wheel. Retains Stage19/20/21A/B regression suites. Tests never connect to real KuCoin or any account.
 
-For economically meaningful multi-symbol PAPER, **per-instrument contract units/multipliers/lotSize and per-symbol commissions must be represented in the durable risk/PnL ledger and reconciled with source metadata**. Provider licensing, country eligibility, real fetch success on an expressly approved research machine, feed provenance verification and real Al Brooks Core API adapter also remain open. Nothing in Stage 21C makes this project production-ready or authorizes LIVE trading.
+Stage21D now stores per-instrument contract units/multipliers/lotSize and taker commissions in the durable risk and PnL ledger, and independently checks them against the frozen snapshot. **Actual** fills, funding costs, venue margin schedules, provider licensing, country eligibility, real fetch success on an authorized research machine, external feed attestation and the real Al Brooks Core API adapter remain open. Neither Stage21C nor Stage21D authorizes LIVE trading or public release.
 
 **No** production bot, VPS, API credentials, legacy 0.3.2 runtime, NY First-Reversal private core or Telegram messages changed.
