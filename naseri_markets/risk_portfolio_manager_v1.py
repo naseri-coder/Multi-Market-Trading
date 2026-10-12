@@ -19,7 +19,7 @@ from .contracts import EvidenceMode, Instrument
 from .execution_contract_v1 import OrderSpec, identity, positive
 from .risk_portfolio_contract_v1 import AccountRiskPolicy, PortfolioRiskPolicy
 from .paper_contract_economics_stage21d_v1 import (
-    PaperContractEconomics, ContractEconomicsRefused, require_contract_research_ack,
+    PaperContractEconomics, require_contract_research_ack,
 )
 
 
