@@ -31,7 +31,7 @@ from test_self_observation_evidence_chain_stage35_v1 import (  # noqa: F401
     chain, signed_binding,
 )
 from test_disconnected_host_evidence_stage33_v1 import (  # noqa: F401
-    prepared, claim, research_only,
+    prepared, research_only,
 )
 from test_disposable_host_preflight_stage32_v1 import (  # noqa: F401
     fixture_and_policy, dossier,
@@ -44,7 +44,7 @@ NONCE = "7"*32
 
 
 @pytest.fixture
-def aligned_case(prepared_controls):
+def aligned_case(prepared_controls):  # noqa: F811
     archive, prior, _third = prepared_controls
     signer = Ed25519PrivateKey.generate()
     public = signer.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
