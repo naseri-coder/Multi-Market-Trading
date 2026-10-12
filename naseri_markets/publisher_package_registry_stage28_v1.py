@@ -357,7 +357,8 @@ class PublisherPackageRegistry:
                stage23: SignedCandidateWitness, package: bytes,
                signed_candidate: bytes, manifest: CoreManifest,
                binding: CoreBinding, expected_image: str, now: int,
-               operator_ack: bool = False) -> QuarantinedPackageReceipt:
+               operator_ack: bool = False,
+               _auth_session_sha256: str | None = None) -> QuarantinedPackageReceipt:
         _guard(operator_ack)
         _identity(tenant_id,publisher,key_id)
         if (type(stage23) is not SignedCandidateWitness
@@ -366,6 +367,21 @@ class PublisherPackageRegistry:
                 or type(now) is not int or now < 1
                 or type(signed_candidate) is not bytes):
             raise Stage28Refused("REVIEWED_SIGNED_PUBLIC_PACKAGE_REQUIRED")
+        # Once Stage29 local intake policy is initialized, even the
+        # pre-existing Stage28 operator-only path requires a valid session.
+        # No executable plugin action can ever be granted by this policy.
+        enforced=self.stage22.db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' "
+            "AND name='secure29_policy'").fetchone() is not None
+        if enforced and (type(_auth_session_sha256) is not str
+                         or not _SHA.fullmatch(_auth_session_sha256)):
+            raise Stage28Refused("STAGE29_AUTHENTICATED_INTAKE_REQUIRED")
+        if not enforced and _auth_session_sha256 is not None:
+            raise Stage28Refused("STAGE29_POLICY_NOT_INITIALIZED")
+        if enforced:
+            self._check_session_locked(
+                _auth_session_sha256, tenant_id, publisher, key_id, now,
+                consume=False)
         source,descriptor=_decode_zip(package)
         package_sha=hashlib.sha256(package).hexdigest()
         source_sha=hashlib.sha256(source).hexdigest()
@@ -412,6 +428,12 @@ class PublisherPackageRegistry:
                 stream.flush()
                 os.fsync(stream.fileno())
             with self.stage22._tx():
+                if enforced:
+                    # Stage29 token checks and single use happen in the SAME
+                    # transaction as the signed Stage27+28 quarantine rows.
+                    self._check_session_locked(
+                        _auth_session_sha256, tenant_id, publisher, key_id,
+                        now, consume=True)
                 person=self._publisher(tenant_id,publisher)
                 key=self.stage22.db.execute(
                     "SELECT public_key,state FROM secure28_keys WHERE tenant_id=?"
@@ -447,6 +469,36 @@ class PublisherPackageRegistry:
             raise Stage28Refused("QUARANTINED_INTAKE_REFUSED_NO_EXECUTION") from exc
         return QuarantinedPackageReceipt(tenant_id,publisher,binding.binding_id,
                                          package_sha,source_sha,candidate_sha)
+
+    def _check_session_locked(
+            self, token_sha: str, tenant_id: str, publisher: str,
+            key_id: str, now: int, *, consume: bool) -> None:
+        """Stage29's local single-use admission fence; caller holds tx on consume.
+
+        Not a public bearer-token endpoint. Untrusted callers never supply
+        tenant/publisher identities to the Stage29 frontend.
+        """
+        if type(token_sha) is not str or not _SHA.fullmatch(token_sha):
+            raise Stage28Refused("STAGE29_SESSION_DIGEST_REQUIRED")
+        person=self._publisher(tenant_id,publisher)
+        row=self.stage22.db.execute(
+            "SELECT * FROM secure29_sessions WHERE session_sha256=?",
+            (token_sha,)).fetchone()
+        if (person is None or person["state"]!="ACTIVE"
+                or row is None or row["state"]!="ACTIVE"
+                or row["tenant_id"]!=tenant_id
+                or row["publisher"]!=publisher
+                or row["key_id"]!=key_id
+                or row["publisher_revision"]!=person["revision"]
+                or type(now) is not int
+                or not row["issued_at"] <= now < row["expires_at"]):
+            raise Stage28Refused("STAGE29_SESSION_EXPIRED_REVOKED_OR_WRONG_SCOPE")
+        if consume:
+            result=self.stage22.db.execute(
+                "UPDATE secure29_sessions SET state='CONSUMED' "
+                "WHERE session_sha256=? AND state='ACTIVE'", (token_sha,))
+            if result.rowcount != 1:
+                raise Stage28Refused("STAGE29_SESSION_ALREADY_USED")
 
     def inspect_submission(self, *, tenant_id: str, binding_id: str) -> dict:
         self.stage22._row(tenant_id,binding_id)
