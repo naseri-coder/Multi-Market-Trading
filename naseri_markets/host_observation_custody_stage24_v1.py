@@ -18,7 +18,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 from .a24_publisher_admission import _ed25519, _signature, canonical
-from .disposable_gvisor_canary_stage23_v1 import _REQUIRED
+from .disposable_gvisor_canary_stage23_v1 import _CANARY, _REQUIRED
 from .secure_plugin_runtime_v1 import _IMAGE
 
 _DOMAIN = b"MMT-STAGE24-HOST-OBSERVATION-REVIEW-V1\x00"
@@ -88,6 +88,9 @@ def _valid_receipt(raw: bytes) -> tuple[dict, str]:
             or not _SHA.fullmatch(item["image_digest"])
             or type(item.get("probe_sha256")) is not str
             or not _SHA.fullmatch(item["probe_sha256"])
+            or not hmac.compare_digest(
+                item["probe_sha256"], hashlib.sha256(
+                    _CANARY.encode("utf-8")).hexdigest())
             or any(item.get(flag) is not False for flag in (
                 "actual_host_isolation_independently_audited",
                 "publisher_trust_conferred", "user_code_executed",
