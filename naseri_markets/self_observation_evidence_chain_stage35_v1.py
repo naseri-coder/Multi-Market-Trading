@@ -263,7 +263,7 @@ class SelfObservationEvidenceChain:
                     or report["sequence"] != row["sequence"]
                     or row["stage32_preparation_sha256"] !=
                        claim["stage32_preparation_sha256"]
-                    or report["issued_at"] > probe["measured_at"]
+                    or probe["measured_at"] > report["issued_at"]
                     or not probe["measured_at"] <= report["expires_at"]
                     or claim["expires_at"] > report["expires_at"]):
                 raise Stage35Refused("CROSS_STAGE_TIMELINE_OR_IDENTITY_MISMATCH")
