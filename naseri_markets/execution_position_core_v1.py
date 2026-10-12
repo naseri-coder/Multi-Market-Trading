@@ -230,14 +230,18 @@ class PaperExecutionOrchestratorV1:
                 policy = json.loads(self._risk._account(
                     current["spec"]["account_id"]
                 )["policy"])
-                multiplier = Decimal(policy["contract_multiplier"])
-                friction = (
-                    Decimal(policy["roundtrip_fee_fraction"])
-                    + Decimal(policy["worst_slippage_fraction"])
-                )
-                direction = Decimal("1") if current["spec"]["direction"] == "long" else Decimal("-1")
-                gross = direction * (exit_price - entry) * delta * multiplier
-                modeled_cost = max(entry, exit_price) * delta * multiplier * friction
+                economics = self._risk.order_economics(order_id)
+                if economics is None:
+                    multiplier = Decimal(policy["contract_multiplier"])
+                    friction = (Decimal(policy["roundtrip_fee_fraction"])
+                                + Decimal(policy["worst_slippage_fraction"]))
+                    direction = Decimal("1") if current["spec"]["direction"] == "long" else Decimal("-1")
+                    gross = direction * (exit_price - entry) * delta * multiplier
+                    modeled_cost = max(entry, exit_price) * delta * multiplier * friction
+                else:
+                    gross, modeled_cost = economics.modeled_exit(
+                        quantity=delta, entry=entry, exit_price=exit_price,
+                        direction=current["spec"]["direction"])
                 paper_loss = max(Decimal("0"), modeled_cost - gross)
                 if paper_loss > 0:
                     loss_action = "internal-loss-" + _hash({
