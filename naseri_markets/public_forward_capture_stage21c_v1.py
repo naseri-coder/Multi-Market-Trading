@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Callable
 
 from .captured_paper_pilot_stage21b_v1 import run_captured_paper_pilot
+from .paper_contract_economics_stage21d_v1 import PaperContractEconomics
 from .instrument_registry_v1 import MetadataOrigin
 from .kucoin_futures_replay_stage21_v1 import (
     FuturesKlineRequest, MAX_BYTES, VenueReplayRefused, _public_get,
@@ -364,6 +365,7 @@ def verify_capture_bundle(folder: Path) -> tuple[dict, tuple, object]:
 def replay_sealed_bundle(
     folder: Path, output_dir: Path, *, operator_ack: bool = False,
     dry_run_signals: bool = False,
+    contract_quantity: Decimal = Decimal("1"),
 ) -> dict:
     """Explicit PAPER-only Stage21B replay, STILL TOY economics, not live trading."""
     _gate(operator_ack)
@@ -372,19 +374,37 @@ def replay_sealed_bundle(
         input_mode = "INJECTED_TEST_TRANSPORT"
     else:
         input_mode = "PUBLIC_HTTPS_UNATTESTED"
-    # Do not normalize contract units into account-level geometry: the two
-    # instruments may have different multipliers, lot sizes and fees.
+    # Freeze a separate Stage21D contract policy for each instrument. Stage3,
+    # Stage8 and Stage9 now all use the order's immutable economics snapshot.
+    if (type(contract_quantity) is not Decimal or not contract_quantity.is_finite()
+            or contract_quantity <= 0):
+        raise ForwardCaptureRefused("EXPLICIT_POSITIVE_INTEGER_CONTRACTS_REQUIRED")
+    economics = tuple(PaperContractEconomics.from_public(
+        PublicContractGeometry(**geometry),
+        metadata_sha256=record["contracts_sha256"],
+        origin=("INJECTED_TEST_CONTRACT_FIXTURE" if input_mode ==
+                "INJECTED_TEST_TRANSPORT" else
+                "PUBLIC_CONTRACT_SNAPSHOT_UNATTESTED"))
+        for geometry in record["contract_geometry"])
+    for policy in economics:
+        if ((contract_quantity / policy.quantity_step) !=
+                (contract_quantity / policy.quantity_step).to_integral_value()):
+            raise ForwardCaptureRefused("CONTRACT_LOT_STEP_MISMATCH")
     result = run_captured_paper_pilot(
         output_dir, datasets=datasets, provider_snapshot=metadata,
         observed_at=max(datetime.fromisoformat(
             s["end"]) for s in json.loads(
                 _read_private(folder / "sealed.json", 8192))["sources"]),
-        operator_ack=True, dry_run_signals=dry_run_signals)
+        operator_ack=True, dry_run_signals=dry_run_signals,
+        quantity=contract_quantity, contract_economics=economics)
     result.update({
         "source_transport_origin": input_mode,
         "actual_network_fetch_at_replay": False,
         "contract_geometry": record["contract_geometry"],
-        "contract_economics_gate": "BLOCKED_PER_INSTRUMENT_MULTIPLIER_NOT_APPLIED",
+        "contract_economics_gate": "MODELED_PER_INSTRUMENT_APPLIED_UNATTESTED",
+        "per_instrument_economics_digests": {e.symbol: e.digest for e in economics},
+        "contract_quantity_per_symbol": str(contract_quantity),
+        "funding_fees_modeled": False, "liquidation_risk_modeled": False,
         "real_exchange_contract_pnl_verified": False,
         "exchange_signature_verified": False,
         "data_capture_before_candle_window": True,
