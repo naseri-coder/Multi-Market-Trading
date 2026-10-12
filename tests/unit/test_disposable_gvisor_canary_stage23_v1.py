@@ -135,3 +135,9 @@ def test_fixed_stage4_command_has_no_host_mount_network_or_privileged_exec(monke
                    or x == "--privileged" for x in cmd)
     assert "192.0.2.1" in _CANARY
     assert "api_key" not in _CANARY
+
+
+def test_operator_cli_rejects_without_env_or_ack(tmp_path, capsys):
+    from naseri_markets.disposable_gvisor_canary_cli_stage23_v1 import main
+    assert main(["--image", IMAGE]) == 2
+    assert "STAGE23_DISPOSABLE_CANARY_REFUSED" in capsys.readouterr().err
