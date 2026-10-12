@@ -64,7 +64,7 @@ def test_missing_corrupt_or_oversized_proc_data_fail_closed(bad):
 
 
 def test_actual_tls_handshake_over_private_socketpair_not_host_endpoint(
-        tls_material, monkeypatch):
+        tls_material, monkeypatch):  # noqa: F811
     cert_path, key_path, ca, pinned = tls_material
     client_socket, server_socket = socket.socketpair()
     server_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -95,7 +95,7 @@ def test_actual_tls_handshake_over_private_socketpair_not_host_endpoint(
     assert not errors
 
 
-def test_actual_tls_pin_rejection_over_socketpair(tls_material, monkeypatch):
+def test_actual_tls_pin_rejection_over_socketpair(tls_material, monkeypatch):  # noqa: F811
     cert_path, key_path, ca, pinned = tls_material
     client_socket, server_socket = socket.socketpair()
     server_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -138,7 +138,7 @@ def test_host_designation_ack_nonroot_nodename_and_production_fences(
 
 
 def test_explicit_host_readonly_receipt_has_no_installer_grant(
-        monkeypatch, tls_material):
+        monkeypatch, tls_material):  # noqa: F811
     _cert, _key, _ca, pinned = tls_material
     monkeypatch.setattr("os.geteuid", lambda: 1001)
     class U:
@@ -177,7 +177,7 @@ def test_explicit_host_readonly_receipt_has_no_installer_grant(
 
 
 def test_no_listening_443_or_external_socket_fails_before_tls(
-        monkeypatch, tls_material):
+        monkeypatch, tls_material):  # noqa: F811
     cert, *_ = tls_material
     monkeypatch.setattr("os.geteuid", lambda: 1001)
     class U:
@@ -195,7 +195,7 @@ def test_no_listening_443_or_external_socket_fails_before_tls(
             ca_file=cert, expected_certificate_sha256=SHA, operator_ack=True)
 
 
-def test_nonpublic_port_and_root_user_are_denied(monkeypatch, tls_material):
+def test_nonpublic_port_and_root_user_are_denied(monkeypatch, tls_material):  # noqa: F811
     cert, *_ = tls_material
     monkeypatch.setattr("os.geteuid", lambda: 1001)
     class U:
