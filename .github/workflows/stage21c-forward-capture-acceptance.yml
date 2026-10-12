@@ -1,0 +1,72 @@
+name: Stage 21C forward capture and contract safety acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'naseri_markets/public_forward_capture_stage21c_v1.py'
+      - 'naseri_markets/public_forward_capture_cli_stage21c_v1.py'
+      - 'tests/unit/test_public_forward_capture_stage21c_v1.py'
+      - 'docs/FORWARD_PUBLIC_DATA_AND_CONTRACT_REVIEW_STAGE21C_V1.md'
+      - '.github/workflows/stage21c-forward-capture-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stage21c-replay-clean-wheel:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Static safety and separate release preflight
+        run: |
+          set -Eeuo pipefail
+          python -m pip install 'pytest==9.1.1' 'ruff==0.16.9'
+          python -m ruff check --select E4,F \
+            naseri_markets/public_forward_capture_stage21c_v1.py \
+            naseri_markets/public_forward_capture_cli_stage21c_v1.py \
+            tests/unit/test_public_forward_capture_stage21c_v1.py
+          python scripts/a6_release_preflight.py
+          python scripts/check_publication_safety.py
+      - name: Offline true-contract-fixture E2E and prior Stage21B regression
+        env:
+          MMT_NONPRODUCTION: '1'
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/stage21c-tested"
+          cp tests/unit/test_public_forward_capture_stage21c_v1.py \
+             tests/unit/test_captured_paper_pilot_stage21b_v1.py \
+             tests/unit/test_captured_paper_cli_stage21b_v1.py \
+             tests/unit/test_kucoin_futures_replay_stage21_v1.py \
+             tests/unit/test_unified_paper_pilot_stage20_v1.py \
+             "$RUNNER_TEMP/stage21c-tested/"
+          python -m pytest -q "$RUNNER_TEMP/stage21c-tested" -rs
+      - name: Independent installed-wheel Stage21C acceptance
+        env:
+          MMT_NONPRODUCTION: '1'
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/stage21c-project" "$RUNNER_TEMP/stage21c-wheel" \
+             "$RUNNER_TEMP/stage21c-room" "$RUNNER_TEMP/stage21c-tests"
+          cp platform_release/pyproject.toml platform_release/README.md \
+             "$RUNNER_TEMP/stage21c-project/"
+          cp -a naseri_markets "$RUNNER_TEMP/stage21c-project/naseri_markets"
+          python -m venv "$RUNNER_TEMP/stage21c-venv"
+          "$RUNNER_TEMP/stage21c-venv/bin/python" -m pip wheel --no-deps \
+             --wheel-dir "$RUNNER_TEMP/stage21c-wheel" "$RUNNER_TEMP/stage21c-project"
+          "$RUNNER_TEMP/stage21c-venv/bin/python" -m pip install \
+             "$RUNNER_TEMP"/stage21c-wheel/multi_market_trading-0.4.0rc1-*.whl \
+             'pytest==9.1.1'
+          "$RUNNER_TEMP/stage21c-venv/bin/python" -m pip check
+          cp tests/unit/test_public_forward_capture_stage21c_v1.py \
+             "$RUNNER_TEMP/stage21c-tests/"
+          cd "$RUNNER_TEMP/stage21c-room"
+          PYTHONPATH= "$RUNNER_TEMP/stage21c-venv/bin/python" -m pytest -q \
+             "$RUNNER_TEMP/stage21c-tests" -rs
