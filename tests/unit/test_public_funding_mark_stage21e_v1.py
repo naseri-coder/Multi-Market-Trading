@@ -46,7 +46,7 @@ def _public_mark_and_funding(url):
     if url.startswith(FUNDING_ENDPOINT):
         q = next(q for q in queries() if "symbol=" + q.symbol in url)
         rate = "0.0005" if q.symbol == SYMBOLS[0] else "-0.0003"
-        stamp = int((q.start + (q.end - q.start)*D("0.85")).timestamp()*1000)
+        stamp = int((q.start + (q.end - q.start)*0.85).timestamp()*1000)
         return json.dumps({"code":"200000","data":[
             {"symbol":q.symbol,"timepoint":stamp,"fundingRate":rate}
         ]}).encode()
