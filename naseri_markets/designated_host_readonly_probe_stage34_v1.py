@@ -15,7 +15,6 @@ import os
 import re
 import socket
 import ssl
-import stat
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
