@@ -109,6 +109,11 @@ def test_actual_stage16_through_stage19_with_durable_exact_receipts(tmp_path):
             assert all(r["state"] == "RECORDED" for r in effects.intents())
             assert supervisor.run_due(executor, now=second.close_at,
                                       operator_ack=True) == ()
+        # The Stage-8/10 SQLite engines may use the OS creation umask. For
+        # high-assurance forensic inspection, the operator supplies private
+        # 0600 evidence files after stopping all writers.
+        for evidence_file in (effect_path, runtime_path, paper_path, signals_path):
+            evidence_file.chmod(0o600)
         report = evaluate_effect_evidence(EffectEvidencePaths(
             effect_path, runtime_path, paper_path, signals_path))
         assert report.blocking_effects == 0, report.as_dict()
