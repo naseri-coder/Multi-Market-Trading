@@ -74,7 +74,7 @@ def seal_public_candidate(
     opts = dict(
         stage22=stage22, stage23=stage23, stage24=stage24,
         candidate=candidate, source=source, manifest=manifest, binding=binding,
-        observation=observation, canary_receipt,
+        observation=observation, canary_receipt=canary_receipt,
         tenant_id=tenant_id, publisher=publisher,
         publisher_key_id=publisher_key_id, host_id=host_id,
         expected_image=expected_image, now=now, operator_ack=True)
