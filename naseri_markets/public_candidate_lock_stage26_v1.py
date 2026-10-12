@@ -107,6 +107,21 @@ def seal_public_candidate(
                         "SELECT 1 FROM secure26_public_fence WHERE binding_id=?",
                         (binding.binding_id,)).fetchone()):
                 raise PublicCandidateLockRefused("CAS_OR_EXECUTION_HISTORY_CHANGED")
+            intake = stage22.db.execute(
+                "SELECT * FROM secure27_public_intake "
+                "WHERE binding_id=? AND tenant_id=?",
+                (binding.binding_id, tenant_id)).fetchone()
+            if intake is not None and (
+                    not hmac.compare_digest(
+                        intake["candidate_sha256"],
+                        report.candidate_envelope_sha256)
+                    or not hmac.compare_digest(
+                        intake["source_sha256"], report.source_sha256)
+                    or not hmac.compare_digest(
+                        intake["manifest_sha256"], report.manifest_sha256)
+                    or not hmac.compare_digest(
+                        intake["image_sha256"], report.image_sha256)):
+                raise PublicCandidateLockRefused("STAGE27_INITIAL_CLASSIFICATION_DRIFT")
             # Recheck signed current status inside the Stage22 transaction.
             # A revocation in another DB immediately afterwards is safe:
             # the sealed Stage22 binding cannot become executable.

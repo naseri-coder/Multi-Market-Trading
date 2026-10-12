@@ -145,6 +145,62 @@ class DurableIsolatedCoreGate:
             BEGIN
               SELECT RAISE(ABORT,'STAGE26_PUBLIC_EXECUTION_BLOCKED');
             END;
+            CREATE TABLE IF NOT EXISTS secure27_public_intake(
+              binding_id TEXT PRIMARY KEY REFERENCES secure22_bindings(binding_id),
+              tenant_id TEXT NOT NULL,
+              publisher_id TEXT NOT NULL,
+              publisher_key_id TEXT NOT NULL,
+              candidate_sha256 TEXT NOT NULL,
+              source_sha256 TEXT NOT NULL,
+              manifest_sha256 TEXT NOT NULL,
+              binding_sha256 TEXT NOT NULL,
+              image_sha256 TEXT NOT NULL,
+              registration_revision INTEGER NOT NULL CHECK(registration_revision=1),
+              state TEXT NOT NULL CHECK(state='PUBLIC_UNTRUSTED_PENDING_INDEPENDENT_HOST')
+            );
+            CREATE TRIGGER IF NOT EXISTS secure27_intake_guard
+            BEFORE INSERT ON secure27_public_intake
+            WHEN NOT EXISTS (
+                 SELECT 1 FROM secure22_bindings b
+                 WHERE b.binding_id=NEW.binding_id
+                   AND b.tenant_id=NEW.tenant_id AND b.state='DISABLED'
+                   AND b.revision=NEW.registration_revision
+                   AND b.source_sha256=NEW.source_sha256
+                   AND b.manifest_digest=NEW.manifest_sha256
+                   AND b.binding_digest=NEW.binding_sha256
+            ) OR EXISTS (
+                SELECT 1 FROM secure22_attempts a
+                WHERE a.binding_id=NEW.binding_id
+            )
+            BEGIN
+              SELECT RAISE(ABORT,'STAGE27_UNSAFE_INITIAL_REGISTRATION');
+            END;
+            CREATE TRIGGER IF NOT EXISTS secure27_no_enable
+            BEFORE UPDATE OF state ON secure22_bindings
+            WHEN NEW.state IN ('ENABLED','EVALUATING') AND EXISTS (
+                SELECT 1 FROM secure27_public_intake p
+                WHERE p.binding_id=NEW.binding_id
+            )
+            BEGIN
+              SELECT RAISE(ABORT,'STAGE27_PUBLIC_ACTIVATION_BLOCKED');
+            END;
+            CREATE TRIGGER IF NOT EXISTS secure27_no_attempt
+            BEFORE INSERT ON secure22_attempts
+            WHEN EXISTS (SELECT 1 FROM secure27_public_intake p
+                         WHERE p.binding_id=NEW.binding_id)
+            BEGIN
+              SELECT RAISE(ABORT,'STAGE27_PUBLIC_ATTEMPT_BLOCKED');
+            END;
+            CREATE TRIGGER IF NOT EXISTS secure27_no_delete
+            BEFORE DELETE ON secure27_public_intake
+            BEGIN
+              SELECT RAISE(ABORT,'STAGE27_CLASSIFICATION_IS_PERMANENT');
+            END;
+            CREATE TRIGGER IF NOT EXISTS secure27_no_mutate
+            BEFORE UPDATE ON secure27_public_intake
+            BEGIN
+              SELECT RAISE(ABORT,'STAGE27_CLASSIFICATION_IS_IMMUTABLE');
+            END;
             CREATE TRIGGER IF NOT EXISTS secure26_no_delete
             BEFORE DELETE ON secure26_public_fence
             BEGIN
@@ -201,29 +257,44 @@ class DurableIsolatedCoreGate:
             raise Stage22Refused("VALID_MANIFEST_BINDING_REQUIRED")
         if not hmac.compare_digest(content_digest(manifest), approved_manifest_digest):
             raise Stage22Refused("MANIFEST_PIN_MISMATCH")
-        # Registration is limited to pure strategy metadata and a host-owned
-        # market binding. The worker does not learn tenant identity or tokens.
+        # This legacy admission is intended ONLY for pre-reviewed trusted
+        # nonproduction research. External publisher flows MUST use Stage27.
         with self._tx():
-            if self.db.execute(
+            self._insert_disabled_locked(
+                tenant_id, manifest, binding,
+                approved_manifest_digest, approved_source_sha256)
+        return self.state(tenant_id, binding.binding_id)
+
+    def _insert_disabled_locked(
+            self, tenant_id: str, manifest: CoreManifest,
+            binding: CoreBinding, manifest_digest: str,
+            source_sha256: str) -> None:
+        """Shared registration quotas, called only under BEGIN IMMEDIATE."""
+        _tenant(tenant_id)
+        _pin(manifest_digest)
+        _pin(source_sha256)
+        if (type(manifest) is not CoreManifest or type(binding) is not CoreBinding
+                or binding.instrument.market not in manifest.supported_markets
+                or not hmac.compare_digest(content_digest(manifest), manifest_digest)):
+            raise Stage22Refused("INVALID_REGISTRATION_PINS")
+        if self.db.execute(
                 "SELECT 1 FROM secure22_bindings WHERE binding_id=?",
                 (binding.binding_id,)).fetchone():
-                raise Stage22Refused("BINDING_ID_RESERVED_GLOBAL")
-            if self.db.execute(
-                "SELECT COUNT(*) FROM secure22_bindings").fetchone()[0] >= 64:
-                raise Stage22Refused("GLOBAL_BINDING_QUOTA")
-            if self.db.execute(
+            raise Stage22Refused("BINDING_ID_RESERVED_GLOBAL")
+        if self.db.execute("SELECT COUNT(*) FROM secure22_bindings").fetchone()[0] >= 64:
+            raise Stage22Refused("GLOBAL_BINDING_QUOTA")
+        if self.db.execute(
                 "SELECT COUNT(*) FROM secure22_bindings WHERE tenant_id=?",
                 (tenant_id,)).fetchone()[0] >= 8:
-                raise Stage22Refused("TENANT_BINDING_QUOTA")
-            self.db.execute(
-                "INSERT INTO secure22_bindings("
-                "binding_id,tenant_id,instance_id,core_id,core_version,"
-                "manifest_digest,binding_digest,source_sha256,state,revision)"
-                " VALUES (?,?,?,?,?,?,?,?,?,1)",
-                (binding.binding_id, tenant_id, binding.instance_id,
-                 manifest.core_id, manifest.core_version, approved_manifest_digest,
-                 content_digest(binding), approved_source_sha256, "DISABLED"))
-        return self.state(tenant_id, binding.binding_id)
+            raise Stage22Refused("TENANT_BINDING_QUOTA")
+        self.db.execute(
+            "INSERT INTO secure22_bindings("
+            "binding_id,tenant_id,instance_id,core_id,core_version,"
+            "manifest_digest,binding_digest,source_sha256,state,revision)"
+            " VALUES (?,?,?,?,?,?,?,?,?,1)",
+            (binding.binding_id, tenant_id, binding.instance_id,
+             manifest.core_id, manifest.core_version, manifest_digest,
+             content_digest(binding), source_sha256, "DISABLED"))
 
     def state(self, tenant_id: str, binding_id: str) -> dict:
         row = self._row(tenant_id, binding_id)
@@ -236,6 +307,9 @@ class DurableIsolatedCoreGate:
             "broker_order_authorized": False,
             "public_untrusted_candidate_locked": bool(self.db.execute(
                 "SELECT 1 FROM secure26_public_fence WHERE binding_id=?",
+                (binding_id,)).fetchone()),
+            "public_untrusted_intake_pending": bool(self.db.execute(
+                "SELECT 1 FROM secure27_public_intake WHERE binding_id=?",
                 (binding_id,)).fetchone()),
         }
 
@@ -254,6 +328,10 @@ class DurableIsolatedCoreGate:
                         "SELECT 1 FROM secure26_public_fence WHERE binding_id=?",
                         (binding_id,)).fetchone():
                     raise Stage22Refused("STAGE26_PUBLIC_UNTRUSTED_CORE_LOCKED")
+                if self.db.execute(
+                        "SELECT 1 FROM secure27_public_intake WHERE binding_id=?",
+                        (binding_id,)).fetchone():
+                    raise Stage22Refused("STAGE27_PUBLIC_UNTRUSTED_CORE_LOCKED")
                 if row["state"] != "DISABLED":
                     raise Stage22Refused("FRESH_REVIEW_REQUIRED_FOR_RECOVERY")
                 next_state = "ENABLED"
@@ -311,6 +389,10 @@ class DurableIsolatedCoreGate:
                     "SELECT 1 FROM secure26_public_fence WHERE binding_id=?",
                     (event.binding.binding_id,)).fetchone():
                 raise Stage22Refused("STAGE26_PUBLIC_UNTRUSTED_CORE_LOCKED")
+            if self.db.execute(
+                    "SELECT 1 FROM secure27_public_intake WHERE binding_id=?",
+                    (event.binding.binding_id,)).fetchone():
+                raise Stage22Refused("STAGE27_PUBLIC_UNTRUSTED_CORE_LOCKED")
             if row["state"] != "ENABLED":
                 raise Stage22Refused("BINDING_DISABLED_OR_QUARANTINED")
             if (event.core_id != row["core_id"]
