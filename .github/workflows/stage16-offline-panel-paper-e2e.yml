@@ -36,9 +36,12 @@ jobs:
             naseri_markets/panel_paper_synthetic_demo_v1.py \
             tests/unit/test_offline_panel_paper_integration_v1.py \
             tests/unit/test_panel_paper_synthetic_demo_v1.py
-          python -m pytest -q \
-            tests/unit/test_offline_panel_paper_integration_v1.py \
-            tests/unit/test_panel_paper_synthetic_demo_v1.py
+          mkdir -p "$RUNNER_TEMP/stage16-independent-tests"
+          cp tests/unit/test_offline_panel_paper_integration_v1.py \
+             tests/unit/test_panel_paper_synthetic_demo_v1.py \
+             "$RUNNER_TEMP/stage16-independent-tests/"
+          PYTHONPATH="$GITHUB_WORKSPACE" python -m pytest -q \
+            "$RUNNER_TEMP/stage16-independent-tests"
       - name: Install clean independent Python 3.12 wheel
         run: |
           set -Eeuo pipefail
