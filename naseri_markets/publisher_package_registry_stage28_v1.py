@@ -390,6 +390,17 @@ class PublisherPackageRegistry:
             raise Stage28Refused("UNTRUSTED_SIGNED_CANDIDATE") from exc
         if not hmac.compare_digest(verdict.envelope_sha256,candidate_sha):
             raise Stage28Refused("CANDIDATE_SIGNATURE_DIGEST_MISMATCH")
+        person=self._publisher(tenant_id,publisher)
+        active=self.stage22.db.execute(
+            "SELECT public_key,state FROM secure28_keys WHERE tenant_id=?"
+            " AND publisher=? AND key_id=?",
+            (tenant_id,publisher,key_id)).fetchone()
+        if (person is None or person["state"]!="ACTIVE"
+                or active is None or active["state"]!="ACTIVE"
+                or active["public_key"]!=stage23.pub):
+            raise Stage28Refused("INACTIVE_OR_UNVERIFIED_PUBLISHER")
+        if sum(1 for _ in self.quarantine_dir.iterdir()) >= 128:
+            raise Stage28Refused("QUARANTINE_FILE_QUOTA")
         archive_path=self.quarantine_dir / (package_sha+".zip")
         if archive_path.exists() or archive_path.is_symlink():
             raise Stage28Refused("PACKAGE_ALREADY_IN_QUARANTINE")
@@ -424,7 +435,7 @@ class PublisherPackageRegistry:
                     source_sha256=source_sha,candidate_sha256=candidate_sha,
                     expected_image=expected_image)
                 self.stage22.db.execute(
-                    "INSERT INTO secure28_submissions VALUES(?,?,?,?,?,?,?,?,?)",
+                    "INSERT INTO secure28_submissions VALUES(?,?,?,?,?,?,?,?,?,?)",
                     (binding.binding_id,tenant_id,publisher,key_id,package_sha,
                      source_sha,candidate_sha,person["revision"],now,
                      "QUARANTINED_NONEXECUTABLE"))
