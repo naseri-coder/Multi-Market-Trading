@@ -18,7 +18,7 @@ import subprocess
 from dataclasses import dataclass
 
 from .secure_plugin_runtime_v1 import (
-    SecurePluginPolicy, SecurePluginRefused, _BOOTSTRAP,
+    SecurePluginPolicy, SecurePluginRefused,
     _assert_rootless_socket, _ensure_rootless_daemon, _invoke,
 )
 
