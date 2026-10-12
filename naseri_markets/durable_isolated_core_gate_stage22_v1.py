@@ -59,7 +59,7 @@ class DurableIsolatedCoreGate:
         _gate(True)
         if type(host) is not SecureOfflineCoreHost or not host.policy.enabled:
             raise Stage22Refused("REAL_ISOLATED_HOST_POLICY_REQUIRED")
-        if (type(path) is not Path or not path.is_absolute() or path.is_symlink()
+        if (not isinstance(path, Path) or not path.is_absolute() or path.is_symlink()
                 or not path.parent.is_dir() or path.parent.is_symlink()
                 or path.parent.stat().st_uid != os.geteuid()
                 or stat.S_IMODE(path.parent.stat().st_mode) & 0o077):
