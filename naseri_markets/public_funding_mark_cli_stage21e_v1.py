@@ -24,6 +24,8 @@ def main(argv: list[str] | None = None) -> int:
     fetch.add_argument("--ack-public-readonly-get", action="store_true")
     verify = sub.add_parser("analyze", help="Offline evidence and hypothetical risk")
     verify.add_argument("--bundle-dir", required=True, type=Path)
+    verify.add_argument("--paper-db", type=Path,
+                        help="Optional existing Stage21D PAPER SQLite evidence, strictly read-only")
     verify.add_argument("--mark-basis-limit", default="0.02")
     verify.add_argument("--assumed-leverage", default="5")
     verify.add_argument("--assumed-maintenance-rate", default="0.01")
@@ -38,7 +40,8 @@ def main(argv: list[str] | None = None) -> int:
                 options.bundle_dir, operator_ack=options.ack_offline_research,
                 mark_dislocation_limit=Decimal(options.mark_basis_limit),
                 hypothetical_leverage=Decimal(options.assumed_leverage),
-                hypothetical_mmr=Decimal(options.assumed_maintenance_rate))
+                hypothetical_mmr=Decimal(options.assumed_maintenance_rate),
+                paper_path=options.paper_db)
     except (ValueError, TypeError, KeyError, OSError, RuntimeError):
         print("STAGE21E_PUBLIC_RISK_RESEARCH_REFUSED", file=sys.stderr)
         return 2
