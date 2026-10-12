@@ -50,7 +50,9 @@ jobs:
             naseri_markets/installed_preview_smoke_v1.py \
             scripts/mmt_stage15_readiness.py \
             tests/unit/test_release_readiness_v1.py
-          python -m pytest -q tests/unit/test_release_readiness_v1.py
+          mkdir -p "$RUNNER_TEMP/stage15-standalone-tests"
+          cp tests/unit/test_release_readiness_v1.py "$RUNNER_TEMP/stage15-standalone-tests/test_release_readiness_v1.py"
+          PYTHONPATH="$GITHUB_WORKSPACE" python -m pytest -q "$RUNNER_TEMP/stage15-standalone-tests/test_release_readiness_v1.py"
       - name: Clean-wheel installation and synthetic decision smoke only
         env:
           MMT_NONPRODUCTION: "1"
