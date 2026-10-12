@@ -116,7 +116,10 @@ def test_no_setup_does_not_invent_trades_or_effects(tmp_path, monkeypatch):
     assert report["completed_jobs"] == 0
     assert report["exact_effects"] == 0
     assert all(x["status"] == "NO_ELIGIBLE_ENTRY" for x in report["datasets"])
-    assert report["integrity_verdict"] == "PASS"
+    assert report["integrity_verdict"] == "BLOCKED"
+    assert report["integrity_blockers"] == ["NO_EVALUATED_OUTPUT_EVIDENCE"]
+    assert report["effect_evidence_verdict"] == "NO_EFFECT_INTENTS_NOT_STAGE19_ATTESTED"
+    assert report["no_output_cross_stage_unattested"] is True
 
 
 def test_paper_and_signal_modes_are_independent(tmp_path, monkeypatch):
