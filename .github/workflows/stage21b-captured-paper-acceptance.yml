@@ -4,10 +4,12 @@ on:
   pull_request:
     paths:
       - 'naseri_markets/captured_paper_pilot_stage21b_v1.py'
+      - 'naseri_markets/captured_paper_cli_stage21b_v1.py'
       - 'naseri_markets/offline_panel_paper_integration_v1.py'
       - 'naseri_markets/offline_runtime_supervisor_v1.py'
       - 'naseri_markets/job_effect_intent_v1.py'
       - 'tests/unit/test_captured_paper_pilot_stage21b_v1.py'
+      - 'tests/unit/test_captured_paper_cli_stage21b_v1.py'
       - 'docs/CAUSAL_CAPTURED_PAPER_STAGE21B_V1.md'
       - '.github/workflows/stage21b-captured-paper-acceptance.yml'
   workflow_dispatch:
@@ -32,10 +34,12 @@ jobs:
           python -m pip install 'pytest==9.1.1' 'ruff==0.16.9'
           python -m ruff check --select E4,F \
             naseri_markets/captured_paper_pilot_stage21b_v1.py \
+            naseri_markets/captured_paper_cli_stage21b_v1.py \
             naseri_markets/offline_panel_paper_integration_v1.py \
             naseri_markets/offline_runtime_supervisor_v1.py \
             naseri_markets/job_effect_intent_v1.py \
-            tests/unit/test_captured_paper_pilot_stage21b_v1.py
+            tests/unit/test_captured_paper_pilot_stage21b_v1.py \
+            tests/unit/test_captured_paper_cli_stage21b_v1.py
           python scripts/a6_release_preflight.py
           python scripts/check_publication_safety.py
       - name: Actual durable replay risk and lifecycle acceptance
@@ -46,6 +50,7 @@ jobs:
           set -Eeuo pipefail
           mkdir -p "$RUNNER_TEMP/stage21b-tested"
           cp tests/unit/test_captured_paper_pilot_stage21b_v1.py \
+            tests/unit/test_captured_paper_cli_stage21b_v1.py \
             tests/unit/test_stage19_integrated_effects_v1.py \
             tests/unit/test_unified_paper_pilot_stage20_v1.py \
             "$RUNNER_TEMP/stage21b-tested/"
@@ -68,6 +73,7 @@ jobs:
             'pytest==9.1.1'
           "$RUNNER_TEMP/stage21b-venv/bin/python" -m pip check
           cp tests/unit/test_captured_paper_pilot_stage21b_v1.py \
+            tests/unit/test_captured_paper_cli_stage21b_v1.py \
             "$RUNNER_TEMP/stage21b-wheel-tests/"
           cd "$RUNNER_TEMP/stage21b-room"
           PYTHONPATH= "$RUNNER_TEMP/stage21b-venv/bin/python" -m pytest -q \
