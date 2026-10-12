@@ -1,0 +1,71 @@
+name: Stage 19 durable job-to-effect PAPER intent acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'naseri_markets/job_effect_intent_v1.py'
+      - 'naseri_markets/job_effect_reconciliation_v1.py'
+      - 'scripts/mmt_stage19_effects.py'
+      - 'tests/unit/test_job_effect_intent_v1.py'
+      - 'tests/unit/test_stage19_integrated_effects_v1.py'
+      - 'docs/JOB_TO_EFFECT_INTENT_STAGE19_V1.md'
+      - '.github/workflows/stage19-job-effect-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stage19-offline-integrity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Frozen release and source safety
+        run: |
+          set -Eeuo pipefail
+          python scripts/a6_release_preflight.py
+          python -m pip install 'pytest==9.1.1' 'ruff==0.16.9'
+          python -m ruff check --select E4,F \
+            naseri_markets/job_effect_intent_v1.py \
+            naseri_markets/job_effect_reconciliation_v1.py \
+            scripts/mmt_stage19_effects.py \
+            tests/unit/test_job_effect_intent_v1.py \
+            tests/unit/test_stage19_integrated_effects_v1.py
+          python scripts/check_publication_safety.py
+      - name: Focused actual Stage 8/9/10 and Stage 17 integration tests
+        env:
+          MMT_NONPRODUCTION: '1'
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/stage19-tested"
+          cp tests/unit/test_job_effect_intent_v1.py \
+             tests/unit/test_stage19_integrated_effects_v1.py \
+             "$RUNNER_TEMP/stage19-tested/"
+          python -m pytest -q "$RUNNER_TEMP/stage19-tested" -rs
+      - name: Clean Python 3.12 wheel install and rerun integration tests
+        env:
+          MMT_NONPRODUCTION: '1'
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/stage19-project" "$RUNNER_TEMP/stage19-wheels" \
+                   "$RUNNER_TEMP/stage19-cleanroom" "$RUNNER_TEMP/stage19-wheel-tests"
+          cp platform_release/pyproject.toml platform_release/README.md "$RUNNER_TEMP/stage19-project/"
+          cp -a naseri_markets "$RUNNER_TEMP/stage19-project/naseri_markets"
+          python -m venv "$RUNNER_TEMP/stage19-venv"
+          "$RUNNER_TEMP/stage19-venv/bin/python" -m pip wheel --no-deps \
+            --wheel-dir "$RUNNER_TEMP/stage19-wheels" "$RUNNER_TEMP/stage19-project"
+          "$RUNNER_TEMP/stage19-venv/bin/python" -m pip install \
+            "$RUNNER_TEMP"/stage19-wheels/multi_market_trading-0.4.0rc1-*.whl \
+            'pytest==9.1.1'
+          "$RUNNER_TEMP/stage19-venv/bin/python" -m pip check
+          cp tests/unit/test_stage19_integrated_effects_v1.py "$RUNNER_TEMP/stage19-wheel-tests/"
+          cd "$RUNNER_TEMP/stage19-cleanroom"
+          PYTHONPATH= "$RUNNER_TEMP/stage19-venv/bin/python" -m pytest -q \
+            "$RUNNER_TEMP/stage19-wheel-tests" -rs
