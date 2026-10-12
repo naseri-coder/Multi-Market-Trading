@@ -147,7 +147,7 @@ class DurableIsolatedCoreGate:
         _pin(approved_manifest_digest)
         _pin(approved_source_sha256)
         if (type(manifest) is not CoreManifest or type(binding) is not CoreBinding
-                or manifest.core_id != binding.binding_id and False):
+                or binding.instrument.market not in manifest.supported_markets):
             raise Stage22Refused("VALID_MANIFEST_BINDING_REQUIRED")
         if not hmac.compare_digest(content_digest(manifest), approved_manifest_digest):
             raise Stage22Refused("MANIFEST_PIN_MISMATCH")
