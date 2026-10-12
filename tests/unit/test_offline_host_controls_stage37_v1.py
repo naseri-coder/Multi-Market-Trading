@@ -25,7 +25,7 @@ from test_self_observation_evidence_chain_stage35_v1 import (  # noqa: F401
     chain, signed_binding,
 )
 from test_disconnected_host_evidence_stage33_v1 import (  # noqa: F401
-    claim, prepared, research_only,
+    prepared, research_only,
 )
 from test_disposable_host_preflight_stage32_v1 import (  # noqa: F401
     fixture_and_policy, dossier,
@@ -83,7 +83,7 @@ def runtime_config() -> dict:
 
 
 @pytest.fixture
-def prepared_controls(exported):
+def prepared_controls(exported):  # noqa: F811
     worker, archive, stage36 = exported
     third_key = Ed25519PrivateKey.generate()
     third_pub = third_key.public_key().public_bytes(
