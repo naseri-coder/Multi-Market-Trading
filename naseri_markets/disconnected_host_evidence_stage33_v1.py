@@ -11,9 +11,7 @@ import base64
 import hashlib
 import hmac
 import json
-import os
 import re
-import sqlite3
 from dataclasses import dataclass
 
 from .a24_publisher_admission import _ed25519, canonical
