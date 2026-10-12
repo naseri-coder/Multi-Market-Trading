@@ -18,6 +18,9 @@ from typing import Any
 from .contracts import EvidenceMode, Instrument
 from .execution_contract_v1 import OrderSpec, identity, positive
 from .risk_portfolio_contract_v1 import AccountRiskPolicy, PortfolioRiskPolicy
+from .paper_contract_economics_stage21d_v1 import (
+    PaperContractEconomics, ContractEconomicsRefused, require_contract_research_ack,
+)
 
 
 class RiskRefused(ValueError):
@@ -110,6 +113,13 @@ class PaperRiskPortfolioManager:
             "group_id TEXT NOT NULL, contract_json TEXT NOT NULL, "
             "risk TEXT NOT NULL, notional TEXT NOT NULL, margin TEXT NOT NULL, "
             "status TEXT NOT NULL CHECK(status IN ('ACTIVE','RELEASED')));"
+            "CREATE TABLE IF NOT EXISTS risk_instrument_economics ("
+            "portfolio_id TEXT NOT NULL,market TEXT NOT NULL,provider TEXT NOT NULL,"
+            "symbol TEXT NOT NULL,policy TEXT NOT NULL,digest TEXT NOT NULL,"
+            "PRIMARY KEY(portfolio_id,market,provider,symbol));"
+            "CREATE TABLE IF NOT EXISTS paper_order_economics ("
+            "order_id TEXT PRIMARY KEY REFERENCES paper_risk_reservations(order_id),"
+            "policy TEXT NOT NULL,digest TEXT NOT NULL);"
             "CREATE TABLE IF NOT EXISTS paper_risk_losses ("
             "account_id TEXT NOT NULL REFERENCES risk_accounts(account_id), "
             "day TEXT NOT NULL, amount TEXT NOT NULL, "
@@ -281,6 +291,63 @@ class PaperRiskPortfolioManager:
             self._rollback()
             raise
 
+    def register_contract_economics(
+        self, *, portfolio_id: str, policy: PaperContractEconomics,
+        operator_ack: bool = False,
+    ) -> None:
+        """Immutable per-symbol research geometry; no live account access."""
+        require_contract_research_ack(operator_ack)
+        identity(portfolio_id, "portfolio_id")
+        if not isinstance(policy, PaperContractEconomics):
+            raise RiskRefused("EXACT_CONTRACT_ECONOMICS_REQUIRED")
+        key = (portfolio_id, "crypto", policy.provider, policy.symbol)
+        self._begin()
+        try:
+            mapped = self._db.execute(
+                "SELECT currency FROM risk_instruments WHERE portfolio_id=? "
+                "AND market=? AND provider=? AND symbol=?", key).fetchone()
+            if mapped is None or mapped["currency"] != policy.settle_currency:
+                raise RiskRefused("REGISTERED_USDT_FUTURES_REQUIRED")
+            wire = _wire(policy.wire())
+            previous = self._db.execute(
+                "SELECT policy,digest FROM risk_instrument_economics "
+                "WHERE portfolio_id=? AND market=? AND provider=? AND symbol=?",
+                key).fetchone()
+            if previous is None:
+                self._db.execute(
+                    "INSERT INTO risk_instrument_economics VALUES (?,?,?,?,?,?)",
+                    (*key, wire, policy.digest))
+            elif previous["policy"] != wire or previous["digest"] != policy.digest:
+                raise RiskRefused("IMMUTABLE_INSTRUMENT_ECONOMICS_DRIFT")
+            self._commit()
+        except BaseException:
+            self._rollback()
+            raise
+
+    def instrument_economics(self, *, portfolio_id: str, market: str,
+                             provider: str, symbol: str) -> PaperContractEconomics | None:
+        row = self._db.execute(
+            "SELECT policy,digest FROM risk_instrument_economics "
+            "WHERE portfolio_id=? AND market=? AND provider=? AND symbol=?",
+            (portfolio_id, market, provider, symbol)).fetchone()
+        if row is None:
+            return None
+        result = PaperContractEconomics.from_wire(json.loads(row["policy"]))
+        if result.digest != row["digest"] or _wire(result.wire()) != row["policy"]:
+            raise RiskRefused("INSTRUMENT_ECONOMICS_TAMPERED")
+        return result
+
+    def order_economics(self, order_id: str) -> PaperContractEconomics | None:
+        row = self._db.execute(
+            "SELECT policy,digest FROM paper_order_economics WHERE order_id=?",
+            (order_id,)).fetchone()
+        if row is None:
+            return None
+        result = PaperContractEconomics.from_wire(json.loads(row["policy"]))
+        if result.digest != row["digest"] or _wire(result.wire()) != row["policy"]:
+            raise RiskRefused("ORDER_ECONOMICS_TAMPERED")
+        return result
+
     def _replayed(self, action_id: str, digest: str) -> dict[str, Any] | None:
         row = self._db.execute(
             "SELECT digest,receipt FROM paper_risk_actions WHERE action_id=?", (action_id,)
@@ -360,19 +427,24 @@ class PaperRiskPortfolioManager:
             if mapped is None or mapped["currency"] != spec.instrument.quote_currency:
                 raise RiskRefused("INSTRUMENT_UNMAPPED")
             group_id = mapped["group_id"]
-            step = Decimal(ap["quantity_step"])
-            if (spec.quantity / step) != (spec.quantity / step).to_integral_value():
-                raise RiskRefused("QUANTITY_STEP_VIOLATION")
+            economics = self.instrument_economics(
+                portfolio_id=portfolio_id, market=spec.instrument.market.value,
+                provider=spec.instrument.provider, symbol=spec.instrument.symbol)
             price = spec.reference_entry
-            multiplier = Decimal(ap["contract_multiplier"])
-            notional = spec.quantity * price * multiplier
-            risk = spec.quantity * multiplier * (
-                abs(price - spec.stop)
-                + price * (
-                    Decimal(ap["roundtrip_fee_fraction"])
-                    + Decimal(ap["worst_slippage_fraction"])
-                )
-            )
+            if economics is None:
+                step = Decimal(ap["quantity_step"])
+                if (spec.quantity / step) != (spec.quantity / step).to_integral_value():
+                    raise RiskRefused("QUANTITY_STEP_VIOLATION")
+                multiplier = Decimal(ap["contract_multiplier"])
+                notional = spec.quantity * price * multiplier
+                risk = spec.quantity * multiplier * (
+                    abs(price - spec.stop)
+                    + price * (Decimal(ap["roundtrip_fee_fraction"])
+                               + Decimal(ap["worst_slippage_fraction"])))
+            else:
+                economics.validate_order(spec.quantity, price, spec.stop)
+                notional = economics.notional(spec.quantity, price)
+                risk = economics.reserved_risk(spec.quantity, price, spec.stop)
             # This is modeled initial margin, not verified broker margin.
             margin = notional / Decimal(ap["max_leverage"])
             active = self._rows(portfolio_id)
@@ -434,6 +506,12 @@ class PaperRiskPortfolioManager:
                  group_id, _wire(contract), str(risk), str(notional),
                  str(margin), "ACTIVE"),
             )
+            if economics is not None:
+                self._db.execute(
+                    "INSERT INTO paper_order_economics VALUES (?,?,?)",
+                    (spec.order_id, _wire(economics.wire()), economics.digest))
+                receipt["instrument_economics_digest"] = economics.digest
+                receipt["contract_units"] = str(spec.quantity)
             self._audit(day, "RESERVE", spec.order_id, receipt)
             result = self._action(action_id, digest, receipt)
             self._commit()
