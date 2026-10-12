@@ -13,6 +13,8 @@ from naseri_markets.authenticated_developer_intake_stage29_v1 import (
 from naseri_markets.publisher_package_registry_stage28_v1 import (
     Stage28Refused, _ROTATE_DOMAIN,
 )
+from test_durable_isolated_core_gate_stage22_v1 import host  # noqa: F401
+from test_signed_core_candidate_stage23_v1 import trusted  # noqa: F401
 from test_publisher_package_registry_stage28_v1 import (
     KEY_ID, NONCE, NOW, PUB, TENANT, digest, roster, submit_args,  # noqa: F401
 )
