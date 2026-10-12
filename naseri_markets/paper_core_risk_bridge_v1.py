@@ -139,8 +139,8 @@ class PaperCoreRiskBridge:
 
     def register_contract_economics(self, *, portfolio_id: str, policy,
                                     operator_ack: bool = False) -> None:
-        self._engine._risk.register_contract_economics(
-            portfolio_id=portfolio_id, policy=policy, operator_ack=operator_ack)
+        self._engine._transaction(lambda: self._engine._risk.register_contract_economics(
+            portfolio_id=portfolio_id, policy=policy, operator_ack=operator_ack))
 
     def register_allocation(self, policy: CoreCapitalAllocation, *, operator_ack: bool = False) -> None:
         """Immutable budget registration; no silent policy widening after approval."""
