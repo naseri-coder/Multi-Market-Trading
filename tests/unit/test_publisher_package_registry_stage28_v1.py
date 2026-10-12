@@ -3,8 +3,6 @@ from __future__ import annotations
 
 import hashlib
 import io
-import json
-import os
 import sqlite3
 import stat
 import zipfile
@@ -192,7 +190,7 @@ def test_symlink_member_and_duplicate_member_names_denied(roster):
 
 
 def test_registry_onboarding_needs_cryptographic_key_ownership(
-        tmp_path,host,monkeypatch):
+        tmp_path,host,monkeypatch):  # noqa: F811
     private=tmp_path/"private"
     private.mkdir(mode=0o700)
     with DurableIsolatedCoreGate(
@@ -300,7 +298,7 @@ def test_duplicate_submission_and_cross_tenant_inspection_refused(roster):
         gate.db.execute("DELETE FROM secure28_submissions WHERE binding_id='binding_a'")
 
 
-def test_owner_private_quarantine_directory_is_required(tmp_path,host):
+def test_owner_private_quarantine_directory_is_required(tmp_path,host):  # noqa: F811
     folder=tmp_path/"shared"
     folder.mkdir(mode=0o755)
     with DurableIsolatedCoreGate(tmp_path/"ledger.sqlite",host=host) as gate:
