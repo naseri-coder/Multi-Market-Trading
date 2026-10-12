@@ -40,6 +40,12 @@ except (OSError,ValueError):
 ok["docker_socket_absent"]=not os.path.exists("/var/run/docker.sock")
 ok["docker_user_socket_absent"]=not os.path.exists("/run/user")
 try:
+ interfaces=socket.if_nameindex()
+ ok["only_loopback_interfaces"]=(bool(interfaces) and
+                                 all(name=="lo" for _idx,name in interfaces))
+except OSError:
+ ok["only_loopback_interfaces"]=False
+try:
  fd=os.open("/mmt-stage23-root-write-attempt",os.O_CREAT|os.O_WRONLY,0o600)
  os.close(fd)
  ok["rootfs_readonly"]=False
@@ -72,7 +78,7 @@ class HostCanaryRefused(ValueError):
 _REQUIRED = frozenset({
     "uid_unprivileged", "no_capabilities", "no_new_privileges",
     "docker_socket_absent", "docker_user_socket_absent",
-    "rootfs_readonly", "external_network_denied",
+    "only_loopback_interfaces", "rootfs_readonly", "external_network_denied",
     "root_secret_unreadable",
 })
 
