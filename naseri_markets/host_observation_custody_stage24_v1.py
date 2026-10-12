@@ -321,6 +321,8 @@ def read_admin_host_security_status(state_dir: Path) -> dict:
         "telegram_publication_authorized": False,
         "broker_order_authorized": False,
     }
+    if path.is_symlink():
+        raise Stage24Refused("UNTRUSTED_READONLY_ADMIN_EVIDENCE")
     if not path.exists():
         return denied
     if not _private_path(path):
