@@ -54,9 +54,9 @@ MMT_NONPRODUCTION=1 python -m naseri_markets.public_forward_capture_cli_stage21c
 
 ## Contract economics and data integrity LIMITS
 
-**Parsing official fields is not validated per-instrument execution economics.** The current Stage-8/9 account risk policy has a single multiplier and lot/quantity step at account level, while the two KuCoin Futures contracts can have different multipliers and contract lots. Stage 21C reports each independently parsed multiplier, lot size and fees, but the existing Stage-21B modeled PAPER account still applies **toy account-level parameters**. It explicitly marks:
+**Stage 21D update:** The previously documented Stage-21C restriction on account-wide multiplier is resolved for the opt-in Stage21D PAPER replay: Stage3/8/9 now reserve risk and compute modeled PnL using immutable **per-instrument contract multiplier, lot-size, price-tick and fee** records, frozen per order. See [Stage21D detailed contract](CONTRACT_AWARE_PAPER_STAGE21D_V1.md). The Stage21C snapshot remains public and unsigned; economic output still does not attest real trading.
 
-- `contract_economics_gate = BLOCKED_PER_INSTRUMENT_MULTIPLIER_NOT_APPLIED`
+- `contract_economics_gate = MODELED_PER_INSTRUMENT_APPLIED_UNATTESTED`
 - `real_exchange_contract_pnl_verified = false`
 - `exchange_signature_verified = false`
 - `profitability_proven = false`
