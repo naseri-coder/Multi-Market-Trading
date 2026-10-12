@@ -12,7 +12,7 @@ from test_integrated_engine_panel import fake, setup  # noqa: F401
 
 
 @pytest.mark.asyncio
-async def test_private_admin_can_only_view_blocked_stage24_status(setup):
+async def test_private_admin_can_only_view_blocked_stage24_status(setup):  # noqa: F811
     state, _, _ = setup
     panel = IntegratedEnginePanel(state_dir=state, admin_ids={123},
                                   owner_ids={123})
@@ -29,7 +29,7 @@ async def test_private_admin_can_only_view_blocked_stage24_status(setup):
 
 
 @pytest.mark.asyncio
-async def test_group_and_stranger_cannot_discover_stage24(setup):
+async def test_group_and_stranger_cannot_discover_stage24(setup):  # noqa: F811
     state, _, _ = setup
     panel = IntegratedEnginePanel(state_dir=state, admin_ids={123},
                                   owner_ids={123})
@@ -41,7 +41,7 @@ async def test_group_and_stranger_cannot_discover_stage24(setup):
         context.bot.send_message.assert_not_awaited()
 
 
-def test_coresecurity_command_in_same_offline_admin_application(setup):
+def test_coresecurity_command_in_same_offline_admin_application(setup):  # noqa: F811
     state, _, _ = setup
     app = build_admin_application(
         token="123456:LOCAL_ONLY_FAKE_TEST", state_dir=state,
