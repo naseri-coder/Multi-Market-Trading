@@ -224,6 +224,9 @@ def test_forged_auditor_wrong_digest_future_or_stale_reading(chain):
 
 def test_tampered_stage33_packet_is_not_trusted_as_preexisting_proof(chain):
     worker, _prepared, _auditor, _prep, now, receipt = chain
+    # Privileged DB-owner tampering outside Stage33 SQL API: Stage35 must
+    # still refuse an altered signature. This does not bypass real custody.
+    worker.db.execute("DROP TRIGGER stage33_no_edit")
     worker.db.execute(
         "UPDATE stage33_signed_host_claims SET signed_envelope=?",
         (b'{"spoof":"untrusted"}',))
