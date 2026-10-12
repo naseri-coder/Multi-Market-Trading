@@ -238,7 +238,7 @@ def test_tampered_stage33_packet_is_not_trusted_as_preexisting_proof(chain):
 
 
 def test_stage33_claim_supersession_and_stage35_sequence_replay_denied(chain):
-    worker, prepared, _auditor, _prep, now, receipt = chain
+    worker, prepared, _auditor, _prep, now, receipt = chain  # noqa: F811
     old_report = worker.db.execute(
         "SELECT signed_sha256 FROM stage33_signed_host_claims"
     ).fetchone()[0]
