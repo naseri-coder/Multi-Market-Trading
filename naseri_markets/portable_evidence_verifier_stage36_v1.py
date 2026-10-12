@@ -247,7 +247,7 @@ def verify_signed_offline_bundle(
             raise Stage36Refused("INVALID_OR_EXPIRED_STAGE32_PREPARATION")
         _verified_signature(
             reviewer_public_key, _decode_sig(stage32["reviewer_signature_b64"]),
-            __import_domain32(), s32)
+            _D32, s32)
         _verified_signature(
             auditor_public_key, _decode_sig(stage33["auditor_signature_b64"]),
             _D33, s33)
@@ -301,11 +301,6 @@ def verify_signed_offline_bundle(
     except (Stage33Refused, Stage35Refused, TypeError, ValueError,
             KeyError, AttributeError) as exc:
         raise Stage36Refused("INVALID_SIGNED_CUSTODY_BUNDLE") from exc
-
-
-def __import_domain32() -> bytes:
-    # Separate static contract from the Stage33/35 domains.
-    return _D32
 
 
 __all__ = [
