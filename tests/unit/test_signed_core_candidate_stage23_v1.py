@@ -6,6 +6,10 @@ import hashlib
 import json
 
 import pytest
+
+# The legacy no-cryptography PostgreSQL corpus skips cryptographic suites;
+# the dedicated Stage23 CI always installs and fully runs this signed suite.
+pytest.importorskip("cryptography")
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
