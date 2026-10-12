@@ -111,6 +111,32 @@ LIVE broker execution, public third-party plugin sandbox certification,
 or a verified profitable strategy. [Stage 16 architecture, test and recovery
 limits](docs/OFFLINE_PANEL_TO_PAPER_STAGE16_V1.md).
 
+<a id="offline-supervisor"></a>
+## صف اجرای قابل‌بازیابی | Stage 17 Offline Runtime Supervisor
+
+مرحله ۱۷ یک **صف زمان‌بندی‌شده و پایدار SQLite** به مسیر Stage 16 اضافه می‌کند. اپراتور با داده‌های کندلی **SYNTHETIC/REPLAY** از پیش تهیه‌شده، Binding و نسخه تنظیمات را انتخاب می‌کند؛ اجرای محدود و صریح، همان موتور Stage 16 را صدا می‌زند. این **یک سرویس یا Poller دائمی نیست**؛ در نصب، ری‌استارت یا کلیک پنل چیزی به‌صورت خودکار شروع نمی‌شود.
+
+- **Scheduling:** کارهای `PENDING` فقط پس از زمان تعیین‌شده و با تأیید صریح اجرا می‌شوند. کلید محتوایی باعث می‌شود همان Replay دوباره به صف اضافه یا دوباره اجرا نشود.
+- **Concurrency:** قفل تراکنشی `BEGIN IMMEDIATE`، رسید claim تصادفی و کنترل نسخه پنل مانع دریافت هم‌زمان همان کار توسط دو اجراکننده می‌شوند.
+- **Recovery:** کار نیمه‌تمام `CLAIMED` بعد از Crash **هرگز کورکورانه تکرار نمی‌شود**؛ اپراتور باید سایر اجراکنندگان را متوقف، دفترهای PAPER/سیگنال را جداگانه تطبیق و مورد مبهم را قرنطینه کند.
+- **Health:** فرمان `runtime_supervisor_health_v1` وضعیت را **فقط‌خواندنی** نشان می‌دهد. فعال‌سازی LIVE، ارسال واقعی Telegram و معامله بروکر همیشه غیرفعال می‌مانند.
+
+آزمون نصب تمیز با یک هسته نمونه عمومی و خروجی مصنوعی:
+
+```bash
+# A unique new destination under an existing owner-private (0700) directory
+export MMT_NONPRODUCTION=1
+python -m naseri_markets.supervisor_synthetic_smoke_v1 \
+  --state-dir "$HOME/mmt-private/stage17-demo" --ack-synthetic-offline
+python -m naseri_markets.runtime_supervisor_health_v1 \
+  --runtime-db "$HOME/mmt-private/stage17-demo/supervisor.sqlite" \
+  --ack-nonproduction-readonly
+```
+
+این آزمون Stage 12 → Stage 16 → Stage 10 NO-SEND را بعد از بسته‌شدن و بازکردن مجدد دیتابیس بررسی می‌کند. مسیر PAPER مرحله ۸/۹ جداگانه در تست‌های مخزن کامل ارزیابی می‌شود. **سه دفتر آزمایشی یک تراکنش واحد نیستند و آماده انتشار عمومی یا LIVE نیستند.**
+
+[**قرارداد، محدودیت‌ها و دستورهای Stage 17**](docs/OFFLINE_RUNTIME_SUPERVISOR_STAGE17_V1.md) · [Stage 16](docs/OFFLINE_PANEL_TO_PAPER_STAGE16_V1.md)
+
 <a id="architecture"></a>
 ## معماری | Architecture
 
