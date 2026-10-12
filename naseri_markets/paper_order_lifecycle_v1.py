@@ -282,12 +282,18 @@ class OfflinePaperPositionLifecycle(PaperCoreRiskBridge):
         if ap is None:
             raise PaperLifecycleRefused("RISK_POLICY_MISSING")
         policy=json.loads(ap["policy"])
-        multiplier=Decimal(policy["contract_multiplier"])
-        friction=Decimal(policy["roundtrip_fee_fraction"])+Decimal(policy["worst_slippage_fraction"])
+        economics=self._engine._risk.order_economics(order_id)
         avg=Decimal(snap["average_fill_price"])
-        sign=Decimal(1) if snap["spec"]["direction"]=="long" else Decimal(-1)
-        gross=sign*(price-avg)*quantity*multiplier
-        cost=max(price,avg)*quantity*multiplier*friction
+        if economics is None:
+            multiplier=Decimal(policy["contract_multiplier"])
+            friction=Decimal(policy["roundtrip_fee_fraction"])+Decimal(policy["worst_slippage_fraction"])
+            sign=Decimal(1) if snap["spec"]["direction"]=="long" else Decimal(-1)
+            gross=sign*(price-avg)*quantity*multiplier
+            cost=max(price,avg)*quantity*multiplier*friction
+        else:
+            gross,cost=economics.modeled_exit(
+                quantity=quantity,entry=avg,exit_price=price,
+                direction=snap["spec"]["direction"])
         net=gross-cost
         self._db.execute("INSERT INTO paper_stage9_exits VALUES (?,?,?,?,?,?,?,?,?)",
                          (order_id,action_id,reason,str(quantity),str(price),str(gross),str(cost),str(net),evidence_digest))
@@ -334,7 +340,9 @@ class OfflinePaperPositionLifecycle(PaperCoreRiskBridge):
                                            fill_price,digest,action_root+"_stop"))
             else:
                 original=Decimal(snap["filled_quantity"])
-                step=Decimal(json.loads(self._db.execute("SELECT policy FROM risk_accounts WHERE account_id=?",(snap["spec"]["account_id"],)).fetchone()["policy"])["quantity_step"])
+                economics=self._engine._risk.order_economics(order_id)
+                step=(economics.quantity_step if economics is not None
+                      else Decimal(json.loads(self._db.execute("SELECT policy FROM risk_accounts WHERE account_id=?",(snap["spec"]["account_id"],)).fetchone()["policy"])["quantity_step"]))
                 for i,t in enumerate(plan["targets"]):
                     if self._db.execute("SELECT 1 FROM paper_stage9_targets WHERE order_id=? AND target_index=?",(order_id,i)).fetchone():
                         continue
@@ -474,13 +482,18 @@ class OfflinePaperPositionLifecycle(PaperCoreRiskBridge):
         stop=Decimal(snap["spec"]["stop"])
         qty=Decimal(snap["filled_quantity"])
         ap=self._db.execute("SELECT policy FROM risk_accounts WHERE account_id=?",(snap["spec"]["account_id"],)).fetchone()
-        mul=Decimal(json.loads(ap["policy"])["contract_multiplier"])
+        economics=self._engine._risk.order_economics(order_id)
+        mul=(economics.contract_multiplier if economics is not None
+             else Decimal(json.loads(ap["policy"])["contract_multiplier"]))
         initial_risk=qty*abs(initial-stop)*mul
         return {"order_id":order_id,"mode":"MODELED_PAPER_ONLY","status":snap["status"],
                 "filled_quantity":snap["filled_quantity"],"closed_quantity":snap["closed_quantity"],
                 "gross":str(gross),"modeled_cost":str(cost),"net":str(net),
                 "net_realized_r":str(net/initial_risk) if initial_risk>0 else None,
-                "exits":[dict(x) for x in entries],"broker_verified":False,
+                "exits":[dict(x) for x in entries],
+                "economics_digest": economics.digest if economics else None,
+                "quote_currency": economics.settle_currency if economics else None,
+                "broker_verified":False,
                 "telegram_sent":False,"broker_order_sent":False}
 
 
