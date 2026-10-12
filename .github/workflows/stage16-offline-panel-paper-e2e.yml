@@ -1,0 +1,88 @@
+name: Stage 16 installed panel-to-PAPER synthetic acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'naseri_markets/offline_panel_paper_integration_v1.py'
+      - 'naseri_markets/panel_paper_synthetic_demo_v1.py'
+      - 'tests/unit/test_offline_panel_paper_integration_v1.py'
+      - 'tests/unit/test_panel_paper_synthetic_demo_v1.py'
+      - 'docs/OFFLINE_PANEL_TO_PAPER_STAGE16_V1.md'
+      - 'README.md'
+      - '.github/workflows/stage16-offline-panel-paper-e2e.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stage16-accepted-offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Verify previous package boundary and Stage 16 source
+        run: |
+          set -Eeuo pipefail
+          python scripts/a6_release_preflight.py
+          python -m pip install 'pytest==9.1.1' 'ruff==0.16.9'
+          python -m ruff check --select E4,F \
+            naseri_markets/offline_panel_paper_integration_v1.py \
+            naseri_markets/panel_paper_synthetic_demo_v1.py \
+            tests/unit/test_offline_panel_paper_integration_v1.py \
+            tests/unit/test_panel_paper_synthetic_demo_v1.py
+          mkdir -p "$RUNNER_TEMP/stage16-independent-tests"
+          cp tests/unit/test_offline_panel_paper_integration_v1.py \
+             tests/unit/test_panel_paper_synthetic_demo_v1.py \
+             "$RUNNER_TEMP/stage16-independent-tests/"
+          PYTHONPATH="$GITHUB_WORKSPACE" python -m pytest -q \
+            "$RUNNER_TEMP/stage16-independent-tests"
+      - name: Install clean independent Python 3.12 wheel
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/project" "$RUNNER_TEMP/wheels" "$RUNNER_TEMP/cleanroom"
+          cp platform_release/pyproject.toml platform_release/README.md "$RUNNER_TEMP/project/"
+          cp -a naseri_markets "$RUNNER_TEMP/project/naseri_markets"
+          python -m venv "$RUNNER_TEMP/stage16-venv"
+          "$RUNNER_TEMP/stage16-venv/bin/python" -m pip wheel --no-deps \
+            --wheel-dir "$RUNNER_TEMP/wheels" "$RUNNER_TEMP/project"
+          "$RUNNER_TEMP/stage16-venv/bin/python" -m pip install --no-deps \
+            "$RUNNER_TEMP"/wheels/multi_market_trading-0.4.0rc1-*.whl
+          "$RUNNER_TEMP/stage16-venv/bin/python" -m pip check
+      - name: Confirm selected timeframe changes real PAPER and signal journals
+        env:
+          MMT_NONPRODUCTION: '1'
+          PYTHONPATH: ''
+        run: |
+          set -Eeuo pipefail
+          cd "$RUNNER_TEMP/cleanroom"
+          for frame in 5m 15m 1h; do
+            "$RUNNER_TEMP/stage16-venv/bin/python" -m \
+              naseri_markets.panel_paper_synthetic_demo_v1 \
+              --state-dir "$RUNNER_TEMP/cleanroom/stage16-$frame" \
+              --symbol XYZUSD --timeframe "$frame" \
+              --ack-synthetic-offline > "$RUNNER_TEMP/stage16-$frame.json"
+          done
+          "$RUNNER_TEMP/stage16-venv/bin/python" - <<'PY'
+          import json, os
+          from pathlib import Path
+          for frame in ("5m", "15m", "1h"):
+              data = json.loads((Path(os.environ["RUNNER_TEMP"]) /
+                                 f"stage16-{frame}.json").read_text())
+              assert data["mode"] == "SYNTHETIC_INSTALLED_PAPER_ONLY"
+              assert data["symbol"] == "XYZUSD" and data["timeframe"] == frame
+              assert data["decision_count"] == data["paper_closed_trades"] == 1
+              assert data["dry_run_commands"] == 1
+              assert data["restart_verified"] is True
+              assert data["integrity_verdict"] == "PASS"
+              assert data["release_verdict"] == "BLOCKED_NONPRODUCTION_UNATTESTED"
+              assert not data["broker_order_sent"] and not data["telegram_sent"]
+              assert not data["profitability_proven"]
+              assert not data["live_trading_enabled"]
+          print("STAGE16_INSTALLED_SYNTHETIC_INTEGRATION_PASS")
+          PY

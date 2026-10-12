@@ -34,7 +34,7 @@ The repository contains **two intentionally distinct software lines**. **Do not 
 | **Installed public toy PAPER MVP** | Same `0.4.0rc1` preview | نمونه عمومی، ثبت SQLite و Replay تکرارپذیر | **`naseri-paper-demo`** |
 | Trusted local public Custom | Same preview | فقط کد مستقل بررسی‌شده و مورد اعتماد اپراتور | `naseri-custom` |
 | Telegram development panel | Optional `telegram-admin` extra | فقط تنظیمات و پیش‌نمایش؛ اتصال عملیاتی جدید غیرفعال | `naseri-engine-admin` / opt-in Stage 12 |
-| Universal Core API / risk / lifecycle / research | Stages 3–15 | قراردادها و اجزای PAPER/آزمایشی، **نه یک سرویس LIVE یکپارچه** | کتابخانه‌ها و آزمون‌های مستقل |
+| Universal Core API / risk / lifecycle / research | Stages 3–16 | قراردادها و اجزای PAPER/آزمایشی، **نه یک سرویس LIVE یکپارچه** | کتابخانه‌ها و آزمون‌های مستقل |
 
 **گیت انتشار:** `PRODUCT_NOT_READY_FOR_PUBLIC_OR_LIVE_RELEASE`؛ انتشار کانال تلگرام، معاملات واقعی، اجرای کد ناشناس عمومی و استقرار تجاری هنوز مجاز یا تأیید نشده‌اند. [گزارش آمادگی مرحله ۱۵](docs/PRODUCT_READINESS_AND_RELEASE_GATES_STAGE15_V1.md).
 
@@ -77,6 +77,40 @@ $PAPER_CLI --state-dir "$PAPER" inspect                       # history preserve
 > [!WARNING]
 > `naseri-paper-demo` **فقط نمونه عمومی همراه بسته** را اجرا می‌کند و جایگزین سامانه امن اجرای هسته‌های ناشناس نیست. `python -I -S` sandbox نیست. فایل‌ها و توکن‌های تولیدی را به این محیط وارد نکنید.
 
+<a id="panel-paper"></a>
+## مسیر یکپارچه پنل تا PAPER | Stage 16
+
+**New — opt-in offline handoff.** The Stage-12 selected binding now controls a
+real **Stage-5 → Stage-7 → Stage-8/9 → Stage-10** demonstration with genuine
+PAPER risk/order records and a NO-SEND signal journal, subject to independent
+operator acknowledgment. This is not autonomous Telegram trading or a real feed.
+
+The selected **symbol, timeframe and budget** affect the actual offline
+evaluation and risk acceptance. Analysis, dry-run signals and PAPER remain
+independently requested modes. Stage-8 allocation must agree exactly with
+Stage-12 configuration, otherwise execution fails closed.
+
+Run the independent installed-wheel synthetic lifecycle in a **new, private
+state directory** on a development machine (Python 3.12). It uses a reviewed
+example core, fictitious symbol and price bars; the same command must never
+be pointed at an existing production database:
+
+```bash
+MMT_NONPRODUCTION=1 python -m naseri_markets.panel_paper_synthetic_demo_v1 \
+  --state-dir "$HOME/mmt-stage16-unique-test" \
+  --symbol XYZUSD --timeframe 15m --ack-synthetic-offline
+```
+
+The test records a modeled PAPER entry/exit, verifies the persisted result
+after re-opening SQLite, and audits the NO-SEND signal and order ledgers.
+Supported sample periods: `5m`, `15m`, `1h`. All reported PnL is synthetic.
+
+**Still not implemented:** a continuously running authenticated market
+scanner, atomic cross-database coordination, actual Telegram delivery,
+LIVE broker execution, public third-party plugin sandbox certification,
+or a verified profitable strategy. [Stage 16 architecture, test and recovery
+limits](docs/OFFLINE_PANEL_TO_PAPER_STAGE16_V1.md).
+
 <a id="architecture"></a>
 ## معماری | Architecture
 
@@ -114,7 +148,7 @@ $PAPER_CLI --state-dir "$PAPER" inspect                       # history preserve
 | Portfolio/risk + multi-target PAPER lifecycle | پیاده‌سازی و تست مدل‌سازی | بدون سفارش یا پرشدن واقعی بروکر |
 | Signal lifecycle + delivery journal | صف خشک و بازبینی داخلی | بدون اثبات ارسال/ویرایش پیام واقعی |
 | Strategy Research Lab | تحلیل شواهد PAPER و دوره‌های Train/Validation/Holdout | **بک‌تست واقعی جدید یا Edge سودده تأیید نشده** |
-| Trading Control Center | پنل توسعه‌ای چند هسته/نماد/تایم‌فریم | بدون اتصال خودکار به موتور معاملات |
+| Trading Control Center | پنل توسعه‌ای چند هسته/نماد/تایم‌فریم | با اتصال صریح آفلاین Stage 16؛ بدون اجرای خودکار معاملات |
 | Reliability, SDK, signatures, release gates | ممیزی و آزمون ساختاری | بدون تأیید خصمانه gVisor یا مجوز Marketplace |
 | **Public toy PAPER user journey** | **نصب Wheel → ثبت → Replay → ری‌استارت → inspect** | فقط نمونه عمومی trusted، بدون Telegram/سفارش |
 
@@ -133,7 +167,7 @@ $PAPER_CLI --state-dir "$PAPER" inspect                       # history preserve
 | PAPER risk, orders, signals | [Risk](docs/UNIVERSAL_PORTFOLIO_RISK_STAGE8_V1.md) · [Lifecycle](docs/UNIVERSAL_ORDER_POSITION_LIFECYCLE_STAGE9_V1.md) · [Signals](docs/SIGNAL_LIFECYCLE_STAGE10_V1.md) |
 | Research, UI, acceptance | [Research](docs/STRATEGY_RESEARCH_LAB_STAGE11_V1.md) · [Control center](docs/TRADING_CONTROL_CENTER_STAGE12_V1.md) · [Reliability](docs/RELIABILITY_INTEGRATION_STAGE13_V1.md) |
 | Independent developer SDK | [SDK and certification](docs/DEVELOPER_SDK_CERTIFICATION_STAGE14_V1.md) |
-| **Product readiness and release blockers** | [Stage 15 readiness](docs/PRODUCT_READINESS_AND_RELEASE_GATES_STAGE15_V1.md) · [A28 architecture/product audit](docs/MULTI_MARKET_TRADING_A28_FINAL_PRODUCT_AUDIT.md) |
+| **Stage 16 — explicit panel-to-PAPER integration** | [Offline handoff and installed synthetic E2E](docs/OFFLINE_PANEL_TO_PAPER_STAGE16_V1.md) |\n| **Product readiness and release blockers** | [Stage 15 readiness](docs/PRODUCT_READINESS_AND_RELEASE_GATES_STAGE15_V1.md) · [A28 architecture/product audit](docs/MULTI_MARKET_TRADING_A28_FINAL_PRODUCT_AUDIT.md) |
 | Security, changes and contributing | [Security](SECURITY.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [Roadmap](ROADMAP.md) |
 
 ### Verification / بررسی
