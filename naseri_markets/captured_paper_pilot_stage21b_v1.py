@@ -32,6 +32,7 @@ from .offline_panel_paper_integration_v1 import OfflinePanelPaperIntegration
 from .offline_runtime_supervisor_v1 import OfflineRuntimeSupervisor
 from .offline_signal_lifecycle_v1 import OfflineSignalLifecycle
 from .paper_order_lifecycle_v1 import OfflinePaperPositionLifecycle
+from .paper_contract_economics_stage21d_v1 import PaperContractEconomics
 from .reliability_acceptance_v1 import LedgerPaths, evaluate_offline_reliability
 from .risk_portfolio_contract_v1 import AccountRiskPolicy, PortfolioRiskPolicy
 from .trading_control_center_v1 import CoreListing, OfflineTradingControlCenter
@@ -77,6 +78,7 @@ def run_captured_paper_pilot(
     provider_snapshot: ProviderSnapshot, observed_at: datetime,
     operator_ack: bool = False, quantity: D = D("0.001"),
     dry_run_signals: bool = True,
+    contract_economics: tuple[PaperContractEconomics, ...] | None = None,
 ) -> dict:
     """Interpret operator-held official-format data; NO remote market fetch.
 
@@ -109,6 +111,20 @@ def run_captured_paper_pilot(
             or metadata[symbol].quote_currency != "USDT" for symbol in symbols)
             or provider_snapshot.observed_at > min(c.request.start for c in captures)):
         raise CapturedPaperRefused("REVIEWED_HISTORIC_METADATA_REQUIRED")
+    if contract_economics is not None:
+        if (type(contract_economics) is not tuple
+                or len(contract_economics) != len(captures)
+                or any(type(e) is not PaperContractEconomics
+                       for e in contract_economics)
+                or {e.symbol for e in contract_economics} != set(symbols)
+                or any(e.metadata_sha256 != provider_snapshot.raw_sha256
+                       or e.provider != "kucoin_futures"
+                       for e in contract_economics)):
+            raise CapturedPaperRefused("EXACT_STAGE21D_CONTRACT_BINDING_REQUIRED")
+        for econ in contract_economics:
+            if (quantity / econ.quantity_step) != (
+                    quantity / econ.quantity_step).to_integral_value():
+                raise CapturedPaperRefused("CONTRACT_QUANTITY_NOT_VENUE_ALIGNED")
     directory = Path(directory)
     parent = directory.parent
     if (not directory.is_absolute() or directory.exists() or directory.is_symlink()
@@ -182,10 +198,16 @@ def run_captured_paper_pilot(
                 D(1000), D("0.05"), D("0.20"), D("0.20"),
                 D(2), D("0.90"), D(3), D(1), D("0.0001"),
                 D("0.002"), D("0.003"), 25, True))
+            econ_by_symbol = {e.symbol: e for e in (contract_economics or ())}
             for capture, binding, _decision in planned.values():
                 paper.register_instrument(
                     portfolio_id="captured_portfolio",
                     instrument=binding.instrument, group_id="CRYPTO")
+                if contract_economics is not None:
+                    paper.register_contract_economics(
+                        portfolio_id="captured_portfolio",
+                        policy=econ_by_symbol[capture.request.symbol],
+                        operator_ack=True)
             bridge.authorize_paper(
                 state.instance_id, paper=paper,
                 expected_panel_revision=state.revision,
@@ -270,6 +292,10 @@ def run_captured_paper_pilot(
                         if state_bar["status"] == "CLOSED":
                             break
                 performance = paper.performance(order_id)
+                if contract_economics is not None and (
+                        performance["economics_digest"] !=
+                        econ_by_symbol[capture.request.symbol].digest):
+                    raise CapturedPaperRefused("ORDER_ECONOMICS_SNAPSHOT_MISMATCH")
                 results[binding.binding_id] = {
                     "symbol": capture.request.symbol,
                     "timeframe": binding.timeframe,
@@ -283,6 +309,8 @@ def run_captured_paper_pilot(
                     "status": performance["status"],
                     "modeled_realized_net": performance["net"],
                     "modeled_realized_r": performance["net_realized_r"],
+                    "contract_units": str(quantity) if contract_economics else None,
+                    "per_instrument_economics_digest": performance["economics_digest"],
                     "unrealized_pnl_included": False,
                     "broker_verified": False,
                 }
@@ -316,7 +344,9 @@ def run_captured_paper_pilot(
         raise CapturedPaperRefused("CROSS_LEDGER_AUDIT_FAILED")
     rows = [results[b.binding_id] for b in bindings]
     return {
-        "mode": "STAGE21B_UNATTESTED_PUBLIC_FORMAT_OFFLINE_PAPER",
+        "mode": ("STAGE21D_UNATTESTED_CONTRACT_AWARE_OFFLINE_PAPER"
+                 if contract_economics is not None else
+                 "STAGE21B_UNATTESTED_PUBLIC_FORMAT_OFFLINE_PAPER"),
         "provider": "kucoin_futures",
         "core": core.manifest.core_id,
         "datasets": rows,
@@ -337,6 +367,9 @@ def run_captured_paper_pilot(
         "telegram_sent": False, "broker_order_sent": False,
         "provider_origin_independently_attested": False,
         "real_network_used": False, "provider_contract_size_verified": False,
+        "modeled_per_contract_economics_applied": contract_economics is not None,
+        "per_contract_metadata_sha256": (provider_snapshot.raw_sha256
+                                         if contract_economics else None),
         "real_futures_pnl_proven": False, "profitability_proven": False,
         "live_trading_enabled": False, "public_release_authorized": False,
         "brooks_core_api_integrated": False,
