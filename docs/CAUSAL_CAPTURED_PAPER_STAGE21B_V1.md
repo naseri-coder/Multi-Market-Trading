@@ -33,3 +33,5 @@ The mandatory CI workflow tests causal replay across two symbols and two timefra
 - A qualified provider metadata and contract multiplier service, independently verified real public capture, rate-limit/licensing/residency review and sample-size evidence are required before authentic multi-market PAPER confidence.
 - Production and public release stay `PRODUCT_NOT_READY_FOR_PUBLIC_OR_LIVE_RELEASE`.
 - Do not change private NY First-Reversal, production bot, v0.3.2 legacy runtime, main server, Telegram or broker credentials.
+
+**No-setup outcome:** if the entire scan finds no eligible entry, the Stage-13 gate correctly returns `BLOCKED` (`NO_EVALUATED_OUTPUT_EVIDENCE`) and the Stage-19 exact-effect inspection is **not applicable**. This is a valid lack of trading signal, **not** a successful end-to-end journal attestation. Do not insert dummy effects to force a PASS.
