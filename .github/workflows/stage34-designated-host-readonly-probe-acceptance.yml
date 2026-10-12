@@ -7,14 +7,14 @@ on:
       - 'naseri_markets/designated_host_readonly_probe_cli_stage34_v1.py'
       - 'tests/unit/test_designated_host_readonly_probe_stage34_v1.py'
       - 'docs/STAGE34_DESIGNATED_HOST_READONLY_PROBE_V1.md'
-      - '.github/workflows/stage34-disconnected-host-evidence-acceptance.yml'
+      - '.github/workflows/stage34-designated-host-readonly-probe-acceptance.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  stage34-disconnected-auditor-custody:
+  stage34-gated-local-probe-security:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
