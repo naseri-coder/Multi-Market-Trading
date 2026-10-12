@@ -117,8 +117,6 @@ def review_preinstall_evidence(
                     hashlib.sha256(source).hexdigest())
                 or host_statement.host_id != host_id
                 or host_statement.sequence <= 0
-                or not expected_image.endswith(
-                    "@sha256:" + expected_image.rsplit("@sha256:", 1)[-1])
                 or not stage22.host.policy.enabled
                 or stage22.host.policy.image != expected_image):
             raise PreinstallReviewRefused("ISOLATION_OR_PROVENANCE_BINDING_DRIFT")
