@@ -8,6 +8,7 @@
 
 [![Public tests](https://github.com/naseri-coder/Multi-Market-Trading/actions/workflows/public-test-corpus.yml/badge.svg?branch=main)](https://github.com/naseri-coder/Multi-Market-Trading/actions/workflows/public-test-corpus.yml)
 [![Publication safety](https://github.com/naseri-coder/Multi-Market-Trading/actions/workflows/publication-safety.yml/badge.svg?branch=main)](https://github.com/naseri-coder/Multi-Market-Trading/actions/workflows/publication-safety.yml)
+[![Legacy v0.3.2](https://img.shields.io/badge/version-v0.3.2-7C3AED)](pyproject.toml)
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache--2.0-0B7285)](LICENSE)
 [![Status](https://img.shields.io/badge/Release-NONPRODUCTION%20ONLY-orange)](docs/PRODUCT_READINESS_AND_RELEASE_GATES_STAGE15_V1.md)
