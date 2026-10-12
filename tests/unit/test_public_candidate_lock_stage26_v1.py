@@ -20,7 +20,7 @@ from test_secure_plugin_runtime_v1 import CORE, SOURCE, event
 
 
 def test_signed_cross_stage_chain_becomes_permanently_locked_without_execution(
-        prepared, monkeypatch):
+        prepared, monkeypatch):  # noqa: F811
     args, g22, _g23, _g24 = prepared
     called = []
     monkeypatch.setattr(
@@ -50,7 +50,7 @@ def test_signed_cross_stage_chain_becomes_permanently_locked_without_execution(
     assert g22.audit(TENANT, "binding_a")["attempt_states"] == {}
 
 
-def test_sqlite_denies_direct_enable_attempt_erase_or_mutate_fence(prepared):
+def test_sqlite_denies_direct_enable_attempt_erase_or_mutate_fence(prepared):  # noqa: F811
     args, g22, *_ = prepared
     seal_public_candidate(**args)
     with pytest.raises(sqlite3.IntegrityError, match="STAGE26_PUBLIC_EXECUTION_BLOCKED"):
@@ -71,7 +71,7 @@ def test_sqlite_denies_direct_enable_attempt_erase_or_mutate_fence(prepared):
         g22, tenant_id=TENANT, binding_id="binding_a")["sealed"]
 
 
-def test_race_cas_state_revision_changes_are_rejected(prepared):
+def test_race_cas_state_revision_changes_are_rejected(prepared):  # noqa: F811
     args, g22, *_ = prepared
     g22.set_enabled(TENANT, "binding_a", enabled=False,
                     expected_revision=1, operator_ack=True)
@@ -83,7 +83,7 @@ def test_race_cas_state_revision_changes_are_rejected(prepared):
         seal_public_candidate(**args)
 
 
-def test_previous_lease_and_enabled_state_cannot_be_sealed(prepared):
+def test_previous_lease_and_enabled_state_cannot_be_sealed(prepared):  # noqa: F811
     args, g22, *_ = prepared
     g22.set_enabled(TENANT, "binding_a", enabled=True,
                     expected_revision=1, operator_ack=True)
@@ -104,7 +104,7 @@ def test_previous_lease_and_enabled_state_cannot_be_sealed(prepared):
     {"now": NOW + 900},
     {"operator_ack": False},
 ])
-def test_missing_invalid_expired_or_wrong_identity_never_seals(prepared, corruption):
+def test_missing_invalid_expired_or_wrong_identity_never_seals(prepared, corruption):  # noqa: F811
     args, g22, *_ = prepared
     with pytest.raises(PublicCandidateLockRefused):
         seal_public_candidate(**{**args, **corruption})
@@ -112,7 +112,7 @@ def test_missing_invalid_expired_or_wrong_identity_never_seals(prepared, corrupt
         g22, tenant_id=TENANT, binding_id="binding_a")["sealed"]
 
 
-def test_revoked_signer_or_host_statement_blocks_seal(prepared):
+def test_revoked_signer_or_host_statement_blocks_seal(prepared):  # noqa: F811
     args, g22, _g23, g24 = prepared
     g24.revoke(HOST, operator_ack=True)
     with pytest.raises(PublicCandidateLockRefused, match="INVALID_REVOKED"):
@@ -121,7 +121,7 @@ def test_revoked_signer_or_host_statement_blocks_seal(prepared):
         g22, tenant_id=TENANT, binding_id="binding_a")["sealed"]
 
 
-def test_postseal_revocation_cannot_reactivate_a_candidate(prepared):
+def test_postseal_revocation_cannot_reactivate_a_candidate(prepared):  # noqa: F811
     args, g22, g23, g24 = prepared
     seal_public_candidate(**args)
     g23.revoke(TENANT, "binding_a", operator_ack=True)
@@ -133,7 +133,7 @@ def test_postseal_revocation_cannot_reactivate_a_candidate(prepared):
                         expected_revision=1, operator_ack=True)
 
 
-def test_repeat_seal_and_old_research_do_not_gain_public_permission(prepared):
+def test_repeat_seal_and_old_research_do_not_gain_public_permission(prepared):  # noqa: F811
     args, g22, *_ = prepared
     assert review_preinstall_evidence(**args).installation_authorized is False
     seal_public_candidate(**args)
@@ -142,7 +142,7 @@ def test_repeat_seal_and_old_research_do_not_gain_public_permission(prepared):
     assert g22.state(TENANT, "binding_a")["broker_order_authorized"] is False
 
 
-def test_stage25_unsupported_legacy_activation_cannot_promote(prepared):
+def test_stage25_unsupported_legacy_activation_cannot_promote(prepared):  # noqa: F811
     args, g22, *_ = prepared
     g22.set_enabled(TENANT, "binding_a", enabled=True,
                     expected_revision=1, operator_ack=True)
@@ -152,7 +152,7 @@ def test_stage25_unsupported_legacy_activation_cannot_promote(prepared):
 
 
 def test_physical_db_shutdown_keeps_permanent_public_fence(
-        prepared):
+        prepared):  # noqa: F811
     args, g22, *_ = prepared
     seal_public_candidate(**args)
     # A second SQLite connection has exactly the same trigger defense.
@@ -163,7 +163,7 @@ def test_physical_db_shutdown_keeps_permanent_public_fence(
 
 
 def test_explicit_nonproduction_fence_works_after_correct_signatures(
-        prepared, monkeypatch):
+        prepared, monkeypatch):  # noqa: F811
     args, g22, *_ = prepared
     monkeypatch.setenv("MMT_PRODUCTION", "1")
     with pytest.raises(PublicCandidateLockRefused, match="EXPLICIT_NONPRODUCTION"):
