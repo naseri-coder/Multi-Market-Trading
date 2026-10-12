@@ -285,6 +285,9 @@ class OfflineDeveloperAsgiGateway:
     async def __call__(self, scope, receive, send) -> None:
         """ASGI entrypoint. Explicitly DOES NOT create a network listener."""
         try:
+            # Preserve the nonproduction fence even after construction.
+            from .publisher_package_registry_stage28_v1 import _guard
+            _guard(True)
             if (type(scope) is not dict or scope.get("type") != "http"
                     or scope.get("scheme") != "https"):
                 raise Stage30Refused(403, "HTTPS_HOST_ADAPTER_REQUIRED")
