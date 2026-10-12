@@ -22,7 +22,6 @@ from cryptography.x509.oid import NameOID
 
 from naseri_markets.a24_publisher_admission import canonical
 from naseri_markets.authenticated_developer_intake_stage29_v1 import _LOGIN_DOMAIN
-from naseri_markets.offline_developer_api_stage30_v1 import Stage30Refused
 from naseri_markets.tls_boundary_stage31_v1 import (
     Stage31Refused, StrictDeveloperAuthorityGate, verify_hermetic_tls_client,
 )
@@ -64,7 +63,7 @@ def tls_material(tmp_path):
 
 
 def tls_context_pair(tls_material, *, hostname=HOSTNAME,
-                     trusted=True, tls13=True, hostname_check=True):
+                     trusted_ca=True, tls13=True, hostname_check=True):
     cert_path, key_path, pem, digest = tls_material
     server = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     server.minimum_version = ssl.TLSVersion.TLSv1_3
@@ -75,7 +74,7 @@ def tls_context_pair(tls_material, *, hostname=HOSTNAME,
                               else ssl.TLSVersion.TLSv1_2)
     client.check_hostname = hostname_check
     client.verify_mode = ssl.CERT_REQUIRED
-    if trusted:
+    if trusted_ca:
         client.load_verify_locations(cadata=pem.decode("ascii"))
     incoming_client = ssl.MemoryBIO()
     outgoing_client = ssl.MemoryBIO()
@@ -163,7 +162,7 @@ def test_actual_hermetic_tls13_cert_chain_hostname_and_digest(tls_material):
 
 def test_wrong_trust_chain_wrong_dns_name_and_missing_cert_fail(tls_material):
     with pytest.raises(ssl.SSLError):
-        tls_context_pair(tls_material,trusted=False)
+        tls_context_pair(tls_material,trusted_ca=False)
     with pytest.raises(ssl.SSLCertVerificationError):
         tls_context_pair(tls_material,hostname="impostor.staging.invalid")
     channel,digest=tls_context_pair(tls_material)
@@ -195,7 +194,7 @@ def test_tls_context_must_require_hostname_and_tls13(tls_material):
             expected_certificate_sha256=d,operator_ack=True)
 
 
-def test_approved_authority_wraps_real_stage30_signed_login_and_inert_zip(api):
+def test_approved_authority_wraps_real_stage30_signed_login_and_inert_zip(api):  # noqa: F811
     app, _login, _clock, signer, original = api
     edge=StrictDeveloperAuthorityGate(
         app, approved_authority=HOSTNAME,operator_ack=True)
@@ -242,7 +241,7 @@ def test_approved_authority_wraps_real_stage30_signed_login_and_inert_zip(api):
     {"path":"/v1/developers/../challenge"},
     {"path":"/v1/developers//challenge"},
 ])
-def test_host_smuggling_forwarded_host_and_normalization_denied(api,changed):
+def test_host_smuggling_forwarded_host_and_normalization_denied(api,changed):  # noqa: F811
     edge=StrictDeveloperAuthorityGate(
         api[0],approved_authority=HOSTNAME,operator_ack=True)
     args={"tenant_id":TENANT,"publisher":PUB,"key_id":KEY_ID}
@@ -253,7 +252,7 @@ def test_host_smuggling_forwarded_host_and_normalization_denied(api,changed):
         "SELECT 1 FROM secure29_challenges").fetchone()
 
 
-def test_request_headers_are_checked_before_credential_use(api):
+def test_request_headers_are_checked_before_credential_use(api):  # noqa: F811
     edge=StrictDeveloperAuthorityGate(
         api[0],approved_authority=HOSTNAME,operator_ack=True)
     assert call(edge,headers=[(b"cookie",b"session=secret")])[0]==400
@@ -262,7 +261,7 @@ def test_request_headers_are_checked_before_credential_use(api):
     assert call(edge,headers=[(b"authorization",b"Bearer secret")])[0]==400
 
 
-def test_private_operator_ack_and_production_flip_fail_closed(api,monkeypatch):
+def test_private_operator_ack_and_production_flip_fail_closed(api,monkeypatch):  # noqa: F811
     gateway=api[0]
     with pytest.raises(Stage31Refused):
         StrictDeveloperAuthorityGate(
@@ -278,7 +277,7 @@ def test_private_operator_ack_and_production_flip_fail_closed(api,monkeypatch):
     assert code==403 and "challenge" not in answer
 
 
-def test_scope_https_claim_does_not_alone_issue_tls_proof(api):
+def test_scope_https_claim_does_not_alone_issue_tls_proof(api):  # noqa: F811
     edge=StrictDeveloperAuthorityGate(
         api[0],approved_authority=HOSTNAME,operator_ack=True)
     assert not hasattr(edge,"tls_authenticated")
