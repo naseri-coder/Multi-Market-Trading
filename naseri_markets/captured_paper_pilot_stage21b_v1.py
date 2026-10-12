@@ -177,7 +177,7 @@ def run_captured_paper_pilot(
             paper.configure_account(AccountRiskPolicy(
                 "captured_account", "captured_portfolio", "USDT",
                 D(1000), D("0.05"), D("0.20"), D("0.20"),
-                D(2), D("0.90"), D(3), D(1), D("0.01"),
+                D(2), D("0.90"), D(3), D(1), D("0.0001"),
                 D("0.002"), D("0.003"), 25, True))
             for capture, binding, _decision in planned.values():
                 paper.register_instrument(
