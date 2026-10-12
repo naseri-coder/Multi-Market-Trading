@@ -1,6 +1,6 @@
 <div align="center">
 
-# Multi Market Trading
+# 📈 Multi Market Trading
 
 **Multi-market architecture · Public strategy SDK · Offline PAPER verification**
 
