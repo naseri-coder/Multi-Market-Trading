@@ -38,7 +38,9 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
         run: |
           set -Eeuo pipefail
-          python -m pytest -q tests/unit/test_unified_paper_pilot_stage20_v1.py
+          mkdir -p "$RUNNER_TEMP/stage20-source-tests"
+          cp tests/unit/test_unified_paper_pilot_stage20_v1.py "$RUNNER_TEMP/stage20-source-tests/"
+          python -m pytest -q "$RUNNER_TEMP/stage20-source-tests" -rs
       - name: Install new-product wheel in clean room
         env:
           MMT_NONPRODUCTION: '1'
