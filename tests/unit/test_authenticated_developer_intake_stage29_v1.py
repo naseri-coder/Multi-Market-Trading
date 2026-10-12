@@ -1,9 +1,6 @@
 """Stage29 one-use Ed25519 publisher login and quarantined signed ZIP intake."""
 from __future__ import annotations
 
-import hashlib
-import sqlite3
-
 import pytest
 
 pytest.importorskip("cryptography")
