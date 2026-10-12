@@ -9,6 +9,7 @@ import argparse
 import json
 import sys
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 
 from .kucoin_futures_replay_stage21_v1 import FuturesKlineRequest
@@ -47,6 +48,8 @@ def main(argv: list[str] | None = None) -> int:
     replay.add_argument("--bundle-dir", type=Path, required=True)
     replay.add_argument("--state-dir", type=Path, required=True)
     replay.add_argument("--dry-run-signals", action="store_true")
+    replay.add_argument("--contracts", type=str, default="1",
+                        help="Exact number of futures contracts, never base-asset units")
     replay.add_argument("--ack-offline-paper", action="store_true")
     args = parser.parse_args(argv)
     try:
@@ -68,7 +71,8 @@ def main(argv: list[str] | None = None) -> int:
             result = replay_sealed_bundle(
                 args.bundle_dir, args.state_dir,
                 operator_ack=args.ack_offline_paper,
-                dry_run_signals=args.dry_run_signals)
+                dry_run_signals=args.dry_run_signals,
+                contract_quantity=Decimal(args.contracts))
     except (ValueError, OSError, RuntimeError, KeyError, TypeError):
         print("STAGE21C_NONPRODUCTION_REFUSED", file=sys.stderr)
         return 2
