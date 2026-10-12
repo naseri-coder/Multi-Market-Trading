@@ -29,7 +29,8 @@ def main(argv: list[str] | None = None) -> int:
                 args.effects, args.runtime, args.paper, args.signal,
             )
         )
-    except (job_effect_intent_v1.IntentRefused, OSError, sqlite3.Error, ValueError, TypeError) as exc:
+    except (job_effect_intent_v1.IntentRefused, OSError, sqlite3.Error,
+            ValueError, TypeError) as exc:
         print("STAGE19_EVIDENCE_REFUSED:" + type(exc).__name__, file=sys.stderr)
         return 2
     print(json.dumps(report.as_dict(), sort_keys=True, allow_nan=False))
