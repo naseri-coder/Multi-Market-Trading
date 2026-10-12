@@ -6,13 +6,10 @@ from __future__ import annotations
 
 import hashlib
 import os
-from pathlib import Path
 
 import pytest
 
-from naseri_markets.core_api_v1 import (
-    CoreBinding, content_digest,
-)
+from naseri_markets.core_api_v1 import content_digest
 from naseri_markets.durable_isolated_core_gate_stage22_v1 import (
     DurableIsolatedCoreGate, Stage22Refused,
 )
