@@ -116,7 +116,7 @@ def seal_public_candidate(
                 publisher_key_id=publisher_key_id,
                 image=expected_image, now=now)
             stage24.current(
-                observation, canary_receipt=canary_receipt,
+                observation, canary_receipt,
                 expected_host_id=host_id,
                 expected_image=expected_image, now=now)
             stage22.db.execute(
