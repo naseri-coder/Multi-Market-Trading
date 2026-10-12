@@ -304,7 +304,12 @@ def run_captured_paper_pilot(
     proof = (evaluate_effect_evidence(EffectEvidencePaths(
         paths["effects"], paths["runtime"], paths["paper"], paths["signals"]))
         if expected_effects else None)
-    if (ledger.integrity_verdict != "PASS"
+    no_output_expected = expected_effects == 0
+    # Stage 13 explicitly blocks the absence of evaluated output evidence.
+    # A genuine NO_SETUP is not a proof of cross-stage execution.
+    gate_ok = (ledger.integrity_verdict == "PASS" if not no_output_expected
+               else ledger.blockers == ("NO_EVALUATED_OUTPUT_EVIDENCE",))
+    if (not gate_ok
             or ledger.release_verdict != "BLOCKED_NONPRODUCTION_UNATTESTED"
             or (proof is not None and (proof.blocking_effects
                 or proof.exact_local_effects != expected_effects))):
@@ -323,6 +328,8 @@ def run_captured_paper_pilot(
         "effect_evidence_verdict": (proof.verdict if proof else
                                      "NO_EFFECT_INTENTS_NOT_STAGE19_ATTESTED"),
         "integrity_verdict": ledger.integrity_verdict,
+        "integrity_blockers": list(ledger.blockers),
+        "no_output_cross_stage_unattested": no_output_expected,
         "release_verdict": ledger.release_verdict,
         "restarted_and_reconciled": True,
         "paper_positions_possible_open": any(row.get("status") not in
