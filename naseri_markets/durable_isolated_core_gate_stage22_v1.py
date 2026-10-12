@@ -126,6 +126,15 @@ class DurableIsolatedCoreGate:
             BEGIN
               SELECT RAISE(ABORT,'STAGE26_PREEXISTING_CORE_NOT_SAFE_TO_SEAL');
             END;
+            CREATE TRIGGER IF NOT EXISTS secure26_no_attempt
+            BEFORE INSERT ON secure22_attempts
+            WHEN EXISTS (
+              SELECT 1 FROM secure26_public_fence p
+              WHERE p.binding_id=NEW.binding_id
+            )
+            BEGIN
+              SELECT RAISE(ABORT,'STAGE26_PUBLIC_ATTEMPT_BLOCKED');
+            END;
             CREATE TRIGGER IF NOT EXISTS secure26_no_enable
             BEFORE UPDATE OF state ON secure22_bindings
             WHEN NEW.state IN ('ENABLED','EVALUATING')
