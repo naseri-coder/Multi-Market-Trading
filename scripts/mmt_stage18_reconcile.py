@@ -26,7 +26,8 @@ def main(argv: list[str] | None = None) -> int:
     if not args.ack_nonproduction_readonly:
         print("STAGE18_REFUSED:ACK_REQUIRED", file=sys.stderr)
         return 2
-    paths = operational_reconciliation_v1.RecoveryPaths(args.runtime_db, args.control_db, args.paper_db, args.signal_db)
+    paths = operational_reconciliation_v1.RecoveryPaths(
+        args.runtime_db, args.control_db, args.paper_db, args.signal_db)
     try:
         if any(v is not None for v in (args.review_db, args.review_job,
                                        args.evidence_sha256, args.operator_id,
@@ -34,7 +35,8 @@ def main(argv: list[str] | None = None) -> int:
             if any(v is None for v in (args.review_db, args.review_job,
                                        args.evidence_sha256, args.operator_id,
                                        args.review_note)):
-                raise operational_reconciliation_v1.RecoveryRefused("COMPLETE_REVIEW_ARGUMENTS_REQUIRED")
+                raise operational_reconciliation_v1.RecoveryRefused(
+                    "COMPLETE_REVIEW_ARGUMENTS_REQUIRED")
             output = offline_recovery_review_v1.record_operator_review(
                 paths, args.review_db, job_id=args.review_job,
                 evidence_sha256=args.evidence_sha256, note=args.review_note,
@@ -43,7 +45,8 @@ def main(argv: list[str] | None = None) -> int:
                 all_workers_stopped=args.ack_all_workers_stopped)
         else:
             output = operational_reconciliation_v1.evaluate_operational_recovery(paths).as_dict()
-    except (operational_reconciliation_v1.RecoveryRefused, sqlite3.Error, OSError, TypeError) as exc:
+    except (operational_reconciliation_v1.RecoveryRefused, sqlite3.Error,
+            OSError, TypeError) as exc:
         print("STAGE18_REFUSED:" + type(exc).__name__, file=sys.stderr)
         return 2
     print(json.dumps(output, sort_keys=True))
