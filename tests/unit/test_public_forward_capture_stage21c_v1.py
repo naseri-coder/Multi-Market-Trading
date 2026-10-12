@@ -101,7 +101,10 @@ def test_forward_metadata_two_gets_later_and_paper_audit(tmp_path):
     assert report["exact_effects"] == 4
     assert report["integrity_verdict"] == "PASS"
     assert report["source_transport_origin"] == "INJECTED_TEST_TRANSPORT"
-    assert report["contract_economics_gate"] == "BLOCKED_PER_INSTRUMENT_MULTIPLIER_NOT_APPLIED"
+    assert report["contract_economics_gate"] == "MODELED_PER_INSTRUMENT_APPLIED_UNATTESTED"
+    assert report["modeled_per_contract_economics_applied"] is True
+    assert report["economic_audited_orders"] == 2
+    assert report["local_economic_audit"] == "LOCAL_PER_CONTRACT_ECONOMICS_COHERENT_UNATTESTED"
     assert report["real_exchange_contract_pnl_verified"] is False
     assert report["broker_order_sent"] is False
     assert report["telegram_sent"] is False
