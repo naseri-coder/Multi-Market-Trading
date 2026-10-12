@@ -7,7 +7,6 @@ domain-bound reference, WITHOUT receiving authority to activate plug-ins.
 """
 from __future__ import annotations
 
-import base64
 import hashlib
 import hmac
 import json
