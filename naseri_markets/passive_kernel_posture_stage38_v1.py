@@ -83,7 +83,7 @@ def _status(raw: bytes, *, expected_uid: int, expected_gid: int) -> None:
             if name in records:
                 raise Stage38Refused("DUPLICATE_PROC_SECURITY_PROPERTY")
             records[name] = value.strip()
-    if records.keys() < _REQUIRED_STATUS:
+    if not _REQUIRED_STATUS.issubset(records):
         raise Stage38Refused("INCOMPLETE_PROCESS_SECURITY_STATUS")
     if (_identity_quad(records["Uid"]) != expected_uid
             or _identity_quad(records["Gid"]) != expected_gid):
