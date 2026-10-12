@@ -15,7 +15,7 @@ from pathlib import Path
 
 from .contracts import Direction, Market
 from .core_api_v1 import (
-    ClosedCandle, CoreDecision, CoreEventType, CoreInput, CoreManifest, CoreResult,
+    ClosedCandle, CoreEventType, CoreInput, CoreManifest, CoreResult,
     DataOrigin, DecisionKind, ExitAction, ManagementAction, _TIMEFRAME_MINUTES,
     content_digest, validate_core_result,
 )
