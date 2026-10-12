@@ -50,6 +50,8 @@ def _body(raw: bytes) -> dict:
     try:
         data = json.loads(raw.decode("utf-8"), parse_float=Decimal,
                           parse_constant=_not_finite, object_pairs_hook=_pairs)
+    except FundingMarkRefused:
+        raise
     except (TypeError, ValueError, UnicodeError) as exc:
         raise FundingMarkRefused("INVALID_PUBLIC_RESPONSE_JSON") from exc
     if type(data) is not dict or data.get("code") != "200000":
@@ -209,6 +211,8 @@ def capture_public_funding_and_mark(
         raise FundingMarkRefused("ANNEX_EXISTS_OR_PARTIAL_WRITES")
     if transport is not None and not callable(transport):
         raise FundingMarkRefused("INVALID_PUBLIC_RESEARCH_TRANSPORT")
+    if (record["capture_mode"] == "INJECTED_TEST_TRANSPORT") != (transport is not None):
+        raise FundingMarkRefused("MIXED_SOURCE_PROVENANCE_REFUSED")
     if clock is None:
         clock = lambda: datetime.now(UTC)
     started = _utc(clock())
