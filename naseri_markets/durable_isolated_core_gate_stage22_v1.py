@@ -105,6 +105,47 @@ class DurableIsolatedCoreGate:
               result_digest TEXT,
               PRIMARY KEY(binding_id,input_digest)
             );
+            CREATE TABLE IF NOT EXISTS secure26_public_fence(
+              binding_id TEXT PRIMARY KEY REFERENCES secure22_bindings(binding_id),
+              tenant_id TEXT NOT NULL, candidate_sha256 TEXT NOT NULL,
+              observation_sha256 TEXT NOT NULL,
+              source_sha256 TEXT NOT NULL, sealed_revision INTEGER NOT NULL,
+              state TEXT NOT NULL CHECK(state='PENDING_INDEPENDENT_HOST_REVIEW')
+            );
+            CREATE TRIGGER IF NOT EXISTS secure26_fence_initial
+            BEFORE INSERT ON secure26_public_fence
+            WHEN NOT EXISTS (
+                  SELECT 1 FROM secure22_bindings b WHERE b.binding_id=NEW.binding_id
+                    AND b.tenant_id=NEW.tenant_id AND b.state='DISABLED'
+                    AND b.revision=NEW.sealed_revision
+                    AND b.source_sha256=NEW.source_sha256
+                 ) OR EXISTS (
+                  SELECT 1 FROM secure22_attempts a
+                  WHERE a.binding_id=NEW.binding_id
+                 )
+            BEGIN
+              SELECT RAISE(ABORT,'STAGE26_PREEXISTING_CORE_NOT_SAFE_TO_SEAL');
+            END;
+            CREATE TRIGGER IF NOT EXISTS secure26_no_enable
+            BEFORE UPDATE OF state ON secure22_bindings
+            WHEN NEW.state IN ('ENABLED','EVALUATING')
+              AND EXISTS (
+                SELECT 1 FROM secure26_public_fence p
+                WHERE p.binding_id=NEW.binding_id
+              )
+            BEGIN
+              SELECT RAISE(ABORT,'STAGE26_PUBLIC_EXECUTION_BLOCKED');
+            END;
+            CREATE TRIGGER IF NOT EXISTS secure26_no_delete
+            BEFORE DELETE ON secure26_public_fence
+            BEGIN
+              SELECT RAISE(ABORT,'STAGE26_FENCE_IS_PERMANENT');
+            END;
+            CREATE TRIGGER IF NOT EXISTS secure26_no_mutate
+            BEFORE UPDATE ON secure26_public_fence
+            BEGIN
+              SELECT RAISE(ABORT,'STAGE26_FENCE_IS_IMMUTABLE');
+            END;
         """)
 
     def __enter__(self):
@@ -184,6 +225,9 @@ class DurableIsolatedCoreGate:
             "last_error": row["last_error"],
             "paper_only": True, "telegram_send_authorized": False,
             "broker_order_authorized": False,
+            "public_untrusted_candidate_locked": bool(self.db.execute(
+                "SELECT 1 FROM secure26_public_fence WHERE binding_id=?",
+                (binding_id,)).fetchone()),
         }
 
     def set_enabled(self, tenant_id: str, binding_id: str, *,
@@ -197,6 +241,10 @@ class DurableIsolatedCoreGate:
             if row["revision"] != expected_revision:
                 raise Stage22Refused("STALE_OPERATOR_REVISION")
             if enabled:
+                if self.db.execute(
+                        "SELECT 1 FROM secure26_public_fence WHERE binding_id=?",
+                        (binding_id,)).fetchone():
+                    raise Stage22Refused("STAGE26_PUBLIC_UNTRUSTED_CORE_LOCKED")
                 if row["state"] != "DISABLED":
                     raise Stage22Refused("FRESH_REVIEW_REQUIRED_FOR_RECOVERY")
                 next_state = "ENABLED"
@@ -250,6 +298,10 @@ class DurableIsolatedCoreGate:
             raise Stage22Refused("NONPRODUCTION_CORE_EVENT_REQUIRED")
         with self._tx():
             row = self._row(tenant_id, event.binding.binding_id)
+            if self.db.execute(
+                    "SELECT 1 FROM secure26_public_fence WHERE binding_id=?",
+                    (event.binding.binding_id,)).fetchone():
+                raise Stage22Refused("STAGE26_PUBLIC_UNTRUSTED_CORE_LOCKED")
             if row["state"] != "ENABLED":
                 raise Stage22Refused("BINDING_DISABLED_OR_QUARANTINED")
             if (event.core_id != row["core_id"]
