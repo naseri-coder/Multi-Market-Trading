@@ -28,7 +28,7 @@ jobs:
           set -Eeuo pipefail
           python -m pip install 'pytest==9.1.1' 'ruff==0.16.9' 'cryptography==46.0.3'
           python -m ruff check --select E4,F \
-            naseri_markets/disposable_host_preflight_stage32_v1.py \
+            naseri_markets/disconnected_host_evidence_stage33_v1.py \
             tests/unit/test_disconnected_host_evidence_stage33_v1.py
           python scripts/a6_release_preflight.py
           python scripts/check_publication_safety.py
@@ -39,7 +39,8 @@ jobs:
         run: |
           set -Eeuo pipefail
           mkdir -p "$RUNNER_TEMP/stage33-tests"
-          cp tests/unit/test_disposable_host_preflight_stage32_v1.py \
+          cp tests/unit/test_disconnected_host_evidence_stage33_v1.py \
+             tests/unit/test_disposable_host_preflight_stage32_v1.py \
              tests/unit/test_tls_boundary_stage31_v1.py \
              tests/unit/test_offline_developer_api_stage30_v1.py \
              tests/unit/test_authenticated_developer_intake_stage29_v1.py \
@@ -71,7 +72,8 @@ jobs:
              "$RUNNER_TEMP"/stage33-wheel/multi_market_trading-0.4.0rc1-*.whl \
              'pytest==9.1.1' 'cryptography==46.0.3'
           "$RUNNER_TEMP/stage33-venv/bin/python" -m pip check
-          cp tests/unit/test_disposable_host_preflight_stage32_v1.py \
+          cp tests/unit/test_disconnected_host_evidence_stage33_v1.py \
+             tests/unit/test_disposable_host_preflight_stage32_v1.py \
              tests/unit/test_tls_boundary_stage31_v1.py \
              tests/unit/test_offline_developer_api_stage30_v1.py \
              tests/unit/test_authenticated_developer_intake_stage29_v1.py \
