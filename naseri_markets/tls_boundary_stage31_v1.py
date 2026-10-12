@@ -35,6 +35,13 @@ class Stage31Refused(ValueError):
     """Operator-only transport evidence cannot be escalated to authorization."""
 
 
+def _nonproduction(ack: bool) -> None:
+    try:
+        _guard(ack)
+    except ValueError as exc:
+        raise Stage31Refused("EXPLICIT_NONPRODUCTION_TLS_REVIEW_REQUIRED") from exc
+
+
 @dataclass(frozen=True, slots=True)
 class LaboratoryTlsReceipt:
     hostname: str
@@ -61,7 +68,7 @@ def verify_hermetic_tls_client(
     The caller must build the context with operator-pinned CA and hostname
     validation. This never accepts user-asserted 'https' ASGI scope fields.
     """
-    _guard(operator_ack)
+    _nonproduction(operator_ack)
     if (not isinstance(channel, ssl.SSLObject)
             or type(trusted_hostname) is not str
             or not _HOSTNAME.fullmatch(trusted_hostname)
@@ -103,7 +110,7 @@ class StrictDeveloperAuthorityGate:
 
     def __init__(self, delegate: OfflineDeveloperAsgiGateway, *,
                  approved_authority: str, operator_ack: bool = False):
-        _guard(operator_ack)
+        _nonproduction(operator_ack)
         if (type(delegate) is not OfflineDeveloperAsgiGateway
                 or type(approved_authority) is not str
                 or not _HOSTNAME.fullmatch(approved_authority)):
@@ -158,7 +165,7 @@ class StrictDeveloperAuthorityGate:
 
     async def __call__(self, scope, receive, send):
         try:
-            _guard(True)
+            _nonproduction(True)
             normalized = self._checked_scope(scope)
         except Stage30Refused as exc:
             await self.delegate._send(send, exc.status, {"error": exc.code})
