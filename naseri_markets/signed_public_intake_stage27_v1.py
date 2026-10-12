@@ -40,6 +40,35 @@ class PublicIntakeReceipt:
     independent_host_isolation_verified: bool = False
 
 
+def _insert_verified_public_locked(
+    stage22: DurableIsolatedCoreGate, *,
+    tenant_id: str, publisher: str, publisher_key_id: str,
+    manifest: CoreManifest, binding: CoreBinding,
+    source_sha256: str, candidate_sha256: str,
+    expected_image: str,
+) -> None:
+    """Caller MUST hold the Stage22 BEGIN IMMEDIATE transaction.
+
+    Stage23 current signature checks are performed by the trusted caller;
+    this internal helper ONLY writes a disabled Stage22 registration and
+    an immutable Stage27 public classification in the same transaction.
+    """
+    manifest_digest = content_digest(manifest)
+    binding_digest = content_digest(binding)
+    stage22._insert_disabled_locked(
+        tenant_id, manifest, binding, manifest_digest, source_sha256)
+    stage22.db.execute(
+        "INSERT INTO secure27_public_intake("
+        "binding_id,tenant_id,publisher_id,publisher_key_id,"
+        "candidate_sha256,source_sha256,manifest_sha256,"
+        "binding_sha256,image_sha256,registration_revision,state)"
+        " VALUES(?,?,?,?,?,?,?,?,?,1,?)",
+        (binding.binding_id, tenant_id, publisher, publisher_key_id,
+         candidate_sha256, source_sha256, manifest_digest, binding_digest,
+         expected_image.rsplit("@sha256:", 1)[-1],
+         "PUBLIC_UNTRUSTED_PENDING_INDEPENDENT_HOST"))
+
+
 def register_signed_public_candidate(
     *, stage22: DurableIsolatedCoreGate,
     stage23: SignedCandidateWitness,
@@ -67,8 +96,6 @@ def register_signed_public_candidate(
     if not stage22.host.policy.enabled or stage22.host.policy.image != expected_image:
         raise PublicIntakeRefused("PINNED_ISOLATED_IMAGE_MISMATCH")
     digest = hashlib.sha256(source).hexdigest()
-    manifest_digest = content_digest(manifest)
-    binding_digest = content_digest(binding)
     try:
         verified = stage23.current(
             signed_candidate, source=source, manifest=manifest,
@@ -80,21 +107,19 @@ def register_signed_public_candidate(
                 or not hmac.compare_digest(verified.source_sha256, digest)):
             raise PublicIntakeRefused("SIGNATURE_IDENTITY_AND_CODE_MISMATCH")
         with stage22._tx():
-            # Validate the source and quotas with the SAME helper used by
-            # legacy local research, then classify in the SAME transaction.
-            # If the second INSERT rejects, the first INSERT rolls back.
-            stage22._insert_disabled_locked(
-                tenant_id, manifest, binding, manifest_digest, digest)
-            stage22.db.execute(
-                "INSERT INTO secure27_public_intake("
-                "binding_id,tenant_id,publisher_id,publisher_key_id,"
-                "candidate_sha256,source_sha256,manifest_sha256,"
-                "binding_sha256,image_sha256,registration_revision,state)"
-                " VALUES(?,?,?,?,?,?,?,?,?,1,?)",
-                (binding.binding_id, tenant_id, publisher, publisher_key_id,
-                 verified.envelope_sha256, digest, manifest_digest,
-                 binding_digest, expected_image.rsplit("@sha256:", 1)[-1],
-                 "PUBLIC_UNTRUSTED_PENDING_INDEPENDENT_HOST"))
+            # Re-read Stage23 in the same local Stage22 transaction. Stage23
+            # remains a separate witness DB; this is NOT cross-DB atomicity.
+            verified = stage23.current(
+                signed_candidate, source=source, manifest=manifest,
+                binding=binding, tenant_id=tenant_id, publisher=publisher,
+                publisher_key_id=publisher_key_id, image=expected_image,
+                now=now)
+            _insert_verified_public_locked(
+                stage22, tenant_id=tenant_id, publisher=publisher,
+                publisher_key_id=publisher_key_id, manifest=manifest,
+                binding=binding, source_sha256=digest,
+                candidate_sha256=verified.envelope_sha256,
+                expected_image=expected_image)
     except PublicIntakeRefused:
         raise
     except (ValueError, TypeError, KeyError, sqlite3.DatabaseError) as exc:
