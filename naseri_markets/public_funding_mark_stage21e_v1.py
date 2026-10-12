@@ -6,9 +6,7 @@ entry-notional scenario only, never a Stage9 realized accounting adjustment.
 """
 from __future__ import annotations
 
-import hashlib
 import json
-import os
 import urllib.parse
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -20,8 +18,8 @@ from .kucoin_futures_replay_stage21_v1 import (
     SYMBOL, VenueReplayRefused, _public_get,
 )
 from .public_forward_capture_stage21c_v1 import (
-    ForwardCaptureRefused, _gate, _json, _private_parent, _read_private,
-    _sha, _utc, _write_new, verify_capture_bundle,
+    _gate, _json, _read_private, _sha, _utc, _write_new,
+    verify_capture_bundle,
 )
 
 FUNDING_ENDPOINT = "https://api-futures.kucoin.com/api/v1/contract/funding-rates"
@@ -269,6 +267,7 @@ def analyze_funding_and_mark(
     mark_dislocation_limit: Decimal = Decimal("0.02"),
     hypothetical_leverage: Decimal = Decimal("5"),
     hypothetical_mmr: Decimal = Decimal("0.01"),
+    paper_path: Path | None = None,
 ) -> dict:
     """Read-only *scenario*, never post-hoc modification of stored PAPER PnL.
 
@@ -324,8 +323,14 @@ def analyze_funding_and_mark(
             "liquidation_price": None,
             "historical_mark_risk": "NOT_ASSESSED_NO_HISTORICAL_MARK_SERIES",
         })
+    funding_scenario = None
+    if paper_path is not None:
+        from .paper_funding_scenario_stage21e_v1 import estimate_ledger_funding
+        funding_scenario = estimate_ledger_funding(
+            paper_path, policies=econ, settlements=funding)
     return {
         "stage": "21E", "mode": "READONLY_PUBLIC_FUNDING_MARK_RESEARCH",
+        "paper_funding_scenario": funding_scenario,
         "capture_mode": manifest["capture_mode"],
         "items": per_symbol,
         "current_snapshot_is_historical_price": False,
