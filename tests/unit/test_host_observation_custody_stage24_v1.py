@@ -184,7 +184,7 @@ def test_revocation_persists_and_invalidates_receipt(ledger):
 def test_unsafe_canary_failed_check_and_false_certification_rejected(ledger):
     store, signer, _ = ledger
     failed = raw_receipt(allowed=False)
-    with pytest.raises(Stage24Refused, match="UNSAFE_OR_UNVERIFIED"):
+    with pytest.raises(Stage24Refused, match="UNSUPPORTED_REVIEW_SCOPE_OR_CLAIM"):
         save(store, signed(signer, failed), failed)
     false_claim = json.loads(raw_receipt())
     false_claim["public_plugin_install_authorized"] = True
