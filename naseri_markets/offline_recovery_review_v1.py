@@ -52,12 +52,17 @@ def record_operator_review(
                             or stat.S_IMODE(path.stat().st_mode) & 0o077))
             or path.resolve() in sources):
         raise RecoveryRefused("INVALID_OR_OVERLAPPING_REVIEW_DB")
-    if not path.exists():
+    existing_file = path.exists()
+    if not existing_file:
         fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_RDWR, 0o600)
         os.close(fd)
     db = sqlite3.connect(path, timeout=3, isolation_level=None)
     try:
         db.execute("PRAGMA busy_timeout=3000")
+        if existing_file and not db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' "
+                "AND name='stage18_manual_reviews'").fetchone():
+            raise RecoveryRefused("UNRELATED_REVIEW_DATABASE")
         db.execute("CREATE TABLE IF NOT EXISTS stage18_manual_reviews ("
                    "job_id TEXT NOT NULL, evidence_sha256 TEXT NOT NULL, "
                    "operator_id INTEGER NOT NULL, note_sha256 TEXT NOT NULL, "
