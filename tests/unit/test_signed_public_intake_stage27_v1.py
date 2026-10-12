@@ -23,9 +23,7 @@ from test_durable_isolated_core_gate_stage22_v1 import host  # noqa: F401
 from test_signed_core_candidate_stage23_v1 import (
     TENANT, PUB, KEY_ID, NOW, key_bytes, signed, trusted,  # noqa: F401
 )
-from test_host_observation_custody_stage24_v1 import (
-    HOST, raw_receipt, signed as sign_host,
-)
+from test_host_observation_custody_stage24_v1 import HOST, raw_receipt
 from test_secure_plugin_runtime_v1 import CORE, IMAGE, SHA, SOURCE, event
 
 
@@ -37,7 +35,7 @@ def safe(monkeypatch):
 
 @pytest.fixture
 def public_case(tmp_path, host, trusted):  # noqa: F811
-    witness, publisher, operator, _path = trusted
+    witness, _publisher, _operator, _path = trusted
     payload = signed(trusted)
     witness.admit(
         payload, source=SOURCE, manifest=CORE.manifest, binding=event().binding,
@@ -200,7 +198,7 @@ def test_stage26_sealing_keeps_both_persistent_denial_layers(public_case, tmp_pa
 
 
 def test_stage22_trusted_research_regression_still_explicitly_separate(
-        tmp_path, host):
+        tmp_path, host):  # noqa: F811
     with DurableIsolatedCoreGate(tmp_path / "research.sqlite", host=host) as gate:
         response = gate.register(
             TENANT, CORE.manifest, event().binding,
