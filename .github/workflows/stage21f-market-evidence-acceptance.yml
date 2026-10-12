@@ -1,0 +1,76 @@
+name: Stage 21F market evidence readiness and Funding replay safety
+
+on:
+  pull_request:
+    paths:
+      - 'naseri_markets/market_evidence_gate_stage21f_v1.py'
+      - 'naseri_markets/market_evidence_gate_cli_stage21f_v1.py'
+      - 'tests/unit/test_market_evidence_gate_stage21f_v1.py'
+      - 'docs/FUNDING_MARK_EVIDENCE_READINESS_STAGE21F_V1.md'
+      - '.github/workflows/stage21f-market-evidence-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stage21f-offline-evidence-wheel:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Bounded public source, no production writes and publication gates
+        run: |
+          set -Eeuo pipefail
+          python -m pip install 'pytest==9.1.1' 'ruff==0.16.9'
+          python -m ruff check --select E4,F \
+            naseri_markets/market_evidence_gate_stage21f_v1.py \
+            naseri_markets/market_evidence_gate_cli_stage21f_v1.py \
+            tests/unit/test_market_evidence_gate_stage21f_v1.py
+          python scripts/a6_release_preflight.py
+          python scripts/check_publication_safety.py
+      - name: Stage19 to 21F cross-ledger regression and strict no-profit gate
+        env:
+          MMT_NONPRODUCTION: '1'
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/stage21f-tests"
+          cp tests/unit/test_market_evidence_gate_stage21f_v1.py \
+             tests/unit/test_public_funding_mark_stage21e_v1.py \
+             tests/unit/test_public_forward_capture_stage21c_v1.py \
+             tests/unit/test_paper_contract_economics_stage21d_v1.py \
+             tests/unit/test_captured_paper_pilot_stage21b_v1.py \
+             tests/unit/test_captured_paper_cli_stage21b_v1.py \
+             tests/unit/test_stage19_integrated_effects_v1.py \
+             "$RUNNER_TEMP/stage21f-tests/"
+          python -m pytest -q "$RUNNER_TEMP/stage21f-tests" -rs
+      - name: Clean installed wheel Python 3.12 confidence acceptance
+        env:
+          MMT_NONPRODUCTION: '1'
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/stage21f-project" "$RUNNER_TEMP/stage21f-wheel" \
+             "$RUNNER_TEMP/stage21f-room" "$RUNNER_TEMP/stage21f-wheel-tests"
+          cp platform_release/pyproject.toml platform_release/README.md \
+             "$RUNNER_TEMP/stage21f-project/"
+          cp -a naseri_markets "$RUNNER_TEMP/stage21f-project/naseri_markets"
+          python -m venv "$RUNNER_TEMP/stage21f-venv"
+          "$RUNNER_TEMP/stage21f-venv/bin/python" -m pip wheel --no-deps \
+             --wheel-dir "$RUNNER_TEMP/stage21f-wheel" "$RUNNER_TEMP/stage21f-project"
+          "$RUNNER_TEMP/stage21f-venv/bin/python" -m pip install \
+             "$RUNNER_TEMP"/stage21f-wheel/multi_market_trading-0.4.0rc1-*.whl \
+             'pytest==9.1.1'
+          "$RUNNER_TEMP/stage21f-venv/bin/python" -m pip check
+          cp tests/unit/test_market_evidence_gate_stage21f_v1.py \
+             tests/unit/test_public_funding_mark_stage21e_v1.py \
+             tests/unit/test_public_forward_capture_stage21c_v1.py \
+             "$RUNNER_TEMP/stage21f-wheel-tests/"
+          cd "$RUNNER_TEMP/stage21f-room"
+          PYTHONPATH= "$RUNNER_TEMP/stage21f-venv/bin/python" -m pytest -q \
+             "$RUNNER_TEMP/stage21f-wheel-tests" -rs
