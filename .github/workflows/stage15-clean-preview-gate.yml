@@ -4,6 +4,12 @@ on:
   pull_request:
     paths:
       - "naseri_markets/release_readiness_v1.py"
+      - "naseri_markets/paper_demo_cli_v1.py"
+      - "tests/unit/test_paper_demo_cli_v1.py"
+      - "docs/PAPER_MVP_INSTALLED_USER_JOURNEY_V1.md"
+      - "platform_release/pyproject.toml"
+      - "platform_release/README.md"
+      - "README.md"
       - "naseri_markets/installed_preview_smoke_v1.py"
       - "scripts/mmt_stage15_readiness.py"
       - "tests/unit/test_release_readiness_v1.py"
@@ -46,6 +52,8 @@ jobs:
           set -Eeuo pipefail
           python -m pip install 'pytest==9.1.1' 'ruff==0.16.9'
           python -m ruff check --select E4,F \
+            naseri_markets/paper_demo_cli_v1.py \
+            tests/unit/test_paper_demo_cli_v1.py \
             naseri_markets/release_readiness_v1.py \
             naseri_markets/installed_preview_smoke_v1.py \
             scripts/mmt_stage15_readiness.py \
@@ -75,4 +83,56 @@ jobs:
           assert p['telegram_sent'] is False and p['broker_order_sent'] is False
           assert p['product_release_authorized'] is False
           print('ISOLATED_PREVIEW_WHEEL_SMOKE_PASS_PUBLIC_RELEASE_BLOCKED')
+          PY
+
+      - name: Real installed public toy PAPER lifecycle (no network/orders)
+        env:
+          MMT_NONPRODUCTION: "1"
+        run: |
+          set -Eeuo pipefail
+          cd "$RUNNER_TEMP/cleanroom"
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+
+          home = Path(os.environ["RUNNER_TEMP"])
+          tool = home / "venv/bin/naseri-paper-demo"
+          state = home / "toy-private-state"
+          environment = dict(os.environ, PYTHONPATH="")
+          def invoke(action, *args):
+              process = subprocess.run(
+                  [str(tool), "--state-dir", str(state), action, *args],
+                  cwd=home / "cleanroom", env=environment,
+                  capture_output=True, text=True, timeout=20, check=True)
+              return json.loads(process.stdout)
+
+          original = invoke("init", "--ack-reviewed-public-toy")
+          assert original["revision"] == 1 and not original["enabled"]
+          assert not original["telegram_sent"] and not original["broker_order_sent"]
+          enabled = invoke("enable", "--revision", "1",
+                           "--descriptor-sha256", original["descriptor_sha256"])
+          assert enabled["enabled"] and enabled["revision"] == 2
+          first = invoke("replay", "--ack-offline-replay")
+          again = invoke("replay", "--ack-offline-replay")
+          assert first["receipt"]["result"] == "RECORDED"
+          assert again["receipt"]["result"] == "DUPLICATE"
+          assert first["paper_signal_count"] == again["paper_signal_count"] == 1
+          assert first["journal_sha256"] == again["journal_sha256"]
+          reopened = invoke("inspect")
+          assert reopened["paper_signal_count"] == 1
+          assert reopened["journal_sha256"] == first["journal_sha256"]
+          disabled = invoke("disable", "--revision", "2")
+          assert not disabled["enabled"] and disabled["revision"] == 3
+          assert disabled["paper_signal_count"] == 1
+          assert not disabled["release_authorized"]
+          assert not disabled["telegram_sent"] and not disabled["broker_order_sent"]
+          denied = subprocess.run(
+              [str(tool), "--state-dir", str(state), "replay",
+               "--ack-offline-replay"],
+              cwd=home / "cleanroom", env=environment,
+              capture_output=True, timeout=20, check=False)
+          assert denied.returncode == 2
+          print("INSTALLED_PUBLIC_TOY_PAPER_MVP_PASS_PUBLIC_RELEASE_BLOCKED")
           PY
