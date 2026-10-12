@@ -1,0 +1,76 @@
+name: Stage 15 isolated preview release source gate
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/release_readiness_v1.py"
+      - "naseri_markets/installed_preview_smoke_v1.py"
+      - "scripts/mmt_stage15_readiness.py"
+      - "tests/unit/test_release_readiness_v1.py"
+      - "docs/PRODUCT_READINESS_AND_RELEASE_GATES_STAGE15_V1.md"
+      - ".github/workflows/stage15-clean-preview-gate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-and-clean-wheel:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Read-only source audit (NOT public release approval)
+        env:
+          MMT_NONPRODUCTION: "1"
+        run: |
+          set -Eeuo pipefail
+          python -m scripts.mmt_stage15_readiness --repository . --ack-source-audit > "$RUNNER_TEMP/stage15-source.json"
+          python - <<'PY'
+          import json, os
+          p=json.load(open(os.environ['RUNNER_TEMP']+'/stage15-source.json'))
+          assert p['source_verdict']=='SOURCE_PREFLIGHT_PASS'
+          assert p['release_verdict']=='PRODUCT_NOT_READY_FOR_PUBLIC_OR_LIVE_RELEASE'
+          assert not p['production_deployment_authorized']
+          assert not p['telegram_publication_authorized']
+          assert not p['live_orders_authorized']
+          print('SOURCE_PREFLIGHT_PASS_PUBLIC_RELEASE_BLOCKED')
+          PY
+      - name: Focused Stage 15 unit and code checks
+        run: |
+          set -Eeuo pipefail
+          python -m pip install 'pytest==9.1.1' 'ruff==0.16.9'
+          python -m ruff check --select E4,F \
+            naseri_markets/release_readiness_v1.py \
+            naseri_markets/installed_preview_smoke_v1.py \
+            scripts/mmt_stage15_readiness.py \
+            tests/unit/test_release_readiness_v1.py
+          python -m pytest -q tests/unit/test_release_readiness_v1.py
+      - name: Clean-wheel installation and synthetic decision smoke only
+        env:
+          MMT_NONPRODUCTION: "1"
+        run: |
+          set -Eeuo pipefail
+          project="$RUNNER_TEMP/platform-copy"
+          mkdir -p "$project" "$RUNNER_TEMP/wheels" "$RUNNER_TEMP/cleanroom"
+          cp platform_release/pyproject.toml platform_release/README.md "$project/"
+          cp -a naseri_markets "$project/naseri_markets"
+          python -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/python" -m pip wheel --no-deps --wheel-dir "$RUNNER_TEMP/wheels" "$project"
+          "$RUNNER_TEMP/venv/bin/python" -m pip install --no-deps "$RUNNER_TEMP"/wheels/multi_market_trading-0.4.0rc1-*.whl
+          cd "$RUNNER_TEMP/cleanroom"
+          PYTHONPATH= "$RUNNER_TEMP/venv/bin/python" -m naseri_markets.installed_preview_smoke_v1 --ack-isolated-preview > "$RUNNER_TEMP/smoke.json"
+          "$RUNNER_TEMP/venv/bin/python" - <<'PY'
+          import json, os
+          p=json.load(open(os.environ['RUNNER_TEMP']+'/smoke.json'))
+          assert p['strategy_decision_validated'] is True
+          assert p['scope']=='ISOLATED_INSTALLED_WHEEL_SYNTHETIC_ONLY'
+          assert p['telegram_sent'] is False and p['broker_order_sent'] is False
+          assert p['product_release_authorized'] is False
+          print('ISOLATED_PREVIEW_WHEEL_SMOKE_PASS_PUBLIC_RELEASE_BLOCKED')
+          PY
