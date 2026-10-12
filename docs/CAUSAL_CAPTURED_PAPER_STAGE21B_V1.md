@@ -27,6 +27,27 @@ The API is `run_captured_paper_pilot(destination, datasets=((query1, raw1), (que
 
 The mandatory CI workflow tests causal replay across two symbols and two timeframes, Stage-19 exact intent counts, local offline risk journal, no-fill cancellation, ambiguous entry-bar non-scoring, no-setup, no-send signal independence, restart and fail-closed state/environment gates; also verifies the installed wheel from outside the repository.
 
+## Manually executable installed-wheel CLI (no network)
+
+`python -m naseri_markets.captured_paper_cli_stage21b_v1` reads three **preexisting** owner-private JSON files: one exact Stage-6 KuCoin public contract snapshot and two independent official-format Kline response bodies. Every supplied file must be a regular non-symlink 0600 file in an owner-only directory, and the output directory must not already exist.
+
+```sh
+MMT_NONPRODUCTION=1 python -m naseri_markets.captured_paper_cli_stage21b_v1 \
+  --state-dir /absolute/private/new-stage21b \
+  --metadata-json /absolute/private/kucoin-contracts.json \
+  --metadata-asof 2026-10-12T10:00:00Z \
+  --capture-observed-at 2026-10-12T12:00:00Z \
+  --first-symbol XBTUSDTM --first-timeframe 15m \
+  --first-start 2026-10-12T10:00:00Z --first-end 2026-10-12T11:00:00Z \
+  --first-json /absolute/private/xbt-4-bars.json \
+  --second-symbol ETHUSDTM --second-timeframe 5m \
+  --second-start 2026-10-12T10:00:00Z --second-end 2026-10-12T10:20:00Z \
+  --second-json /absolute/private/eth-4-bars.json \
+  --ack-offline-captured-paper
+```
+
+These timestamps/filenames are merely examples; the raw bodies must exactly match the specified windows and genuine operation requires a separately reviewed historical metadata as-of date. The command makes **zero** network calls; Stage 21A's probe command prints only a provenance digest summary, not the raw bytes, so the operator must supply local raw JSON captures separately. Even if raw bytes came from a public provider, they are **not independently attested** by this stage. `--no-dry-run-signals` disables signal journaling but leaves PAPER enabled. CLI tests assert missing acknowledgment, file-symlink refusal, exact dual-asset end-to-end completion and independently installed package execution.
+
 ## Still blocked / next acceptance
 
 - This stage does not authenticate a live Telegram panel session or publicly certify the true Al Brooks strategy adapter. The only executable strategy in this candidate is the reviewed example core.
