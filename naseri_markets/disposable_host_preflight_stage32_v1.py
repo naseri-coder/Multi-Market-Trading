@@ -56,7 +56,7 @@ def _guard(operator_ack: bool) -> None:
 
 
 def _private_dir(parent: Path) -> None:
-    if (type(parent) is not Path or not parent.is_absolute()
+    if (not isinstance(parent, Path) or not parent.is_absolute()
             or parent.is_symlink() or not parent.is_dir()):
         raise Stage32Refused("OWNER_PRIVATE_TEST_DIRECTORY_REQUIRED")
     s = parent.lstat()
@@ -115,8 +115,8 @@ def verify_local_test_certificate_pair(
     A successful SSLContext load is NOT a handshake or real TLS inspection.
     """
     _guard(operator_ack)
-    if (type(certificate_path) is not Path
-            or type(private_key_path) is not Path
+    if (not isinstance(certificate_path, Path)
+            or not isinstance(private_key_path, Path)
             or not certificate_path.is_absolute()
             or not private_key_path.is_absolute()
             or certificate_path == private_key_path
@@ -258,7 +258,7 @@ class HostPreparationDossier:
         operator_ack: bool = False,
     ) -> None:
         _guard(operator_ack)
-        if (type(db_path) is not Path or not db_path.is_absolute()
+        if (not isinstance(db_path, Path) or not db_path.is_absolute()
                 or db_path.is_symlink()):
             raise Stage32Refused("PRIVATE_DOSSIER_PATH_REQUIRED")
         _private_dir(db_path.parent)
