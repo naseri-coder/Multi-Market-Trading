@@ -7,6 +7,7 @@ A real hostile-plugin deployment needs distinct runtime acceptance.
 """
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
 import json
@@ -168,12 +169,35 @@ class SignedCandidateWitness:
         self.db.row_factory = sqlite3.Row
         self.pub = publisher_public_key
         self.op = operator_public_key
+        self.db.execute("""CREATE TABLE IF NOT EXISTS stage23_issuer_pins(
+            singleton INTEGER PRIMARY KEY CHECK(singleton=1),
+            publisher_key_sha256 TEXT NOT NULL,
+            operator_key_sha256 TEXT NOT NULL)""")
         self.db.execute("""CREATE TABLE IF NOT EXISTS stage23_floors(
             tenant_id TEXT NOT NULL, binding_id TEXT NOT NULL,
             sequence INTEGER NOT NULL, envelope_sha256 TEXT NOT NULL,
-            source_sha256 TEXT NOT NULL, revoked INTEGER NOT NULL DEFAULT 0
-                CHECK(revoked IN (0,1)),
+            source_sha256 TEXT NOT NULL,
+            manifest_sha256 TEXT NOT NULL, binding_sha256 TEXT NOT NULL,
+            image TEXT NOT NULL, publisher TEXT NOT NULL,
+            publisher_key_id TEXT NOT NULL,
+            revoked INTEGER NOT NULL DEFAULT 0 CHECK(revoked IN (0,1)),
             PRIMARY KEY(tenant_id,binding_id))""")
+        self.db.execute("BEGIN IMMEDIATE")
+        try:
+            existing = self.db.execute(
+                "SELECT * FROM stage23_issuer_pins WHERE singleton=1").fetchone()
+            if existing is None:
+                self.db.execute(
+                    "INSERT INTO stage23_issuer_pins VALUES(1,?,?)",
+                    (publisher_key_sha256,operator_key_sha256))
+            elif (existing["publisher_key_sha256"] != publisher_key_sha256
+                  or existing["operator_key_sha256"] != operator_key_sha256):
+                raise SignedCandidateRefused("ISSUER_KEYS_CHANGED_ON_REOPEN")
+            self.db.execute("COMMIT")
+        except BaseException:
+            self.db.execute("ROLLBACK")
+            self.db.close()
+            raise
 
     def close(self) -> None:
         self.db.close()
@@ -213,7 +237,7 @@ class SignedCandidateWitness:
             _ed25519(self.op, op, _OP_DOMAIN + canonical({
                 "claim": claim,
                 "publisher_signature_b64":
-                    __import__("base64").b64encode(pub).decode("ascii")}))
+                    base64.b64encode(pub).decode("ascii")}))
         except ValueError as exc:
             raise SignedCandidateRefused("INVALID_DUAL_ISSUER_SIGNATURE") from exc
         return claim, digest
@@ -234,13 +258,19 @@ class SignedCandidateWitness:
                 (tenant_id, binding.binding_id)).fetchone()
             if old and (old["revoked"] or claim["sequence"] <= old["sequence"]):
                 raise SignedCandidateRefused("REVOKED_OR_ROLLBACK_CANDIDATE")
+            if old and any(old[key] != claim[key] for key in (
+                    "source_sha256", "manifest_sha256", "binding_sha256",
+                    "image", "publisher", "publisher_key_id")):
+                raise SignedCandidateRefused("SOURCE_CHANGE_REQUIRES_NEW_BINDING")
             self.db.execute(
-                "INSERT INTO stage23_floors VALUES (?,?,?,?,?,0) ON CONFLICT("
-                "tenant_id,binding_id) DO UPDATE SET sequence=excluded.sequence,"
-                "envelope_sha256=excluded.envelope_sha256,"
-                "source_sha256=excluded.source_sha256,revoked=0",
+                "INSERT INTO stage23_floors VALUES (?,?,?,?,?,?,?,?,?,?,0)"
+                " ON CONFLICT(tenant_id,binding_id) DO UPDATE SET "
+                "sequence=excluded.sequence,"
+                "envelope_sha256=excluded.envelope_sha256,revoked=0",
                 (tenant_id, binding.binding_id, claim["sequence"], digest,
-                 claim["source_sha256"]))
+                 claim["source_sha256"],claim["manifest_sha256"],
+                 claim["binding_sha256"],claim["image"],claim["publisher"],
+                 claim["publisher_key_id"]))
             self.db.execute("COMMIT")
         except BaseException:
             self.db.execute("ROLLBACK")
