@@ -1,0 +1,80 @@
+name: Stage 26 permanent public-core admission fence
+
+on:
+  pull_request:
+    paths:
+      - 'naseri_markets/durable_isolated_core_gate_stage22_v1.py'
+      - 'naseri_markets/public_candidate_lock_stage26_v1.py'
+      - 'tests/unit/test_public_candidate_lock_stage26_v1.py'
+      - 'docs/STAGE26_PUBLIC_CORE_PERMANENT_LOCK_V1.md'
+      - '.github/workflows/stage26-public-core-lock-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stage26-permanent-lock-security:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Reject unintended source and publication changes
+        run: |
+          set -Eeuo pipefail
+          python -m pip install 'pytest==9.1.1' 'ruff==0.16.9' 'cryptography==46.0.3'
+          python -m ruff check --select E4,F \
+            naseri_markets/durable_isolated_core_gate_stage22_v1.py \
+            naseri_markets/public_candidate_lock_stage26_v1.py \
+            tests/unit/test_public_candidate_lock_stage26_v1.py
+          python scripts/a6_release_preflight.py
+          python scripts/check_publication_safety.py
+      - name: Stage22–26 signed stage and direct SQLite bypass regression
+        env:
+          MMT_NONPRODUCTION: '1'
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/stage26-tests"
+          cp tests/unit/test_public_candidate_lock_stage26_v1.py \
+             tests/unit/test_preinstall_evidence_stage25_v1.py \
+             tests/unit/test_host_observation_custody_stage24_v1.py \
+             tests/unit/test_signed_core_candidate_stage23_v1.py \
+             tests/unit/test_disposable_gvisor_canary_stage23_v1.py \
+             tests/unit/test_durable_isolated_core_gate_stage22_v1.py \
+             tests/unit/test_secure_plugin_runtime_v1.py \
+             "$RUNNER_TEMP/stage26-tests/"
+          python -m pytest -q "$RUNNER_TEMP/stage26-tests" -rs
+      - name: Independent Python3.12 installed-wheel checks
+        env:
+          MMT_NONPRODUCTION: '1'
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/stage26-project" "$RUNNER_TEMP/stage26-wheel" \
+             "$RUNNER_TEMP/stage26-room" "$RUNNER_TEMP/stage26-tests-installed"
+          cp platform_release/pyproject.toml platform_release/README.md \
+             "$RUNNER_TEMP/stage26-project/"
+          cp -a naseri_markets "$RUNNER_TEMP/stage26-project/naseri_markets"
+          python -m venv "$RUNNER_TEMP/stage26-venv"
+          "$RUNNER_TEMP/stage26-venv/bin/python" -m pip wheel --no-deps \
+             --wheel-dir "$RUNNER_TEMP/stage26-wheel" "$RUNNER_TEMP/stage26-project"
+          "$RUNNER_TEMP/stage26-venv/bin/python" -m pip install \
+             "$RUNNER_TEMP"/stage26-wheel/multi_market_trading-0.4.0rc1-*.whl \
+             'pytest==9.1.1' 'cryptography==46.0.3'
+          "$RUNNER_TEMP/stage26-venv/bin/python" -m pip check
+          cp tests/unit/test_public_candidate_lock_stage26_v1.py \
+             tests/unit/test_preinstall_evidence_stage25_v1.py \
+             tests/unit/test_host_observation_custody_stage24_v1.py \
+             tests/unit/test_signed_core_candidate_stage23_v1.py \
+             tests/unit/test_disposable_gvisor_canary_stage23_v1.py \
+             tests/unit/test_durable_isolated_core_gate_stage22_v1.py \
+             tests/unit/test_secure_plugin_runtime_v1.py \
+             "$RUNNER_TEMP/stage26-tests-installed/"
+          cd "$RUNNER_TEMP/stage26-room"
+          PYTHONPATH= "$RUNNER_TEMP/stage26-venv/bin/python" -m pytest -q \
+             "$RUNNER_TEMP/stage26-tests-installed" -rs
