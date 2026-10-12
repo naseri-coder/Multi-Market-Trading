@@ -137,6 +137,11 @@ class PaperCoreRiskBridge:
         self._engine.register_instrument(portfolio_id=portfolio_id,
                                          instrument=instrument, group_id=group_id)
 
+    def register_contract_economics(self, *, portfolio_id: str, policy,
+                                    operator_ack: bool = False) -> None:
+        self._engine._risk.register_contract_economics(
+            portfolio_id=portfolio_id, policy=policy, operator_ack=operator_ack)
+
     def register_allocation(self, policy: CoreCapitalAllocation, *, operator_ack: bool = False) -> None:
         """Immutable budget registration; no silent policy widening after approval."""
         if type(policy) is not CoreCapitalAllocation or operator_ack is not True:
@@ -312,10 +317,20 @@ class PaperCoreRiskBridge:
             equity = Decimal(ap["equity"])
             entry = decision.entry
             stop = decision.stop
-            multiplier = Decimal(ap["contract_multiplier"])
-            costs = Decimal(ap["roundtrip_fee_fraction"]) + Decimal(ap["worst_slippage_fraction"])
-            model_risk = quantity * multiplier * (abs(entry - stop) + entry * costs)
-            notional = quantity * multiplier * entry
+            economics = self._engine._risk.instrument_economics(
+                portfolio_id=policy["portfolio_id"],
+                market=event.binding.instrument.market.value,
+                provider=event.binding.instrument.provider,
+                symbol=event.binding.instrument.symbol)
+            if economics is None:
+                multiplier = Decimal(ap["contract_multiplier"])
+                costs = Decimal(ap["roundtrip_fee_fraction"]) + Decimal(ap["worst_slippage_fraction"])
+                model_risk = quantity * multiplier * (abs(entry - stop) + entry * costs)
+                notional = quantity * multiplier * entry
+            else:
+                economics.validate_order(quantity, entry, stop)
+                model_risk = economics.reserved_risk(quantity, entry, stop)
+                notional = economics.notional(quantity, entry)
             active = self._active_rows(event.binding.instance_id)
             if len(active) >= policy["max_active_orders"]:
                 raise CoreRiskRefused("INSTANCE_ORDER_LIMIT")
