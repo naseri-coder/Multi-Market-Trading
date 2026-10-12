@@ -1,651 +1,167 @@
 <div align="center">
 
-# 📈 Multi Market Trading
+# Multi Market Trading
 
-### Multi-Market Trading Intelligence · Multi-Engine Signal Platform
+**Multi-market architecture · Public strategy SDK · Offline PAPER verification**
 
-**تبدیل مفاهیم پرایس‌اکشن البروکس به قواعد صریح، قابل‌آزمایش و قابل‌ردیابی برای سیگنال‌های کریپتو**
+**معماری چندبازاره، هسته‌های مستقل و مسیر آزمایشی قابل‌تکرار — بدون ادعای معامله یا سیگنال زنده**
 
+[![Public tests](https://github.com/naseri-coder/Multi-Market-Trading/actions/workflows/public-test-corpus.yml/badge.svg?branch=main)](https://github.com/naseri-coder/Multi-Market-Trading/actions/workflows/public-test-corpus.yml)
 [![Publication safety](https://github.com/naseri-coder/Multi-Market-Trading/actions/workflows/publication-safety.yml/badge.svg?branch=main)](https://github.com/naseri-coder/Multi-Market-Trading/actions/workflows/publication-safety.yml)
-[![Public tests](https://github.com/naseri-coder/Multi-Market-Trading/actions/workflows/public-test-corpus.yml/badge.svg)](https://github.com/naseri-coder/Multi-Market-Trading/actions/workflows/public-test-corpus.yml)
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-async-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Version](https://img.shields.io/badge/version-v0.3.2-7C3AED)](pyproject.toml)
-[![License](https://img.shields.io/badge/license-Apache%202.0-D22128?logo=apache&logoColor=white)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache--2.0-0B7285)](LICENSE)
+[![Status](https://img.shields.io/badge/Release-NONPRODUCTION%20ONLY-orange)](docs/PRODUCT_READINESS_AND_RELEASE_GATES_STAGE15_V1.md)
 
-### 📣 Telegram
+[شروع سریع](#quickstart) · [وضعیت واقعی](#status) · [معماری](#architecture) · [مستندات](#documents) · [English summary](#english)
 
-[![Telegram Channel](https://img.shields.io/badge/Channel-%40naseri__coder-26A5E4?logo=telegram&logoColor=white)](https://t.me/naseri_coder)
-[![Developer](https://img.shields.io/badge/Developer-%40nasericoder-26A5E4?logo=telegram&logoColor=white)](https://t.me/nasericoder)
-
-**v0.3.2 · Validation-first · Live Brooks execution disabled**
-
-[Overview](#overview) · [How it works](#how-it-works) · [Current status](#current-status) · [Install & Manager](#install-manager) · [Operations](#operations) · [Verification](#verification) · [Security](#security)
+[کانال توسعه](https://t.me/naseri_coder) · [GitHub Issues](https://github.com/naseri-coder/Multi-Market-Trading/issues) · [Security](SECURITY.md)
 
 </div>
 
-> [!NOTE]
-> **Multi Market Trading is the official public multi-market project.** The current v0.3.2 public snapshot remains primarily a crypto price-action system. The new `naseri_markets/` foundation is offline-only; no FX, index, NYFR or MT5 runtime is active in this repository.
-> See [architecture](docs/NASERI_MARKETS_FOUNDATION.md) and [GitHub migration plan](docs/NASERI_MARKETS_MIGRATION.md).
->
-> **A5 installation identity:** The canonical repository is now `Multi-Market-Trading`, and the recommended launcher is `bash markets.sh` (the legacy `bash naseri.sh` remains a compatible alias). The *historic, unmodified* v0.3.2 Python distribution name, `crypto-signal-bot` CLI, Docker image/Compose project and PostgreSQL volume still use `crypto-price-action`. This is deliberate: they are NOT yet a multi-market production release. See [A5 migration gate](docs/NASERI_MARKETS_A5_IDENTITY.md).
->
-> **A6 independent preview (0.4.0rc1):** A second Python distribution `multi-market-trading` and an isolated Docker image are prepared for **offline validation only**. The new `naseri-markets --check` CLI does not run signal engines, connect to PostgreSQL, publish Telegram messages or place trades. `bash markets.sh` still manages the frozen v0.3.2 legacy runtime, not this candidate. See [A6 packaging and restore evidence](docs/NASERI_MARKETS_A6_RELEASE_CANDIDATE.md).
->
-> **A11 secure transport rehearsal:** Localhost-only mTLS using two ephemeral CI processes and independently generated certificates tests the public/private separation; no real NYFR service is contacted. [A11 evidence and security limitations](docs/MULTI_MARKET_TRADING_A11_SECURE_TRANSPORT.md).
->
-> **Public bot, private NYFR:** The open-source, disabled-by-default, strategy-neutral signal publisher and optional MT5 read-only quote bridge are in `naseri_markets/public_signal_bot.py` and `naseri_markets/mt5_readonly_bridge.py`. They **do not** include the private NY First-Reversal decision engine. See [public/private boundary](docs/NASERI_MARKETS_A4_PUBLIC_BOT_PRIVATE_CORE.md). Historical release names, Compose and Python package identity remain v0.3.2 until a separately validated migration.
-
-> [!NOTE]
-> **A28 final product-readiness freeze (2026-10-10):** The A-series infrastructure roadmap closes at A28; no planned A29/A30. The current multi-market candidate remains an **offline preview, not a deployable product**. The next authorized work should prioritize one usable installed Custom PAPER workflow, dependency closure, operator UX and explicit migration planning, rather than additional security layers. **NY First-Reversal stays OWNER_ONLY and never publicly installable, including encrypted versions.** See [A28 final audit and minimal product backlog](docs/MULTI_MARKET_TRADING_A28_FINAL_PRODUCT_AUDIT.md).
-
-> [!NOTE]
-> [!NOTE]
-> **Product Stage 2 — futures provider policy vs public API research:** The
-> isolated new-product `mmt-dev contracts` command can inspect the **official
-> public Kraken Futures and KuCoin Futures perpetual-contract listings** and
-> report exact native symbols and tick sizes. This is metadata research only:
-> **Iran-resident futures eligibility remains unverified/denied**, so the
-> installed panel and Brooks PAPER worker cannot select those venues or issue
-> new signals. Old saved venue selections remain audit-only. Direct poller
-> entrypoints and SQLite selection mutations also enforce this policy, not
-> merely the Telegram menu. No live orders or channel publication.
-> [Stage-2 eligibility / public API guide](docs/PRODUCT_FUTURES_POLICY_AND_PUBLIC_API_R2.md).
-
-> **Trusted LOCAL Custom PAPER engines (non-production):** The isolated
-> `multi-market-trading==0.4.0rc1` preview now offers `naseri-custom`
-> for explicit operator-approved Python Custom scripts (separately pinned,
-> disabled by default), deterministic replay and PAPER journal inspection.
-> This is real **trusted code execution**, NOT a sandbox for unknown plugins,
-> an activated Telegram bot, or live trading. **NY First-Reversal remains
-> OWNER_ONLY and never publicly installable, even encrypted.**
-> [Custom plugin ABI, tested quickstart and limitations](docs/TRUSTED_LOCAL_CUSTOM_PAPER_MVP.md).
-
-> [!NOTE]
-> **Custom engine Telegram admin UI — optional, not deployed:** A private
-> admin panel module is available to mount on the **same** Telegram bot
-> `Application`. It manages Custom PAPER enable/disable, audit logs, private
-> channel destination selection and admin-only PAPER previews without
-> auto-posting to channels. The old production bot is unchanged; this UI does
-> **not** appear in any live bot until explicitly mounted and deployed.
-> [Setup, access rules, and limits](docs/CUSTOM_TELEGRAM_ADMIN_PANEL.md).
-
-> [!NOTE]
-> **Next-product integrated engine management:** The development-only
-> Telegram engine panel shows **Al Brooks Price Action** as a built-in
-> engine reference and accepts **owner-only Custom NY First-Reversal**
-> as private local metadata visible solely to the owner, never as public
-> installable source. Each engine has independent PAPER/OFF, market and
-> timeframe preferences, private channel routing and admin audit.
-> Brooks/NYFR runtime code is **not yet connected** to the new product;
-> buttons record requests, not live execution. For public trusted Custom
-> scripts, PAPER and market settings are enforced. No real bot or Telegram
-> delivery is deployed. [Detailed product guide](docs/INTEGRATED_ENGINE_MANAGEMENT.md).
-
 > [!IMPORTANT]
-> **The current manager is branded Multi Market Trading; its historic v0.3.2 runtime identity remains unchanged.** The project does **not** claim profitability and is **not approved for live trading**.
->
-> This is an **independent software project** and is not affiliated with, sponsored by, or endorsed by **Al Brooks** or the publishers of the referenced books.
+> **This repository is not an authorized public signal service or live trading product.** The installed PAPER example produces **synthetic demonstration evidence**, never a broker fill or a real trading recommendation. Source verification, isolated tests and CI are not equivalent to real-feed quality, hostile-code isolation, profitability or deployment approval.
 
-<a id="overview"></a>
-## ✨ Overview
+<a id="status"></a>
+## وضعیت پروژه | Product status
 
-**Crypto Price Action** is a rule-based cryptocurrency signal-system project focused on converting documented price-action concepts into inspectable software logic.
+The repository contains **two intentionally distinct software lines**. **Do not run the legacy manager to install the new preview.**
 
-Instead of treating a setup as a single pattern match, the project evaluates the setup together with its surrounding **market context, structural evidence, probability assessment, and risk/lifecycle constraints**.
+| مسیر | نسخه | وضعیت دقیق | دستور یا نقطه ورود |
+| --- | --- | --- | --- |
+| Historical crypto runtime | `crypto-price-action 0.3.2` | کد قدیمی محفوظ؛ مدیریت جداگانه | `bash markets.sh` / `crypto-signal-bot` |
+| New multi-market distribution | `multi-market-trading 0.4.0rc1` | پیش‌نمایش نصب‌شدنی و غیرتولیدی | `naseri-markets --check` |
+| **Installed public toy PAPER MVP** | Same `0.4.0rc1` preview | نمونه عمومی، ثبت SQLite و Replay تکرارپذیر | **`naseri-paper-demo`** |
+| Trusted local public Custom | Same preview | فقط کد مستقل بررسی‌شده و مورد اعتماد اپراتور | `naseri-custom` |
+| Telegram development panel | Optional `telegram-admin` extra | فقط تنظیمات و پیش‌نمایش؛ اتصال عملیاتی جدید غیرفعال | `naseri-engine-admin` / opt-in Stage 12 |
+| Universal Core API / risk / lifecycle / research | Stages 3–15 | قراردادها و اجزای PAPER/آزمایشی، **نه یک سرویس LIVE یکپارچه** | کتابخانه‌ها و آزمون‌های مستقل |
 
-### What the engine evaluates
+**گیت انتشار:** `PRODUCT_NOT_READY_FOR_PUBLIC_OR_LIVE_RELEASE`؛ انتشار کانال تلگرام، معاملات واقعی، اجرای کد ناشناس عمومی و استقرار تجاری هنوز مجاز یا تأیید نشده‌اند. [گزارش آمادگی مرحله ۱۵](docs/PRODUCT_READINESS_AND_RELEASE_GATES_STAGE15_V1.md).
 
-`Trend direction & relative strength` · `Follow-through` · `Bar overlap` · `Pullbacks & second entries` · `Breakouts & failed breakouts` · `Trading ranges & tight ranges` · `Setup location vs. market context`
+<a id="quickstart"></a>
+## شروع سریع | Installed PAPER demo
 
-<details open>
-<summary><strong>🇮🇷 فارسی — پروژه در ۳۰ ثانیه</strong></summary>
+این مسیر از یک نمونه **عمومی و بی‌خطر از نظر منطق معاملاتی** استفاده می‌کند تا کاربر بتواند ثبت، فعال‌سازی، Replay، حذف تکرار، ذخیره پایدار و بازبینی پس از ری‌استارت را واقعاً آزمایش کند. خروجی صرفاً شبیه‌سازی و آموزش توسعه است؛ استراتژی سودده یا داده واقعی محسوب نمی‌شود.
 
-<br>
-
-**Crypto Price Action** یک پروژه متن‌باز برای توسعه سیستم سیگنال‌دهی کریپتو با هسته پرایس‌اکشن قانون‌محور است. تمرکز پروژه بر این است که مفاهیم پرایس‌اکشن البروکس به قواعدی تبدیل شوند که بتوان آن‌ها را **تست، ردیابی، توضیح و دوباره اعتبارسنجی** کرد.
-
-سیستم فقط به پیدا کردن یک Pattern اکتفا نمی‌کند؛ بلکه **Context بازار، ساختار، Follow-through، Overlap، Pullback، Breakout / Failed Breakout، Trading Range، Probability و Risk** را در کنار یکدیگر بررسی می‌کند.
-
-در snapshot عمومی فعلی، زیرساخت تحلیل، Signal/Probability، Risk و lifecycle، مسیرهای paper/shadow، PostgreSQL، Docker، Telegram integration، کنترل‌های یکپارچگی سورس و **NASERI CODER Bot Manager** وجود دارد.
-
-**وجود یک قابلیت در سورس به معنی فعال یا تأییدشدن آن برای استفاده عملیاتی نیست.**
-
-</details>
-
-<details>
-<summary><strong>🇬🇧 English — understand the project in 30 seconds</strong></summary>
-
-<br>
-
-The project develops a **rule-based crypto signal engine** around explicit, testable interpretations of price-action concepts documented in Al Brooks' published work.
-
-A candidate setup is evaluated in context rather than as an isolated pattern: market structure, follow-through, overlap, pullbacks, breakout behavior, probability evidence, and risk/lifecycle controls all contribute to the decision pipeline.
-
-The public snapshot contains analysis, signal/probability, risk/lifecycle, paper/shadow, PostgreSQL, Docker, Telegram integration, source-integrity infrastructure, and the **NASERI CODER Bot Manager**.
-
-**A capability being present in source does not mean it is enabled or approved for operational use.**
-
-</details>
-
-<a id="how-it-works"></a>
-## 🧠 How It Works
-
-```text
-Market Data
-   ↓
-Context & Structure
-   ↓
-Pattern / Setup Evidence
-   ↓
-Probability & Decision Evidence
-   ↓
-Risk & Lifecycle Gates
-   ↓
-Paper / Shadow / Reporting paths
-```
-
-**1. Context first** — identify market regime, direction, structure, range/trend behavior, overlap, and related context.
-
-**2. Setup evidence** — evaluate candidate patterns such as pullbacks, breakouts, failed breakouts, second entries, ranges, and other supported structures.
-
-**3. Probability & evidence** — carry explicit rule evidence and probability-related state instead of reducing the decision to a single opaque score.
-
-**4. Risk & lifecycle** — apply risk checks and lifecycle controls before downstream handling.
-
-**5. Controlled outputs** — paper/shadow, persistence, Telegram, and reporting paths remain subject to configuration and validation gates.
-
-The public source currently uses **Binance USD-M Futures** as the supported market-data path described by this project. Runtime selection and operational approval are separate concerns.
-
-<a id="current-status"></a>
-## 🚦 Current Status
-
-| Area | Status |
-| --- | --- |
-| Rule-based analysis core | 🟡 Active development & validation |
-| Context / pattern coverage | 🟡 Expanding and regression-tested |
-| Public source integrity | 🟢 SHA256-verified snapshot |
-| Public test corpus | 🟢 GitHub Actions |
-| Paper / shadow paths | 🟡 Present; controlled by runtime flags |
-| Live Brooks execution | 🔴 Disabled / not production-approved |
-| PostgreSQL / Docker installation | 🟢 Reproducible isolated-host path |
-| NASERI CODER Bot Manager | 🟢 Install/update/lifecycle/backup tooling present |
-
-> [!NOTE]
-> This table describes the public repository state, not trading performance or profitability.
-
-<a id="install-manager"></a>
-## 🚀 Installation & NASERI CODER Bot Manager
-
-### Prerequisites
-
-- Git
-- Docker Engine with a running daemon
-- Docker Compose v2
-- Bash
-- Python 3
-- `sha256sum`
-
-### Install
-
-Use this single installation entry point:
+**پیش‌نیاز:** Linux/macOS توسعه‌ای، Python 3.12، یک کپی محلی از مخزن، و محیط جدا از سرور تولیدی. از حساب بدون دسترسی ویژه استفاده کنید.
 
 ```bash
-git clone https://github.com/naseri-coder/Multi-Market-Trading.git
-cd Multi-Market-Trading
-bash markets.sh
+# Build/install the separate new-product preview in an isolated venv.
+python3.12 -m venv /tmp/mmt-paper-venv
+/tmp/mmt-paper-venv/bin/python scripts/a6_prepare_package.py --destination /tmp/mmt-paper-package
+/tmp/mmt-paper-venv/bin/python -m pip install /tmp/mmt-paper-package
+
+# A NEW private state directory; do not reuse an old or production folder.
+export MMT_NONPRODUCTION=1
+PAPER=/tmp/mmt-paper-example
+/tmp/mmt-paper-venv/bin/naseri-paper-demo --state-dir "$PAPER" init --ack-reviewed-public-toy
 ```
 
-The final command opens the **NASERI CODER Bot Manager**. From there, choose **[1] Install Bot** for a fresh installation.
+خروجی `init` شامل `descriptor_sha256` و `revision=1` است. **مقدار هش را از همان خروجی بررسی و جایگزین کنید**؛ سپس مراحل بعدی را اجرا کنید:
 
-The Manager uses a color-aware Terminal UI: healthy states are green, warnings/stopped states are yellow, errors and destructive actions are red, and informational sections are cyan. ANSI colors are disabled automatically for non-interactive output and can also be disabled explicitly with `NO_COLOR=1`.
-
-The main menu is:
-
-```text
-INSTALLATION
-  [1]  Install Bot
-  [2]  Update Bot
-
-RUNTIME
-  [3]  Start Bot
-  [4]  Stop Bot
-  [5]  Restart Bot
-  [6]  Bot Status
-  [7]  View Logs
-
-SYSTEM
-  [8]  Configuration
-  [9]  Environment Check
-  [10] Database Management
-
-DATA
-  [11] Backup
-  [12] Restore
-
-MAINTENANCE
-  [13] Repair / Diagnose
-  [14] Verify Installation
-  [15] System Information
-
-DANGER ZONE
-  [16] Uninstall / Remove Runtime
-
-  [0]  Exit
+```bash
+PAPER_CLI=/tmp/mmt-paper-venv/bin/naseri-paper-demo
+$PAPER_CLI --state-dir "$PAPER" enable --revision 1 \
+  --descriptor-sha256 YOUR_INIT_DESCRIPTOR_SHA256
+$PAPER_CLI --state-dir "$PAPER" replay --ack-offline-replay
+$PAPER_CLI --state-dir "$PAPER" replay --ack-offline-replay  # DUPLICATE
+$PAPER_CLI --state-dir "$PAPER" inspect                       # restart-safe
+$PAPER_CLI --state-dir "$PAPER" disable --revision 2
+$PAPER_CLI --state-dir "$PAPER" inspect                       # history preserved
 ```
 
-### Fresh installation
+اولین Replay یک **سیگنال مصنوعی PAPER** را ثبت می‌کند؛ اجرای دوباره همان داده باید `DUPLICATE` باشد. نتیجه بعد از اجرای مجدد دستور (حتی در یک پردازش جدید) باقی می‌ماند. هیچ پیامی به تلگرام و هیچ سفارشی به بروکر ارسال نمی‌شود. ورودی `LIVE` رد می‌شود و اجرای هسته فقط بعد از تأیید صریح ممکن است.
 
-For a new isolated host, choose **[1] Install Bot** from the Manager.
-
-The installer will:
-
-1. verify the repository/release tooling;
-2. refuse unsafe inherited database overrides;
-3. create a private `.env` if one does not exist;
-4. validate the fail-closed environment;
-5. verify Docker Engine and Docker Compose v2;
-6. refuse to overwrite an existing `crypto-price-action_postgres_data` volume;
-7. require explicit confirmation;
-8. build the bot image;
-9. validate application configuration inside the built image;
-10. start PostgreSQL;
-11. run Alembic migrations to the current repository head;
-12. run application configuration/database checks;
-13. start the bot container.
-
-Before creating runtime resources, the installer requires the exact confirmation:
-
-```text
-INSTALL-NEW-HOST
-```
+[**راهنمای جامع مسیر نصب و آزمون PAPER**](docs/PAPER_MVP_INSTALLED_USER_JOURNEY_V1.md) · [راهنمای کد محلی مورد اعتماد](docs/TRUSTED_LOCAL_CUSTOM_PAPER_MVP.md)
 
 > [!WARNING]
-> The fresh-host installer intentionally refuses installation when the protected legacy tree `/opt/crypto-signal-telegram-bot` exists or when the project database volume already exists. It is **not** an overwrite mechanism.
+> `naseri-paper-demo` **فقط نمونه عمومی همراه بسته** را اجرا می‌کند و جایگزین سامانه امن اجرای هسته‌های ناشناس نیست. `python -I -S` sandbox نیست. فایل‌ها و توکن‌های تولیدی را به این محیط وارد نکنید.
 
-### Safe defaults after installation
-
-A successful install may report:
-
-```text
-Bot..................... RUNNING
-PostgreSQL.............. RUNNING
-Installation state...... RUNNING
-```
-
-This means the containers are healthy. It does **not** mean signal delivery or trading-related runtime is enabled.
-
-The default fail-closed configuration keeps effectful runtime disabled:
+<a id="architecture"></a>
+## معماری | Architecture
 
 ```text
-TELEGRAM_RUNTIME_ENABLED=false
-BROOKS_RUNTIME_ENABLED=false
-BROOKS_OPERATIONS_ENABLED=false
-PAPER_RUNTIME_ENABLED=false
-PERFORMANCE_REPORTS_ENABLED=false
+                       Multi Market Trading (public source)
+   ┌─────────────────────────────────────────────────────────────┐
+   │ Control plane: engine inventory, per-instance configuration │
+   │ Provider/symbol/timeframe, requested risk, separate toggles │
+   └───────────────────────────┬─────────────────────────────────┘
+                               │ preview / policy, not an automatic live grant
+   ┌───────────────────────────▼─────────────────────────────────┐
+   │ Offline market data → Core API → strategy orchestrator      │
+   │            → PAPER risk / position / signal journals        │
+   └───────────────────────────┬─────────────────────────────────┘
+                               │ audited offline tests / evidence
+   ┌───────────────────────────▼─────────────────────────────────┐
+   │ Research, reliability, developer SDK and release gates     │
+   └─────────────────────────────────────────────────────────────┘
+
+   INSTALLED WORKING TOY PATH (separate, existing authority reused):
+   naseri-paper-demo → trusted public toy → TrustedLocalCustomHost
+                     → single SQLite PAPER journal → restart/inspect
+
+   NO implicit link to LIVE exchange, broker orders or Telegram publishing.
 ```
 
-So a normal fresh installation can correctly show **Bot = RUNNING** while Telegram, Brooks runtime, Paper runtime, and Brooks operations remain disabled.
+**مرز مسئولیت‌ها:** هسته فقط ستاپ و منطق تصمیم را تعیین می‌کند؛ انتخاب صرافی/بروکر، نماد، تایم‌فریم، سرمایه، مدیریت ریسک و مجوزهای سیگنال/سفارش متعلق به پلتفرم است. «درخواست فعال‌سازی» در پنل به معنای «مجوز واقعی اجرا» نیست. انتخاب نماد در رجیستری پژوهشی نیز دسترسی قانونی یا امکان معامله را اثبات نمی‌کند.
 
-### Check installation status
+### دستاوردها و وضعیت عملیاتی
 
-Interactive:
+| قابلیت | توسعه / آزمون | محدودیت |
+| --- | --- | --- |
+| Universal Core API v1, multi-binding orchestration | قرارداد و آزمون‌های offline | بدون فعال‌سازی خودکار LIVE |
+| Market feed / instrument registry | Replay/Synthetic و پژوهش متادیتا | بدون اصالت‌سنجی کافی قیمت اجرایی واقعی |
+| Portfolio/risk + multi-target PAPER lifecycle | پیاده‌سازی و تست مدل‌سازی | بدون سفارش یا پرشدن واقعی بروکر |
+| Signal lifecycle + delivery journal | صف خشک و بازبینی داخلی | بدون اثبات ارسال/ویرایش پیام واقعی |
+| Strategy Research Lab | تحلیل شواهد PAPER و دوره‌های Train/Validation/Holdout | **بک‌تست واقعی جدید یا Edge سودده تأیید نشده** |
+| Trading Control Center | پنل توسعه‌ای چند هسته/نماد/تایم‌فریم | بدون اتصال خودکار به موتور معاملات |
+| Reliability, SDK, signatures, release gates | ممیزی و آزمون ساختاری | بدون تأیید خصمانه gVisor یا مجوز Marketplace |
+| **Public toy PAPER user journey** | **نصب Wheel → ثبت → Replay → ری‌استارت → inspect** | فقط نمونه عمومی trusted، بدون Telegram/سفارش |
 
-```text
-[6] Bot Status
-```
+**Brooks Price Action** هسته مرجع عمومی پروژه است؛ فعال‌سازی خودکار آن در محصول جدید از این نمونه نتیجه نمی‌شود. **NY First-Reversal** اختصاصی و *owner-only* است: هیچ سورس، بسته یا مجوز اجرای عمومی آن در مخزن قرار نمی‌گیرد.
 
-Direct command:
+<a id="documents"></a>
+## راهنما و منابع فنی | Documentation
 
-```bash
-bash markets.sh status
-```
-
-The status screen reports the project version, Git branch/commit, bot and PostgreSQL state, database-volume presence, **database authentication state**, installation state, and a **secret-safe configuration summary**.
-
-Secret values such as database passwords and Telegram tokens are not displayed.
-
-### View logs
-
-Interactive:
-
-```text
-[7] View Logs
-```
-
-Direct command:
-
-```bash
-bash markets.sh logs
-```
-
-Use `Ctrl+C` to stop following logs.
-
----
-
-<a id="operations"></a>
-## 🛠️ Manager Operations
-
-### Command-line shortcuts
-
-The interactive menu is recommended for normal administration, but the same manager can be called directly:
-
-| Operation | Command |
+| موضوع | سند |
 | --- | --- |
-| Open menu | `bash markets.sh` |
-| Update | `bash markets.sh update` |
-| Start | `bash markets.sh start` |
-| Stop bot | `bash markets.sh stop` |
-| Restart | `bash markets.sh restart` |
-| Status | `bash markets.sh status` |
-| Logs | `bash markets.sh logs` |
-| Configuration menu | `bash markets.sh config` |
-| Environment check | `bash markets.sh env-check` |
-| Database menu | `bash markets.sh database` |
-| Create full backup | `bash markets.sh backup` |
-| Backup menu | `bash markets.sh backups` |
-| Restore menu | `bash markets.sh restore` |
-| Doctor | `bash markets.sh doctor` |
-| Repair / diagnose menu | `bash markets.sh repair` |
-| Verify installation | `bash markets.sh verify` |
-| System information | `bash markets.sh system` |
-| Guarded uninstall menu | `bash markets.sh uninstall` |
-| Manager help | `bash markets.sh --help` |
+| **Installed public PAPER journey** | [PAPER MVP guide](docs/PAPER_MVP_INSTALLED_USER_JOURNEY_V1.md) |
+| Separate preview distribution / installed demo | [New product release readme](platform_release/README.md) |
+| Historically preserved runtime and manager | [Installation](docs/INSTALLATION.md) · [Recovery](docs/REBUILD_RESTORE.md) |
+| Universal Core API, market data, secure runtime | [Core API](docs/UNIVERSAL_CORE_API_V1.md) · [Secure runtime](docs/SECURE_PLUGIN_RUNTIME_STAGE4_V1.md) · [Data engine](docs/UNIVERSAL_MARKET_DATA_STAGE5_V1.md) |
+| Instrument metadata and bindings | [Provider adapters](docs/PROVIDER_ADAPTERS_AND_INSTRUMENT_CATALOG_STAGE6_V1.md) · [Stage 7](docs/UNIVERSAL_STRATEGY_ORCHESTRATOR_STAGE7_V1.md) |
+| PAPER risk, orders, signals | [Risk](docs/UNIVERSAL_PORTFOLIO_RISK_STAGE8_V1.md) · [Lifecycle](docs/UNIVERSAL_ORDER_POSITION_LIFECYCLE_STAGE9_V1.md) · [Signals](docs/SIGNAL_LIFECYCLE_STAGE10_V1.md) |
+| Research, UI, acceptance | [Research](docs/STRATEGY_RESEARCH_LAB_STAGE11_V1.md) · [Control center](docs/TRADING_CONTROL_CENTER_STAGE12_V1.md) · [Reliability](docs/RELIABILITY_INTEGRATION_STAGE13_V1.md) |
+| Independent developer SDK | [SDK and certification](docs/DEVELOPER_SDK_CERTIFICATION_STAGE14_V1.md) |
+| **Product readiness and release blockers** | [Stage 15 readiness](docs/PRODUCT_READINESS_AND_RELEASE_GATES_STAGE15_V1.md) · [A28 architecture/product audit](docs/MULTI_MARKET_TRADING_A28_FINAL_PRODUCT_AUDIT.md) |
+| Security, changes and contributing | [Security](SECURITY.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [Roadmap](ROADMAP.md) |
 
-### Update Bot
-
-Choose **[2] Update Bot** or run:
+### Verification / بررسی
 
 ```bash
-bash markets.sh update
-```
-
-The updater is intentionally strict. It requires:
-
-- an official Git checkout;
-- `origin` to be exactly the official HTTPS or SSH repository;
-- branch `main`;
-- a completely clean worktree, including untracked files;
-- a fast-forward-only update from official `origin/main`;
-- explicit typed authorization.
-
-The update confirmation is:
-
-```text
-UPDATE
-```
-
-When an installed database exists, the manager creates a mandatory backup before updating.
-
-The update workflow then verifies source integrity, builds the current image, validates configuration, starts PostgreSQL, applies Alembic migrations, performs application checks, and restores the previous bot-running state.
-
-> [!IMPORTANT]
-> Automatic source rollback is allowed only before database migration begins. Once a migration starts, the manager does not perform an unsafe source-only rollback. A failure leaves the bot stopped and preserves the pre-update backup for explicit recovery.
-
-### Start / Stop / Restart
-
-```bash
-bash markets.sh start
-bash markets.sh stop
-bash markets.sh restart
-```
-
-**Start** validates configuration, starts PostgreSQL when required, checks application configuration/database connectivity, and then starts the bot.
-
-**Stop** stops the bot service while retaining PostgreSQL and persistent data.
-
-**Restart** revalidates the installation before restarting the bot.
-
-### Configuration
-
-Choose **[8] Configuration** or run:
-
-```bash
-bash markets.sh config
-```
-
-The manager can show a secret-safe summary, validate the current configuration, bootstrap a missing environment file, and open the local `.env` editor through a guarded workflow.
-
-Supported validation shapes are:
-
-- `safe-install`
-- `paper`
-- `live`
-
-Passing configuration validation proves only that the configuration is internally consistent. It does **not** approve live trading or operational use.
-
-The manager restores `.env` permissions to mode `600` after supported edit/restore workflows.
-
-### Environment Check
-
-Choose **[9] Environment Check** or run:
-
-```bash
-bash markets.sh env-check
-```
-
-This checks required commands, Docker/Compose availability, `.env` presence and permissions, and the supported configuration contract.
-
-### Database Management
-
-Choose **[10] Database Management** or run:
-
-```bash
-bash markets.sh database
-```
-
-Database Management provides:
-
-- database status;
-- current migration / Alembic head inspection;
-- guarded upgrade to current Alembic head;
-- database backup;
-- database restore.
-
-Database upgrades and restores are guarded operations. The manager creates safety backups where required and keeps PostgreSQL isolated behind the Compose network rather than publishing its port to the host.
-
-### Backup
-
-Choose **[11] Backup** or run:
-
-```bash
-bash markets.sh backup
-```
-
-Available backup types include:
-
-- full backup;
-- PostgreSQL database backup;
-- configuration backup;
-- backup listing.
-
-Manager backups are stored under:
-
-```text
-.naseri-backups/
-```
-
-Backup directories/files use restrictive permissions and the directory is ignored by Git.
-
-Database backups use PostgreSQL `pg_dump` in custom format.
-
-### Restore
-
-Choose **[12] Restore** or run:
-
-```bash
-bash markets.sh restore
-```
-
-The restore menu supports database and configuration recovery.
-
-Before a database restore, the manager creates a mandatory **pre-restore full backup**. Database restore uses `pg_restore`, then upgrades to the repository Alembic head and runs a database check.
-
-Configuration restore validates the restored `.env`. If the new configuration fails validation, the previous configuration is automatically reinstated.
-
-### Repair / Diagnose
-
-Choose **[13] Repair / Diagnose** or run:
-
-```bash
-bash markets.sh repair
-```
-
-Repair tools include:
-
-- Doctor diagnostics;
-- repair `.env` permissions;
-- rebuild and verify the bot image;
-- safe restart;
-- guarded PostgreSQL credential recovery when the existing database volume password does not match the private `.env`.
-
-You can run Doctor directly:
-
-```bash
-bash markets.sh doctor
-```
-
-### Verify Installation
-
-Choose **[14] Verify Installation** or run:
-
-```bash
-bash markets.sh verify
-```
-
-For an offline source/release check without Docker changes:
-
-```bash
-bash scripts/install.sh --check
-```
-
-`--check` does not start Docker services, run database migrations, or modify a database.
-
-### System Information
-
-Choose **[15] System Information** or run:
-
-```bash
-bash markets.sh system
-```
-
-This provides the manager's system/runtime summary for troubleshooting.
-
-### Uninstall / Remove Runtime
-
-Choose **[16] Uninstall / Remove Runtime** or run:
-
-```bash
-bash markets.sh uninstall
-```
-
-The uninstall workflow provides separate guarded levels:
-
-1. remove only the bot container while keeping database/config/backups/source;
-2. remove project containers/network while retaining database/config/backups/source;
-3. full runtime-data removal, including the project database volume.
-
-Full runtime removal requires explicit typed confirmation. Source files and manager-created backups are retained. Removing `.env` requires an additional explicit confirmation.
-
-> [!CAUTION]
-> Do not use destructive uninstall or restore options unless you understand exactly which persistent state will be changed. Create and verify a backup first.
-
-## 🔁 Recommended Operator Workflow
-
-For a normal installed instance:
-
-```bash
-cd Multi-Market-Trading
-bash markets.sh status
-bash markets.sh
-```
-
-Then use the manager rather than manually composing Docker commands.
-
-Before a significant update or configuration/database change:
-
-```bash
-bash markets.sh backup
-```
-
-For an official source update:
-
-```bash
-bash markets.sh update
-```
-
-After a configuration change:
-
-```bash
-bash markets.sh restart
-bash markets.sh status
-```
-
-For troubleshooting:
-
-```bash
-bash markets.sh doctor
-bash markets.sh verify
-bash markets.sh logs
-```
-
-## 🗂️ Repository Map
-
-| Path | Purpose |
-| --- | --- |
-| `production_source/` | Curated, hash-verified public source snapshot |
-| `production_checks/` | Frozen-source and regression guards |
-| `tests/` | Reviewed public test corpus |
-| `naseri.sh` / `scripts/manager.sh` | Interactive NASERI CODER lifecycle manager |
-| `scripts/lib/manager_common.sh` | Shared safety, status, config and Compose helpers |
-| `scripts/lib/manager_runtime.sh` | Install/update/runtime/database/repair/uninstall workflows |
-| `scripts/lib/manager_backup.sh` | Backup and restore implementation |
-| `scripts/` | Verification, safety, environment and installer tooling |
-| `.github/workflows/` | CI, release baseline, and publication-safety workflows |
-| `Dockerfile.production` / `compose.yaml` | Isolated containerized deployment |
-
-<a id="verification"></a>
-## 🧪 Verification & Provenance
-
-The current `main` branch source manifest contains **362 tracked entries** in `production_source/SHA256SUMS`.
-
-The historical v0.3.2 release baseline and later validated `main` changes are protected by repository verification and GitHub Actions. Use the repository's release tags when an immutable release identity is required; use `main` when following the current Manager and ongoing development state.
-
-Local verification:
-
-```bash
+# Existing repository baseline checks (on a compatible development host)
 bash scripts/verify.sh
+
+# Focused installed-demo regression (with repository dev dependencies)
+python -m pytest -q tests/unit/test_paper_demo_cli_v1.py
 ```
 
-Manager static self-test:
+GitHub CI verifies the **installed preview Wheel**, public toy replay, duplicate protection, reopening durable history and disabled network/order flags in an isolated workspace. These tests do not validate real profitability or production readiness.
 
-```bash
-bash scripts/manager.sh --self-test
-```
+<a id="english"></a>
+## English summary
 
-The verification tooling checks the curated source identity, required release/manager files, shell syntax, package/configuration contracts, and Manager safety invariants.
+Multi Market Trading is a public, strategy-neutral research and PAPER software project. The **legacy crypto runtime (`crypto-price-action 0.3.2`)** and the **new multi-market preview (`multi-market-trading 0.4.0rc1`)** are separate products. This repository now exposes an installable, explicitly authorized **public toy PAPER demo** (`naseri-paper-demo`) using the existing trusted-local host and SQLite journal. The demo proves the registration → explicit enable → synthetic quote replay → idempotent journal → restart/inspect → disable journey; it **does not** run the newer multi-core modules as one automatic service.
 
-## 🛣️ Development Direction
+Market metadata discovery does not imply trading eligibility. Publisher signatures do not make arbitrary plugin code safe. No automatic real-market feeds, Telegram channel delivery, broker orders, strategy profitability or public launch is certified. Production and third-party executable admission remain **blocked pending independent review and authorization**.
 
-**Broader rule coverage → stronger context validation → regression & explainability → paper/shadow evaluation → operational review**
+## مشارکت، امنیت و مجوز | Security & contribution
 
-This sequence is a development direction, not a promise of production or live-trading readiness.
-
-<a id="security"></a>
-## 🤝 Contributing, Security & License
-
-[Installation](docs/INSTALLATION.md) · [Rebuild/restore](docs/REBUILD_RESTORE.md) · [Changelog](CHANGELOG.md) · [Roadmap](ROADMAP.md) · [Contributing guide](CONTRIBUTING.md) · [Security policy](SECURITY.md) · [Open-source publication boundary](docs/OSS_PUBLICATION_REVIEW.md) · [Apache License 2.0](LICENSE)
-
-> [!CAUTION]
-> Never commit or upload populated `.env` files, credentials, tokens, keys, database dumps, private operational logs, realized trades, or private market datasets.
-
----
+Contributions and reproducible test evidence are welcome under [Apache-2.0](LICENSE). Follow [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md). **Never commit secrets, `.env` files, private strategy source, broker credentials, database dumps, user data or operational trading records.**
 
 <div align="center">
 
-### Built for reproducible research, review, testing, and disciplined validation.
+[Repository](https://github.com/naseri-coder/Multi-Market-Trading) · [Issues](https://github.com/naseri-coder/Multi-Market-Trading/issues) · [GitHub Actions](https://github.com/naseri-coder/Multi-Market-Trading/actions) · [Telegram development channel](https://t.me/naseri_coder)
 
-[Repository](https://github.com/naseri-coder/Multi-Market-Trading) · [Issues](https://github.com/naseri-coder/Multi-Market-Trading/issues) · [Actions](https://github.com/naseri-coder/Multi-Market-Trading/actions) · [Security](SECURITY.md)
+**Validation first · Explicit permissions · No invented PnL**
 
 </div>
