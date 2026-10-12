@@ -124,7 +124,11 @@ class OfflinePanelPaperIntegration:
                        expected_panel_revision: int, operator_ack: bool = False,
                        paper=None, signals=None, quantity: Decimal | None = None,
                        target_fractions: tuple[Decimal, ...] = (Decimal(1),),
-                       dry_run_channel_id: int | None = None):
+                       dry_run_channel_id: int | None = None,
+                       data_origin: DataOrigin = DataOrigin.SYNTHETIC):
+        if (data_origin not in (DataOrigin.REPLAY, DataOrigin.SYNTHETIC)
+                or not isinstance(data_origin, DataOrigin)):
+            raise IntegrationRefused("OFFLINE_REPLAY_OR_SYNTHETIC_ORIGIN_REQUIRED")
         if (operator_ack is not True or type(candles) is not tuple
                 or not 1 <= len(candles) <= 128
                 or any(type(c) is not ClosedCandle for c in candles)
@@ -170,7 +174,7 @@ class OfflinePanelPaperIntegration:
         feed_id = "p16_" + content_digest((instance_id, binding_id))[:40]
         definition = FeedDefinition(
             feed_id, binding.instrument, binding.timeframe,
-            CoreEventType.CLOSED_CANDLE, DataOrigin.SYNTHETIC,
+            CoreEventType.CLOSED_CANDLE, data_origin,
             source_ref, PriceBasis.TRADE, VolumeSemantics.TRADED)
         data = OfflineMarketDataEngine(enabled=True)
         data.register_feed(definition)
@@ -196,7 +200,7 @@ class OfflinePanelPaperIntegration:
         result = outcome.result
         event = CoreInput(self.manifest.core_id, self.manifest.core_version,
                           binding, CoreEventType.CLOSED_CANDLE,
-                          candles[-1].close_at, DataOrigin.SYNTHETIC,
+                          candles[-1].close_at, data_origin,
                           source_ref, candles)
         if result is None or result.input_digest != event.input_digest:
             raise IntegrationRefused("RESULT_EVIDENCE_MISMATCH")

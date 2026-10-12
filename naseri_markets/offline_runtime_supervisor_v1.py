@@ -18,7 +18,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Callable, Mapping
 
-from .core_api_v1 import ClosedCandle
+from .core_api_v1 import ClosedCandle, DataOrigin
 from .trading_control_center_v1 import OfflineTradingControlCenter
 
 
@@ -316,12 +316,16 @@ class Stage16ReplayExecutor:
 
     def __init__(self, integration, *, paper=None, signals=None,
                  quantity: Decimal | None = None,
-                 dry_run_channel_id: int | None = None):
+                 dry_run_channel_id: int | None = None,
+                 data_origin: DataOrigin = DataOrigin.SYNTHETIC):
         from .offline_panel_paper_integration_v1 import OfflinePanelPaperIntegration
         if not isinstance(integration, OfflinePanelPaperIntegration):
             raise SupervisorRefused("REVIEWED_STAGE16_HOST_REQUIRED")
         self.integration, self.paper, self.signals = integration, paper, signals
+        if data_origin not in (DataOrigin.REPLAY, DataOrigin.SYNTHETIC):
+            raise SupervisorRefused("OFFLINE_ORIGIN_REQUIRED")
         self.quantity, self.channel = quantity, dry_run_channel_id
+        self.data_origin = data_origin
 
     def __call__(self, job: ReplayJob) -> dict:
         outcome = self.integration.replay_candles(
@@ -329,7 +333,8 @@ class Stage16ReplayExecutor:
             source_ref=job.source_ref,
             expected_panel_revision=job.expected_panel_revision,
             operator_ack=True, paper=self.paper, signals=self.signals,
-            quantity=self.quantity, dry_run_channel_id=self.channel)
+            quantity=self.quantity, dry_run_channel_id=self.channel,
+            data_origin=self.data_origin)
         if is_dataclass(outcome):
             # Compatibility with the Stage-16 local candidate dataclass;
             # the merged GitHub Stage-16 release returns a canonical dict.

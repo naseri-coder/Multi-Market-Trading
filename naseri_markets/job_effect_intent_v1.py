@@ -15,7 +15,7 @@ import stat
 from decimal import Decimal
 from pathlib import Path
 
-from .core_api_v1 import content_digest
+from .core_api_v1 import DataOrigin, content_digest
 from .offline_runtime_supervisor_v1 import ReplayJob, Stage16ReplayExecutor
 
 _HEX = re.compile(r"[0-9a-f]{64}\Z")
@@ -309,14 +309,18 @@ class JobEffectIntentExecutor:
 
     def __init__(self, *, supervisor, ledger: OfflineJobEffectLedger,
                  integration, paper=None, signals=None, quantity: Decimal | None = None,
-                 dry_run_channel_id: int | None = None):
+                 dry_run_channel_id: int | None = None,
+                 data_origin: DataOrigin = DataOrigin.SYNTHETIC):
         from .offline_runtime_supervisor_v1 import OfflineRuntimeSupervisor
         if not isinstance(supervisor, OfflineRuntimeSupervisor) or not isinstance(
                 ledger, OfflineJobEffectLedger):
             raise IntentRefused("OPERATOR_SUPERVISOR_REQUIRED")
         self.supervisor, self.ledger = supervisor, ledger
         self.integration, self.paper, self.signals = integration, paper, signals
+        if data_origin not in (DataOrigin.REPLAY, DataOrigin.SYNTHETIC):
+            raise IntentRefused("OFFLINE_ORIGIN_REQUIRED")
         self.quantity, self.channel = quantity, dry_run_channel_id
+        self.data_origin = data_origin
 
     def __call__(self, job: ReplayJob) -> dict:
         row = self.supervisor.db.execute(
@@ -332,7 +336,8 @@ class JobEffectIntentExecutor:
         signals = _SignalProxy(self.signals, self.ledger, job) if self.signals is not None else None
         delegate = Stage16ReplayExecutor(self.integration, paper=paper, signals=signals,
                                          quantity=self.quantity,
-                                         dry_run_channel_id=self.channel)
+                                         dry_run_channel_id=self.channel,
+                                         data_origin=self.data_origin)
         return delegate(job)
 
 
