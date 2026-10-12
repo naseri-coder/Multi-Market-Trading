@@ -1,0 +1,96 @@
+name: Stage 35 signed self-observation evidence chain acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'naseri_markets/self_observation_evidence_chain_stage35_v1.py'
+      - 'tests/unit/test_self_observation_evidence_chain_stage35_v1.py'
+      - 'docs/STAGE35_SELF_OBSERVATION_EVIDENCE_CHAIN_V1.md'
+      - '.github/workflows/stage35-self-observation-evidence-chain-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stage35-immutable-raw-evidence-custody:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Strict source/static and no-production release guards
+        run: |
+          set -Eeuo pipefail
+          python -m pip install 'pytest==9.1.1' 'ruff==0.16.9' 'cryptography==46.0.3'
+          python -m ruff check --select E4,F \
+            naseri_markets/self_observation_evidence_chain_stage35_v1.py \
+            tests/unit/test_self_observation_evidence_chain_stage35_v1.py
+          python scripts/a6_release_preflight.py
+          python scripts/check_publication_safety.py
+      - name: Signed Stage32-35 custody with previous Stage22-34 regressions
+        env:
+          MMT_NONPRODUCTION: '1'
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/stage35-tests"
+          cp tests/unit/test_self_observation_evidence_chain_stage35_v1.py \
+             tests/unit/test_designated_host_readonly_probe_stage34_v1.py \
+             tests/unit/test_disconnected_host_evidence_stage33_v1.py \
+             tests/unit/test_disposable_host_preflight_stage32_v1.py \
+             tests/unit/test_tls_boundary_stage31_v1.py \
+             tests/unit/test_offline_developer_api_stage30_v1.py \
+             tests/unit/test_authenticated_developer_intake_stage29_v1.py \
+             tests/unit/test_publisher_package_registry_stage28_v1.py \
+             tests/unit/test_signed_public_intake_stage27_v1.py \
+             tests/unit/test_public_candidate_lock_stage26_v1.py \
+             tests/unit/test_preinstall_evidence_stage25_v1.py \
+             tests/unit/test_host_observation_custody_stage24_v1.py \
+             tests/unit/test_signed_core_candidate_stage23_v1.py \
+             tests/unit/test_disposable_gvisor_canary_stage23_v1.py \
+             tests/unit/test_durable_isolated_core_gate_stage22_v1.py \
+             tests/unit/test_secure_plugin_runtime_v1.py \
+             "$RUNNER_TEMP/stage35-tests/"
+          python -m pytest -q "$RUNNER_TEMP/stage35-tests" -rs
+      - name: Independent installed Stage35 wheel and evidence-chain regression
+        env:
+          MMT_NONPRODUCTION: '1'
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/stage35-project" "$RUNNER_TEMP/stage35-wheel" \
+             "$RUNNER_TEMP/stage35-room" "$RUNNER_TEMP/stage35-installed-tests"
+          cp platform_release/pyproject.toml platform_release/README.md \
+             "$RUNNER_TEMP/stage35-project/"
+          cp -a naseri_markets "$RUNNER_TEMP/stage35-project/naseri_markets"
+          python -m venv "$RUNNER_TEMP/stage35-venv"
+          "$RUNNER_TEMP/stage35-venv/bin/python" -m pip wheel --no-deps \
+             --wheel-dir "$RUNNER_TEMP/stage35-wheel" "$RUNNER_TEMP/stage35-project"
+          "$RUNNER_TEMP/stage35-venv/bin/python" -m pip install \
+             "$RUNNER_TEMP"/stage35-wheel/multi_market_trading-0.4.0rc1-*.whl \
+             'pytest==9.1.1' 'cryptography==46.0.3'
+          "$RUNNER_TEMP/stage35-venv/bin/python" -m pip check
+          cp tests/unit/test_self_observation_evidence_chain_stage35_v1.py \
+             tests/unit/test_designated_host_readonly_probe_stage34_v1.py \
+             tests/unit/test_disconnected_host_evidence_stage33_v1.py \
+             tests/unit/test_disposable_host_preflight_stage32_v1.py \
+             tests/unit/test_tls_boundary_stage31_v1.py \
+             tests/unit/test_offline_developer_api_stage30_v1.py \
+             tests/unit/test_authenticated_developer_intake_stage29_v1.py \
+             tests/unit/test_publisher_package_registry_stage28_v1.py \
+             tests/unit/test_signed_public_intake_stage27_v1.py \
+             tests/unit/test_public_candidate_lock_stage26_v1.py \
+             tests/unit/test_preinstall_evidence_stage25_v1.py \
+             tests/unit/test_host_observation_custody_stage24_v1.py \
+             tests/unit/test_signed_core_candidate_stage23_v1.py \
+             tests/unit/test_disposable_gvisor_canary_stage23_v1.py \
+             tests/unit/test_durable_isolated_core_gate_stage22_v1.py \
+             tests/unit/test_secure_plugin_runtime_v1.py \
+             "$RUNNER_TEMP/stage35-installed-tests/"
+          cd "$RUNNER_TEMP/stage35-room"
+          PYTHONPATH= "$RUNNER_TEMP/stage35-venv/bin/python" -m pytest -q \
+             "$RUNNER_TEMP/stage35-installed-tests" -rs
