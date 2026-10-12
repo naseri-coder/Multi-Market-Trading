@@ -18,7 +18,8 @@ from .core_api_v1 import (
 )
 from .example_dual_setup_core_v1 import DualSetupExampleCore
 from .instrument_registry_v1 import (
-    ListingStatus, MetadataOrigin, ProviderSnapshot, ResearchInstrumentCatalog,
+    CatalogRefused, ListingStatus, MetadataOrigin, ProviderSnapshot,
+    ResearchInstrumentCatalog,
 )
 from .job_effect_intent_v1 import JobEffectIntentExecutor, OfflineJobEffectLedger
 from .job_effect_reconciliation_v1 import (
@@ -121,9 +122,12 @@ def run_captured_paper_pilot(
     core = DualSetupExampleCore()
     # Reject stale operator metadata across the *entire* intended replay
     # before creating any state, not just the first signal bar.
-    for capture in captures:
-        catalog.lookup("kucoin_futures", capture.request.symbol,
-                       now=capture.request.end)
+    try:
+        for capture in captures:
+            catalog.lookup("kucoin_futures", capture.request.symbol,
+                           now=capture.request.end)
+    except CatalogRefused as exc:
+        raise CapturedPaperRefused("REVIEWED_HISTORIC_METADATA_REQUIRED") from exc
     directory.mkdir(mode=0o700)
     paths = {name: directory / (name + ".sqlite") for name in (
         "control", "paper", "signals", "runtime", "effects")}
@@ -295,11 +299,15 @@ def run_captured_paper_pilot(
         path.chmod(0o600)
     ledger = evaluate_offline_reliability(LedgerPaths(
         paths["control"], paths["paper"], paths["signals"]))
-    proof = evaluate_effect_evidence(EffectEvidencePaths(
+    # Stage19 correctly refuses to attest an empty intent ledger. Never
+    # fabricate an empty-ledger Stage19 PASS or dispatch a dummy effect.
+    proof = (evaluate_effect_evidence(EffectEvidencePaths(
         paths["effects"], paths["runtime"], paths["paper"], paths["signals"]))
+        if expected_effects else None)
     if (ledger.integrity_verdict != "PASS"
             or ledger.release_verdict != "BLOCKED_NONPRODUCTION_UNATTESTED"
-            or proof.blocking_effects or proof.exact_local_effects != expected_effects):
+            or (proof is not None and (proof.blocking_effects
+                or proof.exact_local_effects != expected_effects))):
         raise CapturedPaperRefused("CROSS_LEDGER_AUDIT_FAILED")
     rows = [results[b.binding_id] for b in bindings]
     return {
@@ -311,7 +319,9 @@ def run_captured_paper_pilot(
         "modeled_realized_net_total": str(sum((
             D(item.get("modeled_realized_net", "0")) for item in rows), D(0))),
         "completed_jobs": len(scheduled),
-        "exact_effects": proof.exact_local_effects,
+        "exact_effects": proof.exact_local_effects if proof else 0,
+        "effect_evidence_verdict": (proof.verdict if proof else
+                                     "NO_EFFECT_INTENTS_NOT_STAGE19_ATTESTED"),
         "integrity_verdict": ledger.integrity_verdict,
         "release_verdict": ledger.release_verdict,
         "restarted_and_reconciled": True,
