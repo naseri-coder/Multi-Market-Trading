@@ -16,7 +16,9 @@ from naseri_markets.offline_runtime_supervisor_v1 import OfflineRuntimeSuperviso
 from naseri_markets.operational_reconciliation_v1 import (
     RecoveryPaths, RecoveryRefused, evaluate_operational_recovery,
 )
-from test_stage17_fixture import CORE, T0, bars, panel_fixture, receipt, scheduled
+from test_offline_runtime_supervisor_v1 import (
+    CORE, bars, panel_fixture, receipt, scheduled,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -239,4 +241,24 @@ with OfflineRuntimeSupervisor(Path(os.environ["RUNTIME"]),panel=panel,actor_id=1
     assert report.jobs[0].job_id == job
     assert report.jobs[0].status == "CLAIMED"
     assert report.status == "BLOCKED_MANUAL_RECONCILIATION"
+    control.close()
+
+
+def test_review_does_not_mutate_other_existing_database(tmp_path):
+    paths, job, control, _ = evidence(tmp_path, job_status="CLAIMED")
+    report = evaluate_operational_recovery(paths)
+    unrelated = tmp_path / "other_private.sqlite"
+    with sqlite3.connect(unrelated) as db:
+        db.execute("CREATE TABLE application_data(value INTEGER)")
+        db.execute("INSERT INTO application_data VALUES(123)")
+    unrelated.chmod(0o600)
+    with pytest.raises(RecoveryRefused, match="UNRELATED_REVIEW_DATABASE"):
+        record_operator_review(
+            paths, unrelated, job_id=job,
+            evidence_sha256=report.evidence_sha256,
+            note="Reviewed manually no restart", operator_id=123,
+            operator_ack=True, all_workers_stopped=True)
+    with sqlite3.connect(unrelated) as db:
+        assert [r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")] == ["application_data"]
+        assert db.execute("SELECT value FROM application_data").fetchone() == (123,)
     control.close()
