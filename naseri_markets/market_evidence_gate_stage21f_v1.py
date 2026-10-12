@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Callable
 
@@ -19,7 +19,7 @@ from .public_forward_capture_stage21c_v1 import (
     verify_capture_bundle,
 )
 from .public_funding_mark_stage21e_v1 import (
-    MAX_PUBLIC_BYTES, FundingRequest, FundingMarkRefused, _read_annex,
+    MAX_PUBLIC_BYTES, FundingRequest, _read_annex,
     parse_funding_history, analyze_funding_and_mark,
 )
 
