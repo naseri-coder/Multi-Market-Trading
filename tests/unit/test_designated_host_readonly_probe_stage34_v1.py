@@ -100,7 +100,7 @@ def test_actual_tls_pin_rejection_over_socketpair(tls_material, monkeypatch):
     client_socket, server_socket = socket.socketpair()
     server_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     server_ctx.minimum_version = ssl.TLSVersion.TLSv1_3
-    server_ctx.load_cert_chain(str(cert_path), str(key_path)
+    server_ctx.load_cert_chain(str(cert_path), str(key_path))
 
     def server():
         try:
