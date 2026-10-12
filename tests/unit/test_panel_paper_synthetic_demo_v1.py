@@ -1,8 +1,6 @@
 """Installed synthetic full JOURNEY tests; no mock risk/order internals."""
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from naseri_markets.panel_paper_synthetic_demo_v1 import (
