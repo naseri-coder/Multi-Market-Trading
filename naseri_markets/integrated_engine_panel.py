@@ -31,6 +31,9 @@ from .iran_futures_eligibility import (
 from .trusted_custom import LocalCustomRefused
 from .brooks_stage10_paper_bridge import panel_stage10_overview
 from .brooks_stage11_candle_replay import stage11_panel_summary
+from .host_observation_custody_stage24_v1 import (
+    Stage24Refused, read_admin_host_security_status,
+)
 
 _MORE = re.compile(r"em:(settings|tf|market|env):([0-9a-f]{12})(?::([0-9]+))?\Z")
 _EXCHANGE = re.compile(r"ex:(list|set):([0-9a-f]{12}):([0-9]+)(?::([0-9]+))?\Z")
@@ -613,6 +616,25 @@ class IntegratedEnginePanel(CustomAdminPanel):
                 await query.message.reply_text(
                     "⚠️ مجوز، تنظیمات یا نسخه تغییر کرده است. دوباره وارد شوید.")
 
+    async def coresecurity(self, update, context) -> None:
+        """PRIVATE admin-only diagnostics: never changes a trust or trading gate."""
+        if not _private_admin(update, self.admin_ids):
+            return
+        try:
+            state = read_admin_host_security_status(self.state_dir)
+            message = (
+                "🔐 امنیت هسته‌های شخص ثالث — Stage24 (فقط مشاهده)\n"
+                f"رسیدهای محلی مشاهده میزبان: {state['observations']}\n"
+                "تأیید مستقل اجرای gVisor: 🔒 انجام نشده\n"
+                "مجوز نصب هسته شخص ثالث: 🔒 مسدود\n"
+                "انتشار تلگرام و معاملات واقعی: 🔒 مسدود\n"
+                "امضای رسید به‌تنهایی گواه جداسازی نیست."
+            )
+        except (Stage24Refused, OSError, ValueError):
+            message = "🔒 شواهد امنیتی میزبان نامعتبر/غیرقابل‌خواندن؛ همه مجوزها مسدودند."
+        if update.effective_message is not None:
+            await update.effective_message.reply_text(message)
+
     def register(self, application) -> None:
         super().register(application)
         from telegram.ext import CallbackQueryHandler, CommandHandler, filters
@@ -624,4 +646,8 @@ class IntegratedEnginePanel(CustomAdminPanel):
             group=0)
         application.add_handler(
             CommandHandler("engines", self.panel, filters=filters.ChatType.PRIVATE),
+            group=0)
+        application.add_handler(
+            CommandHandler("coresecurity", self.coresecurity,
+                           filters=filters.ChatType.PRIVATE),
             group=0)
