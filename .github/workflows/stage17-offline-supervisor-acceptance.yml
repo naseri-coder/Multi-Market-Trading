@@ -1,0 +1,82 @@
+name: Stage 17 isolated offline runtime supervisor acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'naseri_markets/offline_runtime_supervisor_v1.py'
+      - 'naseri_markets/runtime_supervisor_health_v1.py'
+      - 'naseri_markets/supervisor_synthetic_smoke_v1.py'
+      - 'tests/unit/test_offline_runtime_supervisor_v1.py'
+      - 'docs/OFFLINE_RUNTIME_SUPERVISOR_STAGE17_V1.md'
+      - 'README.md'
+      - '.github/workflows/stage17-offline-supervisor-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stage17-offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with: {python-version: '3.12'}
+      - name: Verify source boundary and stage17 tests
+        env:
+          MMT_NONPRODUCTION: '1'
+        run: |
+          set -Eeuo pipefail
+          python scripts/a6_release_preflight.py
+          python -m pip install 'pytest==9.1.1' 'ruff==0.16.9'
+          python -m ruff check --select E4,F \
+            naseri_markets/offline_runtime_supervisor_v1.py \
+            naseri_markets/runtime_supervisor_health_v1.py \
+            naseri_markets/supervisor_synthetic_smoke_v1.py \
+            tests/unit/test_offline_runtime_supervisor_v1.py
+          mkdir -p "$RUNNER_TEMP/stage17-unit"
+          cp tests/unit/test_offline_runtime_supervisor_v1.py "$RUNNER_TEMP/stage17-unit/"
+          PYTHONPATH="$GITHUB_WORKSPACE" python -m pytest -q "$RUNNER_TEMP/stage17-unit"
+      - name: Clean Python 3.12 wheel with isolated persistent queue
+        env:
+          MMT_NONPRODUCTION: '1'
+          PYTHONPATH: ''
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/stage17-package" "$RUNNER_TEMP/stage17-wheels" \
+                   "$RUNNER_TEMP/stage17-cleanroom"
+          chmod 700 "$RUNNER_TEMP/stage17-cleanroom"
+          cp platform_release/pyproject.toml platform_release/README.md \
+             "$RUNNER_TEMP/stage17-package/"
+          cp -a naseri_markets "$RUNNER_TEMP/stage17-package/naseri_markets"
+          python -m venv "$RUNNER_TEMP/stage17-venv"
+          "$RUNNER_TEMP/stage17-venv/bin/python" -m pip wheel --no-deps \
+            --wheel-dir "$RUNNER_TEMP/stage17-wheels" "$RUNNER_TEMP/stage17-package"
+          "$RUNNER_TEMP/stage17-venv/bin/python" -m pip install --no-deps \
+            "$RUNNER_TEMP"/stage17-wheels/multi_market_trading-0.4.0rc1-*.whl
+          "$RUNNER_TEMP/stage17-venv/bin/python" -m pip check
+          cd "$RUNNER_TEMP/stage17-cleanroom"
+          "$RUNNER_TEMP/stage17-venv/bin/python" -m \
+            naseri_markets.supervisor_synthetic_smoke_v1 \
+            --state-dir "$RUNNER_TEMP/stage17-cleanroom/run" \
+            --ack-synthetic-offline > "$RUNNER_TEMP/stage17-synthetic.json"
+          "$RUNNER_TEMP/stage17-venv/bin/python" -m \
+            naseri_markets.runtime_supervisor_health_v1 \
+            --runtime-db "$RUNNER_TEMP/stage17-cleanroom/run/supervisor.sqlite" \
+            --ack-nonproduction-readonly > "$RUNNER_TEMP/stage17-health.json"
+          "$RUNNER_TEMP/stage17-venv/bin/python" - <<'PY'
+          import json,os
+          from pathlib import Path
+          temp=Path(os.environ['RUNNER_TEMP'])
+          result=json.loads((temp/'stage17-synthetic.json').read_text())
+          health=json.loads((temp/'stage17-health.json').read_text())
+          assert result['status']=='STAGE17_INSTALLED_SYNTHETIC_SUPERVISOR_PASS'
+          assert result['completed_jobs']==result['signal_journal_entries']==1
+          assert result['restart_idempotent'] is True
+          assert health['counts']=={'PENDING':0,'CLAIMED':0,'DONE':1,'QUARANTINED':0}
+          assert not result['telegram_sent'] and not result['broker_order_sent']
+          assert not result['live_trading_enabled'] and not result['public_release_authorized']
+          print('STAGE17_CLEAN_WHEEL_SUPERVISOR_ACCEPTANCE_PASS')
+          PY
