@@ -44,7 +44,7 @@ jobs:
             tests/unit/test_operational_reconciliation_v1.py
           mkdir -p "$RUNNER_TEMP/stage18-tests"
           cp tests/unit/test_offline_runtime_supervisor_v1.py \
-             "$RUNNER_TEMP/stage18-tests/test_stage17_fixture.py"
+             "$RUNNER_TEMP/stage18-tests/test_offline_runtime_supervisor_v1.py"
           cp tests/unit/test_operational_reconciliation_v1.py \
              "$RUNNER_TEMP/stage18-tests/test_operational_reconciliation_v1.py"
           python -m pytest -q "$RUNNER_TEMP/stage18-tests/"
