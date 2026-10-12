@@ -29,8 +29,9 @@ jobs:
           set -Eeuo pipefail
           python -m pip install 'pytest==9.1.1' 'ruff==0.16.9' 'cryptography==46.0.3'
           python -m ruff check --select E4,F \
-            naseri_markets/offline_host_controls_stage37_v1.py \
-            tests/unit/test_offline_host_controls_stage37_v1.py
+            naseri_markets/passive_kernel_posture_stage38_v1.py \
+            naseri_markets/passive_kernel_posture_cli_stage38_v1.py \
+            tests/unit/test_passive_kernel_posture_stage38_v1.py
           python scripts/a6_release_preflight.py
           python scripts/check_publication_safety.py
       - name: Synthetic Linux procfs confinement and Stage22-37 security regression
