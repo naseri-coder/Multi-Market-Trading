@@ -14,7 +14,6 @@ import sqlite3
 import stat
 from decimal import Decimal
 from pathlib import Path
-from urllib.parse import quote
 
 from .core_api_v1 import content_digest
 from .offline_runtime_supervisor_v1 import ReplayJob, Stage16ReplayExecutor
