@@ -18,7 +18,6 @@ import sqlite3
 import ssl
 import stat
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from pathlib import Path
 
 from .a24_publisher_admission import _ed25519, canonical
@@ -78,6 +77,12 @@ def _private_file(path: Path, *, max_bytes: int) -> bytes:
         raise Stage32Refused("EXACT_OWNER_ONLY_TEST_FILE_REQUIRED")
     fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
     with os.fdopen(fd, "rb") as stream:
+        opened = os.fstat(stream.fileno())
+        if (opened.st_dev != s.st_dev or opened.st_ino != s.st_ino
+                or not stat.S_ISREG(opened.st_mode)
+                or opened.st_nlink != 1
+                or stat.S_IMODE(opened.st_mode) != 0o600):
+            raise Stage32Refused("TEST_FILE_CHANGED_DURING_OPEN")
         data = stream.read(max_bytes + 1)
     if not 0 < len(data) <= max_bytes:
         raise Stage32Refused("BOUNDED_TEST_FILE_REQUIRED")
@@ -123,14 +128,13 @@ def verify_local_test_certificate_pair(
             or type(now) is not int or now < 1):
         raise Stage32Refused("PINNED_DISPOSABLE_TEST_FIXTURE_REQUIRED")
     from cryptography import x509
+    from cryptography.hazmat.primitives import serialization
     from cryptography.hazmat.primitives.asymmetric import ec, rsa
     try:
         cert_data = _private_file(certificate_path, max_bytes=16384)
         _private_file(private_key_path, max_bytes=16384)  # permissions/size
         certificate = x509.load_pem_x509_certificate(cert_data)
-        der = certificate.public_bytes(
-            __import__("cryptography.hazmat.primitives.serialization",
-                       fromlist=["Encoding"]).Encoding.DER)
+        der = certificate.public_bytes(serialization.Encoding.DER)
         digest = hashlib.sha256(der).hexdigest()
         if not hmac.compare_digest(digest, expected_certificate_sha256):
             raise Stage32Refused("TEST_CERTIFICATE_PIN_MISMATCH")
