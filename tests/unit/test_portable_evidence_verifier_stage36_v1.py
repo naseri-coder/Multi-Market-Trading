@@ -37,7 +37,7 @@ NODE = "pinned-disposable-node"
 
 @pytest.fixture
 def exported(chain):  # noqa: F811
-    worker, prepared, auditor, _prep, now, receipt = chain
+    worker, prior_stage, auditor, _prep, now, receipt = chain
     stage35_signature = signed_binding(chain)
     worker.record(
         stage34_probe=receipt.evidence_json(),
@@ -45,7 +45,7 @@ def exported(chain):  # noqa: F811
         now=now, operator_ack=True)
     archive = export_signed_offline_bundle(
         worker, host_alias=HOST, sequence=1, operator_ack=True)
-    reviewer_public = prepared[-1].reviewer_public_key
+    reviewer_public = prior_stage[-1].reviewer_public_key
     auditor_public = auditor.public_key().public_bytes(
         Encoding.Raw, PublicFormat.Raw)
     kwargs = {
@@ -171,7 +171,7 @@ def test_untrusted_json_outer_schema_duplicates_noncanonical_and_oversize(export
             verify_signed_offline_bundle(bad, **keys)
 
 
-def test_exporter_requires_existing_signed_row_and_restricted_env(chain,monkeypatch):
+def test_exporter_requires_existing_signed_row_and_restricted_env(chain,monkeypatch):  # noqa: F811
     worker, *_ = chain
     with pytest.raises(Stage36Refused, match="NOT_FOUND"):
         export_signed_offline_bundle(
