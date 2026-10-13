@@ -1,0 +1,4 @@
+# Narrow context for this candidate only; do not modify repository-wide .dockerignore.
+**
+!scripts/
+!scripts/runtime_a2_worker.py

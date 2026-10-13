@@ -150,6 +150,7 @@ def prepare_framed_request(
             json.dumps(_canonical(manifest), sort_keys=True,
                        separators=(",", ":"), allow_nan=False).encode()
         ).hexdigest(),
+        "manifest": _canonical(manifest),
         "input_digest": event.input_digest,
         "event": _canonical(event),
     }, ensure_ascii=True, sort_keys=True, separators=(",", ":"),
