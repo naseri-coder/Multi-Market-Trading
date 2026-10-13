@@ -1,0 +1,43 @@
+name: DATA-A1 isolated CSV and real Parquet decoder acceptance
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/historical_data_loader_a1.py"
+      - "tests/unit/test_historical_data_loader_a1.py"
+      - "docs/MMT_DATA_A1_CSV_PARQUET_REPLAY.md"
+      - ".github/workflows/data-a1-historical-loader.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  csv-parquet-real-decoder:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: ${{ github.workspace }}/production_source:${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install reviewed test-only Parquet reader
+        run: |
+          python -m pip install --disable-pip-version-check \
+            pytest==9.1.1 pytest-asyncio==1.4.0 pyarrow==21.0.0 ruff==0.16.9 pydantic-settings==2.15.0
+      - name: Verify source hygiene and actual CSV/Parquet row decoding
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check \
+            naseri_markets/historical_data_loader_a1.py \
+            tests/unit/test_historical_data_loader_a1.py
+          python -m pytest -q -ra tests/unit/test_historical_data_loader_a1.py \
+            | tee "$RUNNER_TEMP/data-a1-results.txt"
+          if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/data-a1-results.txt"; then
+            echo "DATA_A1_OPTIONAL_DECODER_TESTS_SKIPPED" >&2
+            exit 1
+          fi
