@@ -15,10 +15,10 @@ from naseri_markets.core_api_v1 import (
     PositionSnapshot, SetupSpec, BidAskTick, to_legacy_paper_intent,
     validate_core_result,
 )
-from naseri_markets.example_dual_setup_core_v1 import DualSetupExampleCore
+from naseri_markets._contract_acceptance_fixture_v1 import OfflineContractFixture
 
 T0 = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
-CORE = DualSetupExampleCore()
+CORE = OfflineContractFixture()
 
 
 def binding(provider="provider_x", symbol="ABCUSD", timeframe="15m", market=Market.CRYPTO,
@@ -65,8 +65,8 @@ def test_harness_default_disabled_and_no_side_effects():
 
 
 @pytest.mark.parametrize("style,side,setup", [
-    ("long", Direction.LONG, "close_above_previous_high"),
-    ("short", Direction.SHORT, "close_below_previous_low"),
+    ("long", Direction.LONG, "fixture_long_case"),
+    ("short", Direction.SHORT, "fixture_short_case"),
 ])
 def test_two_independent_setups(style, side, setup):
     e = event_for(style)
@@ -171,7 +171,7 @@ def test_outdated_intent_expiry_refused():
 
 def test_position_trailing_only_if_declared_and_monotonic():
     e = event_for()
-    p = PositionSnapshot("position_1", "close_above_previous_high", Direction.LONG,
+    p = PositionSnapshot("position_1", "fixture_long_case", Direction.LONG,
                          D("106"), D("99"), D("99"), 7)
     candles = (e.candles[0], candle(e.observed_at, 105, 115, 104, 114))
     pos_event = replace(e, event=CoreEventType.POSITION_UPDATE,
@@ -185,13 +185,13 @@ def test_position_trailing_only_if_declared_and_monotonic():
             decisions=(replace(d, new_stop=D("98")),)))
     with pytest.raises(CoreContractError, match="UNDECLARED_TRAILING_STOP"):
         validate_core_result(replace(CORE.manifest, setups=(
-            SetupSpec("close_above_previous_high", "No management"),
+            SetupSpec("fixture_long_case", "No management"),
             CORE.manifest.setups[1],)), pos_event, out)
 
 
 def test_short_setup_has_no_trailing_stop():
     e = event_for("short")
-    p = PositionSnapshot("pos_short", "close_below_previous_low", Direction.SHORT,
+    p = PositionSnapshot("pos_short", "fixture_short_case", Direction.SHORT,
                          D("94"), D("101"), D("101"), 0)
     candles = (e.candles[0], candle(e.observed_at, 94, 96, 86, 88))
     pos_event = replace(e, event=CoreEventType.POSITION_UPDATE,
@@ -202,7 +202,7 @@ def test_short_setup_has_no_trailing_stop():
 
 def test_mismatched_position_revision_refused():
     e = event_for()
-    p = PositionSnapshot("position_1", "close_above_previous_high", Direction.LONG,
+    p = PositionSnapshot("position_1", "fixture_long_case", Direction.LONG,
                          D("106"), D("99"), D("99"), 2)
     candles = (e.candles[0], candle(e.observed_at, 105, 115, 104, 114))
     pos = replace(e, event=CoreEventType.POSITION_UPDATE,
@@ -215,18 +215,18 @@ def test_mismatched_position_revision_refused():
 
 def test_exit_and_cancel_contract():
     e = event_for()
-    p = PositionSnapshot("pos_one", "close_above_previous_high", Direction.LONG,
+    p = PositionSnapshot("pos_one", "fixture_long_case", Direction.LONG,
                          D("106"), D("99"), D("99"), 1)
     candles = (e.candles[0], candle(e.observed_at, 105, 115, 104, 114))
     pos = replace(e, event=CoreEventType.POSITION_UPDATE,
                   observed_at=candles[-1].close_at, candles=candles, position=p)
     out = result_for(pos)
     close = CoreDecision("close_x", DecisionKind.EXIT_INTENT,
-                         "close_above_previous_high", action=ExitAction.CLOSE_POSITION,
+                         "fixture_long_case", action=ExitAction.CLOSE_POSITION,
                          position_id="pos_one", expected_position_revision=1)
     validate_core_result(CORE.manifest, pos, replace(out, decisions=(close,)))
     cancel = CoreDecision("cancel_x", DecisionKind.EXIT_INTENT,
-                         "close_above_previous_high", action=ExitAction.CANCEL_PENDING_ENTRY,
+                         "fixture_long_case", action=ExitAction.CANCEL_PENDING_ENTRY,
                          pending_entry_id="pending_1")
     validate_core_result(CORE.manifest, e, replace(result_for(e), decisions=(cancel,)))
 

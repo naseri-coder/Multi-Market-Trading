@@ -11,14 +11,14 @@ from naseri_markets.contracts import Instrument, Market
 from naseri_markets.core_api_v1 import (
     ClosedCandle, CoreBinding, CoreEventType, CoreInput, DataOrigin, DecisionKind,
 )
-from naseri_markets.example_dual_setup_core_v1 import DualSetupExampleCore
+from naseri_markets._contract_acceptance_fixture_v1 import OfflineContractFixture
 from naseri_markets.market_data_engine_v1 import PriceBasis, VolumeSemantics
 from naseri_markets.paper_core_risk_bridge_v1 import (
     CoreCapitalAllocation, CoreRiskRefused, PaperCoreRiskBridge,
 )
 from naseri_markets.risk_portfolio_contract_v1 import PortfolioRiskPolicy, AccountRiskPolicy
 
-CORE = DualSetupExampleCore()
+CORE = OfflineContractFixture()
 BASE = datetime(2026, 10, 11, 10, 0, tzinfo=UTC)
 
 

@@ -15,7 +15,7 @@ from importlib.metadata import PackageNotFoundError, version
 
 from .contracts import Instrument, Market
 from .core_api_v1 import ClosedCandle, CoreBinding, CoreEventType, DataOrigin, OfflineCoreHarness
-from .example_dual_setup_core_v1 import DualSetupExampleCore
+from ._contract_acceptance_fixture_v1 import OfflineContractFixture
 from .market_data_engine_v1 import (
     FeedDefinition, MarketPacket, OfflineMarketDataEngine, PriceBasis, VolumeSemantics,
 )
@@ -36,7 +36,7 @@ def run_offline_preview() -> dict:
         raise PreviewSmokeRefused("INSTALLED_WHEEL_REQUIRED") from exc
     if release != "0.4.0rc1":
         raise PreviewSmokeRefused("RELEASE_VERSION_DRIFT")
-    core = DualSetupExampleCore()
+    core = OfflineContractFixture()
     instrument = Instrument(Market.CRYPTO, "offline_fixture", "ABCUSD", "UTC", "USD")
     binding = CoreBinding("demo_instance", "demo_binding", instrument, "15m")
     feed = FeedDefinition("demo_feed", instrument, "15m", CoreEventType.CLOSED_CANDLE,

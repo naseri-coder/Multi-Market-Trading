@@ -15,7 +15,7 @@ import pytest
 
 from naseri_markets.contracts import Market
 from naseri_markets.core_api_v1 import CoreManifest
-from naseri_markets.example_dual_setup_core_v1 import DualSetupExampleCore
+from naseri_markets._contract_acceptance_fixture_v1 import OfflineContractFixture
 from naseri_markets.instrument_registry_v1 import (
     InstrumentMetadata, MetadataOrigin, ListingStatus, ProviderSnapshot,
     ResearchInstrumentCatalog,
@@ -26,7 +26,7 @@ from naseri_markets.trading_control_center_v1 import (
 from naseri_markets.trading_control_telegram_v1 import TelegramControlPreviewPanel
 
 NOW = datetime(2026,10,12,12,0,tzinfo=UTC)
-BASE = DualSetupExampleCore().manifest
+BASE = OfflineContractFixture().manifest
 PUBLIC = CoreListing(BASE.core_id, "Dual Example Core", BASE.core_version,manifest=BASE)
 PRIVATE_MANIFEST = replace(BASE, core_id="private.alpha.core")
 PRIVATE = CoreListing(PRIVATE_MANIFEST.core_id, "Owner Sample Reference",
@@ -322,7 +322,7 @@ def test_telegram_commands_create_add_alloc_and_visibility(center,monkeypatch):
     monkeypatch.setitem(sys.modules,"telegram",fake)
     panel=TelegramControlPreviewPanel(center)
     monkeypatch.setattr("naseri_markets.trading_control_telegram_v1.datetime",SimpleNamespace(now=lambda tz:NOW))
-    u=update("/mmt12_new example.dual.setup myinstance myacct myportfolio")
+    u=update("/mmt12_new fixture.contract.check myinstance myacct myportfolio")
     asyncio.run(panel.command(u,None))
     assert "myinstance" in u.effective_message.out[0][0]
     u=update("/mmt12_add myinstance research_crypto ALPHAUSD 5m")

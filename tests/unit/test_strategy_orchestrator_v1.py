@@ -12,7 +12,7 @@ from naseri_markets.core_api_v1 import (
     ClosedCandle, CoreBinding, CoreDecision, CoreEventType, CoreResult,
     DataOrigin, DecisionKind, OfflineCoreHarness,
 )
-from naseri_markets.example_dual_setup_core_v1 import DualSetupExampleCore
+from naseri_markets._contract_acceptance_fixture_v1 import OfflineContractFixture
 from naseri_markets.market_data_engine_v1 import (
     FeedDefinition, MarketPacket, OfflineMarketDataEngine, PacketStatus,
     PriceBasis, VolumeSemantics,
@@ -26,7 +26,7 @@ from naseri_markets.secure_plugin_runtime_v1 import (
 )
 
 T0 = datetime(2026, 10, 11, 10, 0, tzinfo=UTC)
-CORE = DualSetupExampleCore()
+CORE = OfflineContractFixture()
 
 
 def lane(feed_id="crypto_feed", market=Market.CRYPTO, provider="fake_crypto_venue",

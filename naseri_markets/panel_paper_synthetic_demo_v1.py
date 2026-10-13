@@ -17,7 +17,7 @@ from pathlib import Path
 
 from .contracts import Market
 from .core_api_v1 import ClosedCandle
-from .example_dual_setup_core_v1 import DualSetupExampleCore
+from ._contract_acceptance_fixture_v1 import OfflineContractFixture
 from .instrument_registry_v1 import (InstrumentMetadata, ListingStatus,
                                        MetadataOrigin, ProviderSnapshot,
                                        ResearchInstrumentCatalog)
@@ -63,7 +63,7 @@ def run_synthetic_demo(destination: Path, *, symbol: str = "ABCUSD",
         D("0.01"), origin, ListingStatus.OPEN, start, "SYNTHETIC_FIXTURE")
     catalog.replace(ProviderSnapshot(
         "synthetic_provider", origin, start, (metadata,), "a" * 64))
-    core = DualSetupExampleCore()
+    core = OfflineContractFixture()
     with OfflineTradingControlCenter(
         path / "control.sqlite", admin_ids={123}, catalog=catalog,
         listings=(CoreListing(core.manifest.core_id, "Public Demonstration Core",

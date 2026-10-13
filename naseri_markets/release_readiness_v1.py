@@ -70,7 +70,7 @@ _REQUIRED = {
     "reliability_gate": "naseri_markets/reliability_acceptance_v1.py",
     "plugin_sdk": "naseri_markets/core_developer_sdk_v1.py",
     "plugin_certification": "naseri_markets/core_certification_v1.py",
-    "example_core": "naseri_markets/example_dual_setup_core_v1.py",
+    "contract_fixture": "naseri_markets/_contract_acceptance_fixture_v1.py",
     "legacy_runtime": "production_source/app/main.py",
     "installed_preview_entry": "naseri_markets/platform_cli.py",
 }

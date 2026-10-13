@@ -51,11 +51,11 @@ its existing stop. The model never calls an exchange to change the stop.
 
 ## Example core: two setups, different operator bindings
 
-`example_dual_setup_core_v1.py` is a deterministic **illustrative fixture**, not
+`_contract_acceptance_fixture_v1.py` is a deterministic **illustrative fixture**, not
 a validated profitable strategy. It declares:
 
-- `close_above_previous_high` (long, optional stop-to-entry after modeled 1R)
-- `close_below_previous_low` (short, no stop-management capability)
+- `fixture_long_case` (long, optional stop-to-entry after modeled 1R)
+- `fixture_short_case` (short, no stop-management capability)
 
 The same core object receives host-supplied bindings such as `crypto_a/ABCUSD`
 and `fx_broker_b/EURUSD`. Those names appear **only in tests/host bindings**, not
@@ -65,9 +65,9 @@ never opens a position, trades or sends a signal.
 
 ```python
 from naseri_markets.core_api_v1 import OfflineCoreHarness
-from naseri_markets.example_dual_setup_core_v1 import DualSetupExampleCore
+from naseri_markets._contract_acceptance_fixture_v1 import OfflineContractFixture
 
-core = DualSetupExampleCore()
+core = OfflineContractFixture()
 host = OfflineCoreHarness(core, enabled=True)  # explicit trusted OFFLINE opt-in
 result = host.evaluate(operator_supplied_core_input)  # CoreInput; no side effects
 ```
@@ -123,6 +123,6 @@ and full installed-wheel integration. Those belong to subsequent roadmap
 stages and **must not** be inferred from the Stage-3 passing fixture tests.
 
 **Rollback:** remove only the additive `core_api_v1.py`,
-`example_dual_setup_core_v1.py`, corresponding unit tests and this document.
+`_contract_acceptance_fixture_v1.py`, corresponding unit tests and this document.
 No data migration, legacy code/manifest change or runtime configuration
 rollback is necessary.

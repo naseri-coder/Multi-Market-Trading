@@ -13,7 +13,7 @@ import pytest
 
 from naseri_markets.contracts import Market
 from naseri_markets.core_api_v1 import ClosedCandle, CoreEventType, DataOrigin, OfflineCoreHarness
-from naseri_markets.example_dual_setup_core_v1 import DualSetupExampleCore
+from naseri_markets._contract_acceptance_fixture_v1 import OfflineContractFixture
 from naseri_markets.instrument_registry_v1 import (
     InstrumentMetadata, ListingStatus, MetadataOrigin, ProviderSnapshot,
     ResearchInstrumentCatalog,
@@ -29,7 +29,7 @@ from naseri_markets.trading_control_center_v1 import CoreListing, OfflineTrading
 from naseri_markets.reliability_acceptance_v1 import LedgerPaths, evaluate_offline_reliability
 
 T0 = datetime(2026, 10, 12, 10, 0, tzinfo=UTC)
-CORE = DualSetupExampleCore()
+CORE = OfflineContractFixture()
 PROVIDER="example_offline_venue"
 SYMBOL="ABCUSD"
 

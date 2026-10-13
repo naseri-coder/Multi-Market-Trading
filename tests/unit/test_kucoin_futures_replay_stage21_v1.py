@@ -11,7 +11,7 @@ from naseri_markets.contracts import Instrument, Market
 from naseri_markets.core_api_v1 import (
     CoreBinding, DataOrigin, CoreEventType,
 )
-from naseri_markets.example_dual_setup_core_v1 import DualSetupExampleCore
+from naseri_markets._contract_acceptance_fixture_v1 import OfflineContractFixture
 from naseri_markets.kucoin_futures_replay_stage21_v1 import (
     FuturesKlineRequest, VenueReplayRefused, observe_public_futures_klines,
     offline_replay_to_core_inputs, parse_futures_klines,
@@ -45,7 +45,7 @@ def test_bounded_official_format_and_exact_offline_replay():
                           Instrument(Market.CRYPTO, "kucoin_futures",
                                      "XBTUSDTM", "UTC", "USDT"), "15m")
     events = offline_replay_to_core_inputs(
-        capture, manifest=DualSetupExampleCore().manifest, binding=binding)
+        capture, manifest=OfflineContractFixture().manifest, binding=binding)
     assert len(events) == 2
     assert all(event.origin is DataOrigin.REPLAY for event in events)
     assert all(event.event is CoreEventType.CLOSED_CANDLE for event in events)
@@ -56,7 +56,7 @@ def test_bounded_official_format_and_exact_offline_replay():
                                          "ETHUSDTM", "UTC", "USDT"), "15m")
     with pytest.raises(VenueReplayRefused, match="BINDING"):
         offline_replay_to_core_inputs(
-            capture, manifest=DualSetupExampleCore().manifest,
+            capture, manifest=OfflineContractFixture().manifest,
             binding=bad_binding)
 
 

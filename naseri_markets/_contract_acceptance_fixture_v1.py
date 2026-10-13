@@ -1,4 +1,4 @@
-"""Public illustrative two-setup OFFLINE core; not a profitable strategy.
+"""Internal synthetic contract acceptance fixture only; not a selectable/tradable engine.
 
 No provider, symbol, account, risk, leverage, network, broker or Telegram SDK.
 All market selection is supplied by the host-selected CoreBinding.
@@ -16,13 +16,13 @@ from .core_api_v1 import (
 
 
 @dataclass(frozen=True)
-class DualSetupExampleCore:
+class OfflineContractFixture:
     manifest: CoreManifest = CoreManifest(
-        core_id="example.dual.setup",
+        core_id="fixture.contract.check",
         core_version="1.0.0",
         setups=(
-            SetupSpec("close_above_previous_high", "Illustrative previous-high close", True),
-            SetupSpec("close_below_previous_low", "Illustrative previous-low close", False),
+            SetupSpec("fixture_long_case", "Illustrative previous-high close", True),
+            SetupSpec("fixture_short_case", "Illustrative previous-low close", False),
         ),
         supported_markets=frozenset({Market.CRYPTO, Market.FOREX}),
         accepted_events=frozenset({CoreEventType.CLOSED_CANDLE, CoreEventType.POSITION_UPDATE}),
@@ -36,9 +36,9 @@ class DualSetupExampleCore:
             previous, latest = event.candles[-2:]
             if latest.close > previous.high and latest.low < latest.close:
                 decisions.append(CoreDecision(
-                    decision_id=self._id(event, "close_above_previous_high", "entry"),
+                    decision_id=self._id(event, "fixture_long_case", "entry"),
                     kind=DecisionKind.ENTRY_INTENT,
-                    setup_id="close_above_previous_high", direction=Direction.LONG,
+                    setup_id="fixture_long_case", direction=Direction.LONG,
                     entry=latest.close, stop=latest.low,
                     targets=(latest.close + (latest.close - latest.low),),
                     reason_codes=("CLOSE_ABOVE_PREV_HIGH",),
@@ -46,9 +46,9 @@ class DualSetupExampleCore:
             elif (latest.close < previous.low and latest.high > latest.close and
                   latest.close * 2 > latest.high):
                 decisions.append(CoreDecision(
-                    decision_id=self._id(event, "close_below_previous_low", "entry"),
+                    decision_id=self._id(event, "fixture_short_case", "entry"),
                     kind=DecisionKind.ENTRY_INTENT,
-                    setup_id="close_below_previous_low", direction=Direction.SHORT,
+                    setup_id="fixture_short_case", direction=Direction.SHORT,
                     entry=latest.close, stop=latest.high,
                     targets=(latest.close - (latest.high - latest.close),),
                     reason_codes=("CLOSE_BELOW_PREV_LOW",),
@@ -56,7 +56,7 @@ class DualSetupExampleCore:
         elif event.event is CoreEventType.POSITION_UPDATE:
             position = event.position
             last: ClosedCandle = event.candles[-1]
-            if (position.setup_id == "close_above_previous_high" and
+            if (position.setup_id == "fixture_long_case" and
                     position.direction is Direction.LONG and
                     position.current_stop < position.entry and
                     last.close >= position.entry + (position.entry - position.initial_stop)):

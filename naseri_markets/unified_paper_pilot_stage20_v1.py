@@ -17,7 +17,7 @@ from pathlib import Path
 
 from .contracts import Market
 from .core_api_v1 import ClosedCandle
-from .example_dual_setup_core_v1 import DualSetupExampleCore
+from ._contract_acceptance_fixture_v1 import OfflineContractFixture
 from .instrument_registry_v1 import (
     InstrumentMetadata, ListingStatus, MetadataOrigin, ProviderSnapshot,
     ResearchInstrumentCatalog,
@@ -93,7 +93,7 @@ def run_paper_pilot(folder: Path, *, first_symbol: str = "ABCUSD",
         for symbol in symbols)
     catalog.replace(ProviderSnapshot("synthetic_provider", origin, T0,
                                      instruments, "a" * 64))
-    core = DualSetupExampleCore()
+    core = OfflineContractFixture()
     with OfflineTradingControlCenter(
         control_path, admin_ids={123}, catalog=catalog, enabled=True,
         listings=(CoreListing(core.manifest.core_id, "Reviewed public example",

@@ -70,7 +70,7 @@ def test_two_symbol_true_replay_stage19_intents_fill_target_restart_audit(tmp_pa
     monkeypatch.setenv("MMT_NONPRODUCTION", "1")
     report = pilot(tmp_path)
     assert report["mode"] == "STAGE21B_UNATTESTED_PUBLIC_FORMAT_OFFLINE_PAPER"
-    assert report["core"] == "example.dual.setup"
+    assert report["core"] == "fixture.contract.check"
     assert report["completed_jobs"] == 2
     assert report["exact_effects"] == 6
     assert report["integrity_verdict"] == "PASS"
