@@ -19,18 +19,29 @@ import naseri_markets.multilang_runtime_a1 as a1
 from naseri_markets._contract_acceptance_fixture_v1 import OfflineContractFixture
 from naseri_markets.contracts import Instrument, Market
 from naseri_markets.core_api_v1 import (
-    ClosedCandle, CoreBinding, CoreEventType, CoreInput, DataOrigin,
+    ClosedCandle,
+    CoreBinding,
+    CoreEventType,
+    CoreInput,
+    DataOrigin,
 )
 from naseri_markets.durable_runtime_a3 import (
-    DurableOfflineRuntime, DurableRuntimeLedger, DurableRuntimeRefused,
+    DurableOfflineRuntime,
+    DurableRuntimeLedger,
+    DurableRuntimeRefused,
 )
 from naseri_markets.multilang_runtime_a1 import (
-    MultiLanguageOfflineHost, MultilangRefused, RuntimeKind, RuntimeProfile,
+    MultilangRefused,
+    MultiLanguageOfflineHost,
+    RuntimeKind,
+    RuntimeProfile,
     prepare_framed_request,
 )
 from naseri_markets.runtime_a5_nonce_custody import ConsumedReview
 from naseri_markets.runtime_a6_dispatch_fence import (
-    RuntimeA6Denied, require_worker_launch, review_worker_launch,
+    RuntimeA6Denied,
+    require_worker_launch,
+    review_worker_launch,
 )
 from naseri_markets.secure_plugin_runtime_v1 import SecurePluginPolicy
 
@@ -38,7 +49,9 @@ IMAGE = "registry.invalid/a6-untrusted@sha256:" + "a" * 64
 SOURCE = {
     RuntimeKind.PYTHON: ("fixture.py", b"def evaluate(event):\n    return []\n"),
     RuntimeKind.JAVASCRIPT: ("fixture.js", b"export function evaluate(event) { return event; }\n"),
-    RuntimeKind.TYPESCRIPT: ("fixture.ts", b"export const evaluate = (x: unknown): unknown => x;\n"),
+    RuntimeKind.TYPESCRIPT: (
+        "fixture.ts", b"export const evaluate = (x: unknown): unknown => x;\n",
+    ),
     RuntimeKind.WASM: ("fixture.wasm", b"\x00asm\x01\x00\x00\x00"),
 }
 
