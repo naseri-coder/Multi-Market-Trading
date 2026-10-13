@@ -29,8 +29,14 @@ from naseri_markets.secure_plugin_runtime_v1 import parse_core_result
 
 CORE = OfflineContractFixture()
 WORKER = Path(__file__).resolve().parents[2] / "scripts/runtime_a2_worker.py"
-PY_FIXTURE = b"def evaluate(event):\n    return [{'decision_id': 'python_demo', 'kind': 'no_setup'}]\n"
-JS_FIXTURE = b"function evaluate(event) { return [{decision_id: 'javascript_demo', kind: 'no_setup'}]; }\n"
+PY_FIXTURE = (
+    b"def evaluate(event):\n"
+    b"    return [{'decision_id': 'python_demo', 'kind': 'no_setup'}]\n"
+)
+JS_FIXTURE = (
+    b"function evaluate(event) { "
+    b"return [{decision_id: 'javascript_demo', kind: 'no_setup'}]; }\n"
+)
 TS_FIXTURE = (
     b"function evaluate(event: unknown): object[] { "
     b"return [{decision_id: 'typescript_demo', kind: 'no_setup'}]; }\n"
