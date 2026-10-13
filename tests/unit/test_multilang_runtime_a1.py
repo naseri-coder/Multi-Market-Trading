@@ -170,49 +170,58 @@ def test_python_static_findings_block_even_before_oci():
             approved_sha256=hashlib.sha256(data).hexdigest())
 
 
-def test_mocked_oci_roundtrip_returns_only_typed_inert_result(monkeypatch):
+def test_mocked_oci_cannot_bypass_a6_prelaunch(monkeypatch):
     import naseri_markets.multilang_runtime_a1 as runtime
+
+    monkeypatch.setenv("MMT_NONPRODUCTION", "1")
+    monkeypatch.delenv("MMT_PRODUCTION", raising=False)
     p = _profile(monkeypatch, RuntimeKind.JAVASCRIPT)
     host = MultiLanguageOfflineHost((p,))
     e = _event()
-    monkeypatch.setattr(runtime, "_assert_rootless_socket", lambda *a: None)
-    monkeypatch.setattr(runtime, "_ensure_rootless_daemon", lambda *a: None)
     calls = []
-    def pretend_oci(profile, name, packet):
-        calls.append((profile.kind, name, packet))
-        return _response(e)
-    monkeypatch.setattr(runtime, "_run_oci", pretend_oci)
+
+    def forbidden(*args, **kwargs):
+        calls.append((args, kwargs))
+        raise AssertionError("A6 gate must run before any worker or host probe")
+
+    monkeypatch.setattr(runtime, "_assert_rootless_socket", forbidden)
+    monkeypatch.setattr(runtime, "_ensure_rootless_daemon", forbidden)
+    monkeypatch.setattr(runtime, "_run_oci", forbidden)
     name, data = SOURCE[RuntimeKind.JAVASCRIPT]
-    out = host.evaluate(RuntimeKind.JAVASCRIPT, CORE.manifest, e,
-                        artifact_name=name, artifact=data,
-                        approved_sha256=hashlib.sha256(data).hexdigest())
-    assert len(calls) == 1
-    assert calls[0][0] is RuntimeKind.JAVASCRIPT
-    assert out.result.decisions[0].kind.value == "no_setup"
-    assert out.language is RuntimeKind.JAVASCRIPT
-    assert out.orders_enabled is out.telegram_enabled is out.forward_enabled is False
-    assert out.deployed is False
+    with pytest.raises(MultilangRefused, match="RUNTIME_A6_EXECUTION_DENIED"):
+        host.evaluate(
+            RuntimeKind.JAVASCRIPT, CORE.manifest, e, artifact_name=name,
+            artifact=data, approved_sha256=hashlib.sha256(data).hexdigest(),
+        )
+    assert not calls
     assert host.quarantined == set()
 
 
-def test_invalid_or_forged_result_quarantines_binding(monkeypatch):
+def test_forged_oci_result_cannot_bypass_a6_gate(monkeypatch):
     import naseri_markets.multilang_runtime_a1 as runtime
+
+    monkeypatch.setenv("MMT_NONPRODUCTION", "1")
+    monkeypatch.delenv("MMT_PRODUCTION", raising=False)
     p = _profile(monkeypatch, RuntimeKind.WASM)
     host = MultiLanguageOfflineHost((p,))
-    monkeypatch.setattr(runtime, "_assert_rootless_socket", lambda *a: None)
-    monkeypatch.setattr(runtime, "_ensure_rootless_daemon", lambda *a: None)
     e = _event(ident="bad_binding")
     forged = json.loads(_response(e))
     forged["binding_id"] = "another_binding"
-    monkeypatch.setattr(runtime, "_run_oci", lambda *a: json.dumps(forged).encode())
+    invoked = []
+
+    def pretend_oci(*args):
+        invoked.append(args)
+        return json.dumps(forged).encode()
+
+    monkeypatch.setattr(runtime, "_run_oci", pretend_oci)
     name, data = SOURCE[RuntimeKind.WASM]
-    with pytest.raises(MultilangRefused, match="QUARANTINED"):
-        host.evaluate(RuntimeKind.WASM, CORE.manifest, e, artifact_name=name,
-                      artifact=data, approved_sha256=hashlib.sha256(data).hexdigest())
-    assert "bad_binding" in host.quarantined
-    with pytest.raises(MultilangRefused, match="BINDING_QUARANTINED"):
-        host.evaluate(RuntimeKind.WASM, CORE.manifest, e, artifact_name=name,
-                      artifact=data, approved_sha256=hashlib.sha256(data).hexdigest())
+    with pytest.raises(MultilangRefused, match="RUNTIME_A6_EXECUTION_DENIED"):
+        host.evaluate(
+            RuntimeKind.WASM, CORE.manifest, e, artifact_name=name,
+            artifact=data, approved_sha256=hashlib.sha256(data).hexdigest(),
+        )
+    assert invoked == []
+    assert host.quarantined == set()
 
 
 def test_duplicate_profiles_fail_closed(monkeypatch):
