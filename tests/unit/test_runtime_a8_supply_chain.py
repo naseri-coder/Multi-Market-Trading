@@ -197,6 +197,7 @@ def test_oci_invalid_descriptor_no_external_urls(tmp_path):
 
 def test_never_invokes_processes_or_changes_a6(tmp_path, monkeypatch):
     import subprocess
+
     from naseri_markets.runtime_a6_dispatch_fence import require_worker_launch
 
     def forbidden(*args, **kwargs):
@@ -208,7 +209,7 @@ def test_never_invokes_processes_or_changes_a6(tmp_path, monkeypatch):
     assert not a8.verify_source_lock(root, lock).worker_execution_authorized
     oci_root, digest, _ = _oci_fixture(tmp_path)
     assert not a8.verify_local_oci_layout(oci_root, digest).runnable_worker_approved
-    assert "require_worker_launch" == require_worker_launch.__name__
+    assert require_worker_launch.__name__ == "require_worker_launch"
 
 
 def test_forged_unsupported_media_type_refused(tmp_path):
