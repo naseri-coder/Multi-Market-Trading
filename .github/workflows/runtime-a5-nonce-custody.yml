@@ -1,0 +1,38 @@
+name: MMT RUNTIME-A5 offline nonce/replay evidence fence
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/runtime_a5_nonce_custody.py"
+      - "tests/unit/test_runtime_a5_nonce_custody.py"
+      - "docs/MMT_RUNTIME_A5_NONCE_CUSTODY.md"
+      - ".github/workflows/runtime-a5-nonce-custody.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-local-nonce-fence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      PYTHONPATH: ${{ github.workspace }}/production_source:${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install pinned no-execution contract test dependencies
+        run: |
+          python -m pip install --disable-pip-version-check \
+            pytest==9.1.1 pytest-asyncio==1.4.0 \
+            pydantic-settings==2.15.0 ruff==0.16.9
+      - name: Check one-time review and no execution grants
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check naseri_markets/runtime_a5_nonce_custody.py \
+            tests/unit/test_runtime_a5_nonce_custody.py
+          python -m pytest -q -ra tests/unit/test_runtime_a5_nonce_custody.py
