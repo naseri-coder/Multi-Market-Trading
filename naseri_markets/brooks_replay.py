@@ -30,7 +30,7 @@ from .trusted_custom import LocalCustomRefused
 # Pin it independently so changing BOTH source and manifest is not sufficient
 # to silently substitute a different Brooks engine.
 LEGACY_MANIFEST_SHA256 = (
-    "132000429a7b43f3e1d36a4390f0edfa978792f32e5b09bacdf19754510f8afd"
+    "1a15f9d4b40b07c05186d27f694f9ce71cd007dd5047a35b25b6811f9bc67335"
 )
 MAX_REPLAY_BYTES = 524288
 MAX_WORKER_BYTES = 32768

@@ -11,8 +11,8 @@ also brings previously upgraded installations to the same active state.
 from __future__ import annotations
 
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import JSONB
 from alembic import op
+from sqlalchemy.dialects.postgresql import JSONB
 
 revision = "20261013_0023"
 down_revision = "20261004_0022"
