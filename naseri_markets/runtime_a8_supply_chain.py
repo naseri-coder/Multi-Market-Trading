@@ -152,7 +152,7 @@ def verify_source_lock(root: Path, lock_file: Path) -> SourceLockReview:
     files = document["source_files"]
     if type(files) is not list or len(files) != len(_ALLOWED_FILES):
         raise A8Refused("A8_SOURCE_FILE_SET_INVALID")
-    for item, expected_path in zip(files, _ALLOWED_FILES):
+    for item, expected_path in zip(files, _ALLOWED_FILES, strict=True):
         if (type(item) is not dict or set(item) != {"path", "sha256"}
                 or item["path"] != expected_path or not _sha64(item["sha256"])):
             raise A8Refused("A8_SOURCE_PIN_INVALID")
@@ -165,6 +165,7 @@ def verify_source_lock(root: Path, lock_file: Path) -> SourceLockReview:
 def _descriptor(item: object, *, kind: str) -> tuple[str, int]:
     valid_media = {_OCI_CONFIG} if kind == "config" else _OCI_LAYERS
     if (type(item) is not dict or set(item) != {"mediaType", "digest", "size"}
+            or type(item["mediaType"]) is not str
             or item["mediaType"] not in valid_media
             or type(item["size"]) is not int
             or not 0 < item["size"] <= _MAX_BLOB
