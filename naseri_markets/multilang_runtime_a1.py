@@ -194,6 +194,11 @@ def _kill(process: subprocess.Popen[bytes]) -> None:
 def _run_oci(profile: RuntimeProfile, name: str, payload: bytes) -> bytes:
     """Host-only bounded I/O; process starts ONLY after rootless daemon check."""
 
+    # A6: mandatory nonproduction review gate is invoked at the only A1
+    # process-spawn choke point. A4/A5 receipts never grant launch rights.
+    from .runtime_a6_dispatch_fence import require_worker_launch
+
+    require_worker_launch(profile, payload)
     command = build_polyglot_command(profile, name)
     proc: subprocess.Popen[bytes] | None = None
     response = bytearray()
@@ -303,6 +308,17 @@ class MultiLanguageOfflineHost:
             kind, manifest, event, artifact_name=artifact_name,
             artifact=artifact, approved_sha256=approved_sha256,
         )
+        # Refuse before touching the rootless socket, daemon, or launching
+        # a mocked/replaced _run_oci callable. Admission denial is not a crash.
+        from .runtime_a6_dispatch_fence import (
+            RuntimeA6Denied,
+            require_worker_launch,
+        )
+
+        try:
+            require_worker_launch(profile, framed)
+        except RuntimeA6Denied as exc:
+            raise MultilangRefused("RUNTIME_A6_EXECUTION_DENIED") from exc
         name = "mmt-core-" + secrets.token_hex(12)
         try:
             _assert_rootless_socket(profile.policy)
