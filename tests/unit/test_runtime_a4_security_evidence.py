@@ -6,7 +6,7 @@ import hmac
 import json
 import os
 import subprocess
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 import pytest
 
