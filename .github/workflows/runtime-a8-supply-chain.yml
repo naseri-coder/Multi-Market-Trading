@@ -1,0 +1,45 @@
+name: MMT RUNTIME-A8 offline supply-chain and OCI integrity
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/runtime_a8_supply_chain.py"
+      - "deploy/runtime_a2/a8_source_lock.json"
+      - "deploy/runtime_a2/Dockerfile"
+      - "scripts/runtime_a2_worker.py"
+      - "naseri_markets/multilang_runtime_a1.py"
+      - "tests/unit/test_runtime_a8_supply_chain.py"
+      - "docs/MMT_RUNTIME_A8_SUPPLY_CHAIN.md"
+      - ".github/workflows/runtime-a8-supply-chain.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-offline-pins-and-oci-fixtures:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PYTHONPATH: ${{ github.workspace }}/production_source:${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install pinned, source-only test tools
+        run: |
+          python -m pip install --disable-pip-version-check \
+            pytest==9.1.1 pytest-asyncio==1.4.0 \
+            pydantic-settings==2.15.0 ruff==0.16.9
+      - name: Validate source hashes and local synthetic OCI blobs only
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check naseri_markets/runtime_a8_supply_chain.py \
+            tests/unit/test_runtime_a8_supply_chain.py
+          python -m pytest -q -ra \
+            tests/unit/test_runtime_a8_supply_chain.py \
+            tests/unit/test_runtime_a6_dispatch_fence.py \
+            tests/unit/test_runtime_a7_disposable_host_preflight.py

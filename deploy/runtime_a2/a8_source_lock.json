@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "audience": "MMT-RUNTIME-A8-OFFLINE-REVIEW-ONLY",
+  "baseline_commit": "85be31fdfef95fc5fe384dc2961dbb9a7f51160b",
+  "lock_state": "SOURCE_ONLY_EXTERNAL_UNVERIFIED",
+  "source_files": [
+    {
+      "path": "deploy/runtime_a2/Dockerfile",
+      "sha256": "0dd4228df09090238cd0d7fd5f7e58f8cb56373fdd18c943054cc295400a1568"
+    },
+    {
+      "path": "scripts/runtime_a2_worker.py",
+      "sha256": "9a0e9dc5f91e74798ba356fa65c0f6c06fd273d88d47deb57ae86c80f4ca2d8f"
+    },
+    {
+      "path": "naseri_markets/multilang_runtime_a1.py",
+      "sha256": "5ed367dafbbb5b9cee3358698b1671c0186a25438168d5839140f7e603698af9"
+    }
+  ],
+  "oci_manifest_digest": null,
+  "independent_publisher_attestation": null,
+  "host_isolation_certified": false,
+  "execution_authorized": false
+}
