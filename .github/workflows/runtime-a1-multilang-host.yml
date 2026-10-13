@@ -1,0 +1,38 @@
+name: MMT-RUNTIME-A1 offline multilang host ABI checks
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/multilang_runtime_a1.py"
+      - "tests/unit/test_multilang_runtime_a1.py"
+      - "docs/MMT_RUNTIME_A1_POLYGLOT_BOUNDARY.md"
+      - ".github/workflows/runtime-a1-multilang-host.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  polyglot-policy-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      PYTHONPATH: ${{ github.workspace }}/production_source:${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install pinned contract test dependencies only
+        run: |
+          python -m pip install --disable-pip-version-check \
+            pytest==9.1.1 pytest-asyncio==1.4.0 ruff==0.16.9 \
+            pydantic-settings==2.15.0
+      - name: Static/ABI security checks (no workers launched)
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check naseri_markets/multilang_runtime_a1.py \
+            tests/unit/test_multilang_runtime_a1.py
+          python -m pytest -q -ra tests/unit/test_multilang_runtime_a1.py
