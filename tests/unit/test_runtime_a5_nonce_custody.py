@@ -10,6 +10,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
+from naseri_markets.durable_runtime_a3 import DurableRuntimeRefused
 from naseri_markets.multilang_runtime_a1 import RuntimeKind, RuntimeProfile
 from naseri_markets.runtime_a4_security_evidence import (
     RuntimeEvidenceRefused,
@@ -248,10 +249,10 @@ def test_symlink_and_world_readable_ledger_rejected(tmp_path):
     path.chmod(0o600)
     link = tmp_path / "alias.sqlite"
     link.symlink_to(path)
-    with pytest.raises(Exception):
+    with pytest.raises(DurableRuntimeRefused, match="PRIVATE_ABSOLUTE_LEDGER_PATH_REQUIRED"):
         RuntimeChallengeLedger(link)
     path.chmod(0o644)
-    with pytest.raises(Exception):
+    with pytest.raises(DurableRuntimeRefused, match="PRIVATE_OWNER_ONLY"):
         RuntimeChallengeLedger(path)
 
 
