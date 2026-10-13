@@ -311,7 +311,8 @@ class MultiLanguageOfflineHost:
         # Refuse before touching the rootless socket, daemon, or launching
         # a mocked/replaced _run_oci callable. Admission denial is not a crash.
         from .runtime_a6_dispatch_fence import (
-            RuntimeA6Denied, require_worker_launch,
+            RuntimeA6Denied,
+            require_worker_launch,
         )
 
         try:
