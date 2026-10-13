@@ -102,9 +102,22 @@ def _frame(kind, filename, data):
 def _run(kind, framed):
     env = dict(os.environ)
     env["MMT_RUNTIME_KIND"] = kind.value
+    candidate = env.get("MMT_A2_IMAGE")
+    argv = [sys.executable, str(WORKER)]
+    if candidate:
+        # Only committed harmless fixture input. Normal Docker is NOT runsc.
+        argv = [
+            "docker", "run", "--rm", "-i", "--pull=never",
+            "--network=none", "--ipc=none", "--read-only",
+            "--cap-drop=ALL", "--security-opt=no-new-privileges",
+            "--pids-limit=32", "--memory=128m", "--cpus=0.5",
+            "--user=65534:65534",
+            "--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=8m,mode=1777",
+            "--env=MMT_RUNTIME_KIND=" + kind.value, candidate,
+        ]
     return subprocess.run(
-        [sys.executable, str(WORKER)], input=framed, capture_output=True,
-        env=env, timeout=9, check=False,
+        argv, input=framed, capture_output=True,
+        env=env, timeout=30 if candidate else 9, check=False,
     )
 
 

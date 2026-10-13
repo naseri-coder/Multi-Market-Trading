@@ -37,11 +37,15 @@ v1 identity, digest, type checks, corrupted file/manifest/event, unsupported
 kind, oversized frames, WASM imports, and default-deny registration. The
 test checks must not skip the WASM scenarios.
 
-A candidate Dockerfile exists at `deploy/runtime_a2/Dockerfile`. It is **not**
-an authorized, signed or pinned final image; the base tag and apt-installed
-Node remain to be locked to independently verified exact package/image
-digests. Building and running a candidate on a non-rootless host is NOT
-proof that an arbitrary uploaded program is contained.
+A candidate Dockerfile exists at `deploy/runtime_a2/Dockerfile`. A
+separate CI job **builds the nonproduction image and runs four committed,
+harmless fixtures with no network, a read-only root, nonroot uid and
+resource restrictions**. GitHub-hosted Docker is not rootless+gVisor for
+this job. These positive smoke tests do not simulate hostile code.
+The recipe is **not** an authorized, signed or pinned final image; its
+base tag and apt-installed Node remain to be locked to independently
+verified exact package/image digests. Running the candidate on a
+non-rootless host is NOT proof that arbitrary uploads are contained.
 
 ## Non-negotiable security gate before untrusted execution
 

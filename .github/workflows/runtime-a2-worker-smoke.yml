@@ -53,3 +53,37 @@ jobs:
 
   # Deliberately no hostile-code execution on the normal hosted runner.
   # Rootless + runsc isolation certification needs a separate authorized host.
+
+  candidate-container-fixture:
+    runs-on: ubuntu-24.04
+    needs: actual-four-language-fixture
+    timeout-minutes: 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}/production_source:${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install fixed fixture test packages
+        run: |
+          python -m pip install --disable-pip-version-check \
+            pytest==9.1.1 pytest-asyncio==1.4.0 \
+            pydantic-settings==2.15.0 wasmtime==49.0.0
+      - name: Build nonproduction disposable candidate, no publish
+        run: |
+          set -Eeuo pipefail
+          docker build --pull --tag mmt/runtime-a2-candidate:pr \
+            --file deploy/runtime_a2/Dockerfile .
+          docker image inspect mmt/runtime-a2-candidate:pr \
+            --format 'CANDIDATE_IMAGE_ID={{.Id}}'
+      - name: Execute ONLY committed fixtures in no-network read-only Docker
+        env:
+          MMT_A2_IMAGE: mmt/runtime-a2-candidate:pr
+        run: |
+          set -Eeuo pipefail
+          python -m pytest -q -ra \
+            tests/unit/test_runtime_a2_worker.py::test_exact_four_language_benign_fixture_roundtrips
+          echo "DOCKER_FIXTURE_PASS__ROOTLESS_GVISOR_NOT_CERTIFIED"
