@@ -83,7 +83,7 @@ class RuntimeChallengeLedger:
     """Atomic, local replay fence; not an independently attested host ledger."""
 
     def __init__(self, path: Path) -> None:
-        if type(path) is not Path:
+        if not isinstance(path, Path):
             raise RuntimeChallengeRefused("EXPLICIT_LOCAL_PATH_REQUIRED")
         _approved_dir(path)
         existed = path.exists()
