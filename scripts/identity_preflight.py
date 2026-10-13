@@ -46,7 +46,7 @@ def inspect(root: Path) -> dict[str, object]:
     if "COPY production_source/SHA256SUMS ./PRODUCTION_SOURCE_SHA256SUMS" not in production:
         raise ValueError("SOURCE_INTEGRITY_GUARD_MISSING")
     manifest = root / "production_source/SHA256SUMS"
-    if not manifest.is_file() or len(manifest.read_text().splitlines()) != 358:
+    if not manifest.is_file() or len(manifest.read_text().splitlines()) != 359:
         raise ValueError("SOURCE_MANIFEST_SHAPE_CHANGED")
 
     forbidden = {"r0_engine", "private_nyfr_core"}

@@ -9,7 +9,7 @@ server on **a disposable GitHub-hosted runner**, with local socket-only
 connections and two distinct empty databases.
 
 It runs the **unchanged** frozen-source SHA checks, both Alembic upgrades
-to revision `20261004_0022`, and the same complete
+to revision `20261013_0023`, and the same complete
 `python -m pytest -q` suite used by the containerized full-corpus workflow.
 
 The native PostgreSQL test does NOT claim to prove the
