@@ -11,6 +11,7 @@ also brings previously upgraded installations to the same active state.
 from __future__ import annotations
 
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import JSONB
 from alembic import op
 
 revision = "20261013_0023"
@@ -26,7 +27,7 @@ def upgrade() -> None:
         "retired_strategy_evidence_archive",
         sa.Column("source_table", sa.String(length=80), nullable=False),
         sa.Column("source_id", sa.BigInteger(), nullable=False),
-        sa.Column("snapshot", sa.dialects.postgresql.JSONB(), nullable=False),
+        sa.Column("snapshot", JSONB(), nullable=False),
         sa.Column(
             "archived_at",
             sa.DateTime(timezone=True),
