@@ -17,18 +17,29 @@ import selectors
 import signal
 import subprocess
 import time
+from contextlib import suppress
 from dataclasses import dataclass
 from enum import StrEnum
 
 from .core_api_v1 import (
-    ABI_MAJOR, ABI_MINOR, CoreContractError, CoreInput, CoreManifest, CoreResult,
-    DataOrigin, _canonical,
+    ABI_MAJOR,
+    ABI_MINOR,
+    CoreContractError,
+    CoreInput,
+    CoreManifest,
+    CoreResult,
+    DataOrigin,
+    _canonical,
 )
 from .secure_plugin_runtime_v1 import (
-    SecurePluginPolicy, SecurePluginRefused, _assert_rootless_socket,
-    _ensure_rootless_daemon, build_run_command, parse_core_result,
+    SecurePluginPolicy,
+    SecurePluginRefused,
+    _assert_rootless_socket,
+    _ensure_rootless_daemon,
+    build_run_command,
+    parse_core_result,
 )
-from .universal_artifact_intake_v1 import inspect_artifact, IntakeRefused
+from .universal_artifact_intake_v1 import IntakeRefused, inspect_artifact
 
 _MAX_PAYLOAD = 192 * 1024
 _MAX_RESULT = 16 * 1024
@@ -74,12 +85,12 @@ class RuntimeProfile:
     def __post_init__(self) -> None:
         if not isinstance(self.kind, RuntimeKind):
             raise MultilangRefused("UNKNOWN_RUNTIME_LANGUAGE")
-        if self.policy.enabled:
-            if (self.worker_reviewed is not True
-                    or not _SHA.fullmatch(self.reviewed_image_sha256)
-                    or self.policy.image.split("@sha256:")[-1] != self.reviewed_image_sha256
-                    or self.protocol_version != "RUNTIME_A1_FRAMED_V1"):
-                raise MultilangRefused("UNREVIEWED_WORKER_IMAGE_DENIED")
+        if (self.policy.enabled
+                and (self.worker_reviewed is not True
+                     or not _SHA.fullmatch(self.reviewed_image_sha256)
+                     or self.policy.image.split("@sha256:")[-1] != self.reviewed_image_sha256
+                     or self.protocol_version != "RUNTIME_A1_FRAMED_V1")):
+            raise MultilangRefused("UNREVIEWED_WORKER_IMAGE_DENIED")
 
 
 @dataclass(frozen=True, slots=True)
@@ -173,14 +184,10 @@ def build_polyglot_command(profile: RuntimeProfile, name: str) -> tuple[str, ...
 
 
 def _kill(process: subprocess.Popen[bytes]) -> None:
-    try:
+    with suppress(ProcessLookupError):
         os.killpg(process.pid, signal.SIGKILL)
-    except ProcessLookupError:
-        pass
-    try:
+    with suppress(subprocess.TimeoutExpired):
         process.wait(timeout=2)
-    except subprocess.TimeoutExpired:
-        pass
 
 
 def _run_oci(profile: RuntimeProfile, name: str, payload: bytes) -> bytes:
@@ -189,7 +196,6 @@ def _run_oci(profile: RuntimeProfile, name: str, payload: bytes) -> bytes:
     command = build_polyglot_command(profile, name)
     proc: subprocess.Popen[bytes] | None = None
     response = bytearray()
-    failed = False
     cleanup_proved = False
     try:
         proc = subprocess.Popen(

@@ -16,11 +16,19 @@ import pytest
 from naseri_markets._contract_acceptance_fixture_v1 import OfflineContractFixture
 from naseri_markets.contracts import Instrument, Market
 from naseri_markets.core_api_v1 import (
-    ClosedCandle, CoreBinding, CoreEventType, CoreInput, DataOrigin,
+    ClosedCandle,
+    CoreBinding,
+    CoreEventType,
+    CoreInput,
+    DataOrigin,
 )
 from naseri_markets.multilang_runtime_a1 import (
-    MultiLanguageOfflineHost, MultilangRefused, RuntimeKind, RuntimeProfile,
-    build_polyglot_command, prepare_framed_request,
+    MultilangRefused,
+    MultiLanguageOfflineHost,
+    RuntimeKind,
+    RuntimeProfile,
+    build_polyglot_command,
+    prepare_framed_request,
 )
 from naseri_markets.secure_plugin_runtime_v1 import SecurePluginPolicy
 
@@ -30,7 +38,9 @@ IMAGE = "registry.invalid/reviewed-polyglot@sha256:" + "a" * 64
 SOURCE = {
     RuntimeKind.PYTHON: ("strategy.py", b"import json\nprint(json.dumps({}))\n"),
     RuntimeKind.JAVASCRIPT: ("strategy.js", b"export function evaluate(event) { return event; }\n"),
-    RuntimeKind.TYPESCRIPT: ("strategy.ts", b"export const evaluate = (x: unknown): unknown => x;\n"),
+    RuntimeKind.TYPESCRIPT: (
+        "strategy.ts", b"export const evaluate = (x: unknown): unknown => x;\n",
+    ),
     RuntimeKind.WASM: ("strategy.wasm", b"\x00asm\x01\x00\x00\x00"),
 }
 
@@ -120,7 +130,7 @@ def test_hardened_command_exact_worker_with_no_user_code_in_argv(monkeypatch, ki
     assert command[-1] == IMAGE
     assert not any(x.startswith(("--mount", "--volume", "--privileged")) for x in command)
     assert "strategy" not in " ".join(command)
-    with pytest.raises(Exception):
+    with pytest.raises(Exception, match="SANDBOX_NOT_AUTHORIZED"):
         build_polyglot_command(p, "user-named-worker")
 
 
