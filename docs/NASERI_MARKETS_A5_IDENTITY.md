@@ -51,7 +51,7 @@ the old `app` service. Shipping that claim would be incorrect.
 ## Required next release migration gate
 
 A separately authorized v0.4 release candidate must:
-1. Freeze intended Brooks/FM adapters and external/private-engine ABI;
+1. Freeze intended Brooks adapters and external/private-engine ABI;
    document exactly which functionality is installed.
 2. Build a new versioned Python package and Docker image while preserving the
    old release and database data. Validate a forward upgrade AND a restore

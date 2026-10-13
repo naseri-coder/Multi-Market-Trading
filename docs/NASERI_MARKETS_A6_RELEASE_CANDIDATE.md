@@ -17,7 +17,7 @@ open an order, connect to live price feeds, or claim v0.4 production readiness.
   in a NEW out-of-tree directory and outputs their SHA-256 digests.
 
 ## What this does NOT do
-This preview does not connect the existing Brooks/FM legacy services to the
+This preview does not connect the existing legacy Brooks services to the
 new `MultiEngineRunner`. A5's disabled-only engine manifest is not a
 plugin installer; private NYFR strategy is not installed and its source
 cannot be imported. The new image does not operate a Telegram bot.
@@ -31,7 +31,7 @@ audited migration.
 
 ## Before a production-ready multi-market release
 1. Freeze a versioned signed/provenance-checked private plugin ABI
-   and explicitly approved, isolated Brooks/FM adapters, without
+   and explicitly approved, isolated Brooks adapters, without
    exporting any NYFR proprietary rules into PUBLIC Git history.
 2. Map and test schema ownership, forward migrations, backup/restore,
    data retention and downgrade fences with a **full legacy schema**
