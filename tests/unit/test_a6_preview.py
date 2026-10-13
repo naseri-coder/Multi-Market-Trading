@@ -102,5 +102,5 @@ def test_frozen_legacy_release_is_not_renamed():
     p = (ROOT / "pyproject.toml").read_text()
     assert 'name = "crypto-price-action"' in p
     assert 'version = "0.3.2"' in p
-    assert len((ROOT / "production_source/SHA256SUMS").read_text().splitlines()) == 358
+    assert len((ROOT / "production_source/SHA256SUMS").read_text().splitlines()) == 359
     assert "name: crypto-price-action" in (ROOT / "compose.yaml").read_text()

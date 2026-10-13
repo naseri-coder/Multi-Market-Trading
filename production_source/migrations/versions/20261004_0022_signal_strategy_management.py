@@ -40,7 +40,7 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.CheckConstraint(
-            "strategy_code IN ('BROOKS','FM')",
+            "strategy_code IN ('BROOKS')",
             name=op.f("ck_signal_strategy_configs_strategy_code"),
         ),
         sa.CheckConstraint(
@@ -74,12 +74,6 @@ def upgrade() -> None:
                 "enabled": False,
                 "engine_ready": True,
             },
-            {
-                "strategy_code": "FM",
-                "display_name": "FM",
-                "enabled": False,
-                "engine_ready": False,
-            },
         ],
     )
 
@@ -91,7 +85,7 @@ def upgrade() -> None:
     op.create_check_constraint(
         op.f("ck_signal_automation_metadata_producer"),
         "signal_automation_metadata",
-        "producer IN ('BROOKS','FM')",
+        "producer IN ('BROOKS')",
     )
 
 

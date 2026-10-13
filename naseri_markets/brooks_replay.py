@@ -26,11 +26,11 @@ from .futures_pairs import KRAKEN_PAIRS
 from .brooks_paper_receipts import make_receipt, record_receipt
 from .trusted_custom import LocalCustomRefused
 
-# SHA-256 of the authoritative checked-in 358-entry frozen manifest.
+# SHA-256 of the authoritative checked-in 359-entry frozen manifest.
 # Pin it independently so changing BOTH source and manifest is not sufficient
 # to silently substitute a different Brooks engine.
 LEGACY_MANIFEST_SHA256 = (
-    "754ec91d1c92decb5005eebdfb011d44c5c9af7ff23724ddc9e175de8b6d5751"
+    "1062f6370cf110a62d05da3ddfa197dab3b3e79798cdf18fa47a73cd5ce00d97"
 )
 MAX_REPLAY_BYTES = 524288
 MAX_WORKER_BYTES = 32768
@@ -47,7 +47,7 @@ BAR_FIELDS = frozenset({
 })
 
 # The historical repo deliberately retains three extra PUBLIC cold-start
-# modules outside its frozen 358-entry manifest. Their exact GitHub main
+# modules outside its frozen 359-entry manifest. Their exact GitHub main
 # bytes are separately SHA256-pinned here; arbitrary new Python source
 # remains forbidden. This does NOT add NYFR code or mutate SHA256SUMS.
 LEGACY_PUBLIC_EXTRA_SHA256 = {
@@ -181,7 +181,7 @@ def canonical_snapshot_identity(raw: dict, bars: tuple[dict, ...]) -> tuple[str,
 
 
 def verify_legacy_source(source_root: Path) -> str:
-    """Verify 358 checked-in frozen source entries; never fetch or repair."""
+    """Verify 359 checked-in frozen source entries; never fetch or repair."""
     root = Path(source_root).absolute()
     manifest = root / "SHA256SUMS"
     if (not root.is_dir() or root.is_symlink() or not manifest.is_file()
@@ -191,7 +191,7 @@ def verify_legacy_source(source_root: Path) -> str:
     if hashlib.sha256(data).hexdigest() != LEGACY_MANIFEST_SHA256:
         raise BrooksReplayRefused("BROOKS_FROZEN_MANIFEST_PIN_CHANGED")
     lines = data.decode("utf-8").splitlines()
-    if len(lines) != 358:
+    if len(lines) != 359:
         raise BrooksReplayRefused("BROOKS_FROZEN_MANIFEST_COUNT")
     seen = set()
     for line in lines:
