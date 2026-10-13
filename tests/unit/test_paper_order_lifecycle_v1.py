@@ -12,7 +12,7 @@ from naseri_markets.core_api_v1 import (
     ClosedCandle, CoreBinding, CoreEventType, CoreInput, DataOrigin,
     PositionSnapshot, CoreDecision, DecisionKind, ManagementAction, ExitAction,
 )
-from naseri_markets.example_dual_setup_core_v1 import DualSetupExampleCore
+from naseri_markets._contract_acceptance_fixture_v1 import OfflineContractFixture
 from naseri_markets.market_data_engine_v1 import PriceBasis, VolumeSemantics
 from naseri_markets.paper_core_risk_bridge_v1 import CoreCapitalAllocation
 from naseri_markets.paper_order_lifecycle_v1 import (
@@ -20,7 +20,7 @@ from naseri_markets.paper_order_lifecycle_v1 import (
 )
 from naseri_markets.risk_portfolio_contract_v1 import AccountRiskPolicy, PortfolioRiskPolicy
 
-CORE = DualSetupExampleCore()
+CORE = OfflineContractFixture()
 BASE = datetime(2026, 10, 11, 10, tzinfo=UTC)
 
 

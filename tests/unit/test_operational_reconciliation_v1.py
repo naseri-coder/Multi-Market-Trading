@@ -218,11 +218,11 @@ from datetime import UTC,datetime
 from decimal import Decimal as D
 from pathlib import Path
 from naseri_markets.contracts import Market
-from naseri_markets.example_dual_setup_core_v1 import DualSetupExampleCore
+from naseri_markets._contract_acceptance_fixture_v1 import OfflineContractFixture
 from naseri_markets.instrument_registry_v1 import InstrumentMetadata,ListingStatus,MetadataOrigin,ProviderSnapshot,ResearchInstrumentCatalog
 from naseri_markets.offline_runtime_supervisor_v1 import OfflineRuntimeSupervisor
 from naseri_markets.trading_control_center_v1 import CoreListing,OfflineTradingControlCenter
-core=DualSetupExampleCore()
+core=OfflineContractFixture()
 start=datetime(2026,10,12,10,tzinfo=UTC)
 cat=ResearchInstrumentCatalog(max_age_seconds=86400)
 origin=MetadataOrigin.PUBLIC_CONTRACT_RESEARCH

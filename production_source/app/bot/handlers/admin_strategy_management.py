@@ -16,7 +16,6 @@ from app.bot.handlers.admin_state import (
 from app.bot.keyboards.admin import build_admin_menu
 from app.bot.keyboards.strategy_management import (
     BROOKS_STRATEGY_BUTTON,
-    FM_STRATEGY_BUTTON,
     STRATEGY_ADMIN_BACK_BUTTON,
     STRATEGY_CALLBACK_PATTERN,
     STRATEGY_MANAGEMENT_BUTTON,
@@ -27,7 +26,6 @@ from app.bot.middlewares.admin import admin_required
 from app.integrations.telegram.channels import TelegramChannelGateway
 from app.modules.signal_strategies.entities import (
     BROOKS_STRATEGY_CODE,
-    FM_STRATEGY_CODE,
     SignalStrategyRecord,
 )
 from app.modules.signal_strategies.errors import SignalStrategyError
@@ -36,7 +34,6 @@ from app.modules.signal_strategies.service import SignalStrategyService
 
 _BUTTON_TO_CODE = {
     BROOKS_STRATEGY_BUTTON: BROOKS_STRATEGY_CODE,
-    FM_STRATEGY_BUTTON: FM_STRATEGY_CODE,
 }
 
 
@@ -45,16 +42,18 @@ def has_pending_strategy_admin_action(context: ContextTypes.DEFAULT_TYPE) -> boo
     return (
         isinstance(state, dict)
         and state.get("action") == "set_channel"
-        and state.get("strategy_code") in {BROOKS_STRATEGY_CODE, FM_STRATEGY_CODE}
+        and state.get("strategy_code") in {BROOKS_STRATEGY_CODE}
     )
 
 
 async def _list(context: ContextTypes.DEFAULT_TYPE) -> tuple[SignalStrategyRecord, ...]:
     database = get_database_manager(context)
     async with database.session() as session:
-        return await SignalStrategyService(
+        rows = await SignalStrategyService(
             SQLAlchemySignalStrategyRepository(session)
         ).list_all()
+        # Ignore legacy strategy rows already present in deployed databases.
+        return tuple(row for row in rows if row.strategy_code == BROOKS_STRATEGY_CODE)
 
 
 async def _get(
@@ -257,7 +256,7 @@ def register_admin_strategy_management_handlers(
     guard = admin_required(admin_ids)
     choice_pattern = (
         "^(?:"
-        + "|".join(re.escape(x) for x in (BROOKS_STRATEGY_BUTTON, FM_STRATEGY_BUTTON))
+        + "|".join(re.escape(x) for x in (BROOKS_STRATEGY_BUTTON,))
         + ")$"
     )
     application.add_handler(

@@ -63,13 +63,13 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal as D
 from naseri_markets.contracts import Instrument, Market
 from naseri_markets.core_api_v1 import ClosedCandle, CoreBinding, CoreEventType, DataOrigin, OfflineCoreHarness
-from naseri_markets.example_dual_setup_core_v1 import DualSetupExampleCore
+from naseri_markets._contract_acceptance_fixture_v1 import OfflineContractFixture
 from naseri_markets.market_data_engine_v1 import (
     FeedDefinition, MarketPacket, OfflineMarketDataEngine, PriceBasis, VolumeSemantics)
 from naseri_markets.strategy_orchestrator_v1 import (
     OfflineStrategyOrchestrator, TrustedCoreEvaluator)
 
-core = DualSetupExampleCore()  # illustrative, NOT a proven profitable strategy
+core = OfflineContractFixture()  # illustrative, NOT a proven profitable strategy
 instrument = Instrument(Market.CRYPTO, "offline_example_venue", "ABCUSD", "UTC", "USD")
 feed = FeedDefinition("feed_crypto", instrument, "15m", CoreEventType.CLOSED_CANDLE,
                       DataOrigin.SYNTHETIC, "offline_fixture", PriceBasis.TRADE,

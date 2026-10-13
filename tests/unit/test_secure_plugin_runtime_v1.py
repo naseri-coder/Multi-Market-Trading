@@ -16,13 +16,13 @@ from naseri_markets.contracts import Instrument, Market
 from naseri_markets.core_api_v1 import (
     ClosedCandle, CoreBinding, CoreEventType, CoreInput, DataOrigin,
 )
-from naseri_markets.example_dual_setup_core_v1 import DualSetupExampleCore
+from naseri_markets._contract_acceptance_fixture_v1 import OfflineContractFixture
 from naseri_markets.secure_plugin_runtime_v1 import (
     SecureOfflineCoreHost, SecurePluginPolicy, SecurePluginRefused,
     build_run_command, parse_core_result, _BOOTSTRAP,
 )
 
-CORE = DualSetupExampleCore()
+CORE = OfflineContractFixture()
 SOURCE = b'import sys,json\nprint(json.dumps({"status":"unused"}))\n'
 SHA = hashlib.sha256(SOURCE).hexdigest()
 T = datetime(2026, 10, 11, 10, 0, tzinfo=UTC)

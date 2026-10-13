@@ -27,7 +27,7 @@ def seed(tmp_path, *, paper=True, signal=True):
             CREATE TABLE t12_bindings(binding_id TEXT,instance_id TEXT,market TEXT,provider TEXT,symbol TEXT);
             CREATE TABLE t12_audit(seq INTEGER,instance_id TEXT,actor_id INTEGER,revision INTEGER,action TEXT,payload_hash TEXT,prev_hash TEXT,entry_hash TEXT);
         """)
-        c.execute("INSERT INTO t12_instances VALUES (?,?,?,?,?,?,?,?)", ("inst_a","example.dual.setup",101,2,"0.10","0.50","0.05",10))
+        c.execute("INSERT INTO t12_instances VALUES (?,?,?,?,?,?,?,?)", ("inst_a","fixture.contract.check",101,2,"0.10","0.50","0.05",10))
         c.execute("INSERT INTO t12_bindings VALUES (?,?,?,?,?)",("bind_a","inst_a","crypto","fixture_venue","ABCUSD"))
         prev = "0" * 64
         for rev,action in ((1,"CREATE"),(2,"ADD_BINDING")):
@@ -50,12 +50,12 @@ def seed(tmp_path, *, paper=True, signal=True):
             CREATE TABLE paper_stage9_bars(order_id TEXT);
         """)
         if paper:
-            c.execute("INSERT INTO paper_core_allocations VALUES (?,?)",("inst_a",wire(dict(account_id="account_a",instance_id="inst_a",core_id="example.dual.setup",max_reserved_risk_fraction="0.10",max_notional_fraction="0.50",max_order_risk_fraction="0.05",max_active_orders=10))))
+            c.execute("INSERT INTO paper_core_allocations VALUES (?,?)",("inst_a",wire(dict(account_id="account_a",instance_id="inst_a",core_id="fixture.contract.check",max_reserved_risk_fraction="0.10",max_notional_fraction="0.50",max_order_risk_fraction="0.05",max_active_orders=10))))
             c.execute("INSERT INTO paper_core_bindings VALUES (?,?)",("bind_a","inst_a"))
             c.execute("INSERT INTO paper_core_orders VALUES (?,?,?,?)",("order_a","inst_a","bind_a","account_a"))
             c.execute("INSERT INTO paper_core_decisions VALUES (?,?)",("order_a","bind_a"))
             c.execute("INSERT INTO paper_risk_reservations VALUES (?,?)",("order_a","RELEASED"))
-            c.execute("INSERT INTO paper_orders VALUES (?,?)",("order_a",wire(dict(status="CLOSED",filled_quantity="1",closed_quantity="1",spec=dict(account_id="account_a",engine_id="example.dual.setup",instrument=dict(market="crypto",provider="fixture_venue",symbol="ABCUSD"))))))
+            c.execute("INSERT INTO paper_orders VALUES (?,?)",("order_a",wire(dict(status="CLOSED",filled_quantity="1",closed_quantity="1",spec=dict(account_id="account_a",engine_id="fixture.contract.check",instrument=dict(market="crypto",provider="fixture_venue",symbol="ABCUSD"))))))
             c.execute("INSERT INTO paper_stage9_plans VALUES (?)",("order_a",))
             c.execute("INSERT INTO paper_stage9_exits VALUES (?)",("order_a",))
             c.execute("INSERT INTO paper_stage9_bars VALUES (?)",("order_a",))
@@ -66,7 +66,7 @@ def seed(tmp_path, *, paper=True, signal=True):
           CREATE TABLE offline_signal_commands(signal_key TEXT,channel_id INTEGER,state TEXT,message_id INTEGER);
         """)
         if signal:
-            c.execute("INSERT INTO offline_signal_states VALUES (?,?,?,?,?,?,?,?,?)",("sign_a","inst_a","bind_a","example.dual.setup","crypto","fixture_venue","ABCUSD","TARGETS_COMPLETE",-10012))
+            c.execute("INSERT INTO offline_signal_states VALUES (?,?,?,?,?,?,?,?,?)",("sign_a","inst_a","bind_a","fixture.contract.check","crypto","fixture_venue","ABCUSD","TARGETS_COMPLETE",-10012))
             body=wire({"event":"ENTRY"})
             c.execute("INSERT INTO offline_signal_events VALUES (?,?,?)",("sign_a",body,hashlib.sha256(body.encode()).hexdigest()))
             c.execute("INSERT INTO offline_signal_commands VALUES (?,?,?,?)",("sign_a",-10012,"PENDING",None))
@@ -125,7 +125,7 @@ def test_fault_injection(tmp_path,target,stmt,reason):
 
 def test_released_while_open_rejected(tmp_path):
     paths=seed(tmp_path)
-    row=dict(status="FILLED",filled_quantity="1",closed_quantity="0",spec=dict(account_id="account_a",engine_id="example.dual.setup",instrument=dict(market="crypto",provider="fixture_venue",symbol="ABCUSD")))
+    row=dict(status="FILLED",filled_quantity="1",closed_quantity="0",spec=dict(account_id="account_a",engine_id="fixture.contract.check",instrument=dict(market="crypto",provider="fixture_venue",symbol="ABCUSD")))
     sql(paths.paper,"UPDATE paper_orders SET snapshot=?",(wire(row),))
     report=evaluate_offline_reliability(paths)
     assert "RISK_RELEASED_ON_OPEN_POSITION" in report.blockers

@@ -14,7 +14,7 @@ pytest.importorskip("naseri_markets.execution_position_core_v1")
 
 from naseri_markets.contracts import Market
 from naseri_markets.core_api_v1 import ClosedCandle
-from naseri_markets.example_dual_setup_core_v1 import DualSetupExampleCore
+from naseri_markets._contract_acceptance_fixture_v1 import OfflineContractFixture
 from naseri_markets.instrument_registry_v1 import (
     InstrumentMetadata, ListingStatus, MetadataOrigin,
     ProviderSnapshot, ResearchInstrumentCatalog,
@@ -40,7 +40,7 @@ def env(monkeypatch):
 
 
 def test_actual_stage16_through_stage19_with_durable_exact_receipts(tmp_path):
-    core = DualSetupExampleCore()
+    core = OfflineContractFixture()
     provider = "synthetic_provider"
     catalog = ResearchInstrumentCatalog(max_age_seconds=86400)
     origin = MetadataOrigin.PUBLIC_CONTRACT_RESEARCH

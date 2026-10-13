@@ -16,7 +16,7 @@ from .contracts import Direction, Market
 from .core_api_v1 import (
     DataOrigin, DecisionKind, OfflineCoreHarness, validate_core_result,
 )
-from .example_dual_setup_core_v1 import DualSetupExampleCore
+from ._contract_acceptance_fixture_v1 import OfflineContractFixture
 from .instrument_registry_v1 import (
     CatalogRefused, ListingStatus, MetadataOrigin, ProviderSnapshot,
     ResearchInstrumentCatalog,
@@ -136,7 +136,7 @@ def run_captured_paper_pilot(
     # Prevent a file/DB being created before all purely input-level checks.
     catalog = ResearchInstrumentCatalog(max_age_seconds=86400)
     catalog.replace(provider_snapshot)
-    core = DualSetupExampleCore()
+    core = OfflineContractFixture()
     # Reject stale operator metadata across the *entire* intended replay
     # before creating any state, not just the first signal bar.
     try:

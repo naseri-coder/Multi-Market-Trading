@@ -20,7 +20,7 @@ def test_two_distinct_bindings_complete_closed_trades_and_audit(tmp_path):
         path, first_symbol="BTCUSD", second_symbol="ETHUSD",
         first_timeframe="5m", second_timeframe="1h")
     assert report["mode"] == "STAGE20_SYNTHETIC_PAPER_ONLY"
-    assert report["core"] == "example.dual.setup"
+    assert report["core"] == "fixture.contract.check"
     assert report["completed_jobs"] == report["closed_paper_trades"] == 2
     assert report["dry_run_commands"] == 2
     assert report["exact_effects"] == 6

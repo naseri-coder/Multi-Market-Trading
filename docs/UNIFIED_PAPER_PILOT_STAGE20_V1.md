@@ -6,7 +6,7 @@
 
 `naseri_markets.unified_paper_pilot_stage20_v1` is a bounded, explicit, **two-binding** local acceptance journey. It reuses Stage 12 selection/revision/budget, Stage 16 orchestration, Stage 17 durable queue, Stage 19 pre-call effect intents, Stage 8/9 shared-account PAPER orders and modeled stop/target lifecycle, Stage 10 no-send signal journal, and Stage 13/19 read-only audits. It checks exact effect IDs, uniqueness across the two bindings, close-and-reopen position persistence, modeled net PnL and independent local signal toggle.
 
-The selected **symbol and timeframe** are embedded in actual Core API bindings and order plans. This is one source-reviewed built-in *illustrative* `DualSetupExampleCore`, **not** a certified Al Brooks strategy. The candle bars and provider metadata are explicitly synthetic. No real performance is established. Stage 19 tracks initial reserve/plan/dry-signal effects, **not** every later simulated fill/exit.
+The selected **symbol and timeframe** are embedded in actual Core API bindings and order plans. This is one source-reviewed built-in *illustrative* `OfflineContractFixture`, **not** a certified Al Brooks strategy. The candle bars and provider metadata are explicitly synthetic. No real performance is established. Stage 19 tracks initial reserve/plan/dry-signal effects, **not** every later simulated fill/exit.
 
 ## Clean-wheel usage
 

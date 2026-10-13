@@ -6,7 +6,7 @@
 
 Stage 21A captures a strictly bounded complete OHLC dataset with raw SHA256, operator-specific symbol and timeframe, and labels it REPLAY. Stage 21B takes **operator-provided raw official-format response bytes**, the exact `FuturesKlineRequest` for each dataset and a Stage-6 public metadata `ProviderSnapshot`. It **does not make network calls**. Both raw sources are independently unverified. It refuses missing/partial candles, stale or time-forward metadata, mixed symbols, production environment, missing operator acknowledgment or reuse of an existing state directory.
 
-The exact Stage-6 instrument identity, selected host bindings and a single illustrative, reviewed `DualSetupExampleCore` travel through Stage 12 panel -> Stage 5 REPLAY Core API -> Stage 17 durable job -> Stage 16 REPLAY bridge -> Stage 19 pre-call intents -> Stage 8 risk -> Stage 9 PAPER -> Stage 10 optional no-send outbox -> Stage 13/19 read-only forensic verification. Stage 16/17/19 now support an **explicit** `data_origin=DataOrigin.REPLAY` argument; the old default remains `SYNTHETIC`.
+The exact Stage-6 instrument identity, selected host bindings and a single illustrative, reviewed `OfflineContractFixture` travel through Stage 12 panel -> Stage 5 REPLAY Core API -> Stage 17 durable job -> Stage 16 REPLAY bridge -> Stage 19 pre-call intents -> Stage 8 risk -> Stage 9 PAPER -> Stage 10 optional no-send outbox -> Stage 13/19 read-only forensic verification. Stage 16/17/19 now support an **explicit** `data_origin=DataOrigin.REPLAY` argument; the old default remains `SYNTHETIC`.
 
 ## Causality and modeling
 

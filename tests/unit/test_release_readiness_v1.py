@@ -84,7 +84,7 @@ def test_missing_preview_entrypoint_blocks(tmp_path):
 
 def test_symlink_module_refused(tmp_path):
     repo = fake_repo(tmp_path)
-    source = repo / _REQUIRED["example_core"]
+    source = repo / _REQUIRED["contract_fixture"]
     source.unlink()
     source.symlink_to(repo / _REQUIRED["core_api"])
     with pytest.raises(ReadinessRefused, match="SYMLINK"):

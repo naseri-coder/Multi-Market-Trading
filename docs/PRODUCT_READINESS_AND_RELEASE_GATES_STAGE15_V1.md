@@ -32,7 +32,7 @@ For the installed wheel, use a **fresh isolated 3.12 virtual environment** on a 
 MMT_NONPRODUCTION=1 python -m naseri_markets.installed_preview_smoke_v1 --ack-isolated-preview
 ```
 
-Only the known `DualSetupExampleCore` synthetic fixture is evaluated in process. Never substitute an external developer core or real broker credentials for this smoke.
+Only the known `OfflineContractFixture` synthetic fixture is evaluated in process. Never substitute an external developer core or real broker credentials for this smoke.
 
 ## Severity-ranked release blockers
 

@@ -12,7 +12,7 @@ from pathlib import Path
 
 from .contracts import Market
 from .core_api_v1 import ClosedCandle
-from .example_dual_setup_core_v1 import DualSetupExampleCore
+from ._contract_acceptance_fixture_v1 import OfflineContractFixture
 from .instrument_registry_v1 import (InstrumentMetadata, ListingStatus,
                                        MetadataOrigin, ProviderSnapshot,
                                        ResearchInstrumentCatalog)
@@ -48,7 +48,7 @@ def run_offline_smoke(folder: Path) -> dict:
                                   'SYNTHETIC_FIXTURE')
     catalog.replace(ProviderSnapshot('synthetic_provider',origin,initial,
                                      (instrument,), 'a'*64))
-    core=DualSetupExampleCore()
+    core=OfflineContractFixture()
     with OfflineTradingControlCenter(folder/'control.sqlite',admin_ids={123},
           enabled=True,catalog=catalog,listings=(CoreListing(core.manifest.core_id,
           'Public Demonstration Core',core.manifest.core_version,
