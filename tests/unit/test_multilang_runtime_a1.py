@@ -18,6 +18,7 @@ from naseri_markets.contracts import Instrument, Market
 from naseri_markets.core_api_v1 import (
     ClosedCandle,
     CoreBinding,
+    CoreContractError,
     CoreEventType,
     CoreInput,
     DataOrigin,
@@ -154,9 +155,10 @@ def test_mismatched_artifact_name_digest_and_live_origin_rejected(kind):
     with pytest.raises(MultilangRefused, match="LANGUAGE_EXTENSION_MISMATCH"):
         prepare_framed_request(kind, CORE.manifest, _event(),
                                artifact_name="x.txt", artifact=data, approved_sha256=pin)
-    with pytest.raises(MultilangRefused, match="NONPRODUCTION_CORE_EVENT_REQUIRED"):
-        prepare_framed_request(kind, CORE.manifest, _event(DataOrigin.FORWARD),
-                               artifact_name=name, artifact=data, approved_sha256=pin)
+    # The original CoreInput contract rejects the purported live origin
+    # before it could reach a runtime adapter.
+    with pytest.raises(CoreContractError, match="UNVERIFIED_ORIGIN"):
+        _event("forward")
 
 
 def test_python_static_findings_block_even_before_oci():

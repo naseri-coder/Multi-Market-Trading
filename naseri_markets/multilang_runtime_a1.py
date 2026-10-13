@@ -72,7 +72,7 @@ class RuntimeProfile:
     """Operator-selected image: SHA pin is identity, not publisher attestation.
 
     An enabled profile is usable only after a separate gVisor/rootless host
-    audit and approval of the in-image \`runtime-a1-worker\` protocol binary.
+    audit and approval of the in-image runtime-a1-worker protocol binary.
     A user-uploaded artifact can never populate this object automatically.
     """
 
