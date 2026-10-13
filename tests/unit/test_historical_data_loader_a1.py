@@ -118,8 +118,9 @@ def test_forex_tick_volume_not_traded_volume(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(("payload", "reason"), [
-    (_bar_csv().replace(b"2026-10-13T10:15:00+00:00,100,108",
-                        b"2026-10-13T10:20:00+00:00,100,108"),
+    (_bar_csv().replace(
+        b"2026-10-13T10:15:00+00:00,2026-10-13T10:30:00+00:00,100,108",
+        b"2026-10-13T10:20:00+00:00,2026-10-13T10:30:00+00:00,100,108"),
      "BAR_TIMEFRAME_MISMATCH"),
     (_bar_csv().replace(b"2026-10-13T10:15:00+00:00,100,108",
                         b"2026-10-13T10:15:00+00:00,100,108")
@@ -165,7 +166,7 @@ def test_sha256_pin_required_and_mutation_revokes_replay(tmp_path: Path) -> None
     wrong = hashlib.sha256(b"not the file").hexdigest()
     with pytest.raises(HistoricalDataRefused, match="SOURCE_HASH_MISMATCH"):
         validate_historical_file(file, HistoricalFileSpec(
-            _feed(raw), wrong))
+            _feed(b"not the file"), wrong))
     approved = validate_historical_file(file, _spec(raw))
     file.write_bytes(raw + b"\n")
     with pytest.raises(HistoricalDataRefused, match="FILE_CHANGED_SINCE_PREFLIGHT"):
