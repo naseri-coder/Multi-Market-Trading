@@ -45,7 +45,7 @@ Telegram connection, private strategy logic, or claim of profitable trading.
    tick exists, don't infer a fill. If a later quote gap exceeds configured
    duration, outcome is UNKNOWN, not a simulated stop/target.
 5. No multi-target/trailing-exit management. Only T1 is observed.
-6. A3 does NOT integrate into the legacy Brooks/FM production_source runtime.
+6. A3 does NOT integrate into the legacy production_source runtime.
    Existing frozen SHA256SUMS remains unchanged; A3 is an isolated module.
 7. No trade secrets, private NYFR thresholds, Telegram token, channel IDs,
    live user data or broker credentials belong in the public repository.

@@ -11,7 +11,7 @@ publication safety, data privacy or preserving a recoverable release history.
 - Repository: naseri-coder/crypto-price-action (PUBLIC)
 - Main commit: 86407bc51e019951126403074344f7551274bc3c
 - Current packaged runtime: production_source/app/
-- Existing Brooks runtime, FM runtime with isolated registry, market_data, risk,
+- Existing Brooks runtime, separate market_data, risk,
   signal_strategies and Telegram integrations
 - Frozen v0.3.2 SHA256SUMS release guard and companion GitHub Actions
 - Existing operational names in compose.yaml, scripts, CLI, runtime image and
@@ -31,7 +31,7 @@ idempotency, durable signal lifecycle and forward P&L observation with gap/unkno
 A4: privately connect NYFR through the public boundary. Verify original source
 and strategy decisions outside this PUBLIC repository. No MT5 orders.
 
-A5: migrate existing Brooks/FM integrations in the GitHub codebase with regression
+A5: migrate existing Brooks integrations in the GitHub codebase with regression
 coverage, reconcile frozen source manifest under a new release version.
 
 A6: coordinated rename of release/Compose image name, CLI, environment template,
