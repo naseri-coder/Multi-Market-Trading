@@ -39,7 +39,7 @@ SOURCE = {
     RuntimeKind.PYTHON: ("fixture.py", b"def evaluate(event):\n    return []\n"),
     RuntimeKind.JAVASCRIPT: ("fixture.js", b"export function evaluate(event) { return event; }\n"),
     RuntimeKind.TYPESCRIPT: ("fixture.ts", b"export const evaluate = (x: unknown): unknown => x;\n"),
-    RuntimeKind.WASM: ("fixture.wasm", b"\\x00asm\\x01\\x00\\x00\\x00"),
+    RuntimeKind.WASM: ("fixture.wasm", b"\x00asm\x01\x00\x00\x00"),
 }
 
 
@@ -129,6 +129,9 @@ def test_a3_wrapper_cannot_run_worker_by_delegation(tmp_path, monkeypatch):
     monkeypatch.setattr(subprocess, "Popen", forbidden)
     monkeypatch.setattr(a1, "_run_oci", forbidden)
     monkeypatch.setattr(a1, "_assert_rootless_socket", forbidden)
+    # The synthetic Docker profile pretends to use UID 1001. The actual
+    # owner of this isolated SQLite fixture must match the real test UID.
+    monkeypatch.setattr(os, "geteuid", lambda: tmp_path.stat().st_uid)
     ledger = DurableRuntimeLedger(tmp_path / "a6_a3.sqlite")
     try:
         runtime = DurableOfflineRuntime(MultiLanguageOfflineHost((profile,)), ledger)
