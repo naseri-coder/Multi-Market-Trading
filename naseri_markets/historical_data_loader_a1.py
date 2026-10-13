@@ -11,18 +11,26 @@ import hashlib
 import os
 import re
 import stat
+from collections.abc import Iterator
 from contextlib import closing
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from typing import Iterator
 
 from .core_api_v1 import (
-    _TIMEFRAME_MINUTES, _utc, BidAskTick, ClosedCandle, CoreEventType, DataOrigin,
+    _TIMEFRAME_MINUTES,
+    BidAskTick,
+    ClosedCandle,
+    CoreEventType,
+    DataOrigin,
+    _utc,
 )
 from .market_data_engine_v1 import (
-    FeedDefinition, MarketPacket, PriceBasis, VolumeSemantics,
+    FeedDefinition,
+    MarketPacket,
+    PriceBasis,
+    VolumeSemantics,
 )
 
 

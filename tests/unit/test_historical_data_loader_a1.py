@@ -17,7 +17,11 @@ from naseri_markets.historical_data_loader_a1 import (
     validate_historical_file,
 )
 from naseri_markets.market_data_engine_v1 import (
-    FeedDefinition, OfflineMarketDataEngine, PacketStatus, PriceBasis, VolumeSemantics,
+    FeedDefinition,
+    OfflineMarketDataEngine,
+    PacketStatus,
+    PriceBasis,
+    VolumeSemantics,
 )
 
 BEGIN = datetime(2026, 10, 13, 10, tzinfo=UTC)
@@ -25,10 +29,10 @@ BEGIN = datetime(2026, 10, 13, 10, tzinfo=UTC)
 
 def _bar_csv() -> bytes:
     return (
-        "open_at,close_at,open,high,low,close,volume\n"
-        "2026-10-13T10:00:00+00:00,2026-10-13T10:15:00+00:00,100,102,98,100,10\n"
-        "2026-10-13T10:15:00+00:00,2026-10-13T10:30:00+00:00,100,108,99,106,12\n"
-    ).encode()
+        b"open_at,close_at,open,high,low,close,volume\n"
+        b"2026-10-13T10:00:00+00:00,2026-10-13T10:15:00+00:00,100,102,98,100,10\n"
+        b"2026-10-13T10:15:00+00:00,2026-10-13T10:30:00+00:00,100,108,99,106,12\n"
+    )
 
 
 def _feed(data: bytes, *, event=CoreEventType.CLOSED_CANDLE,
@@ -87,10 +91,10 @@ def test_csv_genuine_decode_into_stage5_closed_market_events(tmp_path: Path) -> 
 
 def test_csv_ticks_have_bid_and_ask_without_bar_gap_rule(tmp_path: Path) -> None:
     raw = (
-        "occurred_at,bid,ask\n"
-        "2026-10-13T10:00:00+00:00,100,101\n"
-        "2026-10-13T10:00:02+00:00,100.5,101.25\n"
-    ).encode()
+        b"occurred_at,bid,ask\n"
+        b"2026-10-13T10:00:00+00:00,100,101\n"
+        b"2026-10-13T10:00:02+00:00,100.5,101.25\n"
+    )
     spec = _spec(raw, event=CoreEventType.QUOTE_TICK)
     approval = validate_historical_file(_source(tmp_path, raw), spec)
     packets = list(approval.packets())
@@ -103,9 +107,9 @@ def test_csv_ticks_have_bid_and_ask_without_bar_gap_rule(tmp_path: Path) -> None
 
 def test_forex_tick_volume_not_traded_volume(tmp_path: Path) -> None:
     raw = (
-        "open_at,close_at,open,high,low,close,tick_volume\n"
-        "2026-10-13T10:00:00Z,2026-10-13T10:15:00Z,1.1,1.2,1.0,1.15,72\n"
-    ).encode()
+        b"open_at,close_at,open,high,low,close,tick_volume\n"
+        b"2026-10-13T10:00:00Z,2026-10-13T10:15:00Z,1.1,1.2,1.0,1.15,72\n"
+    )
     spec = _spec(raw, market=Market.FOREX, basis=PriceBasis.BID,
                  volume=VolumeSemantics.TICK_COUNT)
     p = list(validate_historical_file(_source(tmp_path, raw), spec).packets())
