@@ -1,0 +1,55 @@
+name: MMT-RUNTIME-A2 harmless four-language worker smoke
+
+on:
+  pull_request:
+    paths:
+      - "scripts/runtime_a2_worker.py"
+      - "tests/unit/test_runtime_a2_worker.py"
+      - "naseri_markets/multilang_runtime_a1.py"
+      - "deploy/runtime_a2/Dockerfile"
+      - "docs/MMT_RUNTIME_A2_WORKER_CONTAINMENT.md"
+      - ".github/workflows/runtime-a2-worker-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  actual-four-language-fixture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: ${{ github.workspace }}/production_source:${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+      - name: Install pinned testing/runtime tools
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --disable-pip-version-check \
+            pytest==9.1.1 pytest-asyncio==1.4.0 \
+            pydantic-settings==2.15.0 ruff==0.16.9 wasmtime==49.0.0
+          npm install --global --ignore-scripts typescript@5.9.3
+          echo "NODE_PATH=$(npm root -g)" >> "$GITHUB_ENV"
+      - name: Check worker syntax and execute ONLY fixed harmless fixtures
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check scripts/runtime_a2_worker.py \
+            tests/unit/test_runtime_a2_worker.py \
+            naseri_markets/multilang_runtime_a1.py
+          python -m pytest -q -ra tests/unit/test_runtime_a2_worker.py \
+            | tee "$RUNNER_TEMP/mmt-runtime-a2.txt"
+          if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/mmt-runtime-a2.txt"; then
+            echo "RUNTIME_A2_DEPENDENCY_MISSING_OR_SKIPPED" >&2
+            exit 1
+          fi
+
+  # Deliberately no hostile-code execution on the normal hosted runner.
+  # Rootless + runsc isolation certification needs a separate authorized host.
