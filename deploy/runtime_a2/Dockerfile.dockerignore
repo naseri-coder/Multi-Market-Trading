@@ -2,3 +2,6 @@
 **
 !scripts/
 !scripts/runtime_a2_worker.py
+!deploy/
+!deploy/runtime_a2/
+!deploy/runtime_a2/a10_wasmtime.lock
