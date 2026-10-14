@@ -26,7 +26,7 @@ ROOTS = {
 MAX_PACKAGE_COUNT = 180
 MAX_TOTAL_BYTES = 650_000_000
 MAX_SINGLE_BYTES = 135_000_000
-URL_RE = re.compile(r"^https://apk\.cgr\.dev/chainguard/x86_64/([A-Za-z0-9_+~.-]+)\.apk$")
+URL_RE = re.compile(r"^(?:file:///mnt/apkrepo|https://apk\.cgr\.dev/chainguard)/x86_64/([A-Za-z0-9_+~.-]+)\.apk$")
 
 
 def sha(blob):
@@ -125,7 +125,7 @@ def parse_solver(entries):
             "filename": filename,
             "name": name,
             "version": ver,
-            "url": url,
+            "url": BASE_URL + filename,
             "index_control_checksum": data["C"],
             "signed_index_size": compressed,
             "index_dependencies": data.get("D", "").split(),
