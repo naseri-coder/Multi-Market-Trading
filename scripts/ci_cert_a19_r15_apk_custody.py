@@ -12,7 +12,8 @@ import os
 from pathlib import Path
 import re
 import tarfile
-from urllib.request import Request, urlopen
+from urllib.parse import urlsplit
+from urllib.request import Request, HTTPRedirectHandler, build_opener
 
 IMAGE = ("cgr.dev/chainguard/wolfi-base@sha256:"
          "256c88bb066424045021090932d50be93c8e3f2ce3586707702a401b146f3e43")
@@ -28,6 +29,26 @@ MAX_PACKAGE_COUNT = 180
 MAX_TOTAL_BYTES = 650_000_000
 MAX_SINGLE_BYTES = 135_000_000
 URL_RE = re.compile(r"^(?:file:///mnt/apkrepo|https://apk\.cgr\.dev/chainguard)/x86_64/([A-Za-z0-9_+~.-]+)\.apk$")
+
+
+def require_public_https(url):
+    parsed = urlsplit(url)
+    host = (parsed.hostname or "").lower()
+    if (parsed.scheme != "https" or not host or parsed.username is not None
+            or parsed.password is not None or parsed.port not in (None, 443)
+            or host == "localhost" or host.endswith((".localhost", ".local", ".internal", ".test"))
+            or host.replace(".", "").isdigit() or ":" in host):
+        fail("UNSAFE_PACKAGE_REDIRECT_URL")
+    return host
+
+
+class SafeRedirect(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        require_public_https(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+DOWNLOAD_OPENER = build_opener(SafeRedirect())
 
 
 def sha(blob):
@@ -189,9 +210,8 @@ def download():
         if not URL_RE.fullmatch(x["url"]) or x["url"].rsplit("/", 1)[-1] != x["filename"]:
             fail("URL_CHANGED")
         req = Request(x["url"], headers={"User-Agent": "MMT-CERT-A19-R15-audit-only"})
-        with urlopen(req, timeout=38) as response:
-            if not str(response.url).startswith(BASE_URL):
-                fail("BAD_MIRROR_REDIRECT")
+        with DOWNLOAD_OPENER.open(req, timeout=38) as response:
+            verified_public_host = require_public_https(response.url)
             bytes_ = response.read(MAX_SINGLE_BYTES + 1)
         if not 100 < len(bytes_) <= MAX_SINGLE_BYTES:
             fail("ARCHIVE_BYTES_OUTSIDE_BOUNDS")
@@ -202,6 +222,7 @@ def download():
         (folder / x["filename"]).write_bytes(bytes_)
         x["observed_apk_sha256"] = sha(bytes_)
         x["observed_apk_bytes"] = len(bytes_)
+        x["final_https_distribution_host"] = verified_public_host
         print("R15_FETCHED_PACKAGE=" + x["filename"])
     report["phase"] = "FOUR_DIRECT_ARCHIVES_FETCHED_PENDING_NATIVE_SIGNATURE_VERIFICATION"
     report["total_downloaded_bytes"] = total
