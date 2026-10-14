@@ -1,0 +1,5 @@
+# CERT-A15 narrow candidate-specific context. No repo/source/secrets copied.
+**
+!deploy/
+!deploy/runtime_a2/
+!deploy/runtime_a2/a15_export_runtime.py
