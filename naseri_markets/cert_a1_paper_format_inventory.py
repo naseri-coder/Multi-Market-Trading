@@ -180,7 +180,9 @@ def review_paper_format_inventory(
             inspection_level=report.inspection_level,
             paper_capability=_CAPABILITIES[suffix],
             stage_claim_present=candidate.stage_evidence is not None,
-            stage_claim_reconciled=report.claim_reconciled,
+            stage_claim_reconciled=(
+                candidate.stage_evidence is not None and report.claim_reconciled
+            ),
         )
         rows.append(row)
         fingerprints.append((suffix, report.review_fingerprint_sha256))
