@@ -265,7 +265,7 @@ def test_unexpected_or_wrong_stage_claim_refused():
     raw = _pe()
     with pytest.raises(CertA1Refused, match="CERT_A1_NATIVE_EXTERNAL_CLAIM_UNSUPPORTED"):
         _inspect("test.exe", raw, object())
-    with pytest.raises(CertA1Refused, match="CERT_A1_STAGE_CLAIM_TYPE_MISMATCH"):
+    with pytest.raises(CertA1Refused, match="CERT_A1_UNEXPECTED_STAGE_CLAIM"):
         _inspect("test.json", b'{"x":1}', object())
 
 
