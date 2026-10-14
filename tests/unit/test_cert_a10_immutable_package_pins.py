@@ -19,6 +19,7 @@ _FILES = (
     "deploy/runtime_a2/a10_archive_pins.json",
     "deploy/runtime_a2/Dockerfile",
     "deploy/runtime_a2/a10_wasmtime.lock",
+    "deploy/runtime_a2/Dockerfile.dockerignore",
 )
 
 
@@ -98,6 +99,16 @@ def test_duplicate_keys_and_untrusted_extra_properties_refused(tmp_path):
         review_archive_pins(root)
     file.write_text(original.replace('"schema": 1,', '"schema": 1, "untrusted": true,'))
     with pytest.raises(CertA10Refused):
+        review_archive_pins(root)
+
+
+def test_extra_build_context_wildcard_refused(tmp_path):
+    root = _fixture(tmp_path)
+    context = root / _FILES[3]
+    context.write_text(context.read_text() + "!**/*.pem\n")
+    with pytest.raises(
+        CertA10Refused, match="CERT_A10_BUILD_CONTEXT_MUST_BE_NARROW",
+    ):
         review_archive_pins(root)
 
 
