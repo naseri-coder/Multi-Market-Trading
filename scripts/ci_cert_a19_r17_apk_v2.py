@@ -81,7 +81,9 @@ def split_stream(raw, off, max_output):
     if not raw[off:].startswith(MAGIC):fail("NOT_GZIP_STREAM")
     z=zlib.decompressobj(wbits=16+zlib.MAX_WBITS)
     out=z.decompress(raw[off:],max_output+1)
-    if len(out)>max_output or not z.eof:fail("GZIP_STREAM_TRUNCATED_OR_UNBOUNDED")
+    if len(out)>max_output or not z.eof:
+        print("R17_GZIP_STREAM_DIAGNOSTIC_offset="+str(off)+"_inflated="+str(len(out))+"_limit="+str(max_output)+"_eof="+str(z.eof)+"_unconsumed="+str(len(z.unconsumed_tail)))
+        fail("GZIP_STREAM_TRUNCATED_OR_UNBOUNDED")
     taken=len(raw[off:])-len(z.unused_data)
     if taken<16:fail("GZIP_STREAM_TOO_SHORT")
     return raw[off:off+taken],out,off+taken
@@ -121,12 +123,15 @@ def validate_pkg(path,idx,keydir,temp):
         fail("ARCHIVE_FULL_SHA256_OR_INDEX_SIZE_MISMATCH")
 
     # APKv2 has 3 concatenated gzip members: signature, control, data.
-    sign_gz,sign_blob,pos=split_stream(raw,0,180_000)
-    control_gz,control_blob,pos2=split_stream(raw,pos,3_000_000)
+    print("R17_PARSING_APK="+idx["P"]+"_bytes="+str(len(raw)))
+    sign_gz,sign_blob,pos=split_stream(raw,0,10_000_000)
+    print("R17_FIRST_STREAM="+str(len(sign_gz))+"_inflated="+str(len(sign_blob)))
+    control_gz,control_blob,pos2=split_stream(raw,pos,15_000_000)
+    print("R17_SECOND_STREAM="+str(len(control_gz))+"_inflated="+str(len(control_blob)))
     if pos2>=len(raw) or not raw[pos2:].startswith(MAGIC):
         fail("DATA_STREAM_NOT_FOUND")
     data_gz=raw[pos2:]
-    files=safe_tar(sign_blob,180_000)
+    files=safe_tar(sign_blob,10_000_000)
     if len(files)!=1:fail("SIGNATURE_MEMBER_COUNT")
     sig_filename,signature=next(iter(files.items()))
     m=re.fullmatch(r"\.SIGN\.RSA(256)?\.([a-zA-Z0-9_.@+-]+\.rsa\.pub)",sig_filename)
@@ -135,7 +140,7 @@ def validate_pkg(path,idx,keydir,temp):
     key=keydir/m[2]
     if key.is_symlink() or not key.is_file() or len(signature)<100:
         fail("SIGNER_KEY_NOT_IN_SIGNED_BASE")
-    metadata=safe_tar(control_blob,3_000_000)
+    metadata=safe_tar(control_blob,15_000_000)
     if ".PKGINFO" not in metadata:fail("PKGINFO_ABSENT")
     props=find_pkinfo(metadata[".PKGINFO"])
     if props.get("pkgname")!=idx["P"] or props.get("pkgver")!=idx["V"]:
