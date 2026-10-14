@@ -153,3 +153,21 @@ Likewise, the signed .dsc is SHA-anchored but its OpenPGP signature is NOT indep
 
 The job is single-purpose, 8-minute timeout, no full A2/A18 build, no Syft/Grype rerun, no Node/Worker/user payload execution, no production/TELMIVO/orders/Telegram, read-only GitHub permissions, 2-day evidence retention. Critical/High review state: 199 OPEN.
 Verdict: CERT_A19_R5_PINNED_DEBIAN_BYTE_AUDIT_PREPARED_A18_RUNTIME_PARITY_UNVERIFIED_NO_CVE_CLOSURE.
+
+## CERT-A19-R8 — Verified developer-signed Debian source chain, no Worker-byte claim
+
+**Source evidence run:** https://github.com/naseri-coder/Multi-Market-Trading/actions/runs/38619436727 ; completed SUCCESS 2026-10-14; fixed isolated, non-PR `cert-a19-byte-audit-run` branch; source verification code and workflow added **only on that disposable branch**, not in this PR.
+**Expiring artifact:** `cert-a19-r8-debian-signed-source-sha-chain`, GitHub Actions artifact ID `11922005338`, retention 2 days. Download evidence before expiry.
+
+- Exact Debian `.dsc` byte SHA-256 verified: `6befcb981dea58f2fdb9bc0d78624d829090105ab955d48e617a02ead37fd44c`.
+- OpenPGP clear-signed `.dsc` verified with `gpgv` against Debian developer/maintainer keyring **installed from Ubuntu-signed APT on a fresh GitHub-hosted Ubuntu 24.04 runner**. Verified signer fingerprint: `03c4e7abb880f524306e48156611c05edd39f374`. This is stronger source-signature evidence, but the keyring's independent offline custody was **not** established.
+- All **7 exact source components** enumerated in signed `Checksums-Sha256` were downloaded and each checked for exact signed size and SHA-256 (including 5 orig component tarballs + 1 orig main tarball + 1 Debian patch tarball). Source archive hash chain: PASS.
+- `dpkg-source -x` applied Debian packaging patches without executing user/Node/Worker code. Patched `lib/balanced-pool.js` SHA-256 was `06e20567449a6131d5ae6f049b5d85f17c3139f2fed6a2783f656429180ff865`.
+- This exact SHA-256 **equals** the independently inspected Bookworm Debian `.deb` `/usr/share/nodejs/undici/lib/balanced-pool.js` hash from hosted CERT-A19-R7, https://github.com/naseri-coder/Multi-Market-Trading/actions/runs/38617730406 (archived artifact ID `11919983437`).
+- The inspected exact Bookworm source-file mechanism uses `Object.assign({}, this[kOptions])` and lacks the investigated JSON clone; `lib/interceptor/cache.js` is absent in the extracted, patched source tree. Mechanism-specific positive/negative observations, **NOT** a definitive CVE non-applicability judgment.
+
+**NON-CLAIMS / hard gaps:** no stopped A18 `lib/balanced-pool.js` bytes have been exported or matched. An identical source-vs-.deb hash is NOT an actual Worker image byte match; source tree file equality is NOT full reproducible .deb build. External Debian signer key custody, all possible alternate issue paths, CVE scope against the actual Worker and host certification remain unresolved. Do not call 2026-84961 / 2026-13697 fixed or false-positive yet. No glibc/SQLite patch has been applied.
+
+**Mutation discipline:** no main/Production/TELMIVO/license/broker/Telegram change, no Docker image built in R8, no unknown Worker execution, A6 remains hard DENY, original 199 (18 Critical +181 High) findings review-open, 0 CVE closures; keep PR #275 DRAFT and do not merge.
+
+Stage verdict: `CERT_A19_R8_SOURCE_SIGNATURE_AND_SEVEN_COMPONENT_SHA_PASS_BINARY_SOURCE_FILE_MATCH_A18_RUNTIME_BYTES_UNVERIFIED`.
