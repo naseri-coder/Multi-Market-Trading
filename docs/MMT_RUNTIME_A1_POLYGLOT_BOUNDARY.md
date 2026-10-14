@@ -16,7 +16,7 @@ created for the real Al Brooks or either private NYFR strategy.
 - WebAssembly: `.wasm`, header check only, requires an audited pinned
   WASI/Wasmtime OCI worker with fuel/memory/clock and filesystem policies.
 
-**This commit adds the host boundary, not functioning interpreter images.**
+**Historical A1 scope:** this phase added the host boundary only. Subsequently, RUNTIME-A2 implemented a four-language experimental Worker (`scripts/runtime_a2_worker.py`) and benign fixed-fixture CI. This does not certify sandbox containment or enable A1 launches.
 Untrusted JS/TS/WASM is never executed in the ChatGPT session, on any server,
 or in the parent bot. The unit tests only mock worker responses. There are
 no real multi-language execution/sandbox certification results at this stage.
@@ -28,7 +28,7 @@ Input standard input:
 3. Canonical JSON containing `abi_major`, `abi_minor`,
    `protocol=RUNTIME_A1_FRAMED_V1`, `runtime_kind`,
    `artifact_sha256`, `manifest_digest`, `input_digest`, `event`.
-The worker (NOT in this stage) must recompute each digest, parse exact
+The subsequently implemented A2 worker must recompute each digest, parse exact
 schemas, refuse trailing data, enforce limits and output **one** canonical
 Core API v1 JSON result without printing logs to stdout.
 
