@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/workflows/cert-a10-immutable-archive-pins.yml"
       - "deploy/runtime_a2/Dockerfile"
+      - "deploy/runtime_a2/Dockerfile.dockerignore"
       - "deploy/runtime_a2/a8_source_lock.json"
       - "deploy/runtime_a2/a10_wasmtime.lock"
       - "deploy/runtime_a2/a10_archive_pins.json"
