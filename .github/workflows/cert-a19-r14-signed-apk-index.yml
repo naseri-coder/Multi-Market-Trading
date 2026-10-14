@@ -20,13 +20,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Install signed host APK verifier and exact Sigstore installer
-        run: |
-          set -Eeuo pipefail
-          sudo apt-get update -qq
-          sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends apk-tools
-          command -v apk
-          apk --version
       - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
       - name: Verify immutable public Wolfi image signature and inspect only stopped rootfs
         run: |
@@ -62,7 +55,7 @@ jobs:
           print("R14_SOURCE_REPO_FROM_VERIFIED_IMAGE="+repo)
           PY
           repo="$(cat "$work/base-url.txt")"
-          mkdir -p "$work/localrepo/x86_64" "$work/apkroot/etc/apk" "$work/apkroot/lib/apk/db" "$work/cache"
+          mkdir -p "$work/localrepo/x86_64"
           curl --proto '=https' --proto-redir '=https' \
             --fail --location --silent --show-error --retry 1 \
             --connect-timeout 15 --max-time 90 \
@@ -71,18 +64,25 @@ jobs:
           size="$(stat -c%s "$work/localrepo/x86_64/APKINDEX.tar.gz")"
           test "$size" -ge 5000 && test "$size" -le 30000000
           cp "$work/localrepo/x86_64/APKINDEX.tar.gz" "$work/APKINDEX.tar.gz"
-          printf 'file://%s\n' "$work/localrepo" > "$work/local-repositories"
-          apk --root "$work/apkroot" --arch x86_64 \
-            --keys-dir "$work/keydir" \
-            --repositories-file "$work/local-repositories" \
-            --cache-dir "$work/cache" update 2>&1 | tee "$work/apk-verify.log"
-          if grep -Ei 'UNTRUSTED|BAD signature|WARNING:|unavailable|ERROR:' "$work/apk-verify.log"; then
+          printf 'file:///mnt/apkrepo\n' > "$work/native-repositories"
+          base="$(cat "$work/oci-base.txt")"
+          # Only Wolfi's signed, digest-pinned native APK verifier runs.
+          # No arbitrary user/Worker source, package install, container network,
+          # capabilities, host filesystem writes or Dockerfile builds permitted.
+          docker run --rm --pull=never --network=none --read-only \
+            --cap-drop=ALL --security-opt=no-new-privileges \
+            --pids-limit=32 --memory=192m --user=65534:65534 \
+            --tmpfs /tmp:rw,noexec,nosuid,size=24m,mode=1777 \
+            --mount type=bind,src="$work/localrepo",dst=/mnt/apkrepo,readonly \
+            --mount type=bind,src="$work/native-repositories",dst=/mnt/repositories,readonly \
+            --entrypoint /sbin/apk "$base" \
+            --no-cache --no-progress --arch x86_64 \
+            --keys-dir /etc/apk/keys --repositories-file /mnt/repositories \
+            update 2>&1 | tee "$work/apk-verify.log"
+          if grep -Ei 'UNTRUSTED|BAD signature|WARNING:|unavailable|ERROR:|ignoring' "$work/apk-verify.log"; then
             echo "R14_NATIVE_APK_INDEX_VERIFICATION_FAILED" >&2; exit 1
           fi
-          apk --root "$work/apkroot" --arch x86_64 \
-            --keys-dir "$work/keydir" \
-            --repositories-file "$work/local-repositories" \
-            --cache-dir "$work/cache" search -x 'python-3.12' | head -n 3
+          grep -E '[0-9]+ distinct packages available' "$work/apk-verify.log"
           echo APK_TOOLS_SIGNED_INDEX_ACCEPTED_NO_ALLOW_UNTRUSTED > "$work/apk-index-verification-status.txt"
           echo "R14_NATIVE_SIGNED_INDEX_ACCEPTED_NO_APK_INSTALLED"
       - name: Freeze exact signed-index package candidates without installing APK
