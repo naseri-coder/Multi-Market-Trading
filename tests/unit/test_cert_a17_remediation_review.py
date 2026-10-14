@@ -29,7 +29,7 @@ def test_exact_immutable_repository_snapshot_and_original_a6_denial():
     assert result["critical_open"] == 18
     assert result["high_open"] == 181
     assert result["debian_official_spot_checked_rows"] == 8
-    assert result["apt_archive_pinned_critical_rows"] == 5
+    assert result["apt_archive_pinned_critical_rows"] == 6
     assert result["image_patch_applied"] is False
     assert result["worker_execution_authorized"] is False
 
