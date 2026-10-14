@@ -16,7 +16,7 @@ in its final stage. A fixed no-network export step copies only:
 - pinned Node.js 18.20.4 executable and its `ldd`-resolved ELF closure;
 - TypeScript 5.9.3 library for `require("typescript")`; NOT npm or tsc;
 - pinned Debian Node externalized bootstrap modules: cjs-module-lexer,
-  undici and acorn. These remain runtime code with **unresolved original
+  undici, acorn and acorn-walk. These remain runtime code with **unresolved original
   Debian advisories**, not independently verified upgrades or fixes;
 - Wasmtime 49.0.0 Python package and its exact installed wheel metadata.
 
