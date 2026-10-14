@@ -38,6 +38,12 @@ on:
       - "scripts/ci_cert_a16_payload_audit.py"
       - "tests/unit/test_cert_a16_payload_audit.py"
       - "docs/MMT_CERT_A16_PAYLOAD_CVE_RETENTION_AUDIT.md"
+      - "deploy/runtime_a2/Dockerfile.a18-absence"
+      - "deploy/runtime_a2/Dockerfile.a18-absence.dockerignore"
+      - "deploy/runtime_a2/a18_build_only_guard.py"
+      - "scripts/ci_cert_a18_owner_absence.py"
+      - "tests/unit/test_cert_a18_owner_absence.py"
+      - "docs/MMT_CERT_A18_BUILD_ONLY_ABSENCE_PROOF.md"
       - "deploy/runtime_a2/a8_source_lock.json"
       - "naseri_markets/runtime_a8_supply_chain.py"
       - ".github/workflows/runtime-a2-worker-smoke.yml"
@@ -86,6 +92,9 @@ jobs:
             tests/unit/test_cert_a15_lean_worker.py \
             scripts/ci_cert_a16_payload_audit.py \
             tests/unit/test_cert_a16_payload_audit.py \
+            deploy/runtime_a2/a18_build_only_guard.py \
+            scripts/ci_cert_a18_owner_absence.py \
+            tests/unit/test_cert_a18_owner_absence.py \
             naseri_markets/multilang_runtime_a1.py
           python -m pytest -q -ra \
             tests/unit/test_runtime_a2_worker.py \
@@ -94,6 +103,7 @@ jobs:
             tests/unit/test_cert_a13_sbom_review.py \
             tests/unit/test_cert_a15_lean_worker.py \
             tests/unit/test_cert_a16_payload_audit.py \
+            tests/unit/test_cert_a18_owner_absence.py \
             tests/unit/test_runtime_a8_supply_chain.py \
             tests/unit/test_runtime_a6_dispatch_fence.py \
             | tee "$RUNNER_TEMP/mmt-runtime-a2.txt"
@@ -108,7 +118,7 @@ jobs:
   candidate-container-fixture:
     runs-on: ubuntu-24.04
     needs: actual-four-language-fixture
-    timeout-minutes: 36
+    timeout-minutes: 44
     env:
       PYTHONPATH: ${{ github.workspace }}/production_source:${{ github.workspace }}
     steps:
@@ -351,5 +361,121 @@ jobs:
         with:
           name: cert-a16-actual-payload-sha-review-only
           path: ${{ runner.temp }}/cert-a16-payload-audit.json
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: CERT-A18-R1 build separate metadata-only A15-derived candidate offline
+        run: |
+          set -Eeuo pipefail
+          old="$(docker image inspect mmt/runtime-a15-lean:pr --format '{{.Id}}')"
+          docker build --network=none --pull=false \
+            --file deploy/runtime_a2/Dockerfile.a18-absence \
+            --tag mmt/runtime-a18-owner-absence:pr .
+          test "$old" = "$(docker image inspect mmt/runtime-a15-lean:pr --format '{{.Id}}')"
+          new="$(docker image inspect mmt/runtime-a18-owner-absence:pr --format '{{.Id}}')"
+          test "$old" != "$new"
+          echo "CERT_A18_SEPARATE_METADATA_ONLY_CANDIDATE_NO_PACKAGE_UPDATE"
+      - name: CERT-A18-R1 exercise same four harmless Worker fixtures on exact A18 image
+        env:
+          MMT_A2_IMAGE: mmt/runtime-a18-owner-absence:pr
+        run: |
+          set -Eeuo pipefail
+          python -m pytest -q -ra \
+            tests/unit/test_runtime_a2_worker.py::test_exact_four_language_benign_fixture_roundtrips
+          echo "CERT_A18_FIXED_FOUR_LANGUAGE_NONPRODUCTION_PASS__NO_USER_STRATEGIES"
+      - name: CERT-A18-R1 compare actual stopped-container A2 dpkg ownership and A18 paths
+        env:
+          GITHUB_ACTIONS: "true"
+          RUNNER_ENVIRONMENT: github-hosted
+          MMT_NONPRODUCTION: "1"
+          MMT_CERT_A18_READ_ONLY: "1"
+        run: |
+          set -Eeuo pipefail
+          original=mmt/runtime-a2-candidate:pr
+          candidate=mmt/runtime-a18-owner-absence:pr
+          base_id="$(docker image inspect "$original" --format '{{.Id}}')"
+          candidate_id="$(docker image inspect "$candidate" --format '{{.Id}}')"
+          cid_a="$(docker create --pull=never --entrypoint=/bin/true "$original")"
+          cid_b="$(docker create --pull=never --entrypoint=/bin/true "$candidate")"
+          cleanup() {
+            docker rm -f "$cid_a" "$cid_b" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          dirname="$RUNNER_TEMP/a18-dpkg-owner"
+          mkdir -p "$dirname"
+          for pkg in handlebars node-flatted node-brace-expansion node-ip node-postcss; do
+            docker cp "$cid_a:/var/lib/dpkg/info/$pkg.list" "$dirname/$pkg.list"
+          done
+          docker export "$cid_a" | tar -tf - | sed '/^\.$/d; /^\.\/$/d' \
+            > "$RUNNER_TEMP/a18-original-paths.txt"
+          docker export "$cid_b" | tar -tf - | sed '/^\.$/d; /^\.\/$/d' \
+            > "$RUNNER_TEMP/a18-candidate-paths.txt"
+          test "$base_id" = "$(docker image inspect "$original" --format '{{.Id}}')"
+          test "$candidate_id" = "$(docker image inspect "$candidate" --format '{{.Id}}')"
+          python -m scripts.ci_cert_a18_owner_absence \
+            --root "$GITHUB_WORKSPACE" \
+            --manifests "$dirname" \
+            --original-paths "$RUNNER_TEMP/a18-original-paths.txt" \
+            --candidate-paths "$RUNNER_TEMP/a18-candidate-paths.txt" \
+            --original-image "$base_id" --candidate-image "$candidate_id" \
+            --output "$RUNNER_TEMP/cert-a18-owner-absence.json"
+          echo "CERT_A18_DPKG_OWNER_CODE_PATH_ABSENCE_PROOF__NOT_CVE_PATCH"
+      - name: CERT-A18-R1 scan separate A18 image with the same pinned Syft Grype advisory DB
+        env:
+          SYFT_CHECK_FOR_APP_UPDATE: "false"
+          GRYPE_CHECK_FOR_APP_UPDATE: "false"
+        run: |
+          set -Eeuo pipefail
+          candidate=mmt/runtime-a18-owner-absence:pr
+          first="$(docker image inspect "$candidate" --format '{{.Id}}')"
+          "$RUNNER_TEMP/cert-a13-tools/syft" "docker:$candidate" \
+            -o "cyclonedx-json=$RUNNER_TEMP/cert-a18.sbom.json"
+          "$RUNNER_TEMP/cert-a13-tools/grype" \
+            "sbom:$RUNNER_TEMP/cert-a18.sbom.json" --output json \
+            > "$RUNNER_TEMP/cert-a18.scan.json"
+          test "$first" = "$(docker image inspect "$candidate" --format '{{.Id}}')"
+          python - <<'PY'
+          import hashlib, json, os
+          from datetime import UTC, datetime
+          from pathlib import Path
+          from scripts.ci_cert_a13_sbom_review import _db_timestamp, _read, _scan_check
+          folder = Path(os.environ["RUNNER_TEMP"])
+          original, _ = _read(folder / "cert-a15-lean.scan.json", 80_000_000)
+          final, _ = _read(folder / "cert-a18.scan.json", 80_000_000)
+          a, _ = _db_timestamp(original, now=datetime.now(UTC))
+          b, _ = _db_timestamp(final, now=datetime.now(UTC))
+          if a != b:
+              raise SystemExit("A18_ADVISORY_DB_CHANGED")
+          base_counts, base_matches = _scan_check(original)
+          final_counts, final_matches = _scan_check(final)
+          counts = {}
+          for key in ("Critical", "High", "Medium", "Low", "Negligible", "Unknown"):
+              counts[key] = {"a15": base_counts.get(key, 0),
+                             "a18": final_counts.get(key, 0)}
+          if counts and (base_matches != final_matches or
+                         any(v["a15"] != v["a18"] for v in counts.values())):
+              raise SystemExit("A18_METADATA_ONLY_SCAN_DISAGREES_WITH_A15")
+          document = {
+              "schema": 1, "status": "NO_NEW_PATCH_OR_CVE_REMEDIATION_CLAIM",
+              "db_built": a, "a15_matched": base_matches,
+              "a18_matched": final_matches, "counts": counts,
+              "all_199_original_high_critical_open": True,
+              "worker_execution_authorized": False,
+          }
+          (folder / "cert-a18-scan-equality.json").write_text(
+              json.dumps(document, indent=2, sort_keys=True) + "\n"
+          )
+          print("CERT_A18_GRYPE_MATCHES=" + str(final_matches))
+          print("CERT_A18_SAME_DB_MATCH_COUNTS_EQUAL_NO_CVE_FIX_CLAIM")
+          PY
+      - name: Upload CERT-A18 exact dpkg ownership proof and current scan for review
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cert-a18-fixed-build-only-owner-path-review
+          path: |
+            ${{ runner.temp }}/cert-a18-owner-absence.json
+            ${{ runner.temp }}/cert-a18-scan-equality.json
+            ${{ runner.temp }}/cert-a18.sbom.json
+            ${{ runner.temp }}/cert-a18.scan.json
           if-no-files-found: error
           retention-days: 3
