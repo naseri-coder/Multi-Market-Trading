@@ -1,0 +1,83 @@
+name: CERT-A19-R21 signed Wolfi stopped-base plus 36-APK loader symlink audit
+
+on:
+  push:
+    branches: [cert-a19-byte-audit-run]
+    paths:
+      - ".github/workflows/cert-a19-r21-loader-custody.yml"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  static-signed-oci-loader-proof:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/cert-a19-byte-audit-run' && github.repository == 'naseri-coder/Multi-Market-Trading'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 23
+    env:
+      MMT_NONPRODUCTION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: Restore exact R18 and R20 evidence by SHA-256 with no live index
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          work="$RUNNER_TEMP/cert-a19-r21"
+          mkdir -m 0700 "$work"
+          mkdir "$work/r18artifact" "$work/r20artifact"
+          gh run download 38642890495 \
+            --repo naseri-coder/Multi-Market-Trading \
+            --name cert-a19-r18-apko-signed-offline-closure-audit \
+            --dir "$work/r18artifact"
+          gh run download 38646520589 \
+            --repo naseri-coder/Multi-Market-Trading \
+            --name cert-a19-r20-36-apk-all-elf-static-audit \
+            --dir "$work/r20artifact"
+          cp "$work/r18artifact/APKINDEX.tar.gz" "$work/APKINDEX.tar.gz"
+          cp "$work/r18artifact/r18-result.json" "$work/r18-result.json"
+          cp "$work/r20artifact/r20-static-all-elf.json" "$work/r20-static-all-elf.json"
+          echo '8011fbdaf70278ae83e3729dc2c44a8148a91cf03ea0ef7a3d049e30a65e36a5  '"$work/APKINDEX.tar.gz" | sha256sum --check --status
+          echo '78356a69bf4c7aa50856450b1b4f55f9aaaf4909072891909a9fe73697fd139b  '"$work/r18-result.json" | sha256sum --check --status
+          echo '72cd119a29ad364cb5cce4eb5e7536783582ccc4a7f4ecf98905f61972fc542b  '"$work/r20-static-all-elf.json" | sha256sum --check --status
+          echo R21_FROZEN_HISTORIC_RESEARCH_BYTES_MATCH
+      - name: Authenticate exact Chainguard image and export only a CREATED, never started container filesystem
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          work="$RUNNER_TEMP/cert-a19-r21"
+          base='cgr.dev/chainguard/wolfi-base@sha256:256c88bb066424045021090932d50be93c8e3f2ce3586707702a401b146f3e43'
+          cosign verify \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            --certificate-identity=https://github.com/chainguard-images/images/.github/workflows/release.yaml@refs/heads/main \
+            "$base" > "$work/cosign-signature.json"
+          echo SIGNED_PUBLISHER_VERIFIED > "$work/base-signature.status"
+          printf '%s\n' "$base" > "$work/base.txt"
+          docker pull --platform linux/amd64 "$base"
+          cid="$(docker create --pull=never --platform linux/amd64 --entrypoint=/bin/true "$base")"
+          trap 'docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
+          test "$(docker inspect "$cid" --format '{{.State.Status}}')" = created
+          docker export "$cid" > "$work/base-created-export.tar"
+          test "$(docker inspect "$cid" --format '{{.State.Status}}')" = created
+          test "$(stat -c%s "$work/base-created-export.tar")" -lt 220000000
+          echo R21_SIGNED_BASE_EXPORTED_WITHOUT_RUNNING_OR_STARTING
+      - name: Compare 36 signed-index-bound APK symlinks with stopped signed base rootfs STATIC ONLY
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 -u -m scripts.ci_cert_a19_r21_loader_symlinks
+          test -s "$RUNNER_TEMP/cert-a19-r21/r21-static-rootfs-path.json"
+          sha256sum "$RUNNER_TEMP/cert-a19-r21/r21-static-rootfs-path.json"
+      - name: Upload bounded loader-path decision evidence, no images or APK archives
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cert-a19-r21-signed-rootfs-loader-path-static
+          path: ${{ runner.temp }}/cert-a19-r21/r21-static-rootfs-path.json
+          if-no-files-found: ignore
+          retention-days: 2
