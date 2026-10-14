@@ -172,7 +172,7 @@ def test_nested_node_dependencies_require_fixed_elf_libraries(monkeypatch):
 
 
 def test_externalized_debian_node_commonjs_lexer_is_explicitly_preserved():
-    assert exporter._CJS == Path("/usr/share/nodejs/cjs-module-lexer")
+    assert Path("/usr/share/nodejs/cjs-module-lexer") == exporter._CJS
     source = (_ROOT / "deploy/runtime_a2/a15_export_runtime.py").read_text()
     assert '(_CJS / "lexer.js").is_file()' in source
     assert "(_TS, _WASM, dist, _CJS)" in source
