@@ -87,10 +87,19 @@ def _sbom_check(data: dict) -> int:
 
 
 def _db_timestamp(data: dict, *, now: datetime) -> tuple[str, int]:
-    db = data.get("db")
-    if type(db) is not dict or type(db.get("built")) is not str:
+    descriptor = data.get("descriptor")
+    if type(descriptor) is not dict:
         raise A13Refused("A13_VULNERABILITY_DATABASE_PROVENANCE_MISSING")
-    raw = db["built"]
+    db = descriptor.get("db")
+    if type(db) is dict and type(db.get("status")) is dict:
+        raw = db["status"].get("built")
+    elif type(db) is dict:
+        raw = db.get("built")
+    else:
+        legacy = data.get("db")
+        raw = legacy.get("built") if type(legacy) is dict else None
+    if type(raw) is not str:
+        raise A13Refused("A13_VULNERABILITY_DATABASE_PROVENANCE_MISSING")
     try:
         built = datetime.fromisoformat(raw.replace("Z", "+00:00"))
     except ValueError as exc:
