@@ -1,0 +1,41 @@
+name: MMT RUNTIME-A11 offline witness simulation
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/runtime_a11_offline_witness.py"
+      - "tests/unit/test_runtime_a11_offline_witness.py"
+      - "docs/MMT_RUNTIME_A11_OFFLINE_WITNESS.md"
+      - ".github/workflows/runtime-a11-offline-witness.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inert-witness-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      PYTHONPATH: ${{ github.workspace }}/production_source:${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install pinned offline test dependencies
+        run: |
+          python -m pip install --disable-pip-version-check \
+            pytest==9.1.1 pytest-asyncio==1.4.0 \
+            pydantic-settings==2.15.0 ruff==0.16.9
+      - name: Validate witnessed comparison and A10/A6 regressions
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check naseri_markets/runtime_a11_offline_witness.py \
+            tests/unit/test_runtime_a11_offline_witness.py
+          python -m pytest -q -ra \
+            tests/unit/test_runtime_a11_offline_witness.py \
+            tests/unit/test_runtime_a10_evidence_anchor.py \
+            tests/unit/test_runtime_a6_dispatch_fence.py
