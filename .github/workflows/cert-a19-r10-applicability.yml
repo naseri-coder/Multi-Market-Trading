@@ -1,0 +1,46 @@
+name: CERT-A19-R10 inspect Debian undici 5.15 advisory applicability (audit only)
+
+on:
+  push:
+    branches: [cert-a19-byte-audit-run]
+    paths:
+      - ".github/workflows/cert-a19-r10-applicability.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  signed-source-static-reachability:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/cert-a19-byte-audit-run' && github.repository == 'naseri-coder/Multi-Market-Trading'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      MMT_NONPRODUCTION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install fixed Debian developer keyring on disposable runner
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update -qq
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends debian-keyring
+          test -s /usr/share/keyrings/debian-keyring.gpg
+          test -s /usr/share/keyrings/debian-maintainers.gpg
+      - name: Recheck exact trusted Debian signed source chain, no Worker run
+        run: |
+          set -Eeuo pipefail
+          python3 -m scripts.ci_cert_a19_signed_source_chain
+          test -s "$RUNNER_TEMP/cert-a19-source-chain.json"
+      - name: Static audit exact advisory source paths and trusted VM wrapper only
+        run: |
+          set -Eeuo pipefail
+          python3 -m scripts.ci_cert_a19_r10_applicability
+          test -s "$RUNNER_TEMP/cert-a19-r10-applicability.json"
+      - name: Upload limited review-only evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cert-a19-r10-signed-source-static-applicability
+          path: ${{ runner.temp }}/cert-a19-r10-applicability.json
+          if-no-files-found: error
+          retention-days: 2
