@@ -171,3 +171,26 @@ Verdict: CERT_A19_R5_PINNED_DEBIAN_BYTE_AUDIT_PREPARED_A18_RUNTIME_PARITY_UNVERI
 **Mutation discipline:** no main/Production/TELMIVO/license/broker/Telegram change, no Docker image built in R8, no unknown Worker execution, A6 remains hard DENY, original 199 (18 Critical +181 High) findings review-open, 0 CVE closures; keep PR #275 DRAFT and do not merge.
 
 Stage verdict: `CERT_A19_R8_SOURCE_SIGNATURE_AND_SEVEN_COMPONENT_SHA_PASS_BINARY_SOURCE_FILE_MATCH_A18_RUNTIME_BYTES_UNVERIFIED`.
+
+## CERT-A19-R9 — Stopped-container actual file SHA, reconstructed A2 → A15 → A18 (2026-10-14)
+
+**Successful isolated GitHub Actions execution:** https://github.com/naseri-coder/Multi-Market-Trading/actions/runs/38620656384 ; SUCCESS; run commit `e2f5798e13631421218faa715bb67d4509b83091` on temporary **non-PR** `cert-a19-byte-audit-run` branch.
+**Artifact:** `cert-a19-r9-stopped-a18-undeployed-byte-review`, GitHub artifact ID `11922201893`, two-day retention. The run triggered **only one** dedicated R9 workflow, no general PR CI suite.
+
+### Actual read-only observed evidence
+- Rebuilt the exact historical fixed A2 Dockerfile using the existing A11 372-package and A12 snapshot pins, then the same A15 exporter and A18 metadata-only Dockerfile, **only within the disposable nonproduction GitHub-hosted runner**. No registry push, release, production or server deployment.
+- For each of the three reconstructed images, used `docker create --entrypoint=/bin/true` (never `docker start` / `docker run`) and `docker cp` to extract exactly `/usr/share/nodejs/undici/lib/balanced-pool.js` from a **created/stopped** container. Asserted container state `created` before and after; removed each container.
+- Compared SHA-256 with the authenticated Debian source and binary file hash from R7/R8, `06e20567449a6131d5ae6f049b5d85f17c3139f2fed6a2783f656429180ff865`. ALL THREE actual extracted files matched:
+  - A2 rebuilt image `sha256:22d04b9083d06f7ba881a7df82a64e5aa7cefd2254a1748220d3780b84c0e835`.
+  - A15 rebuilt image `sha256:ff1d9c8e6b36eed23bdd94a0f8316735e4fda9483c364f6dd3d02b742613903b`.
+  - A18 rebuilt image `sha256:ee50be233898473b358079e51351b99fcdcad664f858a195d28e7130eac5430e`.
+- Validated A11 lock, exact A18 label, A15 `_UNDICI` whole-tree copy code, A6 original denial string, and local deterministic image ownership before reading files. No Worker/guest/trading executable was invoked; image BUILD commands performed only existing benign pinned package setup and fixed A15/A18 validation.
+
+### Mandatory historical-image distinction
+The successful earlier CERT-A18 run archived its original candidate **image ID** `sha256:dc8caca0022f73f0568a2962a1cf0da873566a15fd4a59fdc7e6724c9de82cef`. **This differs** from the newly reconstructed A18 image ID `sha256:ee50be233898473b358079e51351b99fcdcad664f858a195d28e7130eac5430e`. Therefore:
+- **PASS:** exact byte parity with authenticated Debian for reconstructed A2, A15, A18 images.
+- **NOT PROVEN:** direct equality of the archived 2026-10-14 earlier A18 image's `balanced-pool.js` bytes; the original ephemeral image is not preserved in downloaded artifacts. Never equate equal build *recipes* with an identical old image.
+- **NOT PROVEN:** all vulnerable code paths/CVE false-positive status, full reproducible Docker image or independent rootless/gVisor host suitability.
+- **OPEN:** original 18 Critical + 181 High findings; 0 certified fixed or false-positive. `A6_INDEPENDENT_HOST_CERTIFICATION_REQUIRED` DENY; no production, TELMIVO, broker, Telegram or licenses; PR #275 stays DRAFT and not merged.
+
+Disposition: `CERT_A19_R9_RECONSTRUCTED_STOPPED_IMAGES_UNDICI_SHA_PASS_HISTORIC_A18_IMAGE_ID_DIFFERENT_199_OPEN`.
