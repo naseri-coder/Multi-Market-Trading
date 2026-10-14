@@ -1,0 +1,54 @@
+name: MMT CERT-A2 direct file PAPER evidence regression
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/cert_a2_direct_paper_replay.py"
+      - "tests/unit/test_cert_a2_direct_paper_replay.py"
+      - "docs/MMT_CERT_A2_DIRECT_PAPER_REPLAY.md"
+      - ".github/workflows/cert-a2-direct-paper-replay.yml"
+      - "naseri_markets/runtime_a6_dispatch_fence.py"
+      - "naseri_markets/data_a1_file_intake.py"
+      - "naseri_markets/pine_a1_sma_cross_parity.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cert-a2-direct-evidence-replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: ${{ github.workspace }}/production_source:${{ github.workspace }}
+      MMT_NONPRODUCTION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install pinned research test tools and PyArrow
+        run: |
+          python -m pip install --disable-pip-version-check \
+            pytest==9.1.1 pytest-asyncio==1.4.0 \
+            pyarrow==21.0.0 ruff==0.16.9 pydantic-settings==2.15.0
+      - name: Audit actual replay and old report forgery
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check \
+            naseri_markets/cert_a2_direct_paper_replay.py \
+            tests/unit/test_cert_a2_direct_paper_replay.py
+          python -m pytest -q -ra \
+            tests/unit/test_cert_a2_direct_paper_replay.py \
+            tests/unit/test_cert_a1_offline_candidate_review.py \
+            tests/unit/test_cert_a1_paper_format_inventory.py \
+            tests/unit/test_data_a1_file_intake.py \
+            tests/unit/test_pine_a1_sma_cross_parity.py \
+            tests/unit/test_runtime_a6_dispatch_fence.py \
+            | tee "$RUNNER_TEMP/cert-a2-direct-replay.log"
+          if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/cert-a2-direct-replay.log"; then
+            echo "CERT_A2_INCOMPLETE_PARQUET_OR_REGRESSION_TESTS" >&2
+            exit 1
+          fi
