@@ -15,11 +15,17 @@ _EXPECTED = {
     "schema": 1,
     "audience": "MMT-CERT-A10-NONPRODUCTION-ARCHIVE-BYTE-PINS",
     "runtime_platform": "linux/amd64",
-    "base_image": "python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258",
+    "base_image": (
+        "python:3.12-slim-bookworm@sha256:"
+        "34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258"
+    ),
     "typescript": {
         "version": "5.9.3",
         "tarball_url": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
-        "sha512": "8e5d6f6733c38a72ebf5e52ddc9feded5e8580d130f508ef04f772b33f4a7d00c3e357d0ac2d98e2f290762694a454f86d795bd511e12e9a7cc2d9ba3394e04b",
+        "sha512": (
+            "8e5d6f6733c38a72ebf5e52ddc9feded5e8580d130f508ef04f772b33f4a7d00c3e357d"
+            "0ac2d98e2f290762694a454f86d795bd511e12e9a7cc2d9ba3394e04b"
+        ),
     },
     "wasmtime": {
         "version": "49.0.0",
