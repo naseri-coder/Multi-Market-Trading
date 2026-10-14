@@ -14,7 +14,7 @@ permissions:
 jobs:
   verify-debian-undici-archive-only:
     # The only approved branch is same-repository CERT-A19. No forked PR code.
-    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'cert-a19-independent-security-research')
+    if: (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/cert-a19-independent-security-research') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'cert-a19-independent-security-research')
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     env:
