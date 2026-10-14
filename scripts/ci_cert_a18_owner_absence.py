@@ -74,6 +74,10 @@ def _owner_code_paths(pkg: str, path: Path) -> tuple[set[str], str]:
     content, digest = _load_utf8(path, _MAX_PACKAGE_LIST)
     code = set()
     for line in content.splitlines():
+        # dpkg info/*.list uses "/." to denote the package's root directory.
+        # Accept that one fixed sentinel only; do not relax any other path.
+        if line == "/.":
+            continue
         value = _normalize(line)
         if value.startswith(_PACKAGES[pkg][1]) and value.endswith(_CODE_EXT):
             code.add(value)
