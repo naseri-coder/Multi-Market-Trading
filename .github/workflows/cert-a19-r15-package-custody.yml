@@ -90,7 +90,7 @@ jobs:
             --mount type=bind,src="$work/native-repositories",dst=/mnt/repositories,readonly \
             --entrypoint /bin/sh "$image" -ec \
             'mkdir -p /tmp/apkroot/lib/apk/db /tmp/apkroot/etc/apk;
-             exec /sbin/apk --root /tmp/apkroot --initdb \
+             exec /sbin/apk --root /tmp/apkroot \
                --no-cache --no-progress --keys-dir /etc/apk/keys \
                --repositories-file /mnt/repositories \
                fetch --recursive --url \
