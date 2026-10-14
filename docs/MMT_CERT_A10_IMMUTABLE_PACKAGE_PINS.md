@@ -31,6 +31,9 @@ NOT independently trusted publisher signatures or reproducibility proofs.
    --only-binary=:all:, --no-deps. No source distributions.
 4. A8 source lock pins updated Dockerfile bytes; Worker and A1 source digests
    remain unchanged. A10 validates exact recipe and lock linkage.
+   The dedicated deploy/runtime_a2/Dockerfile.dockerignore permits only
+   the existing Worker script and new a10_wasmtime.lock in the Docker
+   build context. A10 refuses any broader allowlist (including secrets).
 5. Existing GitHub A2 candidate build, four-language fixed fixture, A8 Docker
    boundary smoke, A9 inside-image version/hash inventory, A6 mandatory denial,
    negative pin/forged-authorization tests are expected to remain green.
