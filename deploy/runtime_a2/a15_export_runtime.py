@@ -25,6 +25,7 @@ _CJS = Path("/usr/share/nodejs/cjs-module-lexer")
 # Their original CVE findings remain unresolved even if Syft undercounts.
 _UNDICI = Path("/usr/share/nodejs/undici")
 _ACORN = Path("/usr/share/nodejs/acorn")
+_ACORN_WALK = Path("/usr/share/nodejs/acorn-walk")
 _WASM = Path("/usr/local/lib/python3.12/site-packages/wasmtime")
 _WORKER = Path("/opt/mmt/bin/runtime-a1-worker")
 _LIB_RE = re.compile(r"(?<![A-Za-z0-9])(/[^\s()]+)")
@@ -149,7 +150,11 @@ def export_fixed_runtime(root: Path = _ROOTFS) -> dict:
         raise A15ExportRefused("A15_EXTERNALIZED_NODE_UNDICI_MISSING")
     if not _ACORN.is_dir():
         raise A15ExportRefused("A15_EXTERNALIZED_NODE_ACORN_MISSING")
-    for directory in (_TS, _WASM, dist, _CJS, _UNDICI, _ACORN):
+    if not _ACORN_WALK.is_dir() or not (
+        _ACORN_WALK / "dist/walk.js"
+    ).is_file():
+        raise A15ExportRefused("A15_EXTERNALIZED_NODE_ACORN_WALK_MISSING")
+    for directory in (_TS, _WASM, dist, _CJS, _UNDICI, _ACORN, _ACORN_WALK):
         target = root / directory.relative_to("/")
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copytree(directory, target, symlinks=False)
@@ -163,6 +168,7 @@ def export_fixed_runtime(root: Path = _ROOTFS) -> dict:
         "copied_debian_externalized_commonjs_bootstrap": True,
         "copied_debian_externalized_undici": True,
         "copied_debian_externalized_acorn": True,
+        "copied_debian_externalized_acorn_walk": True,
         "debian_node_externalized_module_cves_still_open": True,
         "copied_runtime_file_hashes": observed,
         "npm_runtime_cli_included": False,
