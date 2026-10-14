@@ -177,6 +177,10 @@ def test_externalized_debian_node_commonjs_lexer_is_explicitly_preserved():
     assert '(_CJS / "lexer.js").is_file()' in source
     assert "(_TS, _WASM, dist, _CJS)" in source
     assert "A15_EXTERNALIZED_NODE_CJS_LEXER_MISSING" in source
+    assert "A15_EXTERNALIZED_NODE_UNDICI_MISSING" in source
+    assert "A15_EXTERNALIZED_NODE_ACORN_MISSING" in source
+    assert Path("/usr/share/nodejs/undici") == exporter._UNDICI
+    assert Path("/usr/share/nodejs/acorn") == exporter._ACORN
 
 
 def test_transitive_libnode_dependency_libuv_is_not_omitted(monkeypatch):
