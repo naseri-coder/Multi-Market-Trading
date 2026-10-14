@@ -6,7 +6,7 @@
   "source_files": [
     {
       "path": "deploy/runtime_a2/Dockerfile",
-      "sha256": "da87c7150ef257ea81eb3425782aa27ac023435f863c11ca1be0ae401c6d7ca8"
+      "sha256": "9bce101f4c1a79b17884165779babeccc65f1bfa71476db247b2600618945234"
     },
     {
       "path": "scripts/runtime_a2_worker.py",
