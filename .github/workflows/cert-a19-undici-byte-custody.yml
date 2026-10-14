@@ -68,7 +68,7 @@ jobs:
             --output "$RUNNER_TEMP/cert-a19-undici-custody.json"
           echo "CERT_A19_NO_A18_IMAGE_PRESENT_NO_CVE_CLOSURE"
       - name: Upload small expiring research-only evidence
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0 # v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: cert-a19-undici-pinned-deb-byte-evidence-only
           path: ${{ runner.temp }}/cert-a19-undici-custody.json
