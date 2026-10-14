@@ -77,6 +77,27 @@ def test_expected_nodejs_version_must_be_recorded(tmp_path):
         a13.review(a, b, IMAGE, now=NOW)
 
 
+def test_modern_grype_descriptor_db_status_timestamp(tmp_path):
+    scan = copy.deepcopy(SCAN)
+    date = scan.pop("db")["built"]
+    scan["descriptor"]["db"] = {"status": {"built": date, "schemaVersion": "v6"}}
+    a, b = _files(tmp_path, scan=scan)
+    result = a13.review(a, b, IMAGE, now=NOW)
+    assert result["vulnerability_db_age_days"] == 1
+    assert result["vulnerability_matches"] == 1
+
+
+def test_modern_grype_missing_db_timestamp_is_not_valid_evidence(tmp_path):
+    scan = copy.deepcopy(SCAN)
+    scan.pop("db")
+    scan["descriptor"]["db"] = {"status": {"built": None}}
+    a, b = _files(tmp_path, scan=scan)
+    with pytest.raises(
+        a13.A13Refused, match="A13_VULNERABILITY_DATABASE_PROVENANCE_MISSING",
+    ):
+        a13.review(a, b, IMAGE, now=NOW)
+
+
 def test_zero_matches_is_not_vulnerability_free_certificate(tmp_path):
     scan = copy.deepcopy(SCAN)
     scan["matches"] = []
