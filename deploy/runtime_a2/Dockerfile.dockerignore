@@ -5,3 +5,5 @@
 !deploy/
 !deploy/runtime_a2/
 !deploy/runtime_a2/a10_wasmtime.lock
+!deploy/runtime_a2/a11_apt_closure.py
+!deploy/runtime_a2/a11_apt_closure.json
