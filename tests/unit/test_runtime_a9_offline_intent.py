@@ -1,7 +1,6 @@
 """A9 inert review tickets: 4 languages, replay, revoke, signature and bounds."""
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import sqlite3
