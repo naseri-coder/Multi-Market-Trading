@@ -118,85 +118,97 @@ def find_pkinfo(text):
 
 def validate_pkg(path,idx,keydir,temp):
     raw=read(path)
-    pkey=(idx["P"],idx["V"])
-    if sha(raw)!=PINS[pkey] or len(raw)!=int(idx["S"]):
+    name,version=idx["P"],idx["V"]
+    if sha(raw)!=PINS[(name,version)] or len(raw)!=int(idx["S"]):
         fail("ARCHIVE_FULL_SHA256_OR_INDEX_SIZE_MISMATCH")
+    first_gz,first_blob,pos=split_stream(raw,0,15_000_000)
+    files=safe_tar(first_blob,15_000_000)
+    print("R17_FIRST_STREAM_PACKAGE="+name+"_gz="+str(len(first_gz))+
+          "_inflated="+str(len(first_blob))+"_names="+",".join(sorted(files)[:8]))
+    sig_filenames=[x for x in files if x.startswith(".SIGN.")]
+    standalone_signature_present=bool(sig_filenames)
 
-    # APKv2 has 3 concatenated gzip members: signature, control, data.
-    print("R17_PARSING_APK="+idx["P"]+"_bytes="+str(len(raw)))
-    sign_gz,sign_blob,pos=split_stream(raw,0,10_000_000)
-    print("R17_FIRST_STREAM="+str(len(sign_gz))+"_inflated="+str(len(sign_blob)))
-    control_gz,control_blob,pos2=split_stream(raw,pos,15_000_000)
-    print("R17_SECOND_STREAM="+str(len(control_gz))+"_inflated="+str(len(control_blob)))
-    if pos2>=len(raw) or not raw[pos2:].startswith(MAGIC):
-        fail("DATA_STREAM_NOT_FOUND")
-    data_gz=raw[pos2:]
-    files=safe_tar(sign_blob,10_000_000)
-    if len(files)!=1:fail("SIGNATURE_MEMBER_COUNT")
-    sig_filename,signature=next(iter(files.items()))
-    m=re.fullmatch(r"\.SIGN\.RSA(256)?\.([a-zA-Z0-9_.@+-]+\.rsa\.pub)",sig_filename)
-    if m is None:fail("UNRECOGNIZED_SIGNATURE_FORMAT")
-    algo="sha256" if m[1]=="256" else "sha1"
-    key=keydir/m[2]
-    if key.is_symlink() or not key.is_file() or len(signature)<100:
-        fail("SIGNER_KEY_NOT_IN_SIGNED_BASE")
-    metadata=safe_tar(control_blob,15_000_000)
-    if ".PKGINFO" not in metadata:fail("PKGINFO_ABSENT")
-    props=find_pkinfo(metadata[".PKGINFO"])
-    if props.get("pkgname")!=idx["P"] or props.get("pkgver")!=idx["V"]:
-        fail("PKGINFO_PACKAGE_IDENTITY_CONFLICT")
-
-    claimed_q1=idx["C"]
-    measured_q1="Q1"+base64.b64encode(hashlib.sha1(control_gz).digest()).decode("ascii")
-    if measured_q1!=claimed_q1:fail("SIGNED_INDEX_CONTROL_Q1_MISMATCH")
-    if (hashlib.sha1(control_gz+b"\x00").digest()
-         ==hashlib.sha1(control_gz).digest()):
-        fail("NEGATIVE_CONTROL_SHA1_UNEXPECTED")
-    altered=bytearray(control_gz)
-    altered[len(altered)//2]^=1
-    negative_q1="Q1"+base64.b64encode(hashlib.sha1(altered).digest()).decode()
-    if negative_q1==claimed_q1:fail("NEGATIVE_CONTROL_TAMPER_ACCEPTED")
-
-    # Verify signature on COMPRESSED control bytes with public key
-    # extracted from the exact Sigstore-authenticated Wolfi base.
-    filebase=re.sub("[^a-zA-Z0-9_-]","_",idx["P"])
-    ctr=temp/(filebase+".control.gz")
-    sig=temp/(filebase+".signature")
-    ctr.write_bytes(control_gz)
-    sig.write_bytes(signature)
-    proc=subprocess.run(["openssl","dgst","-"+algo,
-                         "-verify",str(key),
-                         "-signature",str(sig),str(ctr)],
-                        capture_output=True,text=True,timeout=20,check=False)
-    if proc.returncode!=0 or "Verified OK" not in proc.stdout:
-        fail("OPENSSL_PACKAGE_SIGNATURE_NOT_VERIFIED")
-
-    dh=props.get("datahash")
-    compressed_data_sha=sha(data_gz)
-    if not dh or not re.fullmatch("[0-9a-f]{64}",dh):
-        fail("SIGNED_PKGINFO_DATAHASH_MISSING")
-    if compressed_data_sha != dh:
-        fail("SIGNED_PKGINFO_DATA_STREAM_SHA256_MISMATCH")
-
+    if standalone_signature_present:
+        if len(sig_filenames)!=1 or len(files)!=1:
+            fail("SIGNATURE_MEMBER_FORMAT_UNEXPECTED")
+        signature_name=sig_filenames[0]
+        signature=files[signature_name]
+        control_gz,control_blob,nextpos=split_stream(raw,pos,15_000_000)
+        meta=safe_tar(control_blob,15_000_000)
+    else:
+        # Some Wolfi direct APKs omit a per-archive RSA stream.
+        # Signed repository index Q1 and PKGINFO datahash are distinct checks.
+        signature_name=None
+        signature=None
+        control_gz,control_blob,nextpos=first_gz,first_blob,pos
+        meta=files
+    if ".PKGINFO" not in meta:
+        fail("PKGINFO_NOT_FOUND_IN_CONTROL_SEGMENT")
+    if nextpos>=len(raw) or not raw[nextpos:].startswith(MAGIC):
+        fail("DATA_GZIP_STREAM_NOT_FOUND")
+    data_gz=raw[nextpos:]
+    props=find_pkinfo(meta[".PKGINFO"])
+    if props.get("pkgname")!=name or props.get("pkgver")!=version:
+        fail("PKGINFO_IDENTITY_CONFLICT")
+    expected_q1=idx["C"]
+    actual_q1="Q1"+base64.b64encode(hashlib.sha1(control_gz).digest()).decode("ascii")
+    print("R17_Q1_PACKAGE="+name+"_EXPECTED="+expected_q1+"_ACTUAL="+actual_q1)
+    if actual_q1!=expected_q1:
+        fail("SIGNED_INDEX_CONTROL_STREAM_Q1_MISMATCH")
+    modified=bytearray(control_gz)
+    modified[len(modified)//2]^=1
+    if "Q1"+base64.b64encode(hashlib.sha1(modified).digest()).decode("ascii")==expected_q1:
+        fail("NEGATIVE_CONTROL_CONTROL_TAMPER_ACCEPTED")
+    pkghash=props.get("datahash","")
+    if not re.fullmatch("[a-f0-9]{64}",pkghash):
+        fail("PKGINFO_DATAHASH_MISSING")
+    observed_data_sha=sha(data_gz)
+    print("R17_DATA_PACKAGE="+name+"_PKGINFO_DATAHASH="+pkghash+"_RAW_GZIP_SHA256="+observed_data_sha)
+    if observed_data_sha!=pkghash:
+        fail("PKGINFO_DATA_SHA256_MISMATCH")
+    modified_data=bytearray(data_gz)
+    modified_data[len(modified_data)//2]^=1
+    if sha(modified_data)==pkghash:
+        fail("NEGATIVE_CONTROL_DATA_TAMPER_ACCEPTED")
+    rsa_validated=False
+    signer_name=None
+    algo=None
+    if standalone_signature_present:
+        match=re.fullmatch(r"\.SIGN\.RSA(256)?\.([a-zA-Z0-9_.@+-]+\.rsa\.pub)",signature_name)
+        if match is None:fail("UNKNOWN_RSA_SIGNATURE_FORMAT")
+        algo="sha256" if match[1]=="256" else "sha1"
+        key=keydir/match[2]
+        if not key.is_file() or key.is_symlink() or not 100<len(signature)<5000:
+            fail("SIGNED_BASE_PUBLIC_KEY_MISSING")
+        prefix=re.sub("[^a-zA-Z0-9_-]","_",name)
+        compressed=temp/(prefix+".control.gz")
+        signature_file=temp/(prefix+".sig")
+        compressed.write_bytes(control_gz)
+        signature_file.write_bytes(signature)
+        result=subprocess.run(["openssl","dgst","-"+algo,"-verify",str(key),
+                                "-signature",str(signature_file),str(compressed)],
+                                capture_output=True,text=True,check=False,timeout=20)
+        if result.returncode!=0 or "Verified OK" not in result.stdout:
+            fail("RSA_CONTROL_SIGNATURE_VERIFICATION_FAILED")
+        rsa_validated=True
+        signer_name=key.name
     return {
-        "package":idx["P"],
-        "version":idx["V"],
-        "apk_size":len(raw),
-        "apk_full_sha256":sha(raw),
-        "index_control_checksum":claimed_q1,
-        "computed_apk_control_q1_matches_signed_index":True,
-        "negative_control_modified_control_q1_rejected":True,
-        "signature_entry":sig_filename,
-        "signature_algorithm":algo,
-        "signer_public_key_filename":key.name,
-        "openssl_control_signature_verified":True,
-        "raw_signature_member_sha256":sha(sign_gz),
-        "raw_compressed_control_sha256":sha(control_gz),
-        "raw_compressed_data_sha256":compressed_data_sha,
-        "pkginfo_signed_datahash_matches_compressed_data":True,
-        "data_member_executed_or_extracted":False,
+        "package":name,"version":version,"archive_bytes":len(raw),
+        "archive_full_sha256":sha(raw),
+        "apk_v2_gzip_stream_count_minimum":3 if standalone_signature_present else 2,
+        "standalone_archive_rsa_signature_present":standalone_signature_present,
+        "rsa_signature_cryptographically_verified":rsa_validated,
+        "rsa_signature_algorithm":algo,
+        "rsa_signer_filename":signer_name,
+        "signed_index_q1_sha1_control_checksum_match":True,
+        "negative_control_mutated_control_digest_rejected":True,
+        "signed_pkginfo_sha256_datahash_match":True,
+        "negative_control_mutated_data_digest_rejected":True,
+        "compressed_control_stream_sha256":sha(control_gz),
+        "compressed_data_stream_sha256":observed_data_sha,
+        "compressed_data_was_not_decompressed_or_executed":True,
+        "archive_v2_index_q1_uses_legacy_sha1":True,
     }
-
 
 def main():
     d=check_environment()
@@ -218,11 +230,12 @@ def main():
     temp.rmdir()
     report={
         "stage":"CERT-A19-R17",
-        "result":"FOUR_APK_V2_SIGNED_CONTROL_AND_DATAHASH_PASS__TRANSITIVE_CLOSURE_UNVERIFIED",
+        "result":"FOUR_APK_INDEX_Q1_AND_SIGNED_CONTROL_DATAHASH_CHECK__TRANSITIVE_CLOSURE_UNVERIFIED",
         "signed_index_archive_sha256":sha(ix),
         "signed_index_bytes_retained":True,
         "packages":details,
-        "four_archive_crypto_validated":len(details)==4,
+        "four_archive_index_control_q1_and_datahash_validated":len(details)==4,
+        "four_archive_standalone_rsa_signatures_verified":sum(1 for p in details if p["rsa_signature_cryptographically_verified"]),
         "sha1_q1_is_legacy_control_format_not_modern_collision_resistant_identity":True,
         "independent_base_key_custody":False,
         "native_apk_solver_closure_validated":False,
@@ -235,7 +248,7 @@ def main():
         "production_authorized":False,
     }
     (d/"r17-result.json").write_text(json.dumps(report,sort_keys=True,indent=2)+"\n")
-    print("R17_ALL_FOUR_ARCHIVE_Q1_AND_OPENSSL_SIGNATURE_AND_DATAHASH_PASS")
+    print("R17_ALL_FOUR_ARCHIVE_INDEX_Q1_AND_SIGNED_DATAHASH_PASS__RSA_SIGNATURE_COUNTS_SEPARATE")
     print("R17_SOLVER_CLOSURE_STILL_NOT_CERTIFIED_A6_DENY")
 
 
