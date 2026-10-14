@@ -302,3 +302,15 @@ Review of frozen main found: Python 3.12 slim Bookworm base, A11 fixed 372 Debia
 **Mandatory independent gates:** provenance and per-arch signed digest, native Python/Node ABI, required ELF/TLS/CA/NSS closure, Node bundled Undici analysis, strict Python/JS/TS/WASM fixed harmless fixture equivalence, independent rootless/gVisor host security, actual comparable scanner/file-byte findings, and preserved original A6 DENY. Historical **199** findings stay open, 0 CVEs closed; no new candidate, Docker build, CI or production changes. Keep PR #275 DRAFT / DO NOT MERGE.
 
 Disposition: `CERT_A19_R12_ARCHITECTURE_RESEARCH_PASS_SECURITY_CANDIDATE_NOT_BUILT_A6_DENIED_199_OPEN`.
+
+## CERT-A19-R13 — independently signed Wolfi OCI base custody, no Worker built
+
+**Full documentary evidence:** [MMT_CERT_A19_R13_WOLFI_BASE_CUSTODY.md](MMT_CERT_A19_R13_WOLFI_BASE_CUSTODY.md).
+
+- First isolated base-provenance run https://github.com/naseri-coder/Multi-Market-Trading/actions/runs/38628208782 completed **FAIL** at a too-strong initial assumption that `wolfi-base` already includes a glibc package. Actual checked minimal rootfs **does not** list `glibc` as installed. Upstream image signature and stopped-filesystem acquisition steps had succeeded; the failure was correctly not treated as worker compatibility.
+- Corrected single-purpose hosted run https://github.com/naseri-coder/Multi-Market-Trading/actions/runs/38628389282 completed **SUCCESS** with separated gates. The exact Cosign/Sigstore public Chainguard certificate identity was checked for immutable **index digest** `sha256:256c88bb066424045021090932d50be93c8e3f2ce3586707702a401b146f3e43`; selected linux/amd64 manifest `sha256:030e45cb37187dff322bbefe9658bcaec31b824a5d523380771a64864c9f45d4`. The stopped container reports `ID=wolfi` with 19 installed APK-db entries, **no observed glibc package**. No container/Worker code was started. CI evidence artifact ID `11926010501` (2 days).
+- This **authenticates only the signed Wolfi base**. Python 3.12, Node 24, TypeScript 5.9.3, Wasmtime 49.0.0, glibc, native libraries and four-language Worker semantics **have not been installed or tested in a custom image**; source/package signatures and immutable Apk closure unverified. No security certification, production or permission.
+- R14 gate: independently source and pin exact Wolfi glibc / Python 3.12 / Node 24 packages and native ABI first, then isolated, nonproduction 4-language parity after required host-security scope is independently reviewed.
+- No production, main, A11/A12, A2/A15/A18, TELMIVO/Telegram/broker, original 199 findings or A6 hard DENY changes; PR #275 stays DRAFT / DO NOT MERGE.
+
+**Verdict:** `CERT_A19_R13_SIGNED_WOLFI_BASE_DIGEST_AND_STOPPED_ROOTFS_PASS_GLIBC_NOT_INSTALLED_COMPONENTS_AND_ABI_NOT_RUN_199_OPEN`.
