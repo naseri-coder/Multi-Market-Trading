@@ -1,0 +1,52 @@
+name: MMT CERT-A4 synthetic CoreResult contract review only
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/cert_a4_synthetic_result_contract.py"
+      - "tests/unit/test_cert_a4_synthetic_result_contract.py"
+      - "docs/MMT_CERT_A4_SYNTHETIC_CORE_RESULT_CONTRACT.md"
+      - ".github/workflows/cert-a4-synthetic-core-results.yml"
+      - "naseri_markets/cert_a3_four_language_wire_replay.py"
+      - "naseri_markets/core_api_v1.py"
+      - "naseri_markets/runtime_a6_dispatch_fence.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cert-a4-fail-closed-core-result-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}/production_source:${{ github.workspace }}
+      MMT_NONPRODUCTION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install pinned offline dependencies and real Parquet decoder
+        run: |
+          python -m pip install --disable-pip-version-check \
+            pytest==9.1.1 pytest-asyncio==1.4.0 \
+            pyarrow==21.0.0 ruff==0.16.9 pydantic-settings==2.15.0
+      - name: Replay synthetic CoreResult claims and A3/A6 security fences
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check \
+            naseri_markets/cert_a4_synthetic_result_contract.py \
+            tests/unit/test_cert_a4_synthetic_result_contract.py
+          python -m pytest -q -ra \
+            tests/unit/test_cert_a4_synthetic_result_contract.py \
+            tests/unit/test_cert_a3_four_language_wire_replay.py \
+            tests/unit/test_cert_a2_direct_paper_replay.py \
+            tests/unit/test_runtime_a6_dispatch_fence.py \
+            | tee "$RUNNER_TEMP/cert-a4-core-result-tests.log"
+          if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/cert-a4-core-result-tests.log"; then
+            echo "CERT_A4_PARQUET_OR_SECURITY_REGRESSION_SKIPPED" >&2
+            exit 1
+          fi
