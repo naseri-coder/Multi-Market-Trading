@@ -1,0 +1,52 @@
+name: MMT CERT-A3 four-language PAPER wire replay (NO Worker)
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/cert_a3_four_language_wire_replay.py"
+      - "tests/unit/test_cert_a3_four_language_wire_replay.py"
+      - "docs/MMT_CERT_A3_FOUR_LANGUAGE_PAPER_WIRES.md"
+      - ".github/workflows/cert-a3-four-language-replay.yml"
+      - "naseri_markets/cert_a2_direct_paper_replay.py"
+      - "naseri_markets/data_runtime_paper_wire_a1.py"
+      - "naseri_markets/runtime_a6_dispatch_fence.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cert-a3-recompute-no-execution:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 17
+    env:
+      PYTHONPATH: ${{ github.workspace }}/production_source:${{ github.workspace }}
+      MMT_NONPRODUCTION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install pinned offline tests and Parquet decoder
+        run: |
+          python -m pip install --disable-pip-version-check \
+            pytest==9.1.1 pytest-asyncio==1.4.0 \
+            pyarrow==21.0.0 ruff==0.16.9 pydantic-settings==2.15.0
+      - name: Recompute DATA, Pine and four-language inert frame contracts
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check \
+            naseri_markets/cert_a3_four_language_wire_replay.py \
+            tests/unit/test_cert_a3_four_language_wire_replay.py
+          python -m pytest -q -ra \
+            tests/unit/test_cert_a3_four_language_wire_replay.py \
+            tests/unit/test_cert_a2_direct_paper_replay.py \
+            tests/unit/test_data_runtime_paper_wire_a1.py \
+            tests/unit/test_runtime_a6_dispatch_fence.py \
+            | tee "$RUNNER_TEMP/cert-a3-four-language.log"
+          if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/cert-a3-four-language.log"; then
+            echo "CERT_A3_UNTESTED_PARQUET_OR_SECURITY_PATH" >&2
+            exit 1
+          fi
