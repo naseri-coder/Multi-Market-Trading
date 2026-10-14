@@ -171,6 +171,14 @@ def test_nested_node_dependencies_require_fixed_elf_libraries(monkeypatch):
     assert any("libnode" in x.name for x in deps)
 
 
+def test_externalized_debian_node_commonjs_lexer_is_explicitly_preserved():
+    assert exporter._CJS == Path("/usr/share/nodejs/cjs-module-lexer")
+    source = (_ROOT / "deploy/runtime_a2/a15_export_runtime.py").read_text()
+    assert '(_CJS / "lexer.js").is_file()' in source
+    assert "(_TS, _WASM, dist, _CJS)" in source
+    assert "A15_EXTERNALIZED_NODE_CJS_LEXER_MISSING" in source
+
+
 def test_transitive_libnode_dependency_libuv_is_not_omitted(monkeypatch):
     calls = []
 
