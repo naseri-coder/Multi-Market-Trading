@@ -7,15 +7,15 @@ from pathlib import Path
 
 import pytest
 
-from naseri_markets.runtime_a13_security_contract_audit import (
-    A13AuditRefused,
-    audit_repository,
-)
+from naseri_markets import runtime_a13_security_contract_audit as audit
 from naseri_markets.runtime_a6_dispatch_fence import (
     RuntimeA6Denied,
     require_worker_launch,
 )
-from naseri_markets import runtime_a13_security_contract_audit as audit
+from naseri_markets.runtime_a13_security_contract_audit import (
+    A13AuditRefused,
+    audit_repository,
+)
 
 BASE = Path(__file__).resolve().parents[2]
 A1 = "naseri_markets/multilang_runtime_a1.py"
