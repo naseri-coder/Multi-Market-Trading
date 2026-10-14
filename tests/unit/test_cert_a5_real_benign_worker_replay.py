@@ -202,7 +202,7 @@ def _run(kind: RuntimeKind, frame: bytes) -> subprocess.CompletedProcess:
     }
     return subprocess.run(
         [sys.executable, str(WORKER)], input=frame,
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
+        capture_output=True, check=False,
         env=env, timeout=12,
     )
 
