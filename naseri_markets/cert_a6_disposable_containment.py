@@ -30,6 +30,14 @@ def test_file():
         return False
     except OSError:
         return True
+def test_interfaces():
+    # A refused TCP connection to TEST-NET alone is not isolation evidence:
+    # any normal host may lack a route to that address. Examine the guest's
+    # actual network-interface namespace as a separate, fail-closed signal.
+    try:
+        return {name for _, name in socket.if_nameindex()} == {"lo"}
+    except (OSError, ValueError):
+        return False
 def test_network():
     connection = None
     try:
@@ -46,12 +54,13 @@ names = ("AWS_SECRET_ACCESS_KEY", "DATABASE_URL", "BINANCE_API_KEY",
 print(json.dumps({"nonroot": os.geteuid() == 65534,
                   "rootfs_write_refused": test_file(),
                   "external_tcp_refused": test_network(),
+                  "loopback_only_interfaces": test_interfaces(),
                   "no_named_secrets": not any(key in os.environ for key in names)},
                  sort_keys=True, separators=(",", ":")))
 """
 _KEYS = frozenset({
     "nonroot", "rootfs_write_refused", "external_tcp_refused",
-    "no_named_secrets",
+    "loopback_only_interfaces", "no_named_secrets",
 })
 
 
@@ -66,6 +75,7 @@ class ContainmentObservation:
     runsc_sha256: str
     probe_sha256: str
     network_probe_refused: bool
+    loopback_interfaces_only: bool
     rootfs_probe_refused: bool
     nonroot_probe_passed: bool
     named_secret_probe_passed: bool
@@ -199,6 +209,7 @@ def assess(*, host_id: str, image: str, runsc: Path, runsc_sha256: str,
         runsc_sha256=runsc_sha256,
         probe_sha256=hashlib.sha256(_PROBE.encode("utf-8")).hexdigest(),
         network_probe_refused=raw["external_tcp_refused"],
+        loopback_interfaces_only=raw["loopback_only_interfaces"],
         rootfs_probe_refused=raw["rootfs_write_refused"],
         nonroot_probe_passed=raw["nonroot"],
         named_secret_probe_passed=raw["no_named_secrets"],
