@@ -42,10 +42,6 @@ def _fake_host(monkeypatch, *, versions=None, orphan=False, run_error=None,
         a9, "verify_source_lock",
         lambda *args: SimpleNamespace(checked_files=3),
     )
-    monkeypatch.setattr(
-        a9.hashlib, "sha256",
-        a9.hashlib.sha256,
-    )
     calls = []
     image_checks = 0
 
@@ -131,9 +127,7 @@ def test_local_image_and_installed_version_inventory_mock(monkeypatch):
                          "--network=host", "--env-file"))
         for flag in run
     )
-    assert run[-4:] == ("-I", "-c", a9._PROBE, ) or run[-5:] == (
-        a9._IMAGE, "-I", "-c", a9._PROBE,
-    )
+    assert run[-4:] == (a9._IMAGE, "-I", "-c", a9._PROBE)
 
 
 @pytest.mark.parametrize("env", [
