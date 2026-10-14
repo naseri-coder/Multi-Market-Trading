@@ -20,8 +20,8 @@ PROBE_OK = {
 }
 
 
-def _result(code: int, out: bytes = b""):
-    return subprocess.CompletedProcess((), code, stdout=out, stderr=b"")
+def _result(code: int, out: bytes = b"", err: bytes = b""):
+    return subprocess.CompletedProcess((), code, stdout=out, stderr=err)
 
 
 def _test_host(monkeypatch, *, report=None, run_error=None,
@@ -54,7 +54,9 @@ def _test_host(monkeypatch, *, report=None, run_error=None,
         if "info" in args:
             return _result(0, b'["name=rootless"]')
         if "inspect" in args:
-            return _result(1 if cleanup_success else 0)
+            name = args[-1].encode("ascii")
+            return (_result(1, err=b"Error: No such object: " + name)
+                    if cleanup_success else _result(0))
         pytest.fail("UNEXPECTED_DOCKER_COMMAND")
 
     monkeypatch.setattr(a6, "_call", call)
