@@ -63,6 +63,31 @@ class PineSmaCrossRule:
     tradingview_equivalence_proven: bool = False
     worker_execution_authorized: bool = False
 
+    def __post_init__(self) -> None:
+        # Directly constructed IR objects are not allowed to inject unsafe
+        # lengths, altered expressions or authority flags into review.
+        if (type(self.source_sha256) is not str
+                or _SHA.fullmatch(self.source_sha256) is None
+                or type(self.pine_version) is not int
+                or self.pine_version not in (5, 6)
+                or type(self.indicator_title) is not str
+                or _TITLE.fullmatch(
+                    'indicator("' + self.indicator_title + '", overlay=true)'
+                ) is None
+                or type(self.fast_length) is not int
+                or type(self.slow_length) is not int
+                or not 2 <= self.fast_length < self.slow_length <= 200
+                or self.input_price != "close"
+                or self.on_bar != "barstate.isconfirmed"
+                or self.cross_up != "ta.crossover(fast,slow)"
+                or self.cross_down != "ta.crossunder(fast,slow)"
+                or self.portable_rule != "PINE_A1_CONFIRMED_CLOSED_BAR_SMA_CROSS_V1"
+                or self.executable is not False
+                or self.compiled is not False
+                or self.tradingview_equivalence_proven is not False
+                or self.worker_execution_authorized is not False):
+            raise PineA1Refused("PINE_A1_FORGED_OR_INVALID_RULE_IR")
+
 
 @dataclass(frozen=True, slots=True)
 class PineTraceReview:
