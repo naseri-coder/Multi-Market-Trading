@@ -36,6 +36,8 @@ jobs:
       - name: Validate real CSV/Parquet, A1 framing and A6 hard denial
         run: |
           set -Eeuo pipefail
+          python -m ruff check --select I001 --fix --diff \
+            tests/unit/test_data_runtime_paper_wire_a1.py || true
           python -m ruff check \
             naseri_markets/data_runtime_paper_wire_a1.py \
             tests/unit/test_data_runtime_paper_wire_a1.py
