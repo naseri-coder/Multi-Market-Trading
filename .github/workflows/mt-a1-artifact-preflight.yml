@@ -29,8 +29,8 @@ jobs:
       - name: Install pinned tests only - no broker SDK or MetaTrader terminal
         run: |
           python -m pip install --disable-pip-version-check \
-            pytest==9.1.1 pytest-asyncio==1.4.0 ruff==0.16.9 \
-            pydantic-settings==2.15.0
+            pytest==9.1.1 pytest-asyncio==1.4.0 pyarrow==21.0.0 \
+            ruff==0.16.9 pydantic-settings==2.15.0
       - name: MQ4 MQ5 EX5 local bytes, MetaTrader DEMO and A6 regressions
         run: |
           set -Eeuo pipefail
