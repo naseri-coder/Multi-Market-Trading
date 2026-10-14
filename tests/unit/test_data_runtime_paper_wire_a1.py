@@ -34,7 +34,6 @@ from naseri_markets.runtime_a6_dispatch_fence import (
     require_worker_launch,
 )
 
-
 T0 = datetime(2026, 10, 13, 10, tzinfo=UTC)
 HEADER = b"open_at,close_at,open,high,low,close,volume\n"
 ROWS = (
