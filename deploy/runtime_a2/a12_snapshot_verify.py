@@ -155,6 +155,30 @@ def verify_sources() -> None:
         raise A12Refused("A12_CANNOT_CHECK_APT_SOURCES") from exc
 
 
+def _verify_one_index(path: Path, expected_sha: str) -> None:
+    before = _regular(path, 1024 * 1024)
+    if hashlib.sha256(before).hexdigest() != expected_sha:
+        raise A12Refused("A12_INRELEASE_BYTES_DIFFER_FROM_PIN")
+    try:
+        response = subprocess.run(
+            ("/usr/bin/gpgv", "--keyring", str(_KEY),
+             "--status-fd", "1", str(path)),
+            stdin=subprocess.DEVNULL, capture_output=True,
+            shell=False, close_fds=True, timeout=12, check=False,
+            env={"PATH": "/usr/bin:/bin", "HOME": "/nonexistent"},
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise A12Refused("A12_GPGV_UNAVAILABLE_OR_TIMEOUT") from exc
+    if (response.returncode != 0 or not 0 < len(response.stdout) <= 8192
+            or _SIGNATURE.search(response.stdout) is None
+            or b"[GNUPG:] BADSIG" in response.stdout
+            or b"[GNUPG:] REVKEYSIG" in response.stdout):
+        raise A12Refused("A12_INRELEASE_SIGNATURE_NOT_VALIDATED")
+    after = _regular(path, 1024 * 1024)
+    if hashlib.sha256(after).hexdigest() != expected_sha:
+        raise A12Refused("A12_SIGNED_INDEX_CHANGED_WHILE_CHECKING")
+
+
 def verify_signed_indexes() -> int:
     verify_sources()
     _regular(_KEY, 1024 * 1024)
@@ -166,28 +190,7 @@ def verify_signed_indexes() -> int:
     if found != expected:
         raise A12Refused("A12_MISSING_OR_EXTRA_SIGNED_INDEX")
     for filename, expected_sha in _RELEASES.values():
-        path = _LISTS / filename
-        before = _regular(path, 1024 * 1024)
-        if hashlib.sha256(before).hexdigest() != expected_sha:
-            raise A12Refused("A12_INRELEASE_BYTES_DIFFER_FROM_PIN")
-        try:
-            response = subprocess.run(
-                ("/usr/bin/gpgv", "--keyring", str(_KEY),
-                 "--status-fd", "1", str(path)),
-                stdin=subprocess.DEVNULL, capture_output=True,
-                shell=False, close_fds=True, timeout=12, check=False,
-                env={"PATH": "/usr/bin:/bin", "HOME": "/nonexistent"},
-            )
-        except (OSError, subprocess.TimeoutExpired) as exc:
-            raise A12Refused("A12_GPGV_UNAVAILABLE_OR_TIMEOUT") from exc
-        if (response.returncode != 0 or not 0 < len(response.stdout) <= 8192
-                or _SIGNATURE.search(response.stdout) is None
-                or b"[GNUPG:] BADSIG" in response.stdout
-                or b"[GNUPG:] REVKEYSIG" in response.stdout):
-            raise A12Refused("A12_INRELEASE_SIGNATURE_NOT_VALIDATED")
-        after = _regular(path, 1024 * 1024)
-        if hashlib.sha256(after).hexdigest() != expected_sha:
-            raise A12Refused("A12_SIGNED_INDEX_CHANGED_WHILE_CHECKING")
+        _verify_one_index(_LISTS / filename, expected_sha)
     return len(_RELEASES)
 
 
