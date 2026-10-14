@@ -5,7 +5,7 @@ import hashlib
 import socket
 import subprocess
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -277,10 +277,7 @@ def test_synthetic_result_bundle_exactness(tmp_path, change):
         traces[0] = replace(traces[0], claim_origin="WORKER_PROVEN")
     elif change == "invalid_kind":
         traces[0] = replace(traces[0], kind="python")
-    if change == "non_tuple":
-        shaped = traces
-    else:
-        shaped = tuple(traces)
+    shaped = traces if change == "non_tuple" else tuple(traces)
     with pytest.raises(CertA4Refused):
         _run((*case[:5], shaped))
 
