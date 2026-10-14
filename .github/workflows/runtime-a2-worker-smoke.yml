@@ -29,6 +29,12 @@ on:
       - "scripts/ci_cert_a13_sbom_review.py"
       - "tests/unit/test_cert_a13_sbom_review.py"
       - "docs/MMT_CERT_A13_SBOM_VULNERABILITY_AUDIT.md"
+      - "scripts/ci_cert_a15_image_compare.py"
+      - "tests/unit/test_cert_a15_lean_worker.py"
+      - "deploy/runtime_a2/a15_export_runtime.py"
+      - "deploy/runtime_a2/Dockerfile.a15-lean"
+      - "deploy/runtime_a2/Dockerfile.a15-lean.dockerignore"
+      - "docs/MMT_CERT_A15_LEAN_IMAGE_COMPARISON.md"
       - "deploy/runtime_a2/a8_source_lock.json"
       - "naseri_markets/runtime_a8_supply_chain.py"
       - ".github/workflows/runtime-a2-worker-smoke.yml"
@@ -72,12 +78,16 @@ jobs:
             tests/unit/test_cert_a9_worker_image_inventory.py \
             tests/unit/test_cert_a13_sbom_review.py \
             scripts/ci_cert_a13_sbom_review.py \
+            scripts/ci_cert_a15_image_compare.py \
+            deploy/runtime_a2/a15_export_runtime.py \
+            tests/unit/test_cert_a15_lean_worker.py \
             naseri_markets/multilang_runtime_a1.py
           python -m pytest -q -ra \
             tests/unit/test_runtime_a2_worker.py \
             tests/unit/test_cert_a8_ci_rootful_docker_smoke.py \
             tests/unit/test_cert_a9_worker_image_inventory.py \
             tests/unit/test_cert_a13_sbom_review.py \
+            tests/unit/test_cert_a15_lean_worker.py \
             tests/unit/test_runtime_a8_supply_chain.py \
             tests/unit/test_runtime_a6_dispatch_fence.py \
             | tee "$RUNNER_TEMP/mmt-runtime-a2.txt"
@@ -92,7 +102,7 @@ jobs:
   candidate-container-fixture:
     runs-on: ubuntu-24.04
     needs: actual-four-language-fixture
-    timeout-minutes: 28
+    timeout-minutes: 36
     env:
       PYTHONPATH: ${{ github.workspace }}/production_source:${{ github.workspace }}
     steps:
@@ -208,5 +218,92 @@ jobs:
             ${{ runner.temp }}/cert-a13.scan.json
             ${{ runner.temp }}/cert-a13-evidence.json
             ${{ runner.temp }}/cert-a13.image-id
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: CERT-A15 offline build of separate lean candidate from fixed A2 image
+        run: |
+          set -Eeuo pipefail
+          test "$(uname -m)" = x86_64
+          base=mmt/runtime-a2-candidate:pr
+          lean=mmt/runtime-a15-lean:pr
+          before="$(docker image inspect "$base" --format '{{.Id}}')"
+          docker build --pull=false --network=none --tag "$lean" \
+            --file deploy/runtime_a2/Dockerfile.a15-lean .
+          after="$(docker image inspect "$base" --format '{{.Id}}')"
+          test "$before" = "$after"
+          test "$before" != "$(docker image inspect "$lean" --format '{{.Id}}')"
+          echo "A15_SEPARATE_CANDIDATE_BUILT_FROM_PINNED_LOCAL_A2_NO_NETWORK"
+      - name: CERT-A15 execute identical four fixed benign fixture roundtrips on lean
+        env:
+          MMT_A2_IMAGE: mmt/runtime-a15-lean:pr
+        run: |
+          set -Eeuo pipefail
+          python -m pytest -q -ra \
+            tests/unit/test_runtime_a2_worker.py::test_exact_four_language_benign_fixture_roundtrips
+          echo "CERT_A15_FOUR_BENIGN_LANGUAGE_FIXTURES_PASS"
+      - name: CERT-A15 ensure Node, TypeScript and Wasmtime present, npm and tsc absent
+        run: |
+          set -Eeuo pipefail
+          docker run --rm --pull=never --network=none --read-only \
+            --cap-drop=ALL --security-opt=no-new-privileges \
+            --pids-limit=32 --memory=256m --memory-swap=256m --cpus=0.5 \
+            --user=65534:65534 \
+            --tmpfs=/tmp:rw,noexec,nosuid,nodev,size=8m,mode=1777 \
+            --entrypoint=/usr/local/bin/python mmt/runtime-a15-lean:pr \
+            -I -c 'import importlib.metadata,shutil,subprocess;
+          assert shutil.which("npm") is None and shutil.which("tsc") is None;
+          assert subprocess.check_output(["node","--version"],timeout=4).strip()==b"v18.20.4";
+          assert subprocess.check_output(["node","-e","console.log(require(\"typescript\").version)"],timeout=4).strip()==b"5.9.3";
+          assert importlib.metadata.version("wasmtime")=="49.0.0";
+          import wasmtime;
+          print("A15_NO_NPM_TSC__NODE_TS_WASM_IMPORT_VERIFIED")'
+      - name: CERT-A15 scan lean image using existing same Grype advisory DB
+        env:
+          SYFT_CHECK_FOR_APP_UPDATE: "false"
+          GRYPE_CHECK_FOR_APP_UPDATE: "false"
+        run: |
+          set -Eeuo pipefail
+          image=mmt/runtime-a15-lean:pr
+          old=mmt/runtime-a2-candidate:pr
+          before="$(docker image inspect "$old" --format '{{.Id}}')"
+          lean_before="$(docker image inspect "$image" --format '{{.Id}}')"
+          "$RUNNER_TEMP/cert-a13-tools/syft" "docker:$image" \
+            -o "cyclonedx-json=$RUNNER_TEMP/cert-a15-lean.sbom.json"
+          "$RUNNER_TEMP/cert-a13-tools/grype" \
+            "sbom:$RUNNER_TEMP/cert-a15-lean.sbom.json" --output json \
+            > "$RUNNER_TEMP/cert-a15-lean.scan.json"
+          test "$before" = "$(docker image inspect "$old" --format '{{.Id}}')"
+          test "$lean_before" = "$(docker image inspect "$image" --format '{{.Id}}')"
+          echo "CERT_A15_SAME_RUN_SCANNER_OUTPUT_READY_NO_CVE_FIX_CLAIM"
+      - name: CERT-A15 compare actual image bytes and same-DB scanner findings
+        env:
+          MMT_NONPRODUCTION: "1"
+          MMT_CERT_A15_COMPARE_ONLY: "1"
+          RUNNER_ENVIRONMENT: github-hosted
+        run: |
+          set -Eeuo pipefail
+          baseline=mmt/runtime-a2-candidate:pr
+          lean=mmt/runtime-a15-lean:pr
+          python -m scripts.ci_cert_a15_image_compare \
+            --base-sbom "$RUNNER_TEMP/cert-a13.sbom.json" \
+            --base-scan "$RUNNER_TEMP/cert-a13.scan.json" \
+            --lean-sbom "$RUNNER_TEMP/cert-a15-lean.sbom.json" \
+            --lean-scan "$RUNNER_TEMP/cert-a15-lean.scan.json" \
+            --base-id "$(docker image inspect "$baseline" --format '{{.Id}}')" \
+            --lean-id "$(docker image inspect "$lean" --format '{{.Id}}')" \
+            --base-size "$(docker image inspect "$baseline" --format '{{.Size}}')" \
+            --lean-size "$(docker image inspect "$lean" --format '{{.Size}}')" \
+            --output "$RUNNER_TEMP/cert-a15-comparison.json"
+          test -s "$RUNNER_TEMP/cert-a15-comparison.json"
+          echo "CERT_A15_INVENTORY_COMPARISON_DONE__NOT_A_SECURITY_REMEDIATION"
+      - name: Upload expiring A15 lean SBOM, Grype scan and comparison
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cert-a15-lean-worker-research-only
+          path: |
+            ${{ runner.temp }}/cert-a15-lean.sbom.json
+            ${{ runner.temp }}/cert-a15-lean.scan.json
+            ${{ runner.temp }}/cert-a15-comparison.json
           if-no-files-found: error
           retention-days: 3
