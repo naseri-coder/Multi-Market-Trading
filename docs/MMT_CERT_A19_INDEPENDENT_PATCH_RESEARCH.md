@@ -327,3 +327,17 @@ Disposition: `CERT_A19_R12_ARCHITECTURE_RESEARCH_PASS_SECURITY_CANDIDATE_NOT_BUI
 - Next proof gate: independently verify immutable package archives, resolve full consistent transitive dependencies and ELF/ABI, **then** consider fixed four-language nonproduction qualification. No production approval.
 
 Verdict: `CERT_A19_R14_SIGNED_WOLFI_APK_INDEX_AND_CANDIDATE_VERSION_SNAPSHOT_PASS__FULL_ARCHIVE_SHA_AND_CLOSURE_NOT_PROVEN__A6_DENY_199_OPEN`.
+
+## CERT-A19-R15 — partial four-.apk SHA observations, **BLOCKED** signed-index drift and unresolved solver
+
+**Authoritative fail-closed record:** [R15 package archive provenance and open gates](MMT_CERT_A19_R15_PACKAGE_ARCHIVE_PROVENANCE.md).
+
+R15 narrow experiments confirmed exact R14 Chainguard Sigstore-signed base identity and native keyring acceptance of the **original R14 x86_64 signed APKINDEX digest** `15f8b555714bfe44b0f4de0ee24910e0533f7b4fbb4a650cf533115c6a4f281a` before further checks.
+
+A hosted nonproduction run [#38633084874](https://github.com/naseri-coder/Multi-Market-Trading/actions/runs/38633084874) **downloaded and measured** the four exact R14 direct-root `.apk` files (glibc-2.44 2.44-r8, python-3.12 3.12.15-r3, python-3.12-base 3.12.15-r3, nodejs-24 24.22.0-r0). Artifact `cert-a19-r15-wolfi-four-root-apk-custody` ID `11926503082` contains only `selection.json` with exact measured full APK SHA-256 and bytes, but has `apk_archives_verified=0` because **native `apk verify` FAILED**. Do NOT treat these observed hashes as cryptographically publisher-authenticated.
+
+Earlier `apk fetch --recursive` attempts did **not** resolve a full transitive closure. On subsequent [run #38633234712](https://github.com/naseri-coder/Multi-Market-Trading/actions/runs/38633234712), the **live** index bytes had changed versus the frozen R14 index SHA and preflight refused to continue; R14 had not retained raw immutable index bytes. No new index was silently substituted, no signatures or CVEs reclassified, and no full Wolfi combined Worker candidate was constructed.
+
+**R15 verdict:** `CERT_A19_R15_BLOCKED_SIGNED_INDEX_SNAPSHOT_DRIFT__FOUR_APK_SHA256_OBSERVED_BUT_NATIVE_SIGNATURE_UNVERIFIED__TRANSITIVE_CLOSURE_UNRESOLVED__A6_DENY_199_OPEN`.
+
+Future R16 should atomically archive the signed index **bytes** and validate genuine native dependency solver semantics before downloading and signing every archive, without changing old A11/A2/A15/A18, main, A6 or production. PR #275 remains DRAFT and unmerged; original **199** findings remain review-open; 0 CVEs closed.
