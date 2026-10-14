@@ -336,9 +336,10 @@ def test_unauthorized_operator_or_production_denied(
             _proposal(r1, a1, new.witness_id(), operator_ack=False)
         with pytest.raises(A12Refused, match="A12_PINNED_KEY_EPOCH_REQUIRED"):
             _proposal(r1, a1, new.witness_id(), previous_key_epoch=True)
+        preverified_new_id = new.witness_id()
         monkeypatch.setenv("MMT_PRODUCTION", "1")
         with pytest.raises(A12Refused, match="A12_NONPRODUCTION_ONLY"):
-            _proposal(r1, a1, new.witness_id())
+            _proposal(r1, a1, preverified_new_id)
         with pytest.raises(A12Refused, match="A12_NONPRODUCTION_ONLY"):
             block_lost_media(media_accessible=False,
                              authentic_latest_floor_available=False)
