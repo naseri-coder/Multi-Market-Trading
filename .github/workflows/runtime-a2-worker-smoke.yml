@@ -26,6 +26,9 @@ on:
       - "scripts/ci_cert_a9_worker_image_inventory.py"
       - "tests/unit/test_cert_a9_worker_image_inventory.py"
       - "docs/MMT_CERT_A9_WORKER_IMAGE_INVENTORY.md"
+      - "scripts/ci_cert_a13_sbom_review.py"
+      - "tests/unit/test_cert_a13_sbom_review.py"
+      - "docs/MMT_CERT_A13_SBOM_VULNERABILITY_AUDIT.md"
       - "deploy/runtime_a2/a8_source_lock.json"
       - "naseri_markets/runtime_a8_supply_chain.py"
       - ".github/workflows/runtime-a2-worker-smoke.yml"
@@ -67,11 +70,14 @@ jobs:
             tests/unit/test_cert_a8_ci_rootful_docker_smoke.py \
             scripts/ci_cert_a9_worker_image_inventory.py \
             tests/unit/test_cert_a9_worker_image_inventory.py \
+            tests/unit/test_cert_a13_sbom_review.py \
+            scripts/ci_cert_a13_sbom_review.py \
             naseri_markets/multilang_runtime_a1.py
           python -m pytest -q -ra \
             tests/unit/test_runtime_a2_worker.py \
             tests/unit/test_cert_a8_ci_rootful_docker_smoke.py \
             tests/unit/test_cert_a9_worker_image_inventory.py \
+            tests/unit/test_cert_a13_sbom_review.py \
             tests/unit/test_runtime_a8_supply_chain.py \
             tests/unit/test_runtime_a6_dispatch_fence.py \
             | tee "$RUNNER_TEMP/mmt-runtime-a2.txt"
@@ -86,7 +92,7 @@ jobs:
   candidate-container-fixture:
     runs-on: ubuntu-24.04
     needs: actual-four-language-fixture
-    timeout-minutes: 20
+    timeout-minutes: 28
     env:
       PYTHONPATH: ${{ github.workspace }}/production_source:${{ github.workspace }}
     steps:
@@ -132,3 +138,75 @@ jobs:
           set -Eeuo pipefail
           python -m scripts.ci_cert_a9_worker_image_inventory
           echo "CERT_A9_INSTALLED_IMAGE_OBSERVED__EXTERNAL_PROVENANCE_NOT_VERIFIED"
+      - name: CERT-A13 install SHA-pinned disposable Syft and Grype binaries
+        run: |
+          set -Eeuo pipefail
+          test "$(uname -m)" = x86_64
+          work="$RUNNER_TEMP/cert-a13-tools"
+          mkdir -p "$work"
+          curl --fail --location --silent --show-error --retry 2 \
+            --connect-timeout 20 --max-time 180 \
+            "https://github.com/anchore/syft/releases/download/v1.54.1/syft_1.54.1_linux_amd64.tar.gz" \
+            --output "$work/syft.tar.gz"
+          printf '%s  %s\n' \
+            c069905b391cc4c20a5ba65ad5c10be2a7ba074f8ea6ad203e24d14e303dad47 \
+            "$work/syft.tar.gz" | sha256sum --check --status
+          curl --fail --location --silent --show-error --retry 2 \
+            --connect-timeout 20 --max-time 180 \
+            "https://github.com/anchore/grype/releases/download/v0.120.1/grype_0.120.1_linux_amd64.tar.gz" \
+            --output "$work/grype.tar.gz"
+          printf '%s  %s\n' \
+            0a9ee97ef5ae2ee953b0a80098105052e846cdbe319a57d808b519c33cd1343d \
+            "$work/grype.tar.gz" | sha256sum --check --status
+          tar -xzf "$work/syft.tar.gz" -C "$work" syft
+          tar -xzf "$work/grype.tar.gz" -C "$work" grype
+          chmod 0555 "$work/syft" "$work/grype"
+          "$work/syft" version
+          "$work/grype" version
+          echo "CERT_A13_TOOLS_MATCH_FIXED_TARBALL_SHA256_NOT_INDEPENDENT_PUBLISHER_ID"
+      - name: CERT-A13 generate real CycloneDX SBOM and query Grype advisory database
+        env:
+          SYFT_CHECK_FOR_APP_UPDATE: "false"
+          GRYPE_CHECK_FOR_APP_UPDATE: "false"
+        run: |
+          set -Eeuo pipefail
+          image=mmt/runtime-a2-candidate:pr
+          first="$(docker image inspect "$image" --format '{{.Id}}')"
+          test "\${first#sha256:}" != "$first"
+          "$RUNNER_TEMP/cert-a13-tools/syft" "docker:$image" \
+            -o "cyclonedx-json=$RUNNER_TEMP/cert-a13.sbom.json"
+          "$RUNNER_TEMP/cert-a13-tools/grype" \
+            "sbom:$RUNNER_TEMP/cert-a13.sbom.json" --output json \
+            > "$RUNNER_TEMP/cert-a13.scan.json"
+          last="$(docker image inspect "$image" --format '{{.Id}}')"
+          if test "$first" != "$last"; then
+            echo "CERT_A13_IMAGE_ID_CHANGED_DURING_SCAN" >&2
+            exit 1
+          fi
+          printf '%s\n' "$first" > "$RUNNER_TEMP/cert-a13.image-id"
+          echo "CERT_A13_REAL_SBOM_AND_ADVISORY_SCAN_FINISHED"
+      - name: CERT-A13 review freshness and output explicit NON-AUTHORIZING evidence
+        env:
+          MMT_NONPRODUCTION: "1"
+          MMT_CERT_A13_AUDIT_ONLY: "1"
+          RUNNER_ENVIRONMENT: github-hosted
+        run: |
+          set -Eeuo pipefail
+          python -m scripts.ci_cert_a13_sbom_review \
+            --sbom "$RUNNER_TEMP/cert-a13.sbom.json" \
+            --scan "$RUNNER_TEMP/cert-a13.scan.json" \
+            --image-id "$(cat "$RUNNER_TEMP/cert-a13.image-id")" \
+            --output "$RUNNER_TEMP/cert-a13-evidence.json"
+          test -s "$RUNNER_TEMP/cert-a13-evidence.json"
+          echo "CERT_A13_REPORT_ONLY_ROOTFUL_CI_NO_RELEASE_PERMISSION"
+      - name: Upload transient CERT-A13 SBOM, scan and non-authorizing summary
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cert-a13-fixed-worker-sbom-vulnerability-evidence
+          path: |
+            \${{ runner.temp }}/cert-a13.sbom.json
+            \${{ runner.temp }}/cert-a13.scan.json
+            \${{ runner.temp }}/cert-a13-evidence.json
+            \${{ runner.temp }}/cert-a13.image-id
+          if-no-files-found: error
+          retention-days: 3
