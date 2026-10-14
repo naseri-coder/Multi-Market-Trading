@@ -29,7 +29,7 @@ def _set(tmp_path):
     for package, (_, prefix) in a18._PACKAGES.items():
         code_path = prefix + "index.js"
         base.add(code_path)
-        (manifests / f"{package}.list").write_text("/" + code_path + "\n")
+        (manifests / f"{package}.list").write_text("/.\n/" + code_path + "\n")
     base_tree, lean_tree = tmp_path / "base.txt", tmp_path / "candidate.txt"
     base_tree.write_text("\n".join(sorted(base)) + "\n")
     lean_tree.write_text("\n".join(sorted(candidate)) + "\n")
