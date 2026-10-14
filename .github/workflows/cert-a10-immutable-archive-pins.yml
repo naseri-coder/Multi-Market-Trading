@@ -1,0 +1,46 @@
+name: MMT CERT-A10 pin discovery - untrusted observations only
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cert-a10-immutable-archive-pins.yml"
+      - "deploy/runtime_a2/Dockerfile"
+      - "deploy/runtime_a2/a8_source_lock.json"
+      - "deploy/runtime_a2/a10_wasmtime.lock"
+      - "docs/MMT_CERT_A10_IMMUTABLE_PACKAGE_PINS.md"
+      - "tests/unit/test_cert_a10_immutable_package_pins.py"
+      - "naseri_markets/cert_a10_immutable_package_pins.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  discover-public-archives:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+      - name: Collect public digest CANDIDATES ONLY, do not treat as attestations
+        run: |
+          set -Eeuo pipefail
+          echo "A10_DISCOVERY_ONLY__DO_NOT_CLAIM_LOCKED"
+          docker buildx imagetools inspect docker.io/library/python:3.12-slim-bookworm \
+            | grep -m1 '^Digest:'
+          npm view typescript@5.9.3 dist.integrity --json
+          mkdir -p "$RUNNER_TEMP/tgz" "$RUNNER_TEMP/wheel"
+          npm pack --ignore-scripts typescript@5.9.3 \
+            --pack-destination "$RUNNER_TEMP/tgz" --silent
+          sha512sum "$RUNNER_TEMP/tgz"/typescript-5.9.3.tgz
+          python -m pip download --no-deps --only-binary=:all: \
+            --dest "$RUNNER_TEMP/wheel" wasmtime==49.0.0
+          sha256sum "$RUNNER_TEMP/wheel"/*.whl
+          echo "A10_CANDIDATE_HASHES_FROM_LIVE_REGISTRIES__NOT_INDEPENDENT_PROVENANCE"
