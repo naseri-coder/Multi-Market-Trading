@@ -290,3 +290,15 @@ Debian's own Security Tracker contributor guidance (https://security-team.debian
 **R11 verdict:** `CERT_A19_R11_OFFICIAL_DEBIAN_UPSTREAM_VERSION_MISMATCH_DOCUMENTED_MAINTAINER_REVIEW_REQUIRED_199_REVIEW_OPEN_NO_SECURITY_PATCH`.
 
 **No change in authorization:** main/A11/A18/RUNTIME-A6 unchanged, no new Worker image, no CI quota spent, no Production, TELMIVO, broker, Telegram or unknown code; PR #275 remains DRAFT and must NOT merge.
+
+## CERT-A19-R12 — Worker base-image architecture decision, Debian-neutral research only
+
+**Decision artifact:** [CERT-A19-R12 Debian-neutral runtime architecture and exact acceptance gates](MMT_CERT_A19_R12_RUNTIME_BASE_DECISION.md). This is an **architecture freeze**, not a replacement Worker candidate, Debian vendor resolution, CVE repair or permission to deploy/merge.
+
+Review of frozen main found: Python 3.12 slim Bookworm base, A11 fixed 372 Debian archives, Node v18.20.4 with upstream EOL since 2025-03-27, TypeScript 5.9.3, wasmtime 49.0.0 manylinux x86-64, and framed Python/JavaScript/TypeScript/WASM Worker with `node:vm` (officially not an isolation/security mechanism). A15 retains glibc runtime imports; A18 is metadata-only.
+
+**Research shortlist:** first investigate **signed, minimal, Debian-neutral Wolfi/glibc** combined Python + maintained Node (Node 24 LTS as provisional target) + TypeScript + Wasmtime; separately investigate Alpine/musl as alternative (Wasmtime 49 has musllinux wheels but the pinned manylinux A10 wheel cannot be copied as-is). Google Distroless Debian 13 is a useful minimal-image comparison but **still Debian**, and documented Python3 Debian13 carries Python 3.13, an additional migration relative to pinned 3.12.
+
+**Mandatory independent gates:** provenance and per-arch signed digest, native Python/Node ABI, required ELF/TLS/CA/NSS closure, Node bundled Undici analysis, strict Python/JS/TS/WASM fixed harmless fixture equivalence, independent rootless/gVisor host security, actual comparable scanner/file-byte findings, and preserved original A6 DENY. Historical **199** findings stay open, 0 CVEs closed; no new candidate, Docker build, CI or production changes. Keep PR #275 DRAFT / DO NOT MERGE.
+
+Disposition: `CERT_A19_R12_ARCHITECTURE_RESEARCH_PASS_SECURITY_CANDIDATE_NOT_BUILT_A6_DENIED_199_OPEN`.
