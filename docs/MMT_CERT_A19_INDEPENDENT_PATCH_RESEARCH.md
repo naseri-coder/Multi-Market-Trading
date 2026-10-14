@@ -194,3 +194,31 @@ The successful earlier CERT-A18 run archived its original candidate **image ID**
 - **OPEN:** original 18 Critical + 181 High findings; 0 certified fixed or false-positive. `A6_INDEPENDENT_HOST_CERTIFICATION_REQUIRED` DENY; no production, TELMIVO, broker, Telegram or licenses; PR #275 stays DRAFT and not merged.
 
 Disposition: `CERT_A19_R9_RECONSTRUCTED_STOPPED_IMAGES_UNDICI_SHA_PASS_HISTORIC_A18_IMAGE_ID_DIFFERENT_199_OPEN`.
+
+## CERT-A19-R10 — signed Debian source static CVE mechanism / Worker call-edge audit (2026-10-14)
+
+**Hosted proof:** https://github.com/naseri-coder/Multi-Market-Trading/actions/runs/38624129354 — SUCCESS; run commit `866bc4e79a8b7fa38a0f58d9719b4e4988f9a016` on dedicated non-PR branch `cert-a19-byte-audit-run` only. Its isolated R10 audit script and workflow are intentionally **not** introduced into main or this PR. Output artifact `cert-a19-r10-signed-source-static-applicability`, ID `11924170548`, two-day retention. Only the R10 dedicated workflow was triggered by this push; no Docker build or Worker / untrusted code execution.
+
+The R10 runner first revalidated the R8 Debian developer-signed `.dsc`, all seven source components and pinned patched-source `lib/balanced-pool.js` SHA-256 `06e20567449a6131d5ae6f049b5d85f17c3139f2fed6a2783f656429180ff865`. Then the static verifier inspected **that exact Debian-patched source** plus committed fixed Worker wrapper and A6 source; all assertions PASSED.
+
+### CVE-specific entrypoint and mechanism results
+
+| CVE | Official upstream affected ranges (NPM advisory) | Required mechanism / precondition | Exact Debian Bookworm 5.15 static evidence | Worker fixed-path evidence | Decision |
+|---|---|---|---|---|---|
+| CVE-2026-84961 (GHSA-w293-vg96-wgc3) | 7.24.1–before 7.29.1; 8.0.0–before 8.10.2 | `BalancedPool` plus function-valued custom `connect`/`tls` callback; JSON serialize/reparse drops callback | `index.js` **does export** BalancedPool (a possible library API route), but actual `lib/balanced-pool.js` dispatches via `Object.assign({}, this[kOptions])`; specified `JSON.parse(JSON.stringify(...))` mechanism ABSENT in pinned Debian file | Fixed JS Child has no explicit `require('undici')`, `BalancedPool` construction or TLS callback route | `MECHANISM_NOT_PRESENT_IN_INSPECTED_DEBIAN_5X_SOURCE__DEBIAN_TRACKER_OPEN` |
+| CVE-2026-13697 (GHSA-4cwx-7wf7-3272) | 7.0.0–before 7.29.0; 8.0.0–before 8.9.0 | `interceptors.cache()` in shared mode; vulnerable `lib/util/cache.js` qualified private parser, malformed Cache-Control header / cross-request cache match or mixed-private parse error | **Both** `lib/util/cache.js` (the advisory's exact patched file) and `lib/interceptor/cache.js` ABSENT from patched 5.x tree. No `interceptors.cache()` export in inspected `index.js`; no cache-named files in inspected `lib/` path inventory. This is stronger than the R3 check of only one path. | Fixed JS Child has no explicit shared-cache interceptor import or activation | `NAMED_CACHE_INTERCEPTOR_PATHS_ABSENT_IN_INSPECTED_DEBIAN_5X__DEBIAN_TRACKER_OPEN` |
+
+Authoritative advisories: https://github.com/nodejs/undici/security/advisories/GHSA-w293-vg96-wgc3 and https://github.com/nodejs/undici/security/advisories/GHSA-4cwx-7wf7-3272 .
+**Do not conflate upstream NPM version applicability with the Debian vulnerability database.** The Debian Security Tracker (checked 2026-10-14) continues to mark Bookworm `node-undici 5.15.0+dfsg1+~cs20.10.9.3-1+deb12u4` **vulnerable/postponed** for both:
+https://security-tracker.debian.org/tracker/CVE-2026-84961 and https://security-tracker.debian.org/tracker/CVE-2026-13697 .
+
+### Critical limits of a static reachability finding
+
+- The committed `scripts/runtime_a2_worker.py` trusted JS wrapper sets a fresh `Object.create(null)` VM sandbox and explicitly injects `event` only; it imports `node:fs`, `node:vm` and `typescript` as a trusted outer wrapper. There is no **explicit** Undici/Cache/BalancedPool import or execution path in that inspected entrypoint.
+- **No Node VM escape, sandbox security, hidden Node runtime import, alternative equivalent library implementation or arbitrary untrusted guest behavior has been comprehensively ruled out**. Treat this as named-path static evidence only, never as independent sandbox assurance. RUNTIME-A6 remains `A6_INDEPENDENT_HOST_CERTIFICATION_REQUIRED` hard DENY.
+- R7/R8/R9 established source binary and **rebuilt** stopped-image file parity, but historical original A18 image ID differs; its direct `balanced-pool.js` byte equality is **not proven**.
+- No active CVE remediation, false-positive reclassification, version upgrade, Debian tracker override or release verdict. The original **18 Critical + 181 High = 199** findings remain review-open, 0 certified fixed. No glibc or SQLite changes, no Production/TELMIVO/trading/broker/Telegram change.
+
+**R10 verdict:** `CERT_A19_R10_SIGNED_DEBIAN_5X_SPECIFIC_MECHANISMS_NEGATIVE_FIXED_WORKER_NO_EXPLICIT_CALL_EDGE__DEBIAN_TRACKER_VULNERABLE__ZERO_CVE_CLOSURES`.
+
+**Next gate:** independent vendor/Debian applicability review of upstream 7.x/8.x advisory versus Debian 5.x, plus authoritative assessment of Node bootstrap/VM escape and stopped historical image provenance, before considering any scanner triage disposition. Retain PR #275 DRAFT / DO NOT MERGE.
