@@ -385,3 +385,18 @@ Evidence artifact: `cert-a19-r18-apko-signed-offline-closure-audit`, GitHub Acti
 **Hard stops remain:** The package closure does NOT cover TypeScript/Wasmtime or final Worker. No native Python/Node ABI/four-language fixture equivalence, no independent rootless gVisor host security, no production, **199 original findings REVIEW-OPEN, 0 CVE closures**. RUNTIME-A6 hard DENY. No A11/A2/A15/A18/main/TELMIVO/trading edits; PR #275 remains DRAFT / DO NOT MERGE.
 
 Verdict: `CERT_A19_R18_36_PACKAGE_APKO_SOLVER_AND_LEGACY_SIGNED_INDEX_BYTES_PASS__ABI_TS_WASMTIME_AND_HOST_UNVERIFIED__A6_DENY_199_OPEN`.
+
+## CERT-A19-R19 — TypeScript 5.9.3, Wasmtime 49.0.0 package integrity and 19 static Wolfi ELF checks (NO runtime)
+
+[Full R19 technical evidence and explicit gates](MMT_CERT_A19_R19_NATIVE_ABI_AND_COMPONENT_CUSTODY.md).
+
+The single-purpose non-PR [GitHub-hosted R19 run #38645056701](https://github.com/naseri-coder/Multi-Market-Trading/actions/runs/38645056701) **SUCCEEDED**. It rehydrated and SHA-256 checked exact R18 36-package evidence and the historical R17 signed APKINDEX bytes; no mutable package index was trusted in place of prior evidence.
+
+- npm **TypeScript 5.9.3** official tarball `dist.integrity` SHA-512 **matched actual bytes**; full SHA-256 `10e108c9cf7d5f2879053dff18515fb405abf2ccef63eaaf017d9c571687a1d3`. Internal package identity/compiler file names verified. Registry integrity is not an independently verified publisher signature.
+- PyPI **Wasmtime 49.0.0** Linux x86-64 manylinux1 Python wheel SHA-256 `94f0288f9e1c33924995a72bb769f4c4e2885002391589dd6992cdaa35d1990a` matched official metadata and download; embedded `_libwasmtime.so` SHA-256 `9594714d3c73c3087ab3d42d9614cf72973b25c181b8625ffcc46a8a75972d7e`. No independently authenticated wheel publisher attestation established.
+- 6 exact R18 native APK archives rechecked against full R18 whole-file SHA-256, with **19 static ELF64 x86-64 objects** inspected via trusted host `readelf`. Maximum observed glibc symbol needed: **Node 24: GLIBC_2.44**, **Wasmtime: GLIBC_2.28**, Python executable GLIBC_2.34, libpython GLIBC_2.38, libcrypto/libssl GLIBC_2.38. No *inspected* ELF needs later than glibc 2.44.
+- **NOT VERIFIED:** static all-36-packages ELF link closure, actual loader/linker execution or CA/TLS/NSS functionality, TS compilation / Wasmtime WASM behavior / four-language Worker parity, independent rootless+gVisor host security, production readiness. No Worker image built, no target runtime code executed, no updated historical artifacts.
+
+Evidence GitHub artifact ID **11931782690** (`cert-a19-r19-ts-wasmtime-elf-static-evidence`, two-day retention), actual `r19-report.json` SHA-256 `aeacd3dee432ebbebd2bf3b94f41b13aff5c94bd7eb34dcd16814ad4c6166d55`. RUNTIME-A6 remains DENY, original 199 Critical/High findings review-open and zero CVEs certified closed. Draft PR #275 remains unmerged.
+
+**Verdict:** `CERT_A19_R19_STATIC_ELF_19_OF_SELECTED_COMPONENTS_AND_TS_WASMTIME_HASHES_PASS__NO_WORKER_BUILD_ABI_RUNTIME_OR_SECURITY_CERTIFICATION__A6_DENY_199_OPEN`.
