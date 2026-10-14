@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import copy
 import json
-import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -190,7 +190,7 @@ def test_duplicate_json_field_and_symlink_denied(tmp_path):
 
 
 def test_companion_scanner_payload_probe_is_read_only():
-    script = (a16.__file__ and open(a16.__file__, encoding="utf-8").read())
+    script = Path(a16.__file__).read_text(encoding="utf-8")
     assert '"container", "create"' in script
     assert '"cp", "-L"' in script
     assert '"docker", "rm"' in script
