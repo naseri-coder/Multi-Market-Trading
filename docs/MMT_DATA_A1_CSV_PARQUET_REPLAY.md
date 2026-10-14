@@ -83,3 +83,68 @@ server, Telegram, database and existing adapter-free runtime are unchanged.
 
 **Verdict can be DATA_A1_OFFLINE_REPLAY_LOADER_PASS only after targeted
 real-Parquet and full-repository checks pass.**
+
+
+## DATA-A1 operator intake: real local files, typed offline PAPER delivery
+
+The original DATA-A1 decoder already existed. A new research-only operator
+front-end now accepts an actual on-disk CSV/Parquet file, checks it against a
+previously approved SHA-256 and explicit source/symbol/timeframe semantics,
+and validates every sample through Stage-5 OfflineMarketDataEngine.
+This is file ingestion, not online source retrieval or uploading.
+
+Example on an independent nonproduction machine with Python 3.12,
+and PyArrow installed for Parquet:
+
+~~~bash
+MMT_NONPRODUCTION=1 python -m naseri_markets.data_a1_intake_cli \
+  --file /absolute/path/to/previously-reviewed-history.csv \
+  --sha256 YOUR_PREVIOUSLY_APPROVED_LOWERCASE_64_CHARACTER_SHA256 \
+  --market crypto --provider declared_history_provider \
+  --symbol BTCUSDT --timezone UTC --quote-currency USDT \
+  --timeframe 15m --event closed_candle \
+  --price-basis trade --volume-semantics traded \
+  --availability-lag-seconds 0 --ack-offline-paper-only
+~~~
+
+For tick quotes use event quote_tick, price-basis bid_ask and
+volume-semantics unknown with the exact occurred_at,bid,ask column set.
+Historical bytes MUST be preserved immutable from validation to replay.
+SHA-256 checks byte integrity only and does not independently prove
+publisher identity, contract, source quality, market session calendar,
+Point-in-Time availability or coverage.
+
+The CLI requires MMT_NONPRODUCTION=1, absence of MMT_PRODUCTION=1, a
+human acknowledgement and an absolute local file path. It creates no
+network request, upload API, trading order, database write, Worker run or
+Telegram delivery.
+
+Only after FULL source validation and subsequent full replay does stdout
+receive a single JSON report. The report contains operator-declared
+provider, market, symbol, timeframe, quote currency and timezone, typed
+price and volume bases, SHA-256, source identity, valid row counts, count
+of generated paper-ready CoreInput values, observed and availability
+timestamps, lowest/highest price, zero-volume count, and tick spreads.
+
+The input is delivered via a read-only inspector CoreManifest bound to
+the existing Stage-5 OfflineMarketDataEngine. It never calls strategy
+evaluate, paper order placement or an execution adapter. It checks that
+each CoreInput has no future candles, is REPLAY origin, and is available
+no earlier than the last closed observation. The history ring has at
+most 128 candles. All success/authority fields concerning source
+attestation, genuine Point-in-Time data, order, Telegram, runtime launch
+or executed strategy are explicitly FALSE.
+
+A rejected file prints only DATA_A1_LOCAL_INTAKE_REFUSED on stderr.
+A mutated or malformed source cannot produce partial successful stdout
+reports. A file replaced during replay can produce partial in-memory
+validation before refusal, but cannot trigger a strategy or an order.
+
+The CI workflow exercises the **actual CSV and PyArrow Parquet parsers**
+on test-generated files including multiple Parquet row groups, plus
+positive and negative PAPER CoreInput tests. These fixtures are not
+authenticated market-provider historical data; a separate end-to-end
+study with user-supplied real market CSV/Parquet is still required.
+
+No broker, Telegram, server, live database, Al Brooks/NYFR/private core,
+or RUNTIME-A6 launch boundary is changed.
