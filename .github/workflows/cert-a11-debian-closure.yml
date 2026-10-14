@@ -30,7 +30,7 @@ jobs:
           test "$(uname -m)" = x86_64
           echo "CERT_A11_APT_DISCOVERY_ONLY_NO_CERTIFICATION"
           docker run --rm --pull=always --platform=linux/amd64 \
-            --cap-drop=ALL --security-opt=no-new-privileges \
+            --security-opt=no-new-privileges \
             --pids-limit=128 --memory=900m \
             --mount="type=bind,source=$PWD/deploy/runtime_a2/a11_apt_closure.py,target=/opt/mmt/a11_apt_closure.py,readonly" \
             --entrypoint=/bin/sh \
