@@ -60,7 +60,10 @@ def entry(member,source):
     elif member.isfile():kind="file"
     elif member.issym():kind="symlink"
     elif member.islnk():kind="hardlink"
-    else:error("UNSUPPORTED_SPECIAL_TAR_MEMBER")
+    else:
+        # Docker export can contain device/FIFO entries such as /dev/null.
+        # Keep their names as metadata. Never create or execute them.
+        kind="special-metadata-only"
     result={"kind":kind,"source":source}
     if kind in ("symlink","hardlink"):
         result["raw_target"]=member.linkname
@@ -233,6 +236,7 @@ def main():
         "signed_apkindex_sha256":INDEX,
         "base_export_tar_bytes":base_bytes,
         "base_rootfs_inventory_entries":len(base),
+        "base_special_metadata_only_count":sum(1 for v in base.values() if v["kind"]=="special-metadata-only"),
         "apk_inventory_entries":len(apk),
         "combined_static_union_entries":len(combined),
         "whole_archive_bytes_verified":apk_bytes,
