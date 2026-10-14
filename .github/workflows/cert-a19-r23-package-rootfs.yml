@@ -1,0 +1,150 @@
+name: CERT-A19-R23 apko signed offline 36-package minirootfs install, NO base overlay
+
+on:
+  push:
+    branches: [cert-a19-byte-audit-run]
+    paths:
+      - ".github/workflows/cert-a19-r23-package-rootfs.yml"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  actual-package-only-composition:
+    if: github.repository == 'naseri-coder/Multi-Market-Trading' && github.ref == 'refs/heads/cert-a19-byte-audit-run'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 26
+    env:
+      MMT_NONPRODUCTION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: Restore exact R18/R22 immutable evidence, require frozen hashes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          work="$RUNNER_TEMP/cert-a19-r23"
+          mkdir -m 0700 "$work"
+          mkdir "$work/r18" "$work/r22"
+          gh run download 38642890495 --repo naseri-coder/Multi-Market-Trading \
+            --name cert-a19-r18-apko-signed-offline-closure-audit --dir "$work/r18"
+          gh run download 38649169689 --repo naseri-coder/Multi-Market-Trading \
+            --name cert-a19-r22-loader-byte-parity-and-collision-review --dir "$work/r22"
+          cp "$work/r18/APKINDEX.tar.gz" "$work/APKINDEX.tar.gz"
+          cp "$work/r18/r18-result.json" "$work/r18-result.json"
+          cp "$work/r22/r22-loader-and-conflicts.json" "$work/r22-loader-and-conflicts.json"
+          echo '8011fbdaf70278ae83e3729dc2c44a8148a91cf03ea0ef7a3d049e30a65e36a5  '"$work/APKINDEX.tar.gz" | sha256sum -c --status
+          echo '78356a69bf4c7aa50856450b1b4f55f9aaaf4909072891909a9fe73697fd139b  '"$work/r18-result.json" | sha256sum -c --status
+          echo '41cefc3fc5e72ca023b3f915b5605b9dd950f24860d313c37de56309d67efec7  '"$work/r22-loader-and-conflicts.json" | sha256sum -c --status
+      - name: Verify signed apko 1.4.11 release SHA256 and Sigstore identity before use
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          work="$RUNNER_TEMP/cert-a19-r23"
+          base='https://github.com/chainguard-dev/apko/releases/download/v1.4.11'
+          for suffix in '' .crt .sig; do
+            curl --proto '=https' --proto-redir '=https' --fail --location --silent --show-error \
+              --retry 1 --connect-timeout 15 --max-time 90 \
+              "$base/apko_1.4.11_linux_amd64.tar.gz$suffix" -o "$work/apko.tar.gz$suffix"
+          done
+          echo '5445ea2467a4ab0db3e31d9f795133128d0564c7afdaa46fcdaa1ee3cf92c757  '"$work/apko.tar.gz" | sha256sum -c --status
+          cosign verify-blob --certificate "$work/apko.tar.gz.crt" \
+            --signature "$work/apko.tar.gz.sig" \
+            --certificate-identity=https://github.com/chainguard-dev/apko/.github/workflows/release.yaml@refs/heads/main \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            "$work/apko.tar.gz" > "$work/apko-cosign.log"
+          python3 - <<'PY'
+          import os,tarfile,pathlib
+          w=pathlib.Path(os.environ["RUNNER_TEMP"])/"cert-a19-r23"
+          with tarfile.open(w/"apko.tar.gz","r:gz") as z:
+            m=[x for x in z if x.isfile() and pathlib.PurePosixPath(x.name).name=="apko"]
+            if len(m)!=1 or not 15000000<m[0].size<150000000:raise ValueError("R23_APKO_BINARY_SUSPICIOUS")
+            f=z.extractfile(m[0])
+            if f is None:raise ValueError("R23_APKO_BINARY_ABSENT")
+            target=w/"apko"
+            target.write_bytes(f.read(150000001));target.chmod(0o700)
+          PY
+          "$work/apko" version > "$work/apko-version.txt"
+          grep -F '1.4.11' "$work/apko-version.txt"
+          echo APKO_COSIGN_AND_SHA_PASS > "$work/apko-verified.status"
+      - name: Reauthenticate exact Wolfi signed index from a stopped OCI image
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          work="$RUNNER_TEMP/cert-a19-r23"
+          image='cgr.dev/chainguard/wolfi-base@sha256:256c88bb066424045021090932d50be93c8e3f2ce3586707702a401b146f3e43'
+          cosign verify --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            --certificate-identity=https://github.com/chainguard-images/images/.github/workflows/release.yaml@refs/heads/main \
+            "$image" > "$work/base-cosign.log"
+          docker pull --platform linux/amd64 "$image"
+          cid="$(docker create --pull=never --platform linux/amd64 --entrypoint=/bin/true "$image")"
+          trap 'docker rm "$cid" >/dev/null 2>&1 || true' EXIT
+          test "$(docker inspect "$cid" --format '{{.State.Status}}')" = created
+          docker cp "$cid:/etc/apk/keys" "$work/keys"
+          test "$(docker inspect "$cid" --format '{{.State.Status}}')" = created
+          mkdir -p "$work/verifyrepo/x86_64"
+          cp "$work/APKINDEX.tar.gz" "$work/verifyrepo/x86_64/APKINDEX.tar.gz"
+          printf 'file:///mnt/verifyrepo\n' > "$work/verify-repositories"
+          if ! docker run --rm --pull=never --platform linux/amd64 \
+            --network=none --read-only --cap-drop=ALL --security-opt=no-new-privileges \
+            --pids-limit=40 --memory=250m --user=65534:65534 \
+            --mount type=bind,src="$work/verifyrepo",dst=/mnt/verifyrepo,readonly \
+            --mount type=bind,src="$work/verify-repositories",dst=/mnt/repos,readonly \
+            --entrypoint /sbin/apk "$image" \
+            --no-cache --no-progress --keys-dir /etc/apk/keys \
+            --repositories-file /mnt/repos search -x busybox \
+            > "$work/index-native.log" 2> "$work/index-native.err"; then
+            cat "$work/index-native.err"; exit 1
+          fi
+          grep -E '^busybox-[0-9]' "$work/index-native.log"
+          if grep -Eiq 'untrusted|bad signature|error:|warning:' "$work/index-native.err"; then exit 1; fi
+          echo FROZEN_NATIVE_SIGNED_INDEX_ACCEPTED > "$work/index-verified.status"
+      - name: Fetch all 36 frozen archive bytes and generate package-only installation input
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 -u -m scripts.ci_cert_a19_r23_real_package_composition prepare
+      - name: Build disposable PACKAGE-ONLY rootfs with signed apko; disable networking, all target execution
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          work="$RUNNER_TEMP/cert-a19-r23"
+          image='cgr.dev/chainguard/wolfi-base@sha256:256c88bb066424045021090932d50be93c8e3f2ce3586707702a401b146f3e43'
+          if ! docker run --rm --pull=never --platform linux/amd64 \
+            --network=none --read-only --cap-drop=ALL \
+            --security-opt=no-new-privileges --pids-limit=95 --memory=1700m \
+            --user="$(id -u):$(id -g)" \
+            --tmpfs /tmp:rw,noexec,nosuid,size=512m,mode=1777 \
+            --mount type=bind,src="$work",dst=/mnt/work \
+            --entrypoint /mnt/work/apko "$image" \
+            build-minirootfs --build-arch x86_64 \
+            /mnt/work/r23-minirootfs.apko.yaml \
+            /mnt/work/package-only-minirootfs.tar.gz \
+            > "$work/apko-build.stdout" 2> "$work/apko-build.stderr"; then
+            tail -n 90 "$work/apko-build.stderr" >&2
+            echo R23_APKO_PACKAGE_COMPOSITION_FAILED_NO_BASE_COMPOSITION_CLAIM >&2
+            exit 1
+          fi
+          echo R23_APKO_PACKAGE_ONLY_INSTALL_COMPLETED_NO_GUEST_EXECUTION
+      - name: Inspect package manager's real rootfs archive loader, clear, usr/lib64; preserve base-collision BLOCK
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 -m scripts.ci_cert_a19_r23_real_package_composition inspect
+          sha256sum "$RUNNER_TEMP/cert-a19-r23/r23-report.json"
+      - name: Retain bounded JSON and installer diagnostics only, NOT generated rootfs or executable packages
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cert-a19-r23-apko-package-only-composition
+          path: |
+            ${{ runner.temp }}/cert-a19-r23/r23-report.json
+            ${{ runner.temp }}/cert-a19-r23/apko-build.stdout
+            ${{ runner.temp }}/cert-a19-r23/apko-build.stderr
+          if-no-files-found: ignore
+          retention-days: 2
