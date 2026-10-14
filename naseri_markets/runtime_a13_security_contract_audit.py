@@ -81,6 +81,8 @@ def _read(root: Path, rel: str) -> bytes:
 def _parse(root: Path, rel: str) -> ast.Module:
     try:
         return ast.parse(_read(root, rel).decode("utf-8"), filename=rel)
+    except A13AuditRefused:
+        raise
     except (UnicodeError, SyntaxError, ValueError, RecursionError) as exc:
         raise A13AuditRefused("A13_SOURCE_NOT_PARSEABLE") from exc
 
@@ -118,15 +120,40 @@ def _calls(fn: ast.FunctionDef, name: str) -> list[ast.Call]:
     ]
 
 
-def _guard_line(fn: ast.FunctionDef) -> int:
+def _guard_line(fn: ast.FunctionDef, *, translated_denial: bool = False) -> int:
     statements = [
         x for x in fn.body
         if isinstance(x, ast.Expr) and isinstance(x.value, ast.Call)
         and _call_name(x.value) == "require_worker_launch"
     ]
-    if len(statements) != 1:
-        raise A13AuditRefused("A13_LAUNCH_GUARD_NOT_DIRECT_AND_UNCONDITIONAL")
-    return statements[0].lineno
+    if not translated_denial:
+        if len(statements) != 1:
+            raise A13AuditRefused("A13_LAUNCH_GUARD_NOT_DIRECT_AND_UNCONDITIONAL")
+        return statements[0].lineno
+    # A1.evaluate maps A6's refusal to a public MultilangRefused. The
+    # exception handler MUST re-raise a refusal; it may not swallow denial.
+    handlers = []
+    for stmt in fn.body:
+        if not isinstance(stmt, ast.Try) or stmt.orelse or stmt.finalbody:
+            continue
+        if (len(stmt.body) != 1
+                or not isinstance(stmt.body[0], ast.Expr)
+                or not isinstance(stmt.body[0].value, ast.Call)
+                or _call_name(stmt.body[0].value) != "require_worker_launch"
+                or len(stmt.handlers) != 1):
+            continue
+        handler = stmt.handlers[0]
+        if (not isinstance(handler.type, ast.Name)
+                or handler.type.id != "RuntimeA6Denied"
+                or len(handler.body) != 1
+                or not isinstance(handler.body[0], ast.Raise)
+                or not isinstance(handler.body[0].exc, ast.Call)
+                or _call_name(handler.body[0].exc) != "MultilangRefused"):
+            continue
+        handlers.append(stmt.body[0].lineno)
+    if statements or len(handlers) != 1:
+        raise A13AuditRefused("A13_A6_DENIAL_TRANSLATION_NOT_FAIL_CLOSED")
+    return handlers[0]
 
 
 def _deny_contract(tree: ast.Module) -> None:
@@ -151,7 +178,7 @@ def _a1_choke_points(tree: ast.Module) -> None:
         if not uses or min(x.lineno for x in uses) <= before:
             raise A13AuditRefused("A13_OCI_PROCESS_CALL_BEFORE_A6_DENY")
     evaluator = _method(tree, "evaluate", owner="MultiLanguageOfflineHost")
-    before = _guard_line(evaluator)
+    before = _guard_line(evaluator, translated_denial=True)
     for name in ("_assert_rootless_socket", "_ensure_rootless_daemon", "_run_oci"):
         uses = _calls(evaluator, name)
         if len(uses) != 1 or uses[0].lineno <= before:
