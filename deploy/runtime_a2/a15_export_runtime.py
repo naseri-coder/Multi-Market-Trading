@@ -31,7 +31,15 @@ def _copy_file(source: Path, root: Path) -> dict[str, str]:
     if (not source.is_absolute() or not source.is_file()
             or source.is_dir()):
         raise A15ExportRefused("A15_REQUIRED_SOURCE_FILE_ABSENT")
-    target = root / source.relative_to("/")
+    # Bookworm /lib and /lib64 are symlinks into /usr. Flatten sources to
+    # their real file paths; Docker COPY cannot replace that base symlink
+    # with a newly created directory, and the ELF loader uses the real path.
+    resolved = source.resolve(strict=True)
+    if source.parts[1] in {"lib", "lib64"} and not str(resolved).startswith(
+        "/usr/lib/"
+    ):
+        raise A15ExportRefused("A15_LIBRARY_RESOLUTION_OUTSIDE_USR_LIB")
+    target = root / resolved.relative_to("/")
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, target, follow_symlinks=True)
     if target.stat().st_size != source.stat().st_size:
