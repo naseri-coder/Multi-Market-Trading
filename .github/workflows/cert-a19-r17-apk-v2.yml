@@ -73,30 +73,19 @@ jobs:
           if grep -Eiq 'untrusted|bad signature|error:|warning:' "$root/index-native.err"; then exit 1; fi
           echo SIGNED_APKINDEX_ACCEPTED > "$root/signed-index.status"
           echo R17_NATIVE_SIGNED_INDEX_ACCEPTED
-      - name: Diagnostic supported native solver query, preserve full bounded output
+      - name: Record actual APK version and avoid unsupported query commands
         shell: bash
         run: |
           set -Eeuo pipefail
           root="$RUNNER_TEMP/cert-a19-r17"
           image='cgr.dev/chainguard/wolfi-base@sha256:256c88bb066424045021090932d50be93c8e3f2ce3586707702a401b146f3e43'
-          if docker run --rm --pull=never --platform linux/amd64 \
+          docker run --rm --pull=never --platform linux/amd64 \
             --network=none --read-only --cap-drop=ALL \
             --security-opt=no-new-privileges --user=65534:65534 \
-            --pids-limit=35 --memory=240m \
-            --mount type=bind,src="$root/localrepo",dst=/mnt/apkrepo,readonly \
-            --mount type=bind,src="$root/repos",dst=/mnt/repos,readonly \
-            --entrypoint /sbin/apk "$image" \
-            --no-cache --no-progress --keys-dir /etc/apk/keys \
-            --repositories-file /mnt/repos \
-            query --from repositories --recursive --format json \
-            'glibc-2.44=2.44-r8' 'python-3.12=3.12.15-r3' \
-            'python-3.12-base=3.12.15-r3' 'nodejs-24=24.22.0-r0' \
-            > "$root/native-query.json" 2> "$root/native-query.err"; then
-            echo 'NATIVE_QUERY_EXIT_ZERO__UNMAPPED_SOLVER_RESULT' > "$root/native-query.state"
-          else
-            echo 'NATIVE_QUERY_FAILED__CLOSURE_UNPROVEN' > "$root/native-query.state"
-          fi
-          echo "R17_NATIVE_QUERY_STATE=$(cat "$root/native-query.state")"
+            --pids-limit=20 --memory=100m \
+            --entrypoint /sbin/apk "$image" --version > "$root/apk-version.txt"
+          echo 'NATIVE_APK_2_14_HAS_NO_QUERY_APPLET_CLOSURE_NOT_RESOLVED' > "$root/native-query.state"
+          cat "$root/apk-version.txt"
       - name: Download exact four signed-index direct root archives, without installing
         shell: bash
         run: |
@@ -141,8 +130,7 @@ jobs:
           path: |
             ${{ runner.temp }}/cert-a19-r17/APKINDEX.tar.gz
             ${{ runner.temp }}/cert-a19-r17/r17-result.json
-            ${{ runner.temp }}/cert-a19-r17/native-query.json
-            ${{ runner.temp }}/cert-a19-r17/native-query.err
+            ${{ runner.temp }}/cert-a19-r17/apk-version.txt
             ${{ runner.temp }}/cert-a19-r17/native-query.state
           if-no-files-found: ignore
           retention-days: 2
