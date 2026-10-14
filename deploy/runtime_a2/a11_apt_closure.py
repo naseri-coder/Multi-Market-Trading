@@ -52,31 +52,32 @@ def _regular(path: Path, *, max_bytes: int) -> None:
 
 
 def _package_fields(path: Path) -> tuple[str, str, str]:
-    try:
-        result = subprocess.run(
-            ("/usr/bin/dpkg-deb", "--field", str(path), "Package", "Version",
-             "Architecture"),
-            stdin=subprocess.DEVNULL, capture_output=True, shell=False,
-            close_fds=True, timeout=5, check=False,
-            env={"PATH": "/usr/bin:/bin", "HOME": "/nonexistent"},
-        )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        raise A11Refused("A11_DPKG_ARCHIVE_INSPECTION_FAILED") from exc
-    if result.returncode != 0 or not 0 < len(result.stdout) <= 1024:
-        raise A11Refused("A11_DPKG_ARCHIVE_HEADER_INVALID")
-    try:
-        fields = result.stdout.decode("ascii").splitlines()
-    except UnicodeError as exc:
-        raise A11Refused("A11_DPKG_ARCHIVE_ENCODING_INVALID") from exc
-    if len(fields) != 3:
-        raise A11Refused("A11_DPKG_ARCHIVE_FIELD_COUNT")
-    package, version, arch = fields
+    # dpkg-deb prints "Package: value" when requesting multiple fields,
+    # but raw values for a single requested field.
+    values = []
+    for key in ("Package", "Version", "Architecture"):
+        try:
+            result = subprocess.run(
+                ("/usr/bin/dpkg-deb", "--field", str(path), key),
+                stdin=subprocess.DEVNULL, capture_output=True, shell=False,
+                close_fds=True, timeout=5, check=False,
+                env={"PATH": "/usr/bin:/bin", "HOME": "/nonexistent"},
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise A11Refused("A11_DPKG_ARCHIVE_INSPECTION_FAILED") from exc
+        if result.returncode != 0 or not 0 < len(result.stdout) <= 192:
+            raise A11Refused("A11_DPKG_ARCHIVE_HEADER_INVALID")
+        try:
+            value = result.stdout.decode("ascii").strip()
+        except UnicodeError as exc:
+            raise A11Refused("A11_DPKG_ARCHIVE_ENCODING_INVALID") from exc
+        values.append(value)
+    package, version, arch = values
     if (_PACKAGE.fullmatch(package) is None
             or _VERSION.fullmatch(version) is None
             or arch not in {"all", "amd64"}):
         raise A11Refused("A11_PACKAGE_VERSION_ARCH_INVALID")
     return package, version, arch
-
 
 def inspect_archives(root: Path = _ARCHIVES) -> list[dict[str, str]]:
     """Read the fixed APT download cache and SHA every .deb before install."""
