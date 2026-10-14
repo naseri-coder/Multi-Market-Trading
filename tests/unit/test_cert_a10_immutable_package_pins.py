@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from naseri_markets import cert_a10_immutable_package_pins as cert_a10
 from naseri_markets.cert_a10_immutable_package_pins import (
     CertA10Refused,
     review_archive_pins,
@@ -58,7 +59,7 @@ def test_fixture_matching_expected_pins_passes(tmp_path):
 
 @pytest.mark.parametrize(("file", "needle", "mutation"), [
     (_FILES[1], "FROM python:3.12-slim-bookworm@sha256:", "FROM python:3.12-slim-bookworm #"),
-    (_FILES[1], "8e5d6f6733c38a72ebf5e52ddc9feded5e8580d130f508ef04f772b33f4a7d00c3e357d0ac2d98e2f290762694a454f86d795bd511e12e9a7cc2d9ba3394e04b", "0" * 128),
+    (_FILES[1], cert_a10._EXPECTED["typescript"]["sha512"], "0" * 128),
     (_FILES[1], "--require-hashes", "--no-deps"),
     (_FILES[1], "--offline --no-audit", "--online --no-audit"),
     (_FILES[2], "94f0288f9e1c33924995a72bb769f4c4e2885002391589dd6992cdaa35d1990a", "f" * 64),
