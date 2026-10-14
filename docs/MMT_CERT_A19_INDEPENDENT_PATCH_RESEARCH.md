@@ -341,3 +341,17 @@ Earlier `apk fetch --recursive` attempts did **not** resolve a full transitive c
 **R15 verdict:** `CERT_A19_R15_BLOCKED_SIGNED_INDEX_SNAPSHOT_DRIFT__FOUR_APK_SHA256_OBSERVED_BUT_NATIVE_SIGNATURE_UNVERIFIED__TRANSITIVE_CLOSURE_UNRESOLVED__A6_DENY_199_OPEN`.
 
 Future R16 should atomically archive the signed index **bytes** and validate genuine native dependency solver semantics before downloading and signing every archive, without changing old A11/A2/A15/A18, main, A6 or production. PR #275 remains DRAFT and unmerged; original **199** findings remain review-open; 0 CVEs closed.
+
+## CERT-A19-R16 — exact signed Wolfi APKINDEX bytes preserved, archive authenticity / solver remain BLOCKED
+
+[Full R16 evidence and fail-closed disposition](MMT_CERT_A19_R16_ATOMIC_APK_SNAPSHOT.md).
+
+Two independent isolated non-PR, nonproduction GitHub-hosted runs [#38634725817](https://github.com/naseri-coder/Multi-Market-Trading/actions/runs/38634725817) and [#38634958383](https://github.com/naseri-coder/Multi-Market-Trading/actions/runs/38634958383) each **accepted one locally held signed APKINDEX** using the verified Chainguard/Wolfi base native keyring and stored the **actual compressed APKINDEX.tar.gz bytes** in GitHub artifacts **11926324789** and **11926664490**, 2-day retention. Both snapshots are byte-identical: SHA-256 `6c61d61969ccb760a72e3cd5aad769102c0146cf0a7a9962ab6491a28e849496`, size 8,083,699, 122,474 package-version records / 15,770 unique names. This new signed snapshot was not misrepresented as the earlier R14 version.
+
+Four direct `.apk` archives were downloaded and their full SHA-256 checked twice; however native `apk verify` returned **`0 - UNTRUSTED` for all four**, both before and after mounting the same locally held index and disabling container network access. Therefore **zero archive signatures certified**. The actual official legacy APKINDEX `C:Q1` checksum binds the **compressed control stream with SHA-1**, not full-package SHA-256; no independent raw archive control-member correspondence or final data-stream authenticity has yet been proven (https://wiki.alpinelinux.org/wiki/Apk_spec).
+
+Native `apk fetch --recursive --simulate --url` returned unable-to-select-package diagnostics for all pinned roots. Offline inventory of the identical signed index exposed **39 unique direct dependency expressions** and **5 multiply-provided dependency names**; this does NOT replace an accepted recursive solver. No full dependency closure, Python/Node native ABI or 4-language Worker execution. No original scanner CVE closure and **199 remain OPEN**.
+
+**VERDICT:** `CERT_A19_R16_SIGNED_INDEX_SNAPSHOT_BYTES_RETAINED__FOUR_APK_ARCHIVE_SIGNATURES_UNTRUSTED__NATIVE_SOLVER_UNRESOLVED__A6_DENY_199_OPEN`.
+
+R17 gate: investigate and verify native APK v2 archive signature/control structure, independently check signed-index Q1 control checksums against actual compressed APK data, preserve tampered-file negative controls and obtain genuine native transitive resolver evidence before any image build. Preserve historical A11 and A2/A15/A18; `main` unmodified, A6 hard DENY, PR Draft and no merge.
