@@ -7,3 +7,6 @@
 !deploy/runtime_a2/a10_wasmtime.lock
 !deploy/runtime_a2/a11_apt_closure.py
 !deploy/runtime_a2/a11_apt_closure.json
+!deploy/runtime_a2/a12_snapshot_sources.sources
+!deploy/runtime_a2/a12_signed_snapshot.json
+!deploy/runtime_a2/a12_snapshot_verify.py
