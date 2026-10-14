@@ -110,7 +110,7 @@ def _pe(raw: bytes, suffix: str) -> tuple[str, int, int]:
     if not loaded:
         raise NativeA1Refused("NATIVE_A1_PE_NO_FILE_BACKED_SECTION")
     raw_ranges.sort()
-    if any(a[1] > b[0] for a, b in zip(raw_ranges, raw_ranges[1:])):
+    if any(a[1] > b[0] for a, b in zip(raw_ranges, raw_ranges[1:], strict=False)):
         raise NativeA1Refused("NATIVE_A1_PE_OVERLAPPING_SECTIONS")
     return machine[0], machine[1], loaded
 
