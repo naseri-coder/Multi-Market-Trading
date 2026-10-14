@@ -171,6 +171,8 @@ def validate_lock(locked: object, observed: list[dict[str, str]]) -> None:
                 or type(item["sha256"]) is not str
                 or _SHA.fullmatch(item["sha256"]) is None):
             raise A11Refused("A11_INVALID_ARCHIVE_LOCK_ENTRY")
+    if not {"nodejs", "npm"}.issubset({x["package"] for x in pinned}):
+        raise A11Refused("A11_ROOT_PACKAGES_MISSING")
     if (type(locked["closure_sha256"]) is not str
             or _SHA.fullmatch(locked["closure_sha256"]) is None
             or locked["closure_sha256"] != _closure_sha(pinned)
@@ -190,11 +192,46 @@ def _read_lock(path: Path) -> object:
         raise A11Refused("A11_APT_LOCK_NOT_VALID_JSON") from exc
 
 
+def verify_installed(lock: object) -> None:
+    """Confirm downloaded package names/versions really reached dpkg status."""
+    if type(lock) is not dict or type(lock.get("packages")) is not list:
+        raise A11Refused("A11_INSTALLED_LOCK_SCHEMA_INVALID")
+    validate_lock(lock, lock["packages"])
+    for item in lock["packages"]:
+        try:
+            result = subprocess.run(
+                ("/usr/bin/dpkg-query", "--show",
+                 "--showformat=\${Status}\t\${Version}\t\${Architecture}",
+                 item["package"]),
+                stdin=subprocess.DEVNULL, capture_output=True, check=False,
+                timeout=5, shell=False, close_fds=True,
+                env={"PATH": "/usr/bin:/bin", "HOME": "/nonexistent"},
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise A11Refused("A11_DPKG_INSTALLED_INSPECTION_FAILED") from exc
+        if result.returncode != 0 or len(result.stdout) > 512:
+            raise A11Refused("A11_INSTALLED_PACKAGE_NOT_PRESENT")
+        try:
+            fields = result.stdout.decode("ascii").strip().split("\t")
+        except UnicodeError as exc:
+            raise A11Refused("A11_INSTALLED_PACKAGE_ENCODING_INVALID") from exc
+        if (len(fields) != 3 or fields[0] != "install ok installed"
+                or fields[1] != item["version"]
+                or fields[2] != item["architecture"]):
+            raise A11Refused("A11_INSTALLED_PACKAGE_VERSION_MISMATCH")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="CERT-A11 APT archive bytes only")
-    parser.add_argument("mode", choices=("discover", "verify"))
+    parser.add_argument("mode", choices=("discover", "verify", "installed"))
     args = parser.parse_args()
     try:
+        if args.mode == "installed":
+            locked = _read_lock(_LOCK_PATH)
+            verify_installed(locked)
+            print(f"A11_INSTALLED_PACKAGE_VERSIONS_MATCH={len(locked['packages'])}")
+            print("A11_DPKG_INSTALLED_FROM_PINNED_CLOSURE_OBSERVED")
+            return 0
         entries = inspect_archives()
         if args.mode == "discover":
             lock = candidate_lock(entries)
