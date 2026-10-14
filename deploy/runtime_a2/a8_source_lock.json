@@ -1,12 +1,12 @@
 {
   "schema": 1,
   "audience": "MMT-RUNTIME-A8-OFFLINE-REVIEW-ONLY",
-  "baseline_commit": "fdf8d47ced95efdbde839337c2144dcb51bed9a3",
+  "baseline_commit": "a277a1143bb6bfaa8bf68a43b54b8b69f08ff544",
   "lock_state": "SOURCE_ONLY_EXTERNAL_UNVERIFIED",
   "source_files": [
     {
       "path": "deploy/runtime_a2/Dockerfile",
-      "sha256": "9bce101f4c1a79b17884165779babeccc65f1bfa71476db247b2600618945234"
+      "sha256": "bdc7c533427e2b767787fca8ba11d53f1c76b2e7e75f2d9f11f9226263fb8ccd"
     },
     {
       "path": "scripts/runtime_a2_worker.py",
