@@ -15,6 +15,9 @@ in its final stage. A fixed no-network export step copies only:
 - the existing A2 Worker, with its previously verified source hash;
 - pinned Node.js 18.20.4 executable and its `ldd`-resolved ELF closure;
 - TypeScript 5.9.3 library for `require("typescript")`; NOT npm or tsc;
+- pinned Debian Node externalized bootstrap modules: cjs-module-lexer,
+  undici and acorn. These remain runtime code with **unresolved original
+  Debian advisories**, not independently verified upgrades or fixes;
 - Wasmtime 49.0.0 Python package and its exact installed wheel metadata.
 
 The multi-stage build reads **only the local preexisting A2 tag** and uses a
@@ -41,6 +44,11 @@ The same existing A2 CI job must demonstrate:
    registry promotion. All CI suites and Publication safety must be green.
 
 ## Security interpretation / blind spots
+
+Copying ELF binaries, shared libraries and Debian Node's externalized
+JavaScript bootstraps out of installed packages removes or obscures original
+package identity. In particular, **the original node-undici CVEs remain
+OPEN** even if raw scanner match counts decrease.
 
 Copying ELF binaries and shared libraries out of an installed Debian
 package removes or obscures the original dpkg metadata. Grype or Syft
