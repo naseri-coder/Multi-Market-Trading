@@ -66,16 +66,23 @@ def _sbom_check(data: dict) -> int:
     if type(components) is not list or not 2 <= len(components) <= _MAX_COMPONENTS:
         raise A13Refused("A13_MISSING_PACKAGE_INVENTORY")
     names = set()
+    found_versions = {}
     for item in components:
-        if (type(item) is not dict
-                or type(item.get("name")) is not str
-                or not 0 < len(item["name"]) <= 256
-                or type(item.get("version")) is not str
-                or not 0 < len(item["version"]) <= 192):
+        if type(item) is not dict or type(item.get("name")) is not str:
             raise A13Refused("A13_MALFORMED_SBOM_PACKAGE")
-        names.add(item["name"])
+        name = item["name"]
+        version = item.get("version")
+        if (not 0 < len(name) <= 256
+                or (version is not None
+                    and (type(version) is not str or not 0 < len(version) <= 192))):
+            raise A13Refused("A13_MALFORMED_SBOM_PACKAGE")
+        names.add(name)
+        if name in {"nodejs", "npm"} and type(version) is str and version:
+            found_versions[name] = version
     if not {"nodejs", "npm"}.issubset(names):
         raise A13Refused("A13_EXPECTED_APT_PACKAGES_MISSING")
+    if set(found_versions) != {"nodejs", "npm"}:
+        raise A13Refused("A13_EXPECTED_APT_VERSIONS_MISSING")
     return len(components)
 
 
