@@ -78,6 +78,34 @@ PURL, advisory source and first observed image location, and are available
 as a CSV/JSON triage bundle for operator review. No record is marked
 false-positive, remediated, authorized, or excluded.
 
+## Independent official Debian tracker spot checks (2026-10-14)
+
+These spot checks are **not** a verification of all 199 findings.
+They demonstrate why a Grype "wont-fix" label cannot be treated as
+permission to discard a finding:
+
+- CVE-2026-33937, Debian node-handlebars 3:4.7.7+~4.1.0-1:
+  the Debian security tracker lists Bookworm as **vulnerable**.
+  The described JavaScript injection requires untrusted, crafted
+  Handlebars AST input to the compile path; Worker input reachability
+  is NOT verified.
+  https://security-tracker.debian.org/tracker/CVE-2026-33937
+- CVE-2026-5450, Debian glibc 2.36-9+deb12u14:
+  the tracker lists Bookworm as **vulnerable**. The described memory
+  corruption requires the specific scanf %mc and width usage;
+  runtime exploitability has NOT been demonstrated.
+  https://security-tracker.debian.org/tracker/CVE-2026-5450
+- CVE-2025-7458, Debian SQLite 3.40.1-2+deb12u2:
+  the tracker lists Bookworm as **vulnerable**. The issue has a crafted
+  SQL/expression precondition. Whether such input reaches SQLite in
+  Worker is NOT established.
+  https://security-tracker.debian.org/tracker/CVE-2025-7458
+
+"no-dsa" / lower Debian maintenance urgency does not mean a CVE is
+fixed, absent, or safe to expose in the candidate runtime image.
+No upstream signature/key custody or production trust was claimed by
+these source-based observations.
+
 ## P0 / P1 remediation research decision
 
 **P0 — release remains blocked.** Preserve the unconditional
