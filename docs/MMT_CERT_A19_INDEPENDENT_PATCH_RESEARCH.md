@@ -371,3 +371,17 @@ Verified R17 compressed signed APKINDEX snapshot SHA-256 `8011fbdaf70278ae83e372
 **R17 verdict:** `CERT_A19_R17_FOUR_APK_V2_SIGNED_INDEX_Q1_AND_DATAHASH_PASS__ZERO_STANDALONE_RSA__FULL_CLOSURE_AND_HOST_UNVERIFIED__A6_DENY_199_OPEN`.
 
 No source/Dockerfiles/Workflows in main changed; A11/A2/A15/A18, original 199 review-open findings and RUNTIME-A6 `A6_INDEPENDENT_HOST_CERTIFICATION_REQUIRED` hard DENY remain unchanged. PR #275 is **DRAFT / DO NOT MERGE**.
+
+## CERT-A19-R18 — signed source verified apko resolves and authenticates **36** transitive Wolfi archives (legacy signed-index chain)
+
+**Full signed-index index-to-file research custody:** [MMT_CERT_A19_R18_APKO_SIGNED_CLOSURE.md](MMT_CERT_A19_R18_APKO_SIGNED_CLOSURE.md). Its table permanently preserves all 36 whole-file SHA-256 values.
+
+A single isolated non-PR hosted [GitHub Actions run #38642890495](https://github.com/naseri-coder/Multi-Market-Trading/actions/runs/38642890495) completed **SUCCESS**. The v1.4.11 apko Linux/amd64 release's exact GitHub asset SHA-256 `5445ea2467a4ab0db3e31d9f795133128d0564c7afdaa46fcdaa1ee3cf92c757` and Sigstore GitHub Actions signer identity were verified **before** executing the tool. The resolver's local repository contained **only** the archived, independently accepted exact R17 signed index bytes SHA-256 `8011fbdaf70278ae83e3729dc2c44a8148a91cf03ea0ef7a3d049e30a65e36a5`, no mutable live index substitution.
+
+From exact `glibc-2.44=2.44-r8`, `python-3.12=3.12.15-r3`, `python-3.12-base=3.12.15-r3` and `nodejs-24=24.22.0-r0` roots, the genuine `apko show-packages` solver selected **36 unique x86_64 package/version records** in the authenticated index. Independent raw archive byte verification covered **36/36** index `Q1` compressed control matches, **36/36** signed-control `.PKGINFO` compressed-data SHA-256 matches, and **72/72** hash mutation negative controls; **73,750,485 bytes** inspected, with each archive's full SHA-256 recorded.
+
+Evidence artifact: `cert-a19-r18-apko-signed-offline-closure-audit`, GitHub Actions ID **11931730171**, 2-day retention; `r18-result.json` SHA-256 `78356a69bf4c7aa50856450b1b4f55f9aaaf4909072891909a9fe73697fd139b`. Archived local copy and permanent SHA table exist. **This is exact legacy signed-index-linked archive integrity**, NOT 36 independent standalone RSA signatures and NOT remediation for SHA-1 Q1 collision-resistance limitations.
+
+**Hard stops remain:** The package closure does NOT cover TypeScript/Wasmtime or final Worker. No native Python/Node ABI/four-language fixture equivalence, no independent rootless gVisor host security, no production, **199 original findings REVIEW-OPEN, 0 CVE closures**. RUNTIME-A6 hard DENY. No A11/A2/A15/A18/main/TELMIVO/trading edits; PR #275 remains DRAFT / DO NOT MERGE.
+
+Verdict: `CERT_A19_R18_36_PACKAGE_APKO_SOLVER_AND_LEGACY_SIGNED_INDEX_BYTES_PASS__ABI_TS_WASMTIME_AND_HOST_UNVERIFIED__A6_DENY_199_OPEN`.
