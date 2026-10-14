@@ -99,7 +99,8 @@ def review_archive_pins(root: Path) -> ArchivePinReview:
         if isinstance(exc, CertA10Refused):
             raise
         raise CertA10Refused("CERT_A10_INVALID_PIN_CONTENT") from exc
-    if record != _EXPECTED:
+    if (type(record) is not dict or type(record.get("schema")) is not int
+            or record != _EXPECTED):
         raise CertA10Refused("CERT_A10_ARCHIVE_PINS_CHANGED_OR_UNTRUSTED")
     lines = docker.splitlines()
     from_lines = [line for line in lines if line.startswith("FROM ")]
@@ -121,7 +122,7 @@ def review_archive_pins(root: Path) -> ArchivePinReview:
     ]
     if non_comments != [
         "wasmtime==49.0.0 \\",
-        "    --hash=sha256:" + _EXPECTED["wasmtime"]["sha256"],
+        "--hash=sha256:" + _EXPECTED["wasmtime"]["sha256"],
     ]:
         raise CertA10Refused("CERT_A10_WHEEL_SHA256_CHANGED")
     return ArchivePinReview()
