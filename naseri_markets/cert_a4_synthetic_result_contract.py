@@ -8,7 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from .cert_a3_four_language_wire_replay import (
@@ -20,6 +20,7 @@ from .cert_a3_four_language_wire_replay import (
 from .core_api_v1 import (
     CoreBinding,
     CoreContractError,
+    CoreDecision,
     CoreEventType,
     CoreManifest,
     CoreResult,
@@ -71,6 +72,7 @@ class CertA4ResultReview:
     decision_shapes_checked: int
     entry_intent_shapes_checked: int
     decision_trace_sha256: str
+    report_fingerprint_sha256: str
     prior_a3_claim_reproduced: bool
     synthetic_claims_matched: bool
     status: str = "CERT_A4_SYNTHETIC_RESULT_CONTRACT_REPLAY_ONLY_ALL_EXECUTION_DENIED"
@@ -200,8 +202,17 @@ def review_synthetic_core_result_traces(
             for kind in _KINDS:
                 result = indexed[kind][ready]
                 try:
-                    validate_core_result(manifest, event, result)
-                except (CoreContractError, ValueError, TypeError) as exc:
+                    # Frozen Python dataclasses are not a security boundary;
+                    # object.__setattr__ can still forge them. Reconstruct
+                    # ALL decisions and the result to invoke their own
+                    # post-init type/geometry checks anew.
+                    if any(type(d) is not CoreDecision for d in result.decisions):
+                        raise CoreContractError("INVALID_DECISION_TYPE")
+                    validated = replace(
+                        result, decisions=tuple(replace(d) for d in result.decisions),
+                    )
+                    validate_core_result(manifest, event, validated)
+                except (CoreContractError, ValueError, TypeError, AttributeError) as exc:
                     raise CertA4Refused("CERT_A4_RESULT_CONTRACT_OR_PROVENANCE_REFUSED") from exc
                 if not 1 <= len(result.decisions) <= _MAX_DECISIONS:
                     raise CertA4Refused("CERT_A4_DECISION_BATCH_LIMIT")
@@ -240,7 +251,8 @@ def review_synthetic_core_result_traces(
         ready_bars_reviewed=ready, result_claims_checked=ready * len(_KINDS),
         decision_shapes_checked=decisions * len(_KINDS),
         entry_intent_shapes_checked=entries * len(_KINDS),
-        decision_trace_sha256=fingerprint,
+        decision_trace_sha256=rolling.hex(),
+        report_fingerprint_sha256=fingerprint,
         prior_a3_claim_reproduced=prior_a3_claim is not None,
         synthetic_claims_matched=True,
     )
