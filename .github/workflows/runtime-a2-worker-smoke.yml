@@ -234,6 +234,21 @@ jobs:
           test "$before" = "$after"
           test "$before" != "$(docker image inspect "$lean" --format '{{.Id}}')"
           echo "A15_SEPARATE_CANDIDATE_BUILT_FROM_PINNED_LOCAL_A2_NO_NETWORK"
+      - name: CERT-A15 verify Node binary loader and direct TypeScript require before fixtures
+        run: |
+          set -Eeuo pipefail
+          docker run --rm --pull=never --network=none --read-only \
+            --cap-drop=ALL --security-opt=no-new-privileges \
+            --pids-limit=32 --memory=256m --memory-swap=256m \
+            --user=65534:65534 \
+            --entrypoint=/usr/bin/node mmt/runtime-a15-lean:pr --version
+          docker run --rm --pull=never --network=none --read-only \
+            --cap-drop=ALL --security-opt=no-new-privileges \
+            --pids-limit=32 --memory=256m --memory-swap=256m \
+            --user=65534:65534 \
+            --entrypoint=/usr/bin/node mmt/runtime-a15-lean:pr \
+            -e "console.log(require('typescript').version)"
+          echo "CERT_A15_DIRECT_NODE_AND_TYPESCRIPT_IMPORT_PASS"
       - name: CERT-A15 execute identical four fixed benign fixture roundtrips on lean
         env:
           MMT_A2_IMAGE: mmt/runtime-a15-lean:pr
