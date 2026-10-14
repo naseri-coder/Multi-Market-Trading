@@ -150,8 +150,10 @@ def test_build_guard_denies_build_only_tree_present(tmp_path):
     for path in required:
         path.write_text("fixed")
     # Explicit fail-closed: scope cannot be replaced by an invented smaller set.
-    with pytest.raises(guard.A18Refused, match="A18_PACKAGE_SCOPE_NOT_FIXED"):
+    with pytest.raises(guard.A18Refused, match="A18_BUILD_ONLY_MODULE_STILL_PRESENT"):
         guard.check_roots(prohibited, required)
+    with pytest.raises(guard.A18Refused, match="A18_PACKAGE_SCOPE_NOT_FIXED"):
+        guard.check_roots({"handlebars": prohibited["handlebars"]}, required)
     assert len(guard._BUILD_ONLY) == 5
     assert all(path.is_absolute() for path in guard._BUILD_ONLY.values())
 
