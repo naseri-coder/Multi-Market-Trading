@@ -4,8 +4,8 @@ from __future__ import annotations
 import hashlib
 import socket
 import subprocess
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 
 import pytest
 
@@ -155,6 +155,18 @@ def test_no_unconfirmed_or_reversed_signals(replacement):
     )
     with pytest.raises(PineA1Refused):
         _source(raw)
+
+
+@pytest.mark.parametrize("mutation", [
+    {"fast_length": 0}, {"slow_length": 2}, {"pine_version": 7},
+    {"input_price": "hl2"}, {"on_bar": "barstate.isrealtime"},
+    {"executable": True}, {"compiled": True},
+    {"tradingview_equivalence_proven": True},
+    {"worker_execution_authorized": True},
+])
+def test_forged_rule_contract_denied(mutation):
+    with pytest.raises(PineA1Refused, match="PINE_A1_FORGED_OR_INVALID_RULE_IR"):
+        replace(_source(), **mutation)
 
 
 def test_wrong_sha_size_utf8_and_bom_refused():
