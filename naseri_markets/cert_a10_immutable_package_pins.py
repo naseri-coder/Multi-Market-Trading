@@ -141,6 +141,8 @@ def review_archive_pins(root: Path) -> ArchivePinReview:
         "!deploy/",
         "!deploy/runtime_a2/",
         "!deploy/runtime_a2/a10_wasmtime.lock",
+        "!deploy/runtime_a2/a11_apt_closure.py",
+        "!deploy/runtime_a2/a11_apt_closure.json",
     ]
     if context.splitlines() != expected_context:
         raise CertA10Refused("CERT_A10_BUILD_CONTEXT_MUST_BE_NARROW")

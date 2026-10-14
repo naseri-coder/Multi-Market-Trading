@@ -1,0 +1,2249 @@
+{
+  "apt_snapshot_pinned": false,
+  "audience": "MMT-CERT-A11-APT-DEB-ARCHIVE-CLOSURE-REVIEW",
+  "base_arch": "linux/amd64",
+  "closure_sha256": "47bd698232b4f624d1aab35c6453e1f01641b1b6ebdd8d4d7dc38a4dd19ae872",
+  "debian_publisher_independently_verified": false,
+  "host_certified": false,
+  "packages": [
+    {
+      "architecture": "all",
+      "package": "eslint",
+      "sha256": "828bc72bd508a3a1ca830d210f786fe0c3a49bba6793f57b444f804eeb836339",
+      "version": "6.4.0~dfsg+~6.1.9-7"
+    },
+    {
+      "architecture": "all",
+      "package": "gyp",
+      "sha256": "5cf722c60da617a9b7c4b2f2fc8709e9e67eba99acd31c457868c7935abdd496",
+      "version": "0.1+20220404git9ecf45e-2"
+    },
+    {
+      "architecture": "all",
+      "package": "handlebars",
+      "sha256": "9fbb7a9e6b72371914caef099ac8574b066c4ba0e28a854ff2965b860aad93f0",
+      "version": "3:4.7.7+~4.1.0-1"
+    },
+    {
+      "architecture": "amd64",
+      "package": "libbrotli1",
+      "sha256": "563b4caec1aa5e876bd3355b36e7a38e1484baf5a293b48d1e8bd22db786e4d7",
+      "version": "1.0.9-2+b6"
+    },
+    {
+      "architecture": "amd64",
+      "package": "libc-ares2",
+      "sha256": "087fd5c2ac883202e1786ab45617cdab7f77bc7f060d58cca177ddf6b6c3fa73",
+      "version": "1.18.1-3"
+    },
+    {
+      "architecture": "amd64",
+      "package": "libexpat1",
+      "sha256": "ed010cc41577d75ab01cccc6afa93496d9a99f1e16bd469caf58e1b81fddae80",
+      "version": "2.5.0-1+deb12u4"
+    },
+    {
+      "architecture": "amd64",
+      "package": "libicu72",
+      "sha256": "f7f6f99c6d7b025914df2447fc93e11d22c44c0c8bdd8b6f36691c9e7ddcef88",
+      "version": "72.1-3+deb12u1"
+    },
+    {
+      "architecture": "all",
+      "package": "libjs-async",
+      "sha256": "ec0cb741fa7342b8eaf676bfe7e2f089519b3ba0261d95bb689eb86f943d735a",
+      "version": "0.8.0-6"
+    },
+    {
+      "architecture": "all",
+      "package": "libjs-events",
+      "sha256": "8cdddb62c3dc513175289ee3a8d1ea9faa2932b321180b5b2a3e9837f1341f53",
+      "version": "3.3.0+~3.0.0-3"
+    },
+    {
+      "architecture": "all",
+      "package": "libjs-inherits",
+      "sha256": "3f51ebfd3f84bd0788defaa55652e772c316801d8424526cbebc4d890c7808c1",
+      "version": "2.0.4-6"
+    },
+    {
+      "architecture": "all",
+      "package": "libjs-is-typedarray",
+      "sha256": "0ccb6bb883eadaa3f0da86d15683b5fd38e1e55cbe61a8f2c7359d52bee4678f",
+      "version": "1.0.0-4"
+    },
+    {
+      "architecture": "all",
+      "package": "libjs-prettify",
+      "sha256": "14d41a0dde607d259997a4c625b5408b8e6017c0f3d67cc050eaa65f1ee545db",
+      "version": "2015.12.04+dfsg-1.1"
+    },
+    {
+      "architecture": "all",
+      "package": "libjs-regenerate",
+      "sha256": "632ee5216aad32301cfb664c6f112aabd3fe3161caae6cd8472345537e6837c2",
+      "version": "1.4.2-3"
+    },
+    {
+      "architecture": "all",
+      "package": "libjs-source-map",
+      "sha256": "af9fe59a185f8f8e305a675bb2b7e794e1d0c3fce752782cdc15636ef66210b3",
+      "version": "0.7.0++dfsg2+really.0.6.1-15"
+    },
+    {
+      "architecture": "all",
+      "package": "libjs-sprintf-js",
+      "sha256": "2e9ce04e71af9e267c3e2514a94bb4c1900851afb1ea754ae8e60859e75cfef4",
+      "version": "1.1.2+ds1+~1.1.2-1"
+    },
+    {
+      "architecture": "all",
+      "package": "libjs-typedarray-to-buffer",
+      "sha256": "1bd2e64ea5b51cbff972f7c1beaa090d3bc68319227ababd92398357ebedd556",
+      "version": "4.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "libjs-util",
+      "sha256": "24655dd30ab1e87d2bd69a3427f4f77dfe766aa2785f915d752d1e3786711b9f",
+      "version": "0.12.5+~1.0.10-1"
+    },
+    {
+      "architecture": "amd64",
+      "package": "libnghttp2-14",
+      "sha256": "5a5736cee57e51c1baed869979e6ecdbc6495e939e33203d6cfe3b6e5a149e3f",
+      "version": "1.52.0-1+deb12u3"
+    },
+    {
+      "architecture": "amd64",
+      "package": "libnode-dev",
+      "sha256": "bc65d683437b088672e05305847675d3a3da45a36b6f6b8d00b4f9a3286e886c",
+      "version": "18.20.4+dfsg-1~deb12u3"
+    },
+    {
+      "architecture": "amd64",
+      "package": "libnode108",
+      "sha256": "4d1b4ba623b2f65a1b8a9524d3ecccd535388acbac1f9ce810eab017bbc01036",
+      "version": "18.20.4+dfsg-1~deb12u3"
+    },
+    {
+      "architecture": "amd64",
+      "package": "libpython3-stdlib",
+      "sha256": "4e58891d5c951a1e360ed9eaa814413cb5e84deadce3f08e801ac680434c786e",
+      "version": "3.11.2-1+b1"
+    },
+    {
+      "architecture": "amd64",
+      "package": "libpython3.11-minimal",
+      "sha256": "69f41cfa3f4ba17284e538f843069d7529c53c207d2ae17a5b02785944870e33",
+      "version": "3.11.2-6+deb12u9"
+    },
+    {
+      "architecture": "amd64",
+      "package": "libpython3.11-stdlib",
+      "sha256": "10f13e000ee757f5f2d2d3569f9e30546214a0c850acd78695feae373bfa3e53",
+      "version": "3.11.2-6+deb12u9"
+    },
+    {
+      "architecture": "amd64",
+      "package": "libssl-dev",
+      "sha256": "67033caa8a90696856c2967fbdae51e62b85878f055e01f03b0c732158c1682e",
+      "version": "3.0.22-1~deb12u1"
+    },
+    {
+      "architecture": "amd64",
+      "package": "libuv1",
+      "sha256": "204f0e13354b44e6d19317887a53dab6f26696e8d95838db970b81f2a393f7fd",
+      "version": "1.44.2-1+deb12u1"
+    },
+    {
+      "architecture": "amd64",
+      "package": "libuv1-dev",
+      "sha256": "7cf6e1d98c3a39084bd7f62e4769c36a303f7af53f70811ba94edb3f17526a10",
+      "version": "1.44.2-1+deb12u1"
+    },
+    {
+      "architecture": "all",
+      "package": "media-types",
+      "sha256": "aaa46dcb3b39948ae2e0fdb72cfcb2f48c0b59f19785a3da8045c05eb19955dd",
+      "version": "10.0.0"
+    },
+    {
+      "architecture": "all",
+      "package": "node-abbrev",
+      "sha256": "0224d3fa352743fbaaaa07084f5a61a0a6f3937c8e00d3cfb525053c66587fc5",
+      "version": "1.1.1+~1.1.2-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-acorn",
+      "sha256": "5c6814cf6536892b3a93cc72a0a3792beb0d3f6be3d69f499ca7d764583479a9",
+      "version": "8.8.1+ds+~cs25.17.7-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-agent-base",
+      "sha256": "83ec6c2a630e6aca276a960e1bf6606215a69beb04405d5b9afbefbf029b0b5a",
+      "version": "6.0.2+~cs5.4.2-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-ajv",
+      "sha256": "edb64230740a31262cb66db12ee2eb6644c659f21afa352848519d8dfcb82050",
+      "version": "6.12.6-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-ajv-keywords",
+      "sha256": "67f2e143c5a629b42a8705b533989974cb3875339224afaba39f8f4a7dfa2dc7",
+      "version": "3.5.2-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-ampproject-remapping",
+      "sha256": "a93ab6323e438bfdde6083da053ea33a427a37cd4fceb9e6148ab3022e6f1cbb",
+      "version": "2.2.0+~cs5.15.37-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-ansi-escapes",
+      "sha256": "d6485e03b45aefb594902993fe8555e849711279c54ac7fd0a19f0bc88d73523",
+      "version": "5.0.0+really.4.3.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-ansi-regex",
+      "sha256": "2c5c21c7b51d656cd246f02e7e4c2e36716a0480a92eaeec5057e5900ca05a7c",
+      "version": "5.0.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-ansi-styles",
+      "sha256": "a0f17ed7035dc1ba433cb1d7440a22da7f4b7ed2efba9731e147c0b0c832d750",
+      "version": "6.2.1-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-anymatch",
+      "sha256": "b29a079ceebac1aefb5793c91cfa21f2aaef91203c5586f3476267f82cf868b3",
+      "version": "3.1.3+~cs4.6.1-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-aproba",
+      "sha256": "d48b0ed57ba1c8a0ef5252798ab06f32820d5db20265d956144a20a081753631",
+      "version": "2.0.0-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-archy",
+      "sha256": "c43798ad1a8264309438d755e39b874ca81deca2fa16a994a15ff37a655384e7",
+      "version": "1.0.0-6"
+    },
+    {
+      "architecture": "all",
+      "package": "node-are-we-there-yet",
+      "sha256": "9d9705a27c195c402341ba459e8b7202f12f899e632e08f941caefaea98511ee",
+      "version": "3.0.1+~1.1.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-argparse",
+      "sha256": "f952b9c2d1a381996c7f1ddbfd4194615f085e68b24516bd58215fa34830301a",
+      "version": "2.0.1-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-arrify",
+      "sha256": "984f30355021c59775c4424e9f0aacfd4e62e18c58cfc3801450c235c073521d",
+      "version": "2.0.1-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-assert",
+      "sha256": "e96c18280a6c770738076e561be16d3babf1cef5f91f401568c8d4ea4de9aeff",
+      "version": "2.0.0+~cs3.9.8-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-async",
+      "sha256": "3f13cbae9a1d0f852cf0a3fe14c037a59ae6381a0d561ad77929acc3763ed972",
+      "version": "0.8.0-6"
+    },
+    {
+      "architecture": "all",
+      "package": "node-async-each",
+      "sha256": "9da69626cc52e2c707f8cc69f514001178656f698b1fb3909c3e9cedff4d4f79",
+      "version": "1.0.3-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-babel-helper-define-polyfill-provider",
+      "sha256": "04d6318d18035e43c5d91df41c1ceb54e3dccba897d0fc81174f970b4b38fb46",
+      "version": "0.3.3~0~20220913+ds1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-babel-plugin-add-module-exports",
+      "sha256": "b722b91c889eb29314ab9d9eaf32c3b459183f2e482f112369e8967ff3e0d8fc",
+      "version": "1.0.4+dfsg1~cs5.8.0-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-babel-plugin-lodash",
+      "sha256": "5341c941cc8f5ce798796065103d675b281a78ee58f093ebadaec90661dfd42e",
+      "version": "3.3.4+~cs2.0.1-6"
+    },
+    {
+      "architecture": "all",
+      "package": "node-babel-plugin-polyfill-corejs2",
+      "sha256": "e48db97cd830a82400742381828d0fbf0382149413645fe83625f7d8b205352e",
+      "version": "0.3.3~0~20220913+ds1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-babel-plugin-polyfill-corejs3",
+      "sha256": "ac1191a44572db610aff41941e83d653eecea8d809de98649ed1a4d3b5536943",
+      "version": "0.6.0~0~20220913+ds1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-babel-plugin-polyfill-regenerator",
+      "sha256": "2c04f63580d994750a98d285bdb6793452a007a78f755f9176c33dc25ddd75f3",
+      "version": "0.4.1~0~20220913+ds1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-babel7",
+      "sha256": "80c19baaedc1d0333afcfa3c60fd7854de7559c88e9ff8a98b2251a89f0d5eb1",
+      "version": "7.20.15+ds1+~cs214.269.168-3+deb12u2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-babel7-runtime",
+      "sha256": "bd1fffe36d26e5cd7f44f3735261a210e8dcfa4f78ff89c8fde2c4992e93e7f2",
+      "version": "7.20.15+ds1+~cs214.269.168-3+deb12u2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-balanced-match",
+      "sha256": "98a1c466bff6baf6780c4b765ec665e684424bf7907439939b5fb1160ede039c",
+      "version": "2.0.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-base64-js",
+      "sha256": "23cbf2f1cbb1a178056d815429e51ba857fee868f149fe2e5fd21affefaae785",
+      "version": "1.5.1+dfsg+~1.3.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-binary-extensions",
+      "sha256": "3fd0e34f6865cd780a2f9a8ea23ddf45d99514cdda93cbfe5e6a01c3f6968c1c",
+      "version": "2.2.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-brace-expansion",
+      "sha256": "672a202ae87900b8ca3ee7206c8e0f0b64eb4d562eb438a3a6a3fbeb0051f58c",
+      "version": "2.0.1-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-braces",
+      "sha256": "e7c65a13ca2470249e4042b98d90ae5ecdcac835aa289a9b82b59b4174362d1e",
+      "version": "3.0.2+~3.0.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-browserslist",
+      "sha256": "1724690875e55f5bd34e972ee5e2aeb07d2e8e4fbc75daa238ac6644e0f75a0b",
+      "version": "4.21.4+~cs6.1.17-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-builtins",
+      "sha256": "79246a3ad20a351d7c8fb0b0a75eeaa699a891fdf0729b8caaaa03f4afbf51e5",
+      "version": "5.0.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-busboy",
+      "sha256": "50934c61be2a090131f16420b6422d5c03d840a8595fab36b29eb86c46928713",
+      "version": "1.6.0+~cs2.6.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-cacache",
+      "sha256": "628e6394b992a26c0a5dbbd3524a45dcd76884c87755e657cc48ab4dbe5c1a2c",
+      "version": "17.0.3+~cs10.3.7-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-camelcase",
+      "sha256": "e0c4dcc9e1541f21af943d05bf63008e47e5cc6571c83bd2dcddc11977f0f83d",
+      "version": "7.0.0-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-caniuse-lite",
+      "sha256": "bfde298af429684c4d4c6740f19cab5facfe33132f7290803d628165b2262e5f",
+      "version": "1.0.30001436+dfsg+~1.0.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-chalk",
+      "sha256": "e8f007e23a05b2e618b42f77106b3dc4ad86daf14c7c8ee3b30df23d71b8385d",
+      "version": "5.2.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-chokidar",
+      "sha256": "ab615eefa5db6fcdf3eeecd62b1128bce8225c4ac95c15e339bee3f3693b001a",
+      "version": "3.5.3-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-chownr",
+      "sha256": "fcd503761a0692786427ce909e4c0e8f29f89f38db73e1e3499fbff0ae9738ae",
+      "version": "2.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-chrome-trace-event",
+      "sha256": "4a0ceadfec9c9d57e9b48710be871b45be20b0f04acbd7007c83c00bff6028c7",
+      "version": "1.0.3-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-ci-info",
+      "sha256": "d1580500d1f08a1374e4273a4f25fdb3acf97cb518a0f0c25d49d702975a7a33",
+      "version": "3.6.1+~cs1.1.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-cjs-module-lexer",
+      "sha256": "8393ae2e6b596068bd13b165a678fb33a3d5e58de6571fa5370d30b20b7b3e5a",
+      "version": "1.2.2+dfsg-5"
+    },
+    {
+      "architecture": "all",
+      "package": "node-cli-table",
+      "sha256": "5559d1479c3e60ed372a5481cb13fb4ee977aa202462098bb3aa9f6dca21d55d",
+      "version": "0.3.11+~cs0.13.4-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-cliui",
+      "sha256": "0bc67f3c9a73c9980f519f3b4ef5aab2466094a728daf38f07c4cfe7c92aceea",
+      "version": "7.0.4+repack+~cs3.1.0-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-clone",
+      "sha256": "a678b42ee48cceef3480e4eb74c7dc99353f314e8c8fb9fa9cb342e28b4dced7",
+      "version": "2.1.2-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-clone-deep",
+      "sha256": "77c5555933f19dc98c8168bd80594be08868cd1919b683e668051e3c5e8091d1",
+      "version": "4.0.1+~cs7.0.2-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-color-convert",
+      "sha256": "42f3f4fe7f3571cdc505427e2cd68b47db7c78ea01709d74697a60be78fb6c06",
+      "version": "2.0.1+~cs2.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-color-name",
+      "sha256": "42b54407ccb4aa6b20abf0b739bbb83f1c34ec835f8e5484f71020aba82b6734",
+      "version": "1.1.4+~1.1.1-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-colors",
+      "sha256": "15d577f21352262f89326ba3f44e6beb75a0852246733a4d777ea856dbcb6229",
+      "version": "1.4.0-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-columnify",
+      "sha256": "6ed43ba40978232e1a32401507d013353b6f8ca1bdddc1ee81b9c6ba261ebb11",
+      "version": "1.6.0+~1.5.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-commander",
+      "sha256": "0364add6ee045692680438188419425a6c66f12774eb0d0dd3038b5d9b83edf5",
+      "version": "9.4.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-commondir",
+      "sha256": "a4f935318dd030c307bc61b2fc9f586bbb1d5367d4940f664168d98e4428599a",
+      "version": "1.0.1+~1.0.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-concat-stream",
+      "sha256": "c4bf0a86b4a5ab489c44705704adfa08b7e81f90bd813d561b8275fb55f6cf91",
+      "version": "2.0.0+~2.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-console-control-strings",
+      "sha256": "0718909dd6f11b61062c91f0f884ea54d8b03602c26c14e0056213f82af20574",
+      "version": "1.1.0-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-convert-source-map",
+      "sha256": "06646ea47ac71d2b3f4b59f1b95e92cc7bbdc3ad68a6621e43ebcdde1d02b39d",
+      "version": "1.9.0+~1.5.2-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-copy-concurrently",
+      "sha256": "03bf14a098bdbd07d97fb9765e050d01a135d80775b86435dcb40fbf39db96b1",
+      "version": "1.0.5-9"
+    },
+    {
+      "architecture": "all",
+      "package": "node-core-js",
+      "sha256": "a909fbf87a824027abfdd760f550e5d221fdf6c8a07b2a465a6b05d0605767c9",
+      "version": "3.26.1-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-core-js-compat",
+      "sha256": "a750a916790623487b0110c27de11be53667cb764dc471cf80ee735e344beda7",
+      "version": "3.26.1-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-core-js-pure",
+      "sha256": "e3ca6a7aecddd39f452a33873f38a68f39c4daf9c0608e600fd1b3c095e50676",
+      "version": "3.26.1-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-core-util-is",
+      "sha256": "227ff823e6ede9ae4fb632fb11469dcb66766ea1d95e46d635c12943ff3df6be",
+      "version": "1.0.3-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-css-loader",
+      "sha256": "7970cb5340c600517ba2798856481f7f7b59e72634df40e8c62db654a721db0a",
+      "version": "6.7.2+~cs14.0.11-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-css-selector-tokenizer",
+      "sha256": "9881ee4fb0704c1c1c67f2ee7ecd68e2c667a6fa7d361ee5c3bedf39185efece",
+      "version": "0.8.0+~cs4.8.3-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-data-uri-to-buffer",
+      "sha256": "6908720df78a9266bb23cf1dc35924d94939c2742e2ea0016c1ef47398e1b74f",
+      "version": "4.0.0-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-debbundle-es-to-primitive",
+      "sha256": "6cbf5bcfa0e63067ded4c9da24b5e835c6b11921d2a7226232e5365ef674decb",
+      "version": "1.2.1+~cs9.7.25-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-debug",
+      "sha256": "bd0709fb1f6fe1e3b2550d44ab9016af7e7b60dfcde841236a98e9473552e1b4",
+      "version": "4.3.4+~cs4.1.7-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-decamelize",
+      "sha256": "fd677929bbcee34ff8210156d61459105dbcd2d1dc9cc27acb3a3b559eb1da03",
+      "version": "4.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-decompress-response",
+      "sha256": "6fda89f6787852d7c13e73137d0cb2b035d6f52f4e71ff7c1f61de14c7f57c18",
+      "version": "6.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-deep-equal",
+      "sha256": "9d0f300893dc322afdd1b8b827c39df566a4b6bb51c793c038fbd82775ef3995",
+      "version": "2.1.0+~cs31.12.80-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-deep-is",
+      "sha256": "9fd072798350307f42c073f60fa37a5a247fd5c799a9fb3c2f05495163d8ae42",
+      "version": "0.1.4-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-defaults",
+      "sha256": "5c128696c4b3e38aed638efb6b7b757ec0dd44aa4e7108ede901c89e32028a0c",
+      "version": "1.0.4+~1.0.3-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-define-properties",
+      "sha256": "ed104e74251e1793b22657678ca583eae2aacfb77882bc111f4856e1608558c8",
+      "version": "1.1.4+~1.1.3-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-defined",
+      "sha256": "3b6b1eb2eb13455e7441db56e5054852cca542b4f60195a3800c24dc514bc654",
+      "version": "1.0.1+~1.0.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-del",
+      "sha256": "ee9710208d64cf18da401b29068b38f7745d8fb3ede49271be6c98ea213a9863",
+      "version": "7.0.0-5"
+    },
+    {
+      "architecture": "all",
+      "package": "node-delegates",
+      "sha256": "d691b3c336d146fc773d0496b8f2a34695e19243e32f6b1a76d636c098aaac73",
+      "version": "1.0.0-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-depd",
+      "sha256": "e7cf2188b38f2f421a3e355611c1a690e6b7f7379030446e3e673000579838d4",
+      "version": "2.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-diff",
+      "sha256": "e7e957d7a2406c02801502736045ceddb1c2a22e837a10e4368c25cbf14d4ab9",
+      "version": "5.0.0~dfsg+~5.0.1-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-doctrine",
+      "sha256": "319264aa42a67f4c6eb379a134efbe873159c7dffb97dceb61528e4a3f3d9bf2",
+      "version": "3.0.0-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-electron-to-chromium",
+      "sha256": "c34272ac02e5628a88d401f6977195b146243d76852465620792eaf3f9173622",
+      "version": "1.4.284-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-encoding",
+      "sha256": "dd96e1dca2eb94603addf9f2e144ab4bde18e8a9a73d63229e07750f5f0f9a71",
+      "version": "0.1.13-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-end-of-stream",
+      "sha256": "5978a77c9d7eaecfd7fa60e1b58d65cbd8ad00423f8182325c60fc5e50127a00",
+      "version": "1.4.4+~1.4.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-enhanced-resolve",
+      "sha256": "e64988c0e40af99b4d5560faa71542019e383f5e1fdf4d958a3feb439e9b3e9b",
+      "version": "5.10.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-err-code",
+      "sha256": "67d7dee96cdcefafd061d90fb710477cfa7ca8b5166bc819569a19681a43056c",
+      "version": "2.0.3+dfsg-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-errno",
+      "sha256": "c72dd667328dbe395e4b9c7469f5575000c9e808632ab79ca8d1fb45ef60f717",
+      "version": "1.0.0-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-error-ex",
+      "sha256": "83d060e08cb518b8daa2af517fbbbe0f364fd672b2adc19a0eb8e66490d1f3ec",
+      "version": "1.3.2-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-es-abstract",
+      "sha256": "6a2e872e2249c3a37c9ab4591c7775d7104566012556daccf0c12cedcf467f89",
+      "version": "1.20.4+~cs26.27.47-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-es-module-lexer",
+      "sha256": "2699ed1ff9315da52ebfb8405d66d952bffb0653129fca3dcc7aa6a5bb23ad43",
+      "version": "1.1.0+dfsg-2+deb12u1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-es6-error",
+      "sha256": "9a2e4c8718ee0ac52372b7f577a0f8645fd6d1dd43a032f5ba89df939a7f8ff7",
+      "version": "4.1.1-5"
+    },
+    {
+      "architecture": "all",
+      "package": "node-escape-string-regexp",
+      "sha256": "92319d456de35527be3314c891b2f980cef11723929f53d24ab0cb3da19bdfaf",
+      "version": "4.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-escodegen",
+      "sha256": "918df6a75c26789bac0b70b620eb4b67a16d762306ba4a290dbe3ff8d782d384",
+      "version": "2.0.0+dfsg+~0.0.7-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-eslint-scope",
+      "sha256": "50d619d48663ce3badfce5a4bb2af3ff0d3c16cf1785130a94d22a8c13a2b180",
+      "version": "7.1.1+~3.7.4-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-eslint-utils",
+      "sha256": "5313c25e6c0c0a6476cf716788294918e0cb0c5fc16594ee4aa0712cb682ffc8",
+      "version": "3.0.0-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-eslint-visitor-keys",
+      "sha256": "c2e40bc461ea2644fc9ad42ee59b958ff3303e72c825974183f46b01e14bfddb",
+      "version": "3.3.0+~1.0.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-espree",
+      "sha256": "66fad89cbfd24c1a10feb67326b4da06d9c1190e60ba37c61e73f409d85399b0",
+      "version": "9.4.1~dfsg-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-esprima",
+      "sha256": "eea11b0c6045cae16e4d2ff3c4fcbb13794a396919921853f2ce45bce66708be",
+      "version": "4.0.1+ds+~4.0.3-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-esquery",
+      "sha256": "940a307801aa8c32a3eb6990ccc8fd19f0da3f76d9b43275965b1ebaddb8da55",
+      "version": "1.4.2~ds-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-esrecurse",
+      "sha256": "828cd5622150c5d5a868a83387ff5e8a2a30a7cf72ecdcad8efffe465116915f",
+      "version": "4.3.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-estraverse",
+      "sha256": "4d458b371205aff8fad00c4d04741d5080c3074134d0eeeba537dcabe77ddc49",
+      "version": "5.3.0+ds+~5.1.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-esutils",
+      "sha256": "c73f3d6225517d17255c7bd2e57177953e5569278e7ed8f60c8ee191fc4d7260",
+      "version": "2.0.3+~2.0.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-events",
+      "sha256": "22396d96e79cb7b6d052831f8083a036042cff4e43ab52bb0beeb66c090f4792",
+      "version": "3.3.0+~3.0.0-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-fancy-log",
+      "sha256": "cafb68422aaeecc032917a54fd12398878ad3bb11265de6a3f7e39d09d2ece99",
+      "version": "1.3.3+~cs1.3.1-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-fast-deep-equal",
+      "sha256": "9fcfecf2513719e2fa7ff9b2ed2ca8a409c6b1120e548a3a684ab2eb2e5dd8cd",
+      "version": "3.1.3-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-fast-levenshtein",
+      "sha256": "862e7a885d5a3d353598ac58b109a0d538c58a063105aef6b8c0e49397724e4f",
+      "version": "2.0.6+ds-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-fetch",
+      "sha256": "757685e816a80fb1b90869196c572d30022c8dc5f28d2e3abb2be588ed917b11",
+      "version": "3.3.0+~cs11.4.11-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-file-entry-cache",
+      "sha256": "cf370d3b4ddf53494a274f540599198ea464a94fc5339aa6375c8d7fb7ca8303",
+      "version": "6.0.0+~3.0.4+~2.0.0+~1.0.0+~2.0.1-5"
+    },
+    {
+      "architecture": "all",
+      "package": "node-fill-range",
+      "sha256": "6b785dd8bbcb5cbe41170823570b28748406d3481354123de4c993c07c5062d3",
+      "version": "7.0.1+~7.0.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-find-cache-dir",
+      "sha256": "3a9d6708b041386b7952b351bd313e9323a676b7892f0bfa87ce5acd136dd8ca",
+      "version": "3.3.2+~3.2.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-find-up",
+      "sha256": "6d529f3f0e05158b997af3cebcf52cbd2e779c21f67177e8d7653cbaf1b7c154",
+      "version": "6.3.0-7"
+    },
+    {
+      "architecture": "all",
+      "package": "node-flat-cache",
+      "sha256": "474648a604c43cd460fe5e068365bc3629b9e9869412b20509b8764fef1af558",
+      "version": "3.0.4~6.0.0+~3.0.4+~2.0.0+~1.0.0+~2.0.1-5"
+    },
+    {
+      "architecture": "all",
+      "package": "node-flatted",
+      "sha256": "0276252477040f31d59c58038969e91ea2214f1294c87727976fdf6da03d3ea0",
+      "version": "3.2.7~ds-1+deb12u1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-for-in",
+      "sha256": "097218ad13532ef87a238ece0f310db003e9f1b805f2d8ef4c3f467a742ea63b",
+      "version": "1.0.2-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-for-own",
+      "sha256": "ccaf0e74e4e6398e56a3627808e5ea5f4b8556b99a0e4d208c7c2dc2b64690f1",
+      "version": "1.0.0-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-foreground-child",
+      "sha256": "e69326e0019d58664f8a0197e15d1713d0f578cec86e68865ab72d100fe23f9f",
+      "version": "2.0.0-5"
+    },
+    {
+      "architecture": "all",
+      "package": "node-fs-readdir-recursive",
+      "sha256": "0eee8abc0a72a59a865e29e058c94847679fdab5f60bda045a0e90ea8bdc6581",
+      "version": "1.1.0+~1.1.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-fs-write-stream-atomic",
+      "sha256": "0e95a48b3c6ad590e98876928c78b65293a89eb2e30b2b4d7d7826d654a5f375",
+      "version": "1.0.10-6"
+    },
+    {
+      "architecture": "all",
+      "package": "node-fs.realpath",
+      "sha256": "e525d02f4c115cfac5676f095668b572cd84b447860f7d7d14bf9e1687bc33d1",
+      "version": "1.0.0-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-function-bind",
+      "sha256": "363a2cf472a865c822585a39e568648588ac8726f7e699194a77b78b5d31799c",
+      "version": "1.1.1+repacked+~1.0.3-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-functional-red-black-tree",
+      "sha256": "3111417b832a829bac41335295a4b59f5d8f20d336f2db1a60828a843aaed577",
+      "version": "1.0.1+20181105-7"
+    },
+    {
+      "architecture": "all",
+      "package": "node-gauge",
+      "sha256": "a9ae1aa546d4bc5681ee86ac5e009c552c15ac093b118ae7dd5e84134b88273f",
+      "version": "4.0.4-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-get-caller-file",
+      "sha256": "f1116136df2d8a4d7d19651ebabecd24e06ab856476f95ab73efec81cd440b26",
+      "version": "2.0.5+~cs1.1.1-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-get-stream",
+      "sha256": "b665d19f470776c5f6c091983858e2a16a3e9dbc2445ec41eb21c6d0078072f2",
+      "version": "6.0.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-glob",
+      "sha256": "fbe8cefc49d132247bc8a0a25160cbfa960befbc1d238705465a68547e14b976",
+      "version": "8.0.3+~cs8.4.15-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-glob-parent",
+      "sha256": "ad03357e2890076faf085183fc7170222a32eef5cde3a5f0d2a4f57af1d006c9",
+      "version": "6.0.2+~5.1.1-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-globals",
+      "sha256": "1a834dee9fea9dc390ec3e068a786febf0d80a0bee46631f720adb5cb7c651db",
+      "version": "13.18.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-globby",
+      "sha256": "61c52262de7da46a16fef6b542b5ba29f56f0a5cea2a09b11f5bad14d7ff3ea0",
+      "version": "13.1.3+~cs16.25.40-1+deb12u1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-got",
+      "sha256": "f029a406c664bbb66cdd704189a211308a43264ec5cfc53d7422fa00a253c2f9",
+      "version": "11.8.5+~cs58.13.36-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-graceful-fs",
+      "sha256": "91e6625e820e20cf93532980a1ced1c0bd31a233f9c2304721f48ce7b4f575c9",
+      "version": "4.2.10-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-gyp",
+      "sha256": "d0cd2128fab5a21df3d74717281981918a49e65f6b6826b32650ec4235118555",
+      "version": "9.3.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-has-flag",
+      "sha256": "1bf6a0eccd094144ecdcbe97d5655049c459023683870215a3b6976f2ed9e5a1",
+      "version": "4.0.0-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-has-unicode",
+      "sha256": "685983db3998f88d16699298c236aee498e3c0e53239ef8a1e2b1950228743b5",
+      "version": "2.0.1-5"
+    },
+    {
+      "architecture": "all",
+      "package": "node-hosted-git-info",
+      "sha256": "c89e7d95bc9203687313fe89b2cc09a5237385261d86b9245ae045a7f2039e59",
+      "version": "6.1.1-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-https-proxy-agent",
+      "sha256": "5a6269f6ab1c7d2f042402cb9ba829703a4354410dc60f37d8a408abe36dec32",
+      "version": "5.0.1+~cs8.0.0-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-iconv-lite",
+      "sha256": "1a1a0f5f8d4e5b41652bdfc851275b0830f8199b9ba54f302fa9fdacad2879cc",
+      "version": "0.6.3-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-icss-utils",
+      "sha256": "9fcfe802c4e422c8a4431eac9ebaf7521c5569eed6b1e48340019ba9fadd3946",
+      "version": "5.1.0+~5.1.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-ieee754",
+      "sha256": "df1b80a80df88d8981485d26e79de024eb3d0ff5a4e1e3c5485cf96bde41008b",
+      "version": "1.2.1-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-iferr",
+      "sha256": "46e8a73b4da951c9dd5a0ad32a0f6731651d1e8bcefcb6816375265ca7253c7e",
+      "version": "1.0.2+~1.0.2-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-ignore",
+      "sha256": "cd8fb6d5b0530e50671846f5a9f439f9cf0e1f150ed847f7f275ffe35baed410",
+      "version": "5.2.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-imurmurhash",
+      "sha256": "1fe48340caa9b23834a105c9540a7ddd43c4a0a9198c357eab6ddea8926827c8",
+      "version": "0.1.4+dfsg+~0.1.1-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-indent-string",
+      "sha256": "a33e844a7df2005d6525579b07d9bb40d2ca066c23ce3b3e4d07d389e95a7b2d",
+      "version": "4.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-inflight",
+      "sha256": "76198db71e0b9b301a66162e65bb6ac71a56f37abad4153939678f28d22320bf",
+      "version": "1.0.6-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-inherits",
+      "sha256": "288f79288807a033f67693709f56162645f07685d9f3270a018b8984a8ac6ccc",
+      "version": "2.0.4-6"
+    },
+    {
+      "architecture": "all",
+      "package": "node-ini",
+      "sha256": "074f3bba0ee7c49df98944efd72821a183c62a6548f2228361003affb73bad0e",
+      "version": "3.0.1-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-interpret",
+      "sha256": "529362af6248b026b1f8a328041e8e0422075e213c8582d126d9cecfa7993003",
+      "version": "2.2.0-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-ip",
+      "sha256": "5e77409793a86d75d7e57c9b6c2d6a54b28eb5289065572ce53882d4c2076667",
+      "version": "2.0.0+~1.1.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-ip-regex",
+      "sha256": "e379e83a786601eb0b7548a8aa77172089b59b6c2b040ffc9ef8348ae58ac28a",
+      "version": "4.3.0+~4.1.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-is-arrayish",
+      "sha256": "54667ec3159a9034e647932b22d6ebed236f86ebb21fdeaa03326377a1dd811c",
+      "version": "0.3.2-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-is-binary-path",
+      "sha256": "9eb275be2091503b6779a28bdbda24008e17731e77d2bf8b86775e964b561a95",
+      "version": "2.1.0-5"
+    },
+    {
+      "architecture": "all",
+      "package": "node-is-buffer",
+      "sha256": "3c16d0f16e22a30b9379bf3d3cf7f2b490286b1867f8b0db718e6601b6ca204e",
+      "version": "2.0.5-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-is-extendable",
+      "sha256": "ddb42c0d591b4d9faa2410e8904a89fc1414ab2ed3bdc469e83e5db9015d76ce",
+      "version": "1.0.1-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-is-extglob",
+      "sha256": "7688e9669a66d63cef2e9ee4fbfab1cbc05999766d5520683ff98d7b78336cb5",
+      "version": "2.1.1-5"
+    },
+    {
+      "architecture": "all",
+      "package": "node-is-glob",
+      "sha256": "701b15e7b1549c87a12244173b22ca741a32af217a8efe4e24079f31f6bb1b82",
+      "version": "4.0.3-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-is-number",
+      "sha256": "973bca3f4d110183e521d86d99850f6a969dbe4e545a0ca8ac577047c68dd34d",
+      "version": "7.0.0-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-is-path-cwd",
+      "sha256": "479883e090cc829d1313d47811161ec5958ab084607500e5ffa85ce98fec4e99",
+      "version": "2.2.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-is-path-inside",
+      "sha256": "6cf38ab364830438a8ec19e68b38a6524142a39ef609c689ba50b9c14613e6de",
+      "version": "3.0.3-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-is-plain-obj",
+      "sha256": "d32feddea0a24c031e5b47dfe6abd6c7d1447568b63f2553087938ea1d41d09f",
+      "version": "3.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-is-plain-object",
+      "sha256": "5dbc4f09984e435ebea3db11a42be44ae9a1fd92432e4c3114949d396e0eeb7b",
+      "version": "5.0.0-7"
+    },
+    {
+      "architecture": "all",
+      "package": "node-is-stream",
+      "sha256": "72905c7264217913b5c9884b7e359373b8d5aa672047641f96cd1d0324b62aea",
+      "version": "3.0.0-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-is-typedarray",
+      "sha256": "b13b58e8bb22dbe46a6e3332df4fe429d39462ff95bececcfa7877fa55a627c5",
+      "version": "1.0.0-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-is-windows",
+      "sha256": "23d066457e8c52265552b307a2046590eda757da419517ad002e2040dc917535",
+      "version": "1.0.2+~cs1.0.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-isarray",
+      "sha256": "ca23e017abe39c1f296d9b78e15fed1b369f8dc17e805f7cf41edc25da42e3e7",
+      "version": "2.0.5-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-isexe",
+      "sha256": "2e05a31d02477d547ff1c6bbd413a6e0aaf6be9d5cf1337631531ee0310287b1",
+      "version": "2.0.0+~2.0.1-5"
+    },
+    {
+      "architecture": "all",
+      "package": "node-isobject",
+      "sha256": "3a85d41512385149737433b4d34a90b954cf7acb8a74a5c5a636c5685ed543a1",
+      "version": "4.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-istanbul",
+      "sha256": "ccc8e16888321b46b856d750fa5e87bf99ff8789e4c7350622c33b2bd930c287",
+      "version": "0.4.5+repack10+~cs97.25.57-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-jest-debbundle",
+      "sha256": "a23441129a06a4202c9f99cd78ad2e6ce4cb39d83c437479e43d65515084e2e5",
+      "version": "29.3.1~ds1+~cs70.48.25-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-jest-worker",
+      "sha256": "7ed47d559e3a4e0b81a2f469349c3e889503ca8949150b9e5b5ecb1cfbb3eb3b",
+      "version": "29.3.1~ds1+~cs70.48.25-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-js-tokens",
+      "sha256": "0d8e65e7c01f817d406c84c22df00abb71f1c8dc11a193a58025f40954f6a4b9",
+      "version": "8.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-js-yaml",
+      "sha256": "7ff36c5c2924287094355442e5bbd926241e6bf6916ec056c66e7884f22b1bb0",
+      "version": "4.1.0+dfsg+~4.0.5-7"
+    },
+    {
+      "architecture": "all",
+      "package": "node-jsesc",
+      "sha256": "2f892fe20d56df1d88791f0cbec8b8b41ec7af7258ffd838ae55d3e4a61c3ff3",
+      "version": "3.0.2+~3.0.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-json-buffer",
+      "sha256": "06bad8ce3b1cb4d803bc760bea3ab9e0aa134f6d057d66c8962cbe2fb70a2442",
+      "version": "3.0.1+~3.0.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-json-parse-better-errors",
+      "sha256": "6bb50aa96dc0b0b6c86254358a89e4922e330494f4154dcb6d058f418cd24201",
+      "version": "1.0.2+~cs3.3.1-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-json-schema",
+      "sha256": "4314792716c804ac32f5a373df15665b4ad0b4e2173cbbcac2f4354b68d1241c",
+      "version": "0.4.0+~7.0.11-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-json-schema-traverse",
+      "sha256": "8c45a3726b39b17f1892b7179ecbeafd9318753e9490cce8a5513b2ffda83e65",
+      "version": "1.0.0-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-json-stable-stringify",
+      "sha256": "4b6e9042ee4fed760bda3ea223096d2927c1010b082eb6da285114c6f769ffde",
+      "version": "1.0.2+~cs5.2.34-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-json5",
+      "sha256": "79a040727bc23fdbb62975389f7d28e869aaf72ccd64291511c155ad0b855cb5",
+      "version": "2.2.3+dfsg-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-jsonify",
+      "sha256": "7488086201b07d7c68333cfe82fd9b9cd1ec8406e5c01099c0c7bfac24c690b4",
+      "version": "0.0.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-jsonparse",
+      "sha256": "f50c1035bfead258e8aa855bfdaad80fadde15b1452542a15300514b9ea47416",
+      "version": "1.3.1-10"
+    },
+    {
+      "architecture": "all",
+      "package": "node-kind-of",
+      "sha256": "2db7c8944d2bed2e60a99c2548c272842ec062f5abe3947564fb98d4d84600fc",
+      "version": "6.0.3+dfsg-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-levn",
+      "sha256": "03e6e04856d38d474ac4e9d12d2300191797c8f9e92788f9065b0e85e83aecb5",
+      "version": "0.4.1+dfsg-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-loader-runner",
+      "sha256": "a6113d8ef6e899751b7104ab8246d04ed2fa9ad8e795c2c3228460b8745b4663",
+      "version": "4.3.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-locate-path",
+      "sha256": "f341cf9804be4019e6112392b40abb98e7d03f4d5413ff35272f8edc8844f277",
+      "version": "7.1.1-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-lodash",
+      "sha256": "fc4ec366e6d88f86afb2ca4f5a9a31031899e9d4524e8041ca17ff0057d62a66",
+      "version": "4.17.21+dfsg+~cs8.31.198.20210220-9+deb12u1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-lodash-packages",
+      "sha256": "5fd3baa527b3710b3b73d1505377c8ce1ac39062d4e5f5e7e8b58ae58c449290",
+      "version": "4.17.21+dfsg+~cs8.31.198.20210220-9+deb12u1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-lowercase-keys",
+      "sha256": "2f45d24d574eea94cb8afedc95391ffcd9019a70dfec2d0f5bedf3434d09035a",
+      "version": "2.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-lru-cache",
+      "sha256": "b47ac351196b7169f55e6d09fc2f7dad7f3f697a13c9d197cf6a87e7b116d391",
+      "version": "7.14.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-make-dir",
+      "sha256": "fbba506b02c6c057c776fcad3f7e3ee5ee8e13c96f0189e0eb2da5ba22fa2be7",
+      "version": "3.1.0-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-memfs",
+      "sha256": "abec107d93bc173cd4b125d15af5cd82e961885b7e3c0f3a0e62a77e632cff36",
+      "version": "3.4.12+~cs1.0.3-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-memory-fs",
+      "sha256": "4defe54ea0a4d3bfefb3175ce45fb32bbc855f2d2b3f50877b6eb6f446a49296",
+      "version": "0.5.0+~0.3.3-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-merge-stream",
+      "sha256": "f3417bfa3d7b770b87f709c7c3ea602066e1f589baae68038388f4b9dacee189",
+      "version": "2.0.0+~1.1.2-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-micromatch",
+      "sha256": "3655377e8a2119b43fdc04112a2c63ba5f75ce1a64742a0857f98735c6d502ba",
+      "version": "4.0.5+~4.0.2-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-mime",
+      "sha256": "322572e9778363ecb7a5c7ee91c37476d22631eed8044dc2ff323705d2aac257",
+      "version": "3.0.0+dfsg+~cs3.97.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-mime-types",
+      "sha256": "fb2e5c4e40f272630c7c7dcb69fb042fa9aae560543ab6619ce91b764d722443",
+      "version": "2.1.35-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-mimic-response",
+      "sha256": "f4b19cd41a3d239c145fe2fc5a3df8cb72446da85653827ae6fe0f284e14304a",
+      "version": "3.1.0-8"
+    },
+    {
+      "architecture": "all",
+      "package": "node-minimatch",
+      "sha256": "4d7701ab52c4bae0a5dd0a732c2cc0ef11dcad1360edf6aed6fcaa03d899bafd",
+      "version": "5.1.1+~5.1.2-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-minimist",
+      "sha256": "7b011f6034081a5e3cf2931f3e10390c220df9b74558513eed9e6883ed469179",
+      "version": "1.2.7+~cs5.3.2-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-minipass",
+      "sha256": "b844c8dfccc4ce26c48d9b2eeb7967867e599323b8b0e2c31ebfd655ea1962f5",
+      "version": "3.3.6+~cs9.4.19-1+deb12u1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-mkdirp",
+      "sha256": "1ab8aa85c7226622e9e5704c03fb06da888789388a93a29d8a09a1e225de02ce",
+      "version": "1.0.4+~1.0.2-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-move-concurrently",
+      "sha256": "57ce0c5f4240e7f4b33a6c2e02c456cbf1e4711f50f1c3b7ff742d5a280cb3ec",
+      "version": "1.0.1-5"
+    },
+    {
+      "architecture": "all",
+      "package": "node-ms",
+      "sha256": "71c9a9f8b53cc1545b88735dc4f487f2deb2b5a423cbd95144ea18d1c3187de7",
+      "version": "2.1.3+~cs0.7.31-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-mute-stream",
+      "sha256": "c5acf524ab3d1730ea9f7616b0b8ebd2dc037bbbd3446514d300d8c50f780faa",
+      "version": "0.0.8+~0.0.1-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-n3",
+      "sha256": "c332368613c0a326169b4ecb0b34b86dc9af80f6b6d72de2f5976f2f5a15fcee",
+      "version": "1.16.3+~1.2.3+~1.10.4-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-negotiator",
+      "sha256": "7479caa3ae29fb8eba255062008a1e39e01eb780837fc1bef61f935f4cdabb88",
+      "version": "0.6.3+~0.6.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-neo-async",
+      "sha256": "4d64c1a17e5be157824e57c42616d2fadad9a0514cf5a2b5e9f4739fff21b50d",
+      "version": "2.6.2+~cs3.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-nopt",
+      "sha256": "c153a924d112eab6bab2bf9aed0ad9342697dea3580928f5f3fb27fe177bbfe0",
+      "version": "5.0.0-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-normalize-package-data",
+      "sha256": "d5f1634248944291dbc5a3451fd47c4a5f156e73500e81dff5bc7fbd90341761",
+      "version": "4.0.1+~2.4.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-normalize-path",
+      "sha256": "c43ad1928eb686e2b33375dff84e3c209a2bf4cea023e8797fbd3856f9587695",
+      "version": "3.0.0+~3.0.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-npm-bundled",
+      "sha256": "43e4fe8715866e9af83fb851c37fbf7ff6fbc045b7aa64179813e09550b05519",
+      "version": "2.0.1-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-npm-package-arg",
+      "sha256": "ae557b5ce3c5b1c01f1b4b8f31a65c5e106d5e7d5fb7af756ef52dad57dda0e2",
+      "version": "10.0.0+~3.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-npm-run-path",
+      "sha256": "dc136f2d837edd00d8c91106f134694a02feeba347655b11908ad7eaa3e6d84c",
+      "version": "5.1.0+~4.0.0-8"
+    },
+    {
+      "architecture": "all",
+      "package": "node-npmlog",
+      "sha256": "237d67f5174bfdbbcc73dbc8c78867e1836f732a4a8bf7c034fab316fd550a44",
+      "version": "7.0.1+~4.1.4-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-object-assign",
+      "sha256": "f3d4fd84ba5a3d3ab0f65df9adb4cfde64ee5d0aa712d2345981d34f549d856c",
+      "version": "4.1.1-7"
+    },
+    {
+      "architecture": "all",
+      "package": "node-object-inspect",
+      "sha256": "e322ce2b0e91f2b79c513343cae934e1acc14bdeac42162f75f8528baa45b41a",
+      "version": "1.12.2+~cs1.8.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-once",
+      "sha256": "ef186d836f20914398419f08ce075dba6b0f3878c94bd547f8ff46fc299e9b53",
+      "version": "1.4.0-7"
+    },
+    {
+      "architecture": "all",
+      "package": "node-optimist",
+      "sha256": "32ec93c2148b2e56c56520a95f4aaa346a75dd912f67b83d75a689a9d4a00642",
+      "version": "0.6.1+~0.0.30-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-optionator",
+      "sha256": "4cc135706c0a4646fe6ee11b09ff876c26ce93bdddb1fa080fdd75057f852894",
+      "version": "0.9.1+dfsg+~cs1.2.3-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-osenv",
+      "sha256": "dfeab02e1d6422f8dc94751d59f06f46a52e3a7d1c475319c95dac05f8adb891",
+      "version": "0.1.5+~0.1.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-p-cancelable",
+      "sha256": "459e964fddedaaf18ee0b9ab47f68931e023eee949edeab8a403cc69840aa787",
+      "version": "2.1.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-p-limit",
+      "sha256": "174f6c5e448c5429c4be8e7c1fda47fddd5016630ffe62a0a6be65d64d302a1a",
+      "version": "4.0.0+~cs4.0.0-5"
+    },
+    {
+      "architecture": "all",
+      "package": "node-p-locate",
+      "sha256": "c14496fe5b85710882ee137469faa150f50b4012057defa4e5dbb2ff56479c17",
+      "version": "6.0.0-12"
+    },
+    {
+      "architecture": "all",
+      "package": "node-p-map",
+      "sha256": "ccd3369723fdec938c2ad9b47d5b39ee394f8467e31dd39da6741e49b93f90b3",
+      "version": "4.0.0+~3.1.0+~3.0.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-parse-json",
+      "sha256": "f1614fe7d32c023432c6728960f121e8ca6c94db93a0a1353988798201f684fd",
+      "version": "5.2.0+~cs5.1.7-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-path-dirname",
+      "sha256": "3e1fd1554463ad64f076bc6890910376441823c3cf8f639720e838706ea95ff6",
+      "version": "1.0.2-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-path-exists",
+      "sha256": "d8f7d9b94409606df4dd13c019142ee414afb7e0d2accb84a5c5d2d92eb458a0",
+      "version": "5.0.0-8"
+    },
+    {
+      "architecture": "all",
+      "package": "node-path-is-absolute",
+      "sha256": "349cfe75b0a9b6454eee7026489ff36cdf87f277eb9595c95cc77ed75530495e",
+      "version": "2.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-path-is-inside",
+      "sha256": "04fd682f0125697e586fdff0bdb5a39c9707496845a6be1e129ca651108b4111",
+      "version": "1.0.2+~1.0.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-path-type",
+      "sha256": "ac7c2c0fbdcecc29fb8ffd255245d1297231fa9e56f445ed13b933d0f1e19d2e",
+      "version": "4.0.0-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-picocolors",
+      "sha256": "aa57d5f2c10614c5f8d4c0c92124136e8dbd636a011f50230367b2f3ea059f95",
+      "version": "1.0.0-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-pify",
+      "sha256": "3bbac05a9f1b353aec10d98ee5a939e4cb2a116980b69430e51a3e601ef222bb",
+      "version": "5.0.0+~cs5.0.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-pkg-dir",
+      "sha256": "022f47656e44e4a3e30cfffcd171fe09a19138b68227871b947f2c3aeeac1c54",
+      "version": "5.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-postcss",
+      "sha256": "333cf293225bd4c199207ea0ded9219ef9aad65584bd3e2895efc1782cd9d6d3",
+      "version": "8.4.20+~cs8.0.23-1+deb12u1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-postcss-modules-extract-imports",
+      "sha256": "2c51007af27efbb86ee14bdee5b5068cebbbec1389cebb896e4494137f05d2a5",
+      "version": "3.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-postcss-modules-values",
+      "sha256": "fbbe88fd9f85a4e501cecb7011b52133d86c04a8dfc5696c31a0aa85b527ee2d",
+      "version": "4.0.0+~4.0.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-postcss-value-parser",
+      "sha256": "63fc4289f5123d78d9819c2dc7957e6a8f1eee0853c5e90a1c2577bd18fb3f51",
+      "version": "4.2.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-prelude-ls",
+      "sha256": "51747fa2517ea9dbf896ca7fe46d4f16cf82d099d7c9f1ec3f7354204c9152e3",
+      "version": "1.2.1+dfsg-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-process-nextick-args",
+      "sha256": "e34faad6b4e66f69d30388f1d82a38922e22f0cd788383193dcea3d57498213d",
+      "version": "2.0.1-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-progress",
+      "sha256": "72f407b733d63dd6d60b5d98e3426cf97fdfbe72e7c4d8711db59032a97265c9",
+      "version": "2.0.3-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-promise-inflight",
+      "sha256": "5ca00c1e7ac895bd06ad9de4ae22e09abf75b30a6c15a6d823dd5a56db660f7b",
+      "version": "1.0.1+~1.0.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-promise-retry",
+      "sha256": "4bafb7ca67567aec176bd511f7531eb47e476849d43e049da8aaf817de535420",
+      "version": "2.0.1-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-promzard",
+      "sha256": "7c8042d0e1e1556a288367bfea76ee80ca28e8b22ee5eecb007d1b8f4beacb01",
+      "version": "0.3.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-prr",
+      "sha256": "ac2205456c74a318f3e74fa2d6586a97fa6cfd782a5222b41e65f6ffb651816d",
+      "version": "1.0.1-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-pump",
+      "sha256": "bb09adf29b56f7266ff22d2158177cfbf0e759c62adfa60bcd0ee90ce275fa9b",
+      "version": "3.0.0-5"
+    },
+    {
+      "architecture": "all",
+      "package": "node-punycode",
+      "sha256": "207d1a7b8098d5e18999f01e432b7f454a60b11d337cf9223f06084d29b12aa0",
+      "version": "2.1.1-6"
+    },
+    {
+      "architecture": "all",
+      "package": "node-quick-lru",
+      "sha256": "38edf8e9ce8f1728cfdf884775fe7660a772cda9bf3d0d2c39fa0e9adb364501",
+      "version": "6.1.1-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-randombytes",
+      "sha256": "b34e94f7f909cf939e071769fa852b332a6cc466046b987458ab7be5c7b2c47c",
+      "version": "2.1.0+~2.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-read",
+      "sha256": "4fcd48cefc5df4bb7374065411b943d822619c0ebc6d601878139949af973e17",
+      "version": "1.0.7-5"
+    },
+    {
+      "architecture": "all",
+      "package": "node-read-package-json",
+      "sha256": "52a1d2c6e4b0bb20acda1de8334085bf9753cc09c496e30c75cfa55725fabc73",
+      "version": "5.0.2+~2.0.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-read-pkg",
+      "sha256": "82e708394429a854c3de0957dc6575aa7384f4bed939bd0669e7c0f90abf80bd",
+      "version": "5.2.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-readable-stream",
+      "sha256": "dd4f2d17325e5a40c80926a02ec40a427598f3c51a53cb288f45b72802db9c72",
+      "version": "3.6.0+~cs3.0.0-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-readdirp",
+      "sha256": "eaac13e138b03e3f342e14bb18c7febd2514a4feb4923f00669503aab7886541",
+      "version": "3.6.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-rechoir",
+      "sha256": "82424fe0cfb4ff9a9da8207dea2089d14febeebe505c6ef67227a5197d75fb7f",
+      "version": "0.8.0+~0.6.1-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-regenerate",
+      "sha256": "57aa4a5bc403ac7c6216857229841597f56e02927ff007f68e203456efa084e4",
+      "version": "1.4.2-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-regenerate-unicode-properties",
+      "sha256": "fdc9e936b51d6e617f7bc896b00e53e4a89d74c1cd6daa97fa77b6cc52956788",
+      "version": "10.1.0+ds-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-regenerator-runtime",
+      "sha256": "417d101594776f4ddedbf76ff82c9430f69e9355e42bfe5213683c0eb06e1045",
+      "version": "0.15.1+~0.10.8-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-regenerator-transform",
+      "sha256": "0d63ffab2deb7875fd1ac47c8be162342065b3bc6b4329811707494a54b57884",
+      "version": "0.15.1+~0.10.8-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-regexpp",
+      "sha256": "8d3d0322b10b8166c49336a158ae2fff58fdff1f58dded22b50f82112c7717d4",
+      "version": "3.2.0-4+deb12u1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-regexpu-core",
+      "sha256": "45a94f616e7f37aa52051b8721d462218e3f1b84673c9af7001acad41ee2acfc",
+      "version": "5.2.2-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-regjsgen",
+      "sha256": "cab3cb1f8ef4b42f4fc77bc86c214314f866c5dfac3206e9c982a32b611e8be1",
+      "version": "0.7.1+ds-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-regjsparser",
+      "sha256": "6cd0c28cb90ea5b99d4fc33a5009de3f55ad8ad9e29baf1f128f91bfdeaacac6",
+      "version": "0.9.1+ds-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-repeat-string",
+      "sha256": "24b13bee7b293c1fbe76279a46a46dfebc5d61caed2eca34528db428dfc9211f",
+      "version": "1.6.1+repack-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-require-directory",
+      "sha256": "016671ade909cdfb733331e5d69956acd6b00eb87f850c1ba0b40df115c4fb6a",
+      "version": "2.1.1+~2.1.2-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-resolve",
+      "sha256": "51450712dd78138ddf243fe81f29d5e3ee00ec929e8cad029171d00923c8f9cc",
+      "version": "1.22.1+~cs5.31.10-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-resolve-cwd",
+      "sha256": "3c8f5f58bb667d3d50c7bd91fa9de4ec2bad8387a24a538b768a60f9e4ae94b2",
+      "version": "3.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-resolve-from",
+      "sha256": "d794c1cbe57007dad251e40a17f83001ba5d4646801aed02cab768051b4ee69b",
+      "version": "5.0.0+~3.1.0+~3.3.0+~2.0.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-resumer",
+      "sha256": "323fd68451287af5c4761fdf97ccc59f3549e80509a9ac7bef044acf27f85b01",
+      "version": "0.0.0-6"
+    },
+    {
+      "architecture": "all",
+      "package": "node-retry",
+      "sha256": "5fe49ec8da39266b89f6f3a7a381213890e380d597f7d31c0d0e483a2cc0422b",
+      "version": "0.13.1+~0.12.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-rimraf",
+      "sha256": "69282e8eded9b4b3eddbb9315f98978c41733e5d35de6ff642fdc520b9942682",
+      "version": "3.0.2-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-run-queue",
+      "sha256": "86baee1c4f069b0b40791873f21752b14b3be2867ecb97b4a3554f7759498683",
+      "version": "2.0.0-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-safe-buffer",
+      "sha256": "92f5049ab886f5f7975c6ff41719675606640ee1381e08fce9f23566676d205b",
+      "version": "5.2.1+~cs2.1.2-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-schema-utils",
+      "sha256": "161995da83ce2ac14566d51748817033894384745cf37685ae39c8693418cea4",
+      "version": "3.1.1~ds-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-semver",
+      "sha256": "1eeb2fa876308f117432ed87186f68fb5aac254c68eeec9bd9e4e942d40d1566",
+      "version": "7.3.5+~7.3.9-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-serialize-javascript",
+      "sha256": "b1b6075fbefd14d5dd133b488c47eb44830dfb164f4aace47dd20812b2e31de7",
+      "version": "6.0.0-2+deb12u1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-set-blocking",
+      "sha256": "703128a63c5a2c2083e9e76d74f650001ebbf2e59c82a43ad67c6369dc4a2584",
+      "version": "2.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-set-immediate-shim",
+      "sha256": "4718934ce555d1e2846967806a547b2bd2e592f481ee3adcc9e46ed98b5f18e8",
+      "version": "2.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-shebang-command",
+      "sha256": "4db6cc0ac7df2e1e9e4d4c0f9caf0e8015b5b8e013ab0735861e9d56ceb8682f",
+      "version": "2.0.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-shebang-regex",
+      "sha256": "db436769a61f89674320c7095ea17f03f9b5cd510c817abd231c4fb07b137a6d",
+      "version": "3.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-signal-exit",
+      "sha256": "e510f7cda9caeac71ccfe98bfbfcd695ad744c674bb297cbb9f2918a370cb1b6",
+      "version": "3.0.7+~3.0.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-slash",
+      "sha256": "f5e6d4a23ceaa9086bc5e7d9b1b663b87dd993c181b07c93f01f3065aae86b6b",
+      "version": "4.0.0-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-slice-ansi",
+      "sha256": "78c23ce33842ab642c069e8a8b2ceafff8a72edf4b3e26b7ea07af8e3daf5367",
+      "version": "5.0.0+~cs9.0.0-5"
+    },
+    {
+      "architecture": "all",
+      "package": "node-source-list-map",
+      "sha256": "5bedf381b770fbbb1fdcf9fb029ec0a4af50c63b47eda7d79db398427e8d3622",
+      "version": "2.0.1+dfsg-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-source-map",
+      "sha256": "8f546e3b41c69cafe78f59a3a276ea6954cbfd61ef80053743b7dd3804550de2",
+      "version": "0.7.0++dfsg2+really.0.6.1-15"
+    },
+    {
+      "architecture": "all",
+      "package": "node-source-map-support",
+      "sha256": "086bc2186e40d01e16f542ba58b158d1851649f0c05d83e1475c3abc27f3dfb0",
+      "version": "0.5.21+ds+~0.5.4-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-spdx-correct",
+      "sha256": "a5edd5baf13101e637989284195f79b41cd25888c2c0e39425dc7412a1971397",
+      "version": "3.1.1-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-spdx-exceptions",
+      "sha256": "4ed1920f05793a2e386aebefcfb68f6737d94caed1a78bd8937ba08203b6acb0",
+      "version": "2.3.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-spdx-expression-parse",
+      "sha256": "760254a23f99c05249f9da47b9c44571fa4747fc9ebb3ebf6a864e934ce7d2be",
+      "version": "3.0.1+~3.0.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-spdx-license-ids",
+      "sha256": "0837fd1957fea3c9d0c1814e349294ca61cf20140c829b75aa7ca4bf2acb6429",
+      "version": "3.0.12-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-sprintf-js",
+      "sha256": "07cfc9e43940fef4c8fa2679af551daad277122673888c97e0959bbba95b8024",
+      "version": "1.1.2+ds1+~1.1.2-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-ssri",
+      "sha256": "2f7827fd2dea5eaaa617ade6f0688c78d5db618a2604a112de0cb9719046ca57",
+      "version": "9.0.1-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-string-decoder",
+      "sha256": "df09535d7ada19ebcc59b0393c879fb6c900a5f676574542f7233fb434195617",
+      "version": "1.3.0-6"
+    },
+    {
+      "architecture": "all",
+      "package": "node-string-width",
+      "sha256": "700622fb5c1f58c3fa5e27ffe6beba4a0eb542db11d7ba5cb2553bdcdc345df6",
+      "version": "4.2.3+~cs13.2.3-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-strip-ansi",
+      "sha256": "0e1c24c2c1a1cfcf6c57d63f19d758beefe63cb891ef7f976e5d338686b4a176",
+      "version": "6.0.1-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-strip-bom",
+      "sha256": "8e696c3ff7f4c8d8611cace49239d81c516b36db113c700d682a0942f643f660",
+      "version": "4.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-strip-json-comments",
+      "sha256": "5db8c2fda953d0c1f21f4cab6d92e5ae79944dbbf430f21e3afe3e1bf61ef94a",
+      "version": "4.0.0-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-supports-color",
+      "sha256": "9763a40876eda02926deb573dbe87044414c891c18b59652265cb9c39ca04565",
+      "version": "8.1.1+~8.1.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-tapable",
+      "sha256": "224c8f65b63a6051eeaa0d4212ee5ea2f42a2db91e5573516eb6156a32c9511c",
+      "version": "2.2.1-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-tape",
+      "sha256": "b0316a788d2fc6d6743b0e6eca965326b6b9c4e5e90bc66bf25deaf39d445ee7",
+      "version": "5.6.1+~cs8.20.19-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-tar",
+      "sha256": "626f0bf15b9203f0d55d726a661c53272596c4169aca4c82d93ff71fb07e62b0",
+      "version": "6.1.13+~cs7.0.5-1+deb12u1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-terser",
+      "sha256": "73a74d1bd919f2090b2bd8df85bd74a9c8e81dc0ee322e63fa2589002ad9376d",
+      "version": "5.16.5-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-text-table",
+      "sha256": "f040097ed7ef710127396bec92882992551a99dc7d76775b53fcb0e9801b36a1",
+      "version": "0.2.0-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-through",
+      "sha256": "e101d8fc8672b10c06a1602a436bdc60c715c5df9731fb5ab8a4fb3c4b7f0d0b",
+      "version": "2.3.8+~cs0.0.30-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-time-stamp",
+      "sha256": "458e9be0074dd78bf5ee66b803c07d7ddf0f371258dd60ed31e1f1d37149ba1a",
+      "version": "2.2.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-to-fast-properties",
+      "sha256": "606fa7a95deba1ff522819d70beb53eea2b32cd191e9fbb3ce61847e12410d9d",
+      "version": "3.0.1-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-to-regex-range",
+      "sha256": "391d64dbf3d25d5d05fe10adac197b94919f903593799899b3589a5ac88d0673",
+      "version": "5.0.1-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-tslib",
+      "sha256": "e9a1572770033843b7960a6019ad89bc7e67a6c09b5458f734ddea41f6b02f9d",
+      "version": "2.4.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-type-check",
+      "sha256": "e5ec6ef096c2d9c2417b9f732d141e42c49efc75cc740c38f3c775fee39dda60",
+      "version": "0.4.0+dfsg-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-typedarray",
+      "sha256": "1046e38a91eb0dd89f4f2c870b664a7f0cd3742770e62e56c540ea491250f728",
+      "version": "0.0.7-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-typedarray-to-buffer",
+      "sha256": "8ce9a67c04502046561998e64c53613337d3cb4e5cd3f5d2b593df280d922ab1",
+      "version": "4.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-undici",
+      "sha256": "78ec8918d63e365bbdec6edd35bebec9e20cc931f084f24e8673badf191d100c",
+      "version": "5.15.0+dfsg1+~cs20.10.9.3-1+deb12u4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-unicode-canonical-property-names-ecmascript",
+      "sha256": "4018255244ed975d9dfd715a693b4971a1f6b05b50f5fe651128773ae2b4a6ff",
+      "version": "2.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-unicode-match-property-ecmascript",
+      "sha256": "94b7c376ce2ec39e098e41e6f3c8a07d48d3e885b4cb50b3f01f45b6a6757da2",
+      "version": "2.0.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-unicode-match-property-value-ecmascript",
+      "sha256": "cbdc5ada230e9c0b1f90d2d16eb1dc24bdf5671fa8e670b1c5d1f7ec0ce2683e",
+      "version": "2.1.0+ds-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-unicode-property-aliases-ecmascript",
+      "sha256": "5062063e82a182f6c5f9cb2673d05ec9da32ccbc785d7102effb136b0e3749c6",
+      "version": "2.1.0+ds-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-unique-filename",
+      "sha256": "3d2d11e61e16d03c191f5d2c835ca116f48aa2823f43b3b1079d19448b02b787",
+      "version": "1.1.1+ds-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-uri-js",
+      "sha256": "8cd1e1ca3cc7146760ccd117a4da8d43ca3518adc30c7ca2c1d35f86928432d0",
+      "version": "4.4.0+dfsg-8"
+    },
+    {
+      "architecture": "all",
+      "package": "node-util",
+      "sha256": "a97ec97b1306a0ce29b26af1023c021967b23ca61bd4c1d6db6b5d9a198ca282",
+      "version": "0.12.5+~1.0.10-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-util-deprecate",
+      "sha256": "6513d86949de642eeb3eb6e69c05e7be51548c8e5f2d61cfee4841c2ece92495",
+      "version": "1.0.2-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-uuid",
+      "sha256": "75e3756bb5c44ff8ead98576721e6f3e6523bd2571b2763150a8d33b960c5a60",
+      "version": "8.3.2+~8.3.3-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-v8-compile-cache",
+      "sha256": "577d4d5c80ff7d6a51c877c0f3ca6e50b7578ceacf71303972a8aad66752ac5c",
+      "version": "2.3.0-3+deb12u1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-v8flags",
+      "sha256": "aaab4c1bd87f5ec2930ef61e4f9d8068f664f1380f6ea952690372b7723ccf9e",
+      "version": "3.2.0+~3.1.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-validate-npm-package-license",
+      "sha256": "3f70f5fd781d227714292e0a9c2c33ab827f96334939ae118c22d32675193dd7",
+      "version": "3.0.4-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-validate-npm-package-name",
+      "sha256": "7ad41424f56fd13d73aec1831c38160e2297fd97dcaf0d2cf654bafa32f767d0",
+      "version": "5.0.0+~4.0.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-watchpack",
+      "sha256": "74ddbb32cda91c686e9b91e713841eb0eb08f2b1997c21bdfd140d11eda0bdb2",
+      "version": "2.4.0+~cs2.8.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-wcwidth.js",
+      "sha256": "b90b7944f97c6ccd848038aabf2cc9b8de0f5efab59b473f97f599d0c7b548b3",
+      "version": "1.0.2-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-webassemblyjs",
+      "sha256": "11be9be51588c1b8844c3ecec38883a64c081f496908980da0ef751e676013d0",
+      "version": "1.11.4+dfsg+~cs10.11.17-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-webpack-sources",
+      "sha256": "385fb65d45e36e3e1adc706dc15e0fe9f2cd4e75ee96cf2026b04efdc350720c",
+      "version": "3.2.3+~3.2.0-2"
+    },
+    {
+      "architecture": "all",
+      "package": "node-which",
+      "sha256": "019a19da8189bb663e381d69b3b7c977f1ce15be6185911527f4ce67c8bc814c",
+      "version": "2.0.2+~cs1.3.2-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-wide-align",
+      "sha256": "c0345837e7d4642dc4f7f4a02c28ece90568d605d19127b6f96b42fa3aa6f3fb",
+      "version": "1.1.3-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-wordwrap",
+      "sha256": "f9dd8b5aa0d773aaf88e2f69bed2ce85816f752b47249be88554c4996de2f519",
+      "version": "1.0.0-4"
+    },
+    {
+      "architecture": "all",
+      "package": "node-wrap-ansi",
+      "sha256": "176bb434dae1a577548454a63865d44506fbf22f40728fea954c13850684621b",
+      "version": "8.0.1+~8.0.1-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-wrappy",
+      "sha256": "ee6236595b8c54503d44816bd19f56f37e39ed59f93a03c7ee8d0ba1f89cfa7a",
+      "version": "1.0.2-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-write",
+      "sha256": "bf1f97a35c01482f6469586e1aea22258b286f3485bb043021c8c18435b34c2a",
+      "version": "2.0.0~6.0.0+~3.0.4+~2.0.0+~1.0.0+~2.0.1-5"
+    },
+    {
+      "architecture": "all",
+      "package": "node-write-file-atomic",
+      "sha256": "432dc805dc230923816299a2ec9cbe4c436ee83ea4eb1750955e624c85d4409e",
+      "version": "4.0.2+~4.0.0-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-xtend",
+      "sha256": "c64e37fbea40de012b59adbfa61e703b52c12713f34cbfd2d4049ebcc549f270",
+      "version": "4.0.2-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-y18n",
+      "sha256": "f54c63847892acf577e7342b585a0396aad619b509bd4de60ec12245ad73ac51",
+      "version": "5.0.8+~5.0.0-3"
+    },
+    {
+      "architecture": "all",
+      "package": "node-yallist",
+      "sha256": "c43a55c9be7188f1fca39dc1b5cbc49ef47e1b595d673c0f8005da90189c3c9c",
+      "version": "4.0.0+~4.0.1-1"
+    },
+    {
+      "architecture": "all",
+      "package": "node-yargs",
+      "sha256": "bc3d3c720045892b785df23480f97b10f0f92e8d30999db2480b9d66df8a452f",
+      "version": "16.2.0+~16.0.4-7"
+    },
+    {
+      "architecture": "all",
+      "package": "node-yargs-parser",
+      "sha256": "98893e42d7744d738460f0a6fb6ad8d845d744880166a68a4f4ba6d9b9869f0b",
+      "version": "21.1.1+~21.0.0-4"
+    },
+    {
+      "architecture": "amd64",
+      "package": "nodejs",
+      "sha256": "97d0944c0da81b0acd4c6d58e7d5a2894f89aa66067400a86c9ecb0b76969ecc",
+      "version": "18.20.4+dfsg-1~deb12u3"
+    },
+    {
+      "architecture": "all",
+      "package": "npm",
+      "sha256": "1e31d6a0bd0bef04c2f1748ea776cd4e1f2c266ecf177c9539a8015e04d3a068",
+      "version": "9.2.0~ds1-1"
+    },
+    {
+      "architecture": "amd64",
+      "package": "python3",
+      "sha256": "33f6dafbd1a6902d9063172ec7dbd4b2225e12009e0d7ec5c933a72c2f5f3b74",
+      "version": "3.11.2-1+b1"
+    },
+    {
+      "architecture": "amd64",
+      "package": "python3-minimal",
+      "sha256": "30f9618670e686d781afbfc713eb0830c29d2819e9cb2a0488800dad6bb99faa",
+      "version": "3.11.2-1+b1"
+    },
+    {
+      "architecture": "all",
+      "package": "python3-pkg-resources",
+      "sha256": "25dfb378939ccdf27e7382adf44c168f86e22f9f1a8e6e3a2ec526431ed5e30f",
+      "version": "66.1.1-1+deb12u2"
+    },
+    {
+      "architecture": "all",
+      "package": "python3-six",
+      "sha256": "fd189e9cecbcf17a1fc20aec30055c8afa9c1eec00cd6e7ab385087a2ab3b0d3",
+      "version": "1.16.0-4"
+    },
+    {
+      "architecture": "amd64",
+      "package": "python3.11",
+      "sha256": "4facf334e0e0830a87013852f8c3a1cfee11ad702f72f240adf9ad5b9a334e7c",
+      "version": "3.11.2-6+deb12u9"
+    },
+    {
+      "architecture": "amd64",
+      "package": "python3.11-minimal",
+      "sha256": "b5f855ab922dfcd5d1a3223b2118c3dae13ffc7751b0cd5dc24740386323a33a",
+      "version": "3.11.2-6+deb12u9"
+    },
+    {
+      "architecture": "all",
+      "package": "terser",
+      "sha256": "76868241b725cd8fe1f9f154dcac96e561509930979f01f7de60d694896c5155",
+      "version": "5.16.5-2"
+    },
+    {
+      "architecture": "all",
+      "package": "webpack",
+      "sha256": "a1deae5e5884939189a0eb196072c707e41a0e49049ff325b89ced21aede5703",
+      "version": "5.75.0+dfsg+~cs17.16.14-1+deb12u1"
+    }
+  ],
+  "production_authorized": false,
+  "root_packages": [
+    "nodejs",
+    "npm"
+  ],
+  "schema": 1,
+  "worker_execution_authorized": false
+}

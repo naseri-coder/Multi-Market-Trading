@@ -1,0 +1,58 @@
+name: MMT CERT-A11 Debian package closure (nonproduction only)
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cert-a11-debian-closure.yml"
+      - "deploy/runtime_a2/a11_apt_closure.py"
+      - "deploy/runtime_a2/a11_apt_closure.json"
+      - "deploy/runtime_a2/Dockerfile"
+      - "deploy/runtime_a2/Dockerfile.dockerignore"
+      - "deploy/runtime_a2/a8_source_lock.json"
+      - "naseri_markets/cert_a10_immutable_package_pins.py"
+      - "tests/unit/test_cert_a11_debian_lock_review.py"
+      - "docs/MMT_CERT_A11_DEBIAN_PACKAGE_CLOSURE.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-closure-lock-fail-closed:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: production_source:.
+      MMT_NONPRODUCTION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Test exact Debian closure hashes and unchanged A6 deny
+        run: |
+          set -Eeuo pipefail
+          test "$(uname -m)" = x86_64
+          python -m pip install --disable-pip-version-check \
+            pytest==9.1.1 pytest-asyncio==1.4.0 \
+            pydantic-settings==2.15.0 ruff==0.16.9
+          python -m ruff check \
+            deploy/runtime_a2/a11_apt_closure.py \
+            tests/unit/test_cert_a11_debian_lock_review.py \
+            naseri_markets/cert_a10_immutable_package_pins.py
+          python -m pytest -q -ra \
+            tests/unit/test_cert_a11_debian_lock_review.py \
+            tests/unit/test_cert_a10_immutable_package_pins.py \
+            tests/unit/test_runtime_a8_supply_chain.py \
+            tests/unit/test_runtime_a6_dispatch_fence.py \
+            | tee "$RUNNER_TEMP/cert-a11-regressions.txt"
+          if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/cert-a11-regressions.txt"; then
+            echo "CERT_A11_SKIPPED_SECURITY_CHECK_DENIED" >&2
+            exit 1
+          fi
+          echo "CERT_A11_372_HASH_LOCKS_SOURCE_REVIEW_ONLY"
+  # Real apt-get download, preinstall SHA check and --no-download install
+  # occur in existing RUNTIME-A2 candidate build (no duplicate costly build).
+  # Neither CI runner nor rootful Docker is independently certified gVisor.
