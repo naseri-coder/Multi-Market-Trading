@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends nodejs npm \
 
 # Download only the exact fixed TypeScript npm archive and verify SHA-512
 # BEFORE running npm. Offline npm cannot silently fetch more dependencies.
-RUN python -c 'import hashlib,pathlib,urllib.request; url="https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz"; data=urllib.request.urlopen(url,timeout=30).read(30000001); assert 0<len(data)<=30000000 and hashlib.sha512(data).hexdigest()=="8e5d6f6733c38a72ebf5e52ddc9feded5e8580d130f508ef04f772b33f4a7d00c3e357d0ac2d98e2f290762694a454f86d795bd511e12e9a7cc2d9ba3394e04b", "A10_TS_ARCHIVE_SHA512_MISMATCH"; pathlib.Path("/tmp/typescript-5.9.3.tgz").write_bytes(data)' \
+RUN python -c 'import hashlib,pathlib,sys,urllib.request; url="https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz"; data=urllib.request.urlopen(url,timeout=30).read(30000001); (0<len(data)<=30000000 and hashlib.sha512(data).hexdigest()=="8e5d6f6733c38a72ebf5e52ddc9feded5e8580d130f508ef04f772b33f4a7d00c3e357d0ac2d98e2f290762694a454f86d795bd511e12e9a7cc2d9ba3394e04b") or sys.exit("A10_TS_ARCHIVE_SHA512_MISMATCH"); pathlib.Path("/tmp/typescript-5.9.3.tgz").write_bytes(data)' \
     && npm install --global --ignore-scripts --offline --no-audit --no-fund /tmp/typescript-5.9.3.tgz \
     && rm -f /tmp/typescript-5.9.3.tgz
 
