@@ -1,0 +1,49 @@
+name: MMT PINE-A1 closed-bar SMA subset and trace parity
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/pine_a1_sma_cross_parity.py"
+      - "tests/unit/test_pine_a1_sma_cross_parity.py"
+      - "docs/MMT_PINE_A1_SMA_CROSS_SEMANTIC_PARITY.md"
+      - ".github/workflows/pine-a1-semantic-parity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pine-a1-offline-trace-parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: ${{ github.workspace }}/production_source:${{ github.workspace }}
+      MMT_NONPRODUCTION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install pinned test tools and Parquet decoder
+        run: |
+          python -m pip install --disable-pip-version-check \
+            pytest==9.1.1 pytest-asyncio==1.4.0 \
+            pyarrow==21.0.0 ruff==0.16.9 pydantic-settings==2.15.0
+      - name: Strict Pine subset, actual CSV/Parquet and A6 denial
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check \
+            naseri_markets/pine_a1_sma_cross_parity.py \
+            tests/unit/test_pine_a1_sma_cross_parity.py
+          python -m pytest -q -ra \
+            tests/unit/test_pine_a1_sma_cross_parity.py \
+            tests/unit/test_historical_data_loader_a1.py \
+            tests/unit/test_data_runtime_paper_wire_a1.py \
+            tests/unit/test_runtime_a6_dispatch_fence.py \
+            | tee "$RUNNER_TEMP/pine-a1-parity-tests.log"
+          if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/pine-a1-parity-tests.log"; then
+            echo "PINE_A1_PARQUET_OR_REGRESSION_TEST_SKIPPED" >&2
+            exit 1
+          fi
