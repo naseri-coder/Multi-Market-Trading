@@ -11,8 +11,8 @@ import pytest
 
 from naseri_markets.contracts import Market
 from naseri_markets.mt_a1_offline_artifact_preflight import (
-    MTArtifactRefused,
     MetaTraderPlatform,
+    MTArtifactRefused,
     review_metatrader_artifact,
 )
 from naseri_markets.runtime_a6_dispatch_fence import (
