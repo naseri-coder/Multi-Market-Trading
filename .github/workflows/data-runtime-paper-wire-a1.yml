@@ -1,0 +1,51 @@
+name: MMT DATA-RUNTIME A1 inert PAPER wire integration
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/data_runtime_paper_wire_a1.py"
+      - "tests/unit/test_data_runtime_paper_wire_a1.py"
+      - "docs/MMT_DATA_RUNTIME_PAPER_WIRE_A1.md"
+      - ".github/workflows/data-runtime-paper-wire-a1.yml"
+      - "naseri_markets/data_a1_file_intake.py"
+      - "naseri_markets/historical_data_loader_a1.py"
+      - "naseri_markets/multilang_runtime_a1.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inert-paper-wire-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: ${{ github.workspace }}/production_source:${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install pinned offline test dependencies
+        run: |
+          python -m pip install --disable-pip-version-check \
+            pytest==9.1.1 pytest-asyncio==1.4.0 \
+            pyarrow==21.0.0 ruff==0.16.9 pydantic-settings==2.15.0
+      - name: Validate real CSV/Parquet, A1 framing and A6 hard denial
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check \
+            naseri_markets/data_runtime_paper_wire_a1.py \
+            tests/unit/test_data_runtime_paper_wire_a1.py
+          python -m pytest -q -ra \
+            tests/unit/test_data_runtime_paper_wire_a1.py \
+            tests/unit/test_data_a1_file_intake.py \
+            tests/unit/test_multilang_runtime_a1.py \
+            tests/unit/test_runtime_a6_dispatch_fence.py \
+            | tee "$RUNNER_TEMP/data-runtime-wire.txt"
+          if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/data-runtime-wire.txt"; then
+            echo "DATA_RUNTIME_TESTS_SKIPPED" >&2
+            exit 1
+          fi
