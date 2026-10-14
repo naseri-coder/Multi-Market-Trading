@@ -120,9 +120,12 @@ def make_report() -> dict:
                      "declared_runtime_dependencies": p.get("D", "").split(),
                      "declared_provides": p.get("p", "").split(),
                      "size": p.get("S")}
-            if name in matching:
-                fail("DUPLICATE_TARGET_PACKAGE_NAME")
-            matching[name] = value
+            matching.setdefault(name, []).append(value)
+    for name, variants in matching.items():
+        identities = [(v["version"], v["index_control_checksum"]) for v in variants]
+        if len(identities) != len(set(identities)):
+            fail("DUPLICATE_IDENTICAL_PACKAGE_VERSION")
+        variants.sort(key=lambda v: (v["version"], v["index_control_checksum"] or ""))
     available = sorted(set(matching).intersection(TARGETS))
     missing = sorted(set(TARGETS) - set(available))
     glibc_options = sorted(k for k in matching if k.startswith("glibc"))
@@ -139,6 +142,8 @@ def make_report() -> dict:
         "apk_signature_validation_was_run_against_exact_downloaded_index": True,
         "index_total_package_records": len(pkgs),
         "candidate_root_packages": matching,
+        "package_names_with_multiple_index_versions": sorted(k for k,v in matching.items() if len(v) > 1),
+        "exact_package_version_selection_without_resolver": False,
         "python_and_node_package_names_found": available,
         "python_and_node_package_names_missing": missing,
         "glibc_versioned_candidates_found": glibc_options,
