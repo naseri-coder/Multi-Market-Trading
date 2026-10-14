@@ -1,0 +1,156 @@
+name: CERT-A19-R16 one-run signed Wolfi index archive custody (nonproduction)
+
+on:
+  push:
+    branches: [cert-a19-byte-audit-run]
+    paths:
+      - ".github/workflows/cert-a19-r16-snapshot.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  atomic-index-and-four-archive-review:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/cert-a19-byte-audit-run' && github.repository == 'naseri-coder/Multi-Market-Trading'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    env:
+      MMT_NONPRODUCTION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: Authenticate exact publisher-signed base and capture repository key material
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          work="$RUNNER_TEMP/cert-a19-r16"
+          mkdir -m 0700 "$work"
+          image='cgr.dev/chainguard/wolfi-base@sha256:256c88bb066424045021090932d50be93c8e3f2ce3586707702a401b146f3e43'
+          cosign verify \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            --certificate-identity=https://github.com/chainguard-images/images/.github/workflows/release.yaml@refs/heads/main \
+            "$image" > "$work/cosign-evidence.txt"
+          printf '%s\n' "$image" > "$work/base.txt"
+          echo VERIFIED_EXACT_PUBLISHER > "$work/cosign.status"
+          docker pull --platform linux/amd64 "$image"
+          cid="$(docker create --pull=never --platform linux/amd64 --entrypoint=/bin/true "$image")"
+          trap 'docker rm "$cid" >/dev/null 2>&1 || true' EXIT
+          test "$(docker inspect "$cid" --format '{{.State.Status}}')" = created
+          docker cp "$cid:/etc/apk/repositories" "$work/repositories-from-base"
+          docker cp "$cid:/etc/apk/keys" "$work/keys"
+          test "$(docker inspect "$cid" --format '{{.State.Status}}')" = created
+          grep -Fx 'https://apk.cgr.dev/chainguard' "$work/repositories-from-base"
+          echo R16_NO_BASE_CONTAINER_EXECUTION
+      - name: Download and retain ONE exact signed Wolfi repository snapshot
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          work="$RUNNER_TEMP/cert-a19-r16"
+          mkdir -p "$work/localrepo/x86_64"
+          curl --proto '=https' --proto-redir '=https' --fail --location \
+            --silent --show-error --retry 1 --connect-timeout 15 --max-time 90 \
+            'https://apk.cgr.dev/chainguard/x86_64/APKINDEX.tar.gz' \
+            -o "$work/APKINDEX.tar.gz"
+          test "$(stat -c%s "$work/APKINDEX.tar.gz")" -gt 1000000
+          test "$(stat -c%s "$work/APKINDEX.tar.gz")" -lt 35000000
+          cp "$work/APKINDEX.tar.gz" "$work/localrepo/x86_64/APKINDEX.tar.gz"
+          printf 'file:///mnt/apkrepo\n' > "$work/repos"
+          sha256sum "$work/APKINDEX.tar.gz"
+      - name: Use signed Wolfi apk to authenticate that exact locally mounted index
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          work="$RUNNER_TEMP/cert-a19-r16"
+          image="$(cat "$work/base.txt")"
+          if ! docker run --rm --pull=never --platform linux/amd64 \
+            --network=none --read-only --cap-drop=ALL \
+            --security-opt=no-new-privileges \
+            --pids-limit=40 --memory=200m --user=65534:65534 \
+            --tmpfs /tmp:rw,noexec,nosuid,size=24m,mode=1777 \
+            --mount type=bind,src="$work/localrepo",dst=/mnt/apkrepo,readonly \
+            --mount type=bind,src="$work/repos",dst=/mnt/repos,readonly \
+            --entrypoint /sbin/apk "$image" \
+            --no-cache --no-progress --keys-dir /etc/apk/keys \
+            --repositories-file /mnt/repos search -x busybox \
+            > "$work/apk-index-proof.log" 2> "$work/apk-index-proof.err"; then
+            cat "$work/apk-index-proof.err" >&2; exit 1
+          fi
+          if grep -Eiq 'untrusted|bad signature|warning:|error:|ignoring' "$work/apk-index-proof.err"; then
+            echo R16_INDEX_SIGNATURE_REJECTED >&2; exit 1
+          fi
+          grep -E '^busybox-[0-9]' "$work/apk-index-proof.log" | head -n 1
+          echo NATIVE_APK_ACCEPTED_SIGNED_SNAPSHOT > "$work/index-signature.status"
+          python3 -m scripts.ci_cert_a19_r16_atomic_snapshot index
+      - name: Record genuine native APK closure solver output without installing any package
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          work="$RUNNER_TEMP/cert-a19-r16"
+          image="$(cat "$work/base.txt")"
+          # No package installation; solver status is diagnostic until its
+          # full output is independently mapped back into frozen index entries.
+          if docker run --rm --pull=never --platform linux/amd64 \
+            --network=none --read-only --cap-drop=ALL \
+            --security-opt=no-new-privileges --pids-limit=40 --memory=200m \
+            --user=65534:65534 \
+            --tmpfs /tmp:rw,noexec,nosuid,size=24m,mode=1777 \
+            --mount type=bind,src="$work/localrepo",dst=/mnt/apkrepo,readonly \
+            --mount type=bind,src="$work/repos",dst=/mnt/repos,readonly \
+            --entrypoint /sbin/apk "$image" \
+            --no-cache --no-progress --keys-dir /etc/apk/keys \
+            --repositories-file /mnt/repos \
+            fetch --recursive --simulate --url \
+            'glibc-2.44=2.44-r8' 'python-3.12=3.12.15-r3' \
+            'python-3.12-base=3.12.15-r3' 'nodejs-24=24.22.0-r0' \
+            > "$work/solver.out" 2> "$work/solver.err"; then
+            echo NATIVE_APK_SOLVER_EXIT_ZERO_OUTPUT_REQUIRES_INDEPENDENT_MAPPING > "$work/solver.state"
+          else
+            echo NATIVE_APK_SOLVER_NONZERO_FULL_CLOSURE_NOT_PROVEN > "$work/solver.state"
+          fi
+          echo "R16_SOLVER_DIAGNOSTIC=$(cat "$work/solver.state")"
+      - name: Fetch FOUR direct indexed archives with bounded public HTTPS redirects only
+        run: |
+          set -Eeuo pipefail
+          python3 -m scripts.ci_cert_a19_r16_atomic_snapshot fetch
+      - name: Verify native APK signatures for all FOUR downloaded direct archives
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          work="$RUNNER_TEMP/cert-a19-r16"
+          image="$(cat "$work/base.txt")"
+          if ! docker run --rm --pull=never --platform linux/amd64 \
+            --network=none --read-only --cap-drop=ALL \
+            --security-opt=no-new-privileges \
+            --pids-limit=40 --memory=200m --user=65534:65534 \
+            --tmpfs /tmp:rw,noexec,nosuid,size=24m,mode=1777 \
+            --mount type=bind,src="$work/apk",dst=/mnt/apks,readonly \
+            --entrypoint /bin/sh "$image" -ec \
+            'set -- /mnt/apks/*.apk; test "$1" != "/mnt/apks/*.apk"; exec /sbin/apk --no-cache --keys-dir /etc/apk/keys verify "$@"' \
+            > "$work/apk-verify.log" 2>&1; then
+            tail -n 80 "$work/apk-verify.log" >&2
+            echo R16_APK_ARCHIVE_SIGNATURE_REJECTED >&2
+            exit 1
+          fi
+          if grep -Eiq 'untrusted|bad signature|warning:|error:|failed' "$work/apk-verify.log"; then
+            echo R16_APK_ARCHIVE_VERIFY_LOG_REJECTED >&2; exit 1
+          fi
+          cat "$work/apk-verify.log"
+          echo FOUR_ARCHIVES_CRYPTOGRAPHICALLY_VERIFIED > "$work/apk-verify.status"
+          python3 -m scripts.ci_cert_a19_r16_atomic_snapshot finalize
+      - name: Save immutable index BYTES and bounded evidence; never upload APK archives
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cert-a19-r16-atomic-index-four-root-review
+          path: |
+            ${{ runner.temp }}/cert-a19-r16/APKINDEX.tar.gz
+            ${{ runner.temp }}/cert-a19-r16/r16-report.json
+            ${{ runner.temp }}/cert-a19-r16/solver.state
+            ${{ runner.temp }}/cert-a19-r16/solver.out
+            ${{ runner.temp }}/cert-a19-r16/solver.err
+            ${{ runner.temp }}/cert-a19-r16/apk-verify.log
+            ${{ runner.temp }}/cert-a19-r16/apk-index-proof.err
+          if-no-files-found: ignore
+          retention-days: 2
