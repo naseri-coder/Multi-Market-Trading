@@ -141,6 +141,20 @@ def test_missing_or_forged_sbom_refused(tmp_path):
         a15.compare(*base, *lean, _BASE_IMAGE, _LEAN_IMAGE, 100, 80, now=_NOW)
 
 
+def test_elf_soname_symlink_filename_is_preserved(tmp_path):
+    real = tmp_path / "libuv.so.1.0.0"
+    real.write_bytes(b"fixed-public-runtime-elf-bytes")
+    alias = tmp_path / "libuv.so.1"
+    alias.symlink_to(real)
+    root = tmp_path / "stage-root"
+    root.mkdir()
+    exported = exporter._copy_file(alias, root)
+    assert exported["path"].endswith("/libuv.so.1")
+    expected = root / alias.relative_to("/")
+    assert expected.read_bytes() == real.read_bytes()
+    assert not (root / real.relative_to("/")).exists()
+
+
 def test_nested_node_dependencies_require_fixed_elf_libraries(monkeypatch):
     response = subprocess.CompletedProcess(
         (), 0, stdout=(
