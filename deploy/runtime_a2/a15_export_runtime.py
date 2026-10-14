@@ -56,38 +56,58 @@ def _copy_file(source: Path, root: Path) -> dict[str, str]:
 
 
 def _node_dependencies() -> list[Path]:
-    """Parse trusted pinned Node's ldd closure, never run source/user code."""
-    try:
-        response = subprocess.run(
-            ("/usr/bin/ldd", str(_NODE)), timeout=8,
-            capture_output=True, check=False, stdin=subprocess.DEVNULL,
-            close_fds=True, shell=False,
-        )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        raise A15ExportRefused("A15_LDD_FAILED") from exc
-    if (response.returncode != 0 or not 0 < len(response.stdout) <= 20_000
-            or b"not found" in response.stdout):
-        raise A15ExportRefused("A15_UNRESOLVED_NODE_RUNTIME_LIBRARIES")
-    try:
-        lines = response.stdout.decode("ascii").splitlines()
-    except UnicodeError as exc:
-        raise A15ExportRefused("A15_LDD_ENCODING_INVALID") from exc
+    """Traverse the fixed Node ELF ldd closure, including libnode's dependencies.
+
+    ldd /usr/bin/node alone is insufficient: libuv.so.1 is brought in by
+    libnode.so.108 and may not appear in the executable's direct ldd lines.
+    Every inspected file must originate from the pinned local A2 image.
+    """
+    pending = [_NODE]
+    visited: set[Path] = set()
     deps: set[Path] = set()
-    for line in lines:
-        # Reject unexpected ELF names: permitted root prefixes only.
-        for literal in _LIB_RE.findall(line):
-            if not literal.startswith(_ALLOWED_LIB_ROOTS):
-                raise A15ExportRefused("A15_DEPENDENCY_OUTSIDE_SYSTEM_LIBRARY")
-            path = Path(literal)
-            if not path.is_file():
-                raise A15ExportRefused("A15_LIBRARY_PATH_NOT_FOUND")
-            deps.add(path)
-    if not 3 <= len(deps) <= 120:
+    while pending:
+        current = pending.pop()
+        if current in visited:
+            continue
+        visited.add(current)
+        if len(visited) > 121:
+            raise A15ExportRefused("A15_ELF_CLOSURE_TOO_LARGE")
+        # The pinned base already contains the loader; ldd on the loader
+        # itself is not guaranteed to return dependencies consistently.
+        if current != _NODE and current.name.startswith("ld-linux-"):
+            continue
+        try:
+            response = subprocess.run(
+                ("/usr/bin/ldd", str(current)), timeout=8,
+                capture_output=True, check=False, stdin=subprocess.DEVNULL,
+                close_fds=True, shell=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise A15ExportRefused("A15_LDD_FAILED") from exc
+        if (response.returncode != 0 or not 0 < len(response.stdout) <= 20_000
+                or b"not found" in response.stdout):
+            raise A15ExportRefused("A15_UNRESOLVED_NODE_RUNTIME_LIBRARIES")
+        try:
+            lines = response.stdout.decode("ascii").splitlines()
+        except UnicodeError as exc:
+            raise A15ExportRefused("A15_LDD_ENCODING_INVALID") from exc
+        for line in lines:
+            for literal in _LIB_RE.findall(line):
+                if not literal.startswith(_ALLOWED_LIB_ROOTS):
+                    raise A15ExportRefused("A15_DEPENDENCY_OUTSIDE_SYSTEM_LIBRARY")
+                path = Path(literal)
+                if not path.is_file():
+                    raise A15ExportRefused("A15_LIBRARY_PATH_NOT_FOUND")
+                if path not in deps:
+                    deps.add(path)
+                    pending.append(path)
+                if len(deps) > 120:
+                    raise A15ExportRefused("A15_ELF_CLOSURE_TOO_LARGE")
+    if len(deps) < 3:
         raise A15ExportRefused("A15_NODE_DEPENDENCY_CLOSURE_INVALID")
     if not any("libnode" in item.name for item in deps):
         raise A15ExportRefused("A15_EXPECTED_LIBNODE_MISSING")
     return sorted(deps)
-
 
 def export_fixed_runtime(root: Path = _ROOTFS) -> dict:
     if root != _ROOTFS or root.is_symlink() or root.exists():
