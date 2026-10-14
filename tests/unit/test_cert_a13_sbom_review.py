@@ -5,13 +5,13 @@ import copy
 import hashlib
 import json
 import subprocess
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from scripts import ci_cert_a13_sbom_review as a13
 
-NOW = datetime(2026, 10, 14, 15, tzinfo=timezone.utc)
+NOW = datetime(2026, 10, 14, 15, tzinfo=UTC)
 IMAGE = "sha256:" + "a" * 64
 SBOM = {
     "bomFormat": "CycloneDX",
