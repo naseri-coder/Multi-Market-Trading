@@ -1,0 +1,45 @@
+name: MMT CERT-A11 Debian closure discovery (NOT certified)
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cert-a11-debian-closure.yml"
+      - "deploy/runtime_a2/a11_apt_closure.py"
+      - "deploy/runtime_a2/a11_apt_closure.json"
+      - "deploy/runtime_a2/Dockerfile"
+      - "deploy/runtime_a2/Dockerfile.dockerignore"
+      - "naseri_markets/cert_a11_debian_lock_review.py"
+      - "tests/unit/test_cert_a11_debian_lock_review.py"
+      - "docs/MMT_CERT_A11_DEBIAN_PACKAGE_CLOSURE.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  discover-apt-archive-bytes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Inspect Debian archives from digest-pinned disposable Python image only
+        run: |
+          set -Eeuo pipefail
+          test "$(uname -m)" = x86_64
+          echo "CERT_A11_APT_DISCOVERY_ONLY_NO_CERTIFICATION"
+          docker run --rm --pull=always --platform=linux/amd64 \
+            --cap-drop=ALL --security-opt=no-new-privileges \
+            --pids-limit=128 --memory=900m \
+            --mount="type=bind,source=$PWD/deploy/runtime_a2/a11_apt_closure.py,target=/opt/mmt/a11_apt_closure.py,readonly" \
+            --entrypoint=/bin/sh \
+            "python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258" \
+            -ec '
+              mkdir -p /tmp/mmt-a11-apt/archives/partial
+              apt-get update -qq
+              apt-get -y -o Dir::Cache::archives=/tmp/mmt-a11-apt/archives \
+                install --download-only --no-install-recommends nodejs npm >/dev/null
+              python /opt/mmt/a11_apt_closure.py discover
+            '
+          echo "CERT_A11_DISCOVERED_ARCHIVES_ARE_CANDIDATES_NOT_PUBLISHER_ATTESTATION"
