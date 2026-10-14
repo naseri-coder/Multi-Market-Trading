@@ -14,7 +14,7 @@ import re
 import stat
 import sys
 from collections import Counter
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 _HEX = re.compile(r"sha256:[a-f0-9]{64}\Z")
@@ -90,7 +90,7 @@ def _db_timestamp(data: dict, *, now: datetime) -> tuple[str, int]:
         raise A13Refused("A13_DB_BUILD_DATE_MALFORMED") from exc
     if built.tzinfo is None:
         raise A13Refused("A13_DB_BUILD_DATE_WITHOUT_TIMEZONE")
-    built = built.astimezone(timezone.utc)
+    built = built.astimezone(UTC)
     age = now - built
     if not (-timedelta(hours=24) <= age <= timedelta(days=30)):
         raise A13Refused("A13_DB_STALE_OR_FUTURE")
@@ -130,13 +130,13 @@ def review(
     if _HEX.fullmatch(image_id) is None:
         raise A13Refused("A13_IMAGE_ID_NOT_CONTENT_ADDRESSED")
     if now is None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
     if now.tzinfo is None:
         raise A13Refused("A13_CLOCK_NOT_TIMEZONE_AWARE")
     sbom, sbom_sha = _read(sbom_path, _MAX_SBOM)
     scan, scan_sha = _read(scan_path, _MAX_SCAN)
     components = _sbom_check(sbom)
-    db_built, db_age_days = _db_timestamp(scan, now=now.astimezone(timezone.utc))
+    db_built, db_age_days = _db_timestamp(scan, now=now.astimezone(UTC))
     counts, matches = _scan_check(scan)
     statuses = {
         "worker_execution_authorized": False,
