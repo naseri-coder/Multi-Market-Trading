@@ -1,0 +1,142 @@
+name: CERT-A19-R9 stopped A18 image undici exact-file SHA (nonproduction)
+
+on:
+  push:
+    branches: [cert-a19-byte-audit-run]
+    paths:
+      - ".github/workflows/cert-a19-r9-stopped-image-byte.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  stopped-image-undici-bytes:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/cert-a19-byte-audit-run' && github.repository == 'naseri-coder/Multi-Market-Trading'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      MMT_NONPRODUCTION: "1"
+      DOCKER_BUILDKIT: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify fixed source identity and fail-closed scope
+        run: |
+          set -Eeuo pipefail
+          test "${MMT_NONPRODUCTION}" = 1
+          test "$GITHUB_REF" = refs/heads/cert-a19-byte-audit-run
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          lock=json.loads(Path("deploy/runtime_a2/a11_apt_closure.json").read_text())
+          assert len(lock["packages"]) == 372
+          assert lock["closure_sha256"] == "47bd698232b4f624d1aab35c6453e1f01641b1b6ebdd8d4d7dc38a4dd19ae872"
+          pinned=[p for p in lock["packages"] if p["package"]=="node-undici"]
+          assert len(pinned)==1 and pinned[0]["sha256"]=="78ec8918d63e365bbdec6edd35bebec9e20cc931f084f24e8673badf191d100c"
+          d15=Path("deploy/runtime_a2/Dockerfile.a15-lean").read_text()
+          d18=Path("deploy/runtime_a2/Dockerfile.a18-absence").read_text()
+          exporter=Path("deploy/runtime_a2/a15_export_runtime.py").read_text()
+          assert "shutil.copytree(directory, target, symlinks=False)" in exporter
+          assert "_UNDICI = Path(\"/usr/share/nodejs/undici\")" in exporter
+          assert "FROM mmt/runtime-a2-candidate:pr AS pinned-a2-fixture-source" in d15
+          assert "FROM mmt/runtime-a15-lean:pr" in d18
+          assert 'ENTRYPOINT ["/opt/mmt/bin/runtime-a1-worker"]' in d18
+          fence=Path("naseri_markets/runtime_a6_dispatch_fence.py").read_text()
+          assert "A6_INDEPENDENT_HOST_CERTIFICATION_REQUIRED" in fence
+          print("R9_LOCK_EXPORTER_A6_IMMUTABLE_PATHS_MATCH")
+          PY
+      - name: Rebuild fixed A2 disposable image from digest-pinned historical recipe only
+        run: |
+          set -Eeuo pipefail
+          docker build --pull --tag mmt/runtime-a2-candidate:pr \
+            --file deploy/runtime_a2/Dockerfile .
+          docker image inspect mmt/runtime-a2-candidate:pr --format 'R9_A2_LOCAL_IMAGE_ID={{.Id}}'
+      - name: Rebuild fixed A15 lean image OFFLINE without Worker execution
+        run: |
+          set -Eeuo pipefail
+          docker build --pull=false --network=none \
+            --tag mmt/runtime-a15-lean:pr \
+            --file deploy/runtime_a2/Dockerfile.a15-lean .
+      - name: Rebuild exact A18 metadata-only recipe OFFLINE without Worker execution
+        run: |
+          set -Eeuo pipefail
+          docker build --pull=false --network=none \
+            --tag mmt/runtime-a18-owner-absence:pr \
+            --file deploy/runtime_a2/Dockerfile.a18-absence .
+      - name: Create stopped containers only and compare extracted undici code SHA256
+        run: |
+          set -Eeuo pipefail
+          work="$RUNNER_TEMP/cert-a19-r9"
+          mkdir -p -m 0700 "$work"
+          test "$(docker image inspect mmt/runtime-a18-owner-absence:pr --format '{{index .Config.Labels "io.mmt.cert_a18"}}')" = FIXED_PATH_EXCLUSION_PROVENANCE_REVIEW_ONLY
+          for tier in a2 a15 a18; do
+            case "$tier" in
+              a2) image=mmt/runtime-a2-candidate:pr ;;
+              a15) image=mmt/runtime-a15-lean:pr ;;
+              a18) image=mmt/runtime-a18-owner-absence:pr ;;
+            esac
+            cid="$(docker create --pull=never --entrypoint=/bin/true "$image")"
+            echo "$cid" > "$work/$tier.cid"
+            docker inspect "$cid" --format '{{.State.Status}}' | grep -Fx created
+            docker cp "$cid:/usr/share/nodejs/undici/lib/balanced-pool.js" "$work/$tier-balanced-pool.js"
+            docker inspect "$cid" --format '{{.State.Status}}' | grep -Fx created
+            docker rm "$cid" >/dev/null
+            rm -f "$work/$tier.cid"
+          done
+          python3 - <<'PY'
+          import hashlib, json, os, stat, subprocess
+          from pathlib import Path
+          work=Path(os.environ["RUNNER_TEMP"])/"cert-a19-r9"
+          expected="06e20567449a6131d5ae6f049b5d85f17c3139f2fed6a2783f656429180ff865"
+          former="sha256:dc8caca0022f73f0568a2962a1cf0da873566a15fd4a59fdc7e6724c9de82cef"
+          refs={
+              "a2":"mmt/runtime-a2-candidate:pr",
+              "a15":"mmt/runtime-a15-lean:pr",
+              "a18":"mmt/runtime-a18-owner-absence:pr",
+          }
+          observed={}
+          for tier, image in refs.items():
+              path=work/(tier+"-balanced-pool.js")
+              st=path.lstat()
+              assert stat.S_ISREG(st.st_mode) and st.st_nlink==1
+              assert 1000 < st.st_size < 100000
+              digest=hashlib.sha256(path.read_bytes()).hexdigest()
+              imageid=subprocess.check_output(
+                  ["docker","image","inspect",image,"--format","{{.Id}}"],text=True).strip()
+              assert imageid.startswith("sha256:") and len(imageid)==71
+              observed[tier]={"image_id":imageid, "balanced_pool_sha256":digest}
+              assert digest==expected, "R9_UNDICI_FILE_DIGEST_DRIFT"
+          matching=observed["a18"]["image_id"] == former
+          report={
+              "stage":"CERT-A19-R9",
+              "run_context":"GitHub-hosted isolated nonproduction reconstitution",
+              "stopped_containers_only":True,
+              "worker_or_unknown_code_executed":False,
+              "debian_source_and_binary_r8_sha256":expected,
+              "images":observed,
+              "historical_a18_image_id_from_a18_artifact":former,
+              "historical_a18_image_id_exact_match":matching,
+              "reconstructed_a2_a15_a18_bytes_match_authenticated_debian":True,
+              "historical_a18_file_equality_proven":bool(matching),
+              "historical_a18_parity_note":("EXACT_HISTORIC_IMAGE_DIGEST_MATCH" if matching
+                                         else "HISTORIC_IMAGE_DIGEST_DIFFERENT_NO_DIRECT_HISTORIC_BYTE_PROOF"),
+              "original_critical_high_findings_still_open":199,
+              "cves_certified_closed":0,
+              "rootless_gvisor_host_certified":False,
+              "production_authorized":False,
+          }
+          (Path(os.environ["RUNNER_TEMP"])/"cert-a19-r9-stopped-image-bytes.json").write_text(
+              json.dumps(report,sort_keys=True,indent=2)+"\n")
+          print("CERT_A19_R9_RECONSTRUCTED_A2_A15_A18_BYTES_EQUAL_SIGNED_DEBIAN")
+          print("CERT_A19_R9_HISTORIC_A18_IMAGE_ID_MATCH="+str(matching))
+          print("CERT_A19_R9_CVE_CLOSURES=0__HOST_NOT_GVISOR_CERTIFIED")
+          PY
+      - name: Upload ephemeral hashes without copying runnable files
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cert-a19-r9-stopped-a18-undeployed-byte-review
+          path: ${{ runner.temp }}/cert-a19-r9-stopped-image-bytes.json
+          if-no-files-found: ignore
+          retention-days: 2
