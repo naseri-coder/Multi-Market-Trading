@@ -20,6 +20,11 @@ _TS = Path("/usr/local/lib/node_modules/typescript")
 # Debian's libnode externalizes this CommonJS bootstrap module. The ELF ldd
 # closure alone cannot identify it; only this exact observed pinned file tree.
 _CJS = Path("/usr/share/nodejs/cjs-module-lexer")
+# The Debian Node 18 shared library also externalizes undici and Acorn
+# bootstrap sources. These are runtime code, NOT the Debian npm CLI.
+# Their original CVE findings remain unresolved even if Syft undercounts.
+_UNDICI = Path("/usr/share/nodejs/undici")
+_ACORN = Path("/usr/share/nodejs/acorn")
 _WASM = Path("/usr/local/lib/python3.12/site-packages/wasmtime")
 _WORKER = Path("/opt/mmt/bin/runtime-a1-worker")
 _LIB_RE = re.compile(r"(?<![A-Za-z0-9])(/[^\s()]+)")
@@ -140,7 +145,11 @@ def export_fixed_runtime(root: Path = _ROOTFS) -> dict:
     observed = [_copy_file(path, root) for path in [_NODE, _WORKER, *deps]]
     if not _CJS.is_dir() or not (_CJS / "lexer.js").is_file():
         raise A15ExportRefused("A15_EXTERNALIZED_NODE_CJS_LEXER_MISSING")
-    for directory in (_TS, _WASM, dist, _CJS):
+    if not _UNDICI.is_dir() or not (_UNDICI / "undici-fetch.js").is_file():
+        raise A15ExportRefused("A15_EXTERNALIZED_NODE_UNDICI_MISSING")
+    if not _ACORN.is_dir():
+        raise A15ExportRefused("A15_EXTERNALIZED_NODE_ACORN_MISSING")
+    for directory in (_TS, _WASM, dist, _CJS, _UNDICI, _ACORN):
         target = root / directory.relative_to("/")
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copytree(directory, target, symlinks=False)
@@ -152,6 +161,9 @@ def export_fixed_runtime(root: Path = _ROOTFS) -> dict:
         "wasmtime_version": "49.0.0",
         "copied_node_shared_libraries": len(deps),
         "copied_debian_externalized_commonjs_bootstrap": True,
+        "copied_debian_externalized_undici": True,
+        "copied_debian_externalized_acorn": True,
+        "debian_node_externalized_module_cves_still_open": True,
         "copied_runtime_file_hashes": observed,
         "npm_runtime_cli_included": False,
         "original_apt_372_lock_changed": False,
