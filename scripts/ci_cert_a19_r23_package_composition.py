@@ -12,7 +12,6 @@ from urllib.parse import urlsplit
 from urllib.request import Request, build_opener, HTTPRedirectHandler
 import zlib
 
-INDEX_SHA="8011fbdaf70278ae83e3729dc2c44a8148a91cf03ea0a7a9962ab6491a28e849496" # overwritten exact R17 below
 INDEX_SHA="8011fbdaf70278ae83e3729dc2c44a8148a91cf03ea0ef7a3d049e30a65e36a5"
 R18_SHA="78356a69bf4c7aa50856450b1b4f55f9aaaf4909072891909a9fe73697fd139b"
 R22_SHA="41cefc3fc5e72ca023b3f915b5605b9dd950f24860d313c37de56309d67efec7"
@@ -226,6 +225,7 @@ def inspect():
         members=t.getmembers()
         if len(members)>12000:deny("ROOTFS_TOO_MANY_MEMBERS")
         for m in members:
+            if m.name in (".","./","/"):continue
             path=cleanpath(m.name)
             if path in table and table[path]["type"]!=("directory" if m.isdir() else "file" if m.isfile() else "symlink" if m.issym() else "other"):
                 deny("ROOTFS_COLLIDING_DUPLICATE_TYPES")
