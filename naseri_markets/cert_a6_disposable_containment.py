@@ -132,7 +132,9 @@ def _cleanup(docker: tuple[str, ...], name: str) -> bool:
             timeout=5,
         )
         inspect = _call((*docker, "container", "inspect", name), timeout=5)
-        return info.returncode == 0 and inspect.returncode != 0
+        missing = (b"No such container: " + name.encode("ascii") in inspect.stderr
+                   or b"No such object: " + name.encode("ascii") in inspect.stderr)
+        return info.returncode == 0 and inspect.returncode != 0 and missing
     except CertA6Refused:
         return False
 
