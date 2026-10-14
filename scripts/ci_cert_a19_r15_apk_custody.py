@@ -204,7 +204,7 @@ def download():
     report = json.loads(path("selection.json").read_text())
     packages = report["solver_selected_packages"]
     folder = path("archives")
-    folder.mkdir(mode=0o700, exist_ok=False)
+    folder.mkdir(mode=0o755, exist_ok=False)
     total = 0
     for i, x in enumerate(packages):
         if not URL_RE.fullmatch(x["url"]) or x["url"].rsplit("/", 1)[-1] != x["filename"]:
