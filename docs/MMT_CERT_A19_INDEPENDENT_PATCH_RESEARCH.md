@@ -355,3 +355,19 @@ Native `apk fetch --recursive --simulate --url` returned unable-to-select-packag
 **VERDICT:** `CERT_A19_R16_SIGNED_INDEX_SNAPSHOT_BYTES_RETAINED__FOUR_APK_ARCHIVE_SIGNATURES_UNTRUSTED__NATIVE_SOLVER_UNRESOLVED__A6_DENY_199_OPEN`.
 
 R17 gate: investigate and verify native APK v2 archive signature/control structure, independently check signed-index Q1 control checksums against actual compressed APK data, preserve tampered-file negative controls and obtain genuine native transitive resolver evidence before any image build. Preserve historical A11 and A2/A15/A18; `main` unmodified, A6 hard DENY, PR Draft and no merge.
+
+## CERT-A19-R17 — four real signed-index Q1→control SHA1→data SHA256 chains PASS, no standalone APK RSA
+
+[Detailed R17 analysis, archive hashes, signer limitations and logs](MMT_CERT_A19_R17_APK_FORMAT_AND_PROVENANCE.md).
+
+A dedicated non-PR, nonproduction [GitHub Actions run #38637717187](https://github.com/naseri-coder/Multi-Market-Trading/actions/runs/38637717187) **SUCCEEDED** after two fail-closed layout diagnostic runs (#38637178390 too-restrictive gzip limit; #38637520735 incorrectly required three gzip streams). It independently reverified immutable Chainguard base signer, received and natively accepted the current exact Wolfi x86_64 signed APKINDEX, then directly parsed four actual `.apk` v2 archives without installing or executing their contents.
+
+**Critical corrected authenticity semantics:** all four archives contain **two** gzip members (compressed control + compressed data), with **NO individual `.SIGN.RSA[256].*.rsa.pub` stream**. The native `apk verify` result `UNTRUSTED` in R16 therefore must **not** be rewritten as a per-file RSA signature pass. Instead, each exact APK's full SHA-256 and size matched its pinned observed values and signed-index size; index `C:Q1` matched the **SHA-1 of the raw compressed control member**; `.PKGINFO` package identity matched and its signed-control-bound `datahash` matched the **SHA-256 of the raw compressed data member**. **Four out of four control and data chains passed.** Four independently mutated-control and four independently mutated-data negative checks were rejected. **0/4 independent RSA signatures present.**
+
+Verified R17 compressed signed APKINDEX snapshot SHA-256 `8011fbdaf70278ae83e3729dc2c44a8148a91cf03ea0ef7a3d049e30a65e36a5`, preserved as **full index bytes** in hosted artifact `cert-a19-r17-apkv2-control-signature-integrity` ID **11928024023**, 2-day retention, with full `r17-result.json` and native apk version provenance. R17 used `apk-tools 2.14.10`; this version does **not** implement `apk query --recursive` (newer docs), so the **full transitive package dependency closure remains UNVERIFIED**.
+
+**SHA-1 Q1 caveat:** matching the legacy signed-index-to-control hash is not equivalent to collision-resistant, signed SHA-256 over the entire APK. Any future apko resolver candidate must be independently signed, versions >=1.2.7 (older apko subject to CVE-2026-42575 incomplete index-to-payload binding), and prove all transitive archive checks. No native Worker ABI/four-language tests, rootless/gVisor host certification or production capability established.
+
+**R17 verdict:** `CERT_A19_R17_FOUR_APK_V2_SIGNED_INDEX_Q1_AND_DATAHASH_PASS__ZERO_STANDALONE_RSA__FULL_CLOSURE_AND_HOST_UNVERIFIED__A6_DENY_199_OPEN`.
+
+No source/Dockerfiles/Workflows in main changed; A11/A2/A15/A18, original 199 review-open findings and RUNTIME-A6 `A6_INDEPENDENT_HOST_CERTIFICATION_REQUIRED` hard DENY remain unchanged. PR #275 is **DRAFT / DO NOT MERGE**.
