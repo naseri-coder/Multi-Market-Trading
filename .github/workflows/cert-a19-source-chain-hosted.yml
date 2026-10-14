@@ -1,0 +1,42 @@
+name: MMT CERT-A19 Debian signed-source SHA chain (research only)
+
+on:
+  push:
+    branches: [cert-a19-byte-audit-run]
+    paths:
+      - ".github/workflows/cert-a19-source-chain-hosted.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  debian-signed-source-only:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/cert-a19-byte-audit-run' && github.repository == 'naseri-coder/Multi-Market-Trading'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      MMT_NONPRODUCTION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Debian developer public keyring from Ubuntu-signed apt only
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update -qq
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends debian-keyring
+          test -s /usr/share/keyrings/debian-keyring.gpg
+          test -s /usr/share/keyrings/debian-maintainers.gpg
+          command -v dpkg-source
+          command -v gpgv
+      - name: Verify exact DSC signature + all seven signed archive SHA256 + patched-source bytes
+        run: |
+          set -Eeuo pipefail
+          python3 -m scripts.ci_cert_a19_signed_source_chain
+      - name: Upload short-lived non-authorizing source custody report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cert-a19-r8-debian-signed-source-sha-chain
+          path: ${{ runner.temp }}/cert-a19-source-chain.json
+          if-no-files-found: error
+          retention-days: 2
