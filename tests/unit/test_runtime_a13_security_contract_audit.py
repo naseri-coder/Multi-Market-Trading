@@ -99,7 +99,18 @@ def test_a1_evaluation_guard_removal_fails(tmp_path):
         "            require_worker_launch(profile, framed)\n",
         "            pass  # deliberately missing entrypoint guard\n",
     )
-    with pytest.raises(A13AuditRefused, match="A13_LAUNCH_GUARD_NOT_DIRECT"):
+    with pytest.raises(A13AuditRefused, match="A13_A6_DENIAL_TRANSLATION_NOT_FAIL_CLOSED"):
+        audit_repository(root)
+
+
+def test_a1_swallowed_denial_exception_fails(tmp_path):
+    root = _fixture(tmp_path)
+    _mutate(
+        root, A1,
+        '            raise MultilangRefused("RUNTIME_A6_EXECUTION_DENIED") from exc',
+        "            pass  # maliciously swallow A6 denial",
+    )
+    with pytest.raises(A13AuditRefused, match="A13_A6_DENIAL_TRANSLATION_NOT_FAIL_CLOSED"):
         audit_repository(root)
 
 
