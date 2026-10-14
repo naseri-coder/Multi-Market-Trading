@@ -43,4 +43,5 @@ jobs:
           python -m pip download --no-deps --only-binary=:all: \
             --dest "$RUNNER_TEMP/wheel" wasmtime==49.0.0
           sha256sum "$RUNNER_TEMP/wheel"/*.whl
+          sha256sum deploy/runtime_a2/Dockerfile
           echo "A10_CANDIDATE_HASHES_FROM_LIVE_REGISTRIES__NOT_INDEPENDENT_PROVENANCE"
