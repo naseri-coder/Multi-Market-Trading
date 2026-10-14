@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - "naseri_markets/historical_data_loader_a1.py"
+      - "naseri_markets/data_a1_file_intake.py"
+      - "naseri_markets/data_a1_intake_cli.py"
+      - "tests/unit/test_data_a1_file_intake.py"
       - "tests/unit/test_historical_data_loader_a1.py"
       - "docs/MMT_DATA_A1_CSV_PARQUET_REPLAY.md"
       - ".github/workflows/data-a1-historical-loader.yml"
@@ -34,8 +37,13 @@ jobs:
           set -Eeuo pipefail
           python -m ruff check \
             naseri_markets/historical_data_loader_a1.py \
-            tests/unit/test_historical_data_loader_a1.py
-          python -m pytest -q -ra tests/unit/test_historical_data_loader_a1.py \
+            tests/unit/test_historical_data_loader_a1.py \
+            naseri_markets/data_a1_file_intake.py \
+            naseri_markets/data_a1_intake_cli.py \
+            tests/unit/test_data_a1_file_intake.py
+          python -m pytest -q -ra \
+            tests/unit/test_historical_data_loader_a1.py \
+            tests/unit/test_data_a1_file_intake.py \
             | tee "$RUNNER_TEMP/data-a1-results.txt"
           if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/data-a1-results.txt"; then
             echo "DATA_A1_OPTIONAL_DECODER_TESTS_SKIPPED" >&2
