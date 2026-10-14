@@ -8,6 +8,9 @@ on:
       - "naseri_markets/multilang_runtime_a1.py"
       - "deploy/runtime_a2/Dockerfile"
       - "docs/MMT_RUNTIME_A2_WORKER_CONTAINMENT.md"
+      - "scripts/ci_cert_a8_rootful_docker_smoke.py"
+      - "tests/unit/test_cert_a8_ci_rootful_docker_smoke.py"
+      - "docs/MMT_CERT_A8_GITHUB_HOSTED_BENIGN_DOCKER_SMOKE.md"
       - ".github/workflows/runtime-a2-worker-smoke.yml"
   workflow_dispatch:
 
@@ -43,8 +46,13 @@ jobs:
           set -Eeuo pipefail
           python -m ruff check scripts/runtime_a2_worker.py \
             tests/unit/test_runtime_a2_worker.py \
+            scripts/ci_cert_a8_rootful_docker_smoke.py \
+            tests/unit/test_cert_a8_ci_rootful_docker_smoke.py \
             naseri_markets/multilang_runtime_a1.py
-          python -m pytest -q -ra tests/unit/test_runtime_a2_worker.py \
+          python -m pytest -q -ra \
+            tests/unit/test_runtime_a2_worker.py \
+            tests/unit/test_cert_a8_ci_rootful_docker_smoke.py \
+            tests/unit/test_runtime_a6_dispatch_fence.py \
             | tee "$RUNNER_TEMP/mmt-runtime-a2.txt"
           if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/mmt-runtime-a2.txt"; then
             echo "RUNTIME_A2_DEPENDENCY_MISSING_OR_SKIPPED" >&2
@@ -87,3 +95,11 @@ jobs:
           python -m pytest -q -ra \
             tests/unit/test_runtime_a2_worker.py::test_exact_four_language_benign_fixture_roundtrips
           echo "DOCKER_FIXTURE_PASS__ROOTLESS_GVISOR_NOT_CERTIFIED"
+      - name: CERT-A8 verify benign bounded container controls on hosted rootful Docker
+        env:
+          MMT_NONPRODUCTION: "1"
+          MMT_CERT_A8_BENIGN_DOCKER_ONLY: "1"
+        run: |
+          set -Eeuo pipefail
+          python -m scripts.ci_cert_a8_rootful_docker_smoke
+          echo "CERT_A8_GITHUB_ROOTFUL_BENIGN_CONTAINER_ONLY_NOT_GVISOR_CERTIFIED"
