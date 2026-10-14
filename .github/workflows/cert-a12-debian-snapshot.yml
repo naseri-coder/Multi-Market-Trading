@@ -1,0 +1,60 @@
+name: MMT CERT-A12 signed Debian archive snapshot (nonproduction only)
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cert-a12-debian-snapshot.yml"
+      - "deploy/runtime_a2/a12_snapshot_sources.sources"
+      - "deploy/runtime_a2/a12_signed_snapshot.json"
+      - "deploy/runtime_a2/a12_snapshot_verify.py"
+      - "deploy/runtime_a2/a8_source_lock.json"
+      - "naseri_markets/cert_a10_immutable_package_pins.py"
+      - "docs/MMT_CERT_A12_DEBIAN_SIGNED_SNAPSHOT.md"
+      - "tests/unit/test_cert_a12_signed_snapshot.py"
+      - "deploy/runtime_a2/Dockerfile"
+      - "deploy/runtime_a2/Dockerfile.dockerignore"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fail-closed-signed-archive-source-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: production_source:.
+      MMT_NONPRODUCTION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Test fixed signed InRelease SHA, A11 archive closure, existing A6 deny
+        run: |
+          set -Eeuo pipefail
+          test "$(uname -m)" = x86_64
+          python -m pip install --disable-pip-version-check \
+            pytest==9.1.1 pytest-asyncio==1.4.0 \
+            pydantic-settings==2.15.0 ruff==0.16.9
+          python -m ruff check \
+            deploy/runtime_a2/a12_snapshot_verify.py \
+            tests/unit/test_cert_a12_signed_snapshot.py \
+            naseri_markets/cert_a10_immutable_package_pins.py
+          python -m pytest -q -ra \
+            tests/unit/test_cert_a12_signed_snapshot.py \
+            tests/unit/test_cert_a11_debian_lock_review.py \
+            tests/unit/test_cert_a10_immutable_package_pins.py \
+            tests/unit/test_runtime_a8_supply_chain.py \
+            tests/unit/test_runtime_a6_dispatch_fence.py \
+            | tee "$RUNNER_TEMP/cert-a12-signed-index.txt"
+          if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/cert-a12-signed-index.txt"; then
+            echo "CERT_A12_SECURITY_CHECK_SKIPPED_DENIED" >&2
+            exit 1
+          fi
+          echo "CERT_A12_SIGNED_SNAPSHOT_STATIC_GATES_PASS_NO_HOST_CERT"
+  # Live SHA and gpgv checks execute in the existing A2 Docker build BEFORE
+  # any APT .deb install. Do NOT rerun expensive live discovery here.
+  # Rootful GitHub runner is NOT independent rootless+gVisor certification.

@@ -1,7 +1,7 @@
 # CERT-A10 nonproduction-only fixed linux/amd64 archive candidate.
 # Digest pins are *content equality*, NOT upstream identity or gVisor attestation.
-# APT .deb archive bytes are pinned; mutable Debian mirrors and signatures
-# are NOT independently frozen/attested. Fail closed on any archive drift.
+# APT .deb hashes plus three signed Debian archival InRelease bytes
+# are frozen; independent Debian signing-key custody is NOT certified.
 FROM python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -13,8 +13,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # silently remove the bytes prior to hash verification.
 COPY deploy/runtime_a2/a11_apt_closure.py /opt/mmt/a11_apt_closure.py
 COPY deploy/runtime_a2/a11_apt_closure.json /opt/mmt/a11_apt_closure.json
-RUN mkdir -p /tmp/mmt-a11-apt/archives/partial \
+COPY deploy/runtime_a2/a12_snapshot_sources.sources /etc/apt/sources.list.d/mmt-cert-a12.sources
+COPY deploy/runtime_a2/a12_signed_snapshot.json /opt/mmt/a12_signed_snapshot.json
+COPY deploy/runtime_a2/a12_snapshot_verify.py /opt/mmt/a12_snapshot_verify.py
+RUN rm -f /etc/apt/sources.list /etc/apt/sources.list.d/debian.sources \
+    && python /opt/mmt/a12_snapshot_verify.py sources \
+    && mkdir -p /tmp/mmt-a11-apt/archives/partial \
     && apt-get update \
+    && python /opt/mmt/a12_snapshot_verify.py indexes \
     && apt-get -y -o Dir::Cache::archives=/tmp/mmt-a11-apt/archives \
         install --download-only --no-install-recommends nodejs npm \
     && python /opt/mmt/a11_apt_closure.py verify \
@@ -22,7 +28,9 @@ RUN mkdir -p /tmp/mmt-a11-apt/archives/partial \
         install --no-download --no-install-recommends nodejs npm \
     && python /opt/mmt/a11_apt_closure.py installed \
     && rm -rf /tmp/mmt-a11-apt /var/lib/apt/lists/* \
-    && rm -f /opt/mmt/a11_apt_closure.py /opt/mmt/a11_apt_closure.json
+    && rm -f /opt/mmt/a11_apt_closure.py /opt/mmt/a11_apt_closure.json \
+    && rm -f /opt/mmt/a12_signed_snapshot.json /opt/mmt/a12_snapshot_verify.py \
+    && rm -f /etc/apt/sources.list.d/mmt-cert-a12.sources
 
 # Download only the exact fixed TypeScript npm archive and verify SHA-512
 # BEFORE running npm. Offline npm cannot silently fetch more dependencies.

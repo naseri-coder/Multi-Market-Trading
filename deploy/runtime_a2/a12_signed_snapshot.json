@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "audience": "MMT-CERT-A12-SIGNED-DEBIAN-SNAPSHOT-NONPRODUCTION",
+  "snapshot_timestamp": "20261014T000000Z",
+  "base_image": "python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258",
+  "debian_archive_keyring": "/usr/share/keyrings/debian-archive-keyring.gpg",
+  "apt_closure_sha256": "47bd698232b4f624d1aab35c6453e1f01641b1b6ebdd8d4d7dc38a4dd19ae872",
+  "release_files": [
+    {
+      "suite": "bookworm",
+      "apt_list_filename": "snapshot.debian.org_archive_debian_20261014T000000Z_dists_bookworm_InRelease",
+      "sha256": "77737fa4b34f2693e982cc9ee35736816c35a7778fc2d326cc1bbf5b301fe1aa"
+    },
+    {
+      "suite": "bookworm-updates",
+      "apt_list_filename": "snapshot.debian.org_archive_debian_20261014T000000Z_dists_bookworm-updates_InRelease",
+      "sha256": "cad962818b6fc8955fc243553c75f2bfff73909e3516099b2fcd3476925abeb3"
+    },
+    {
+      "suite": "bookworm-security",
+      "apt_list_filename": "snapshot.debian.org_archive_debian-security_20261014T000000Z_dists_bookworm-security_InRelease",
+      "sha256": "9e5050b09604010af7190f3e8391739d9fc7dc11616d1a25e90c7e25565e4f92"
+    }
+  ],
+  "archival_valid_until_scope_only": true,
+  "independent_debian_publisher_custody": false,
+  "independent_release_timestamp_witness": false,
+  "image_reproducibly_attested": false,
+  "rootless_gvisor_host_certified": false,
+  "worker_execution_authorized": false,
+  "broker_authorized": false,
+  "telegram_authorized": false,
+  "production_authorized": false
+}

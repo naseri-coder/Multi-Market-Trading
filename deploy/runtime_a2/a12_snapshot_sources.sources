@@ -1,0 +1,17 @@
+# CERT-A12: exact historical Debian snapshot sources; archival Valid-Until
+# exception applies ONLY to these dated signed sources (not globally).
+Types: deb
+URIs: https://snapshot.debian.org/archive/debian/20261014T000000Z/
+Suites: bookworm bookworm-updates
+Components: main
+Architectures: amd64
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+Check-Valid-Until: no
+
+Types: deb
+URIs: https://snapshot.debian.org/archive/debian-security/20261014T000000Z/
+Suites: bookworm-security
+Components: main
+Architectures: amd64
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+Check-Valid-Until: no
