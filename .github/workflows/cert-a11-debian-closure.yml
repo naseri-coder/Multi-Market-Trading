@@ -1,4 +1,4 @@
-name: MMT CERT-A11 Debian closure discovery (NOT certified)
+name: MMT CERT-A11 Debian package closure (nonproduction only)
 
 on:
   pull_request:
@@ -8,7 +8,8 @@ on:
       - "deploy/runtime_a2/a11_apt_closure.json"
       - "deploy/runtime_a2/Dockerfile"
       - "deploy/runtime_a2/Dockerfile.dockerignore"
-      - "naseri_markets/cert_a11_debian_lock_review.py"
+      - "deploy/runtime_a2/a8_source_lock.json"
+      - "naseri_markets/cert_a10_immutable_package_pins.py"
       - "tests/unit/test_cert_a11_debian_lock_review.py"
       - "docs/MMT_CERT_A11_DEBIAN_PACKAGE_CLOSURE.md"
   workflow_dispatch:
@@ -17,29 +18,41 @@ permissions:
   contents: read
 
 jobs:
-  discover-apt-archive-bytes:
+  offline-closure-lock-fail-closed:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    env:
+      PYTHONPATH: production_source:.
+      MMT_NONPRODUCTION: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Inspect Debian archives from digest-pinned disposable Python image only
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Test exact Debian closure hashes and unchanged A6 deny
         run: |
           set -Eeuo pipefail
           test "$(uname -m)" = x86_64
-          echo "CERT_A11_APT_DISCOVERY_ONLY_NO_CERTIFICATION"
-          docker run --rm --pull=always --platform=linux/amd64 \
-            --security-opt=no-new-privileges \
-            --pids-limit=128 --memory=900m \
-            --mount="type=bind,source=$PWD/deploy/runtime_a2/a11_apt_closure.py,target=/opt/mmt/a11_apt_closure.py,readonly" \
-            --entrypoint=/bin/sh \
-            "python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258" \
-            -ec '
-              mkdir -p /tmp/mmt-a11-apt/archives/partial
-              apt-get update -qq
-              apt-get -y -o Dir::Cache::archives=/tmp/mmt-a11-apt/archives \
-                install --download-only --no-install-recommends nodejs npm >/dev/null
-              python /opt/mmt/a11_apt_closure.py discover
-            '
-          echo "CERT_A11_DISCOVERED_ARCHIVES_ARE_CANDIDATES_NOT_PUBLISHER_ATTESTATION"
+          python -m pip install --disable-pip-version-check \
+            pytest==9.1.1 pytest-asyncio==1.4.0 \
+            pydantic-settings==2.15.0 ruff==0.16.9
+          python -m ruff check \
+            deploy/runtime_a2/a11_apt_closure.py \
+            tests/unit/test_cert_a11_debian_lock_review.py \
+            naseri_markets/cert_a10_immutable_package_pins.py
+          python -m pytest -q -ra \
+            tests/unit/test_cert_a11_debian_lock_review.py \
+            tests/unit/test_cert_a10_immutable_package_pins.py \
+            tests/unit/test_runtime_a8_supply_chain.py \
+            tests/unit/test_runtime_a6_dispatch_fence.py \
+            | tee "$RUNNER_TEMP/cert-a11-regressions.txt"
+          if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/cert-a11-regressions.txt"; then
+            echo "CERT_A11_SKIPPED_SECURITY_CHECK_DENIED" >&2
+            exit 1
+          fi
+          echo "CERT_A11_372_HASH_LOCKS_SOURCE_REVIEW_ONLY"
+  # Real apt-get download, preinstall SHA check and --no-download install
+  # occur in existing RUNTIME-A2 candidate build (no duplicate costly build).
+  # Neither CI runner nor rootful Docker is independently certified gVisor.
