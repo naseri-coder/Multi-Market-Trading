@@ -1,0 +1,82 @@
+name: CERT-A19-R13 signed Wolfi OCI base feasibility (no Worker)
+
+on:
+  push:
+    branches: [cert-a19-byte-audit-run]
+    paths:
+      - ".github/workflows/cert-a19-r13-wolfi-base.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify-wolfi-glibc-base:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/cert-a19-byte-audit-run' && github.repository == 'naseri-coder/Multi-Market-Trading'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      MMT_NONPRODUCTION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install pinned upstream Sigstore installer
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: Resolve OCI index digest and signed repository manifest
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          work="$RUNNER_TEMP/cert-a19-r13"
+          mkdir -m 0700 "$work"
+          image=cgr.dev/chainguard/wolfi-base
+          docker buildx imagetools inspect "$image:latest" > "$work/index-inspect.txt"
+          docker buildx imagetools inspect --raw "$image:latest" > "$work/raw-manifest.json"
+          python3 - <<'PY'
+          import os,re
+          from pathlib import Path
+          root=Path(os.environ["RUNNER_TEMP"])/"cert-a19-r13"
+          txt=(root/"index-inspect.txt").read_text()
+          matches=re.findall(r"(?m)^Digest:\s*(sha256:[a-f0-9]{64})\s*$",txt)
+          if len(matches)!=1:
+              raise ValueError("R13_EXACT_OCI_INDEX_DIGEST_UNAVAILABLE")
+          (root/"resolved-digest.txt").write_text(matches[0]+"\n")
+          print("R13_SIGNED_PROVENANCE_DIGEST_LOCKED="+matches[0])
+          PY
+          digest="$(cat "$work/resolved-digest.txt")"
+          cosign verify \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            --certificate-identity=https://github.com/chainguard-images/images/.github/workflows/release.yaml@refs/heads/main \
+            --output json "$image@$digest" > "$work/cosign-verify.json"
+          test -s "$work/cosign-verify.json"
+          echo "R13_SIGSTORE_IDENTITY_VERIFICATION_STEP_SUCCEEDED"
+      - name: Pull signed digest, inspect STOPPED container only, never start
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          work="$RUNNER_TEMP/cert-a19-r13"
+          image="cgr.dev/chainguard/wolfi-base@$(cat "$work/resolved-digest.txt")"
+          docker pull --platform linux/amd64 "$image"
+          cid="$(docker create --pull=never --platform linux/amd64 --entrypoint=/bin/true "$image")"
+          trap 'docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
+          docker inspect "$cid" --format '{{.State.Status}}' > "$work/container-state.txt"
+          test "$(cat "$work/container-state.txt")" = created
+          docker cp "$cid:/etc/os-release" "$work/os-release"
+          docker cp "$cid:/lib/apk/db/installed" "$work/apk-installed"
+          docker image inspect "$image" --format '{{json .RepoDigests}}' > "$work/repo-digests.json"
+          test "$(docker inspect "$cid" --format '{{.State.Status}}')" = created
+          echo "R13_ONLY_CREATED_STOPPED_CONTAINER_INSPECTED_NO_CONTAINER_STARTED"
+      - name: Fail-closed independently scoped provenance assessment
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          set -Eeuo pipefail
+          python3 -m scripts.ci_cert_a19_r13_wolfi_provenance
+          test -s "$RUNNER_TEMP/cert-a19-r13-provenance.json"
+      - name: Upload short-lived verification summary only
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cert-a19-r13-wolfi-signed-oci-provenance
+          path: ${{ runner.temp }}/cert-a19-r13-provenance.json
+          if-no-files-found: ignore
+          retention-days: 2
