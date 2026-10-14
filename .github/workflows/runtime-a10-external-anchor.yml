@@ -1,0 +1,41 @@
+name: MMT RUNTIME-A10 offline evidence anchor regression
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/runtime_a10_evidence_anchor.py"
+      - "tests/unit/test_runtime_a10_evidence_anchor.py"
+      - "docs/MMT_RUNTIME_A10_EXTERNAL_ANCHOR.md"
+      - ".github/workflows/runtime-a10-external-anchor.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-external-pin-comparison-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      PYTHONPATH: ${{ github.workspace }}/production_source:${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install pinned offline test dependencies
+        run: |
+          python -m pip install --disable-pip-version-check \
+            pytest==9.1.1 pytest-asyncio==1.4.0 \
+            pydantic-settings==2.15.0 ruff==0.16.9
+      - name: Validate external-anchor comparison and A6/A9 regression
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check naseri_markets/runtime_a10_evidence_anchor.py \
+            tests/unit/test_runtime_a10_evidence_anchor.py
+          python -m pytest -q -ra \
+            tests/unit/test_runtime_a10_evidence_anchor.py \
+            tests/unit/test_runtime_a9_offline_intent.py \
+            tests/unit/test_runtime_a6_dispatch_fence.py
