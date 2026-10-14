@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import shutil
 import subprocess
 from datetime import UTC, datetime, timedelta
 
