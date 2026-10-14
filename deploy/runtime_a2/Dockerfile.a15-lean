@@ -1,0 +1,22 @@
+# CERT-A15 experiment ONLY: immutable same-base runtime content comparison.
+# Reference is the already-built GitHub CI local A2 image. Do not publish.
+# No apt, npm, pip, network or untrusted source is executed in this build.
+FROM mmt/runtime-a2-candidate:pr AS pinned-a2-fixture-source
+COPY deploy/runtime_a2/a15_export_runtime.py /opt/mmt/a15_export_runtime.py
+RUN python -I /opt/mmt/a15_export_runtime.py
+
+# Same digest-addressed base as A2, not a new upstream dependency.
+FROM python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    NODE_PATH=/usr/local/lib/node_modules
+
+# Fixed-file export: Node executable + ELF deps, TypeScript library,
+# Wasmtime wheel and original Worker; no Debian npm/A14 build-only closure.
+# Copying raw libs strips dpkg provenance and may hide advisory matches:
+# reduced scanner counts do NOT prove CVE remediation or security acceptance.
+COPY --from=pinned-a2-fixture-source /opt/mmt/a15-rootfs/ /
+
+USER 65534:65534
+WORKDIR /tmp
+ENTRYPOINT ["/opt/mmt/bin/runtime-a1-worker"]
