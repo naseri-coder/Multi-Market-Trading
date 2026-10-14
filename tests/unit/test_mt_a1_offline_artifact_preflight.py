@@ -190,10 +190,10 @@ def test_invalid_declared_scope_and_boolean_hash_refused(tmp_path):
         {"timeframe": "M2"},
         {"provider_claim": "broker source with spaces"},
     ]:
+        options = _kwargs(MetaTraderPlatform.MT5, MQ5)
+        options.update(update)
         with pytest.raises(MTArtifactRefused, match="MT_A1_EXACT_SYMBOL"):
-            review_metatrader_artifact(
-                path, **_kwargs(MetaTraderPlatform.MT5, MQ5, **update),
-            )
+            review_metatrader_artifact(path, **options)
 
 
 def test_file_symlink_hardlink_and_relative_path_rejected(tmp_path):
