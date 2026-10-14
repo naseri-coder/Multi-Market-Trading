@@ -166,8 +166,15 @@ def test_dockerfile_does_not_replace_main_worker_or_install_dependencies():
         "FROM mmt/runtime-a15-lean:pr",
     ]
     assert "RUN python -I /opt/mmt/a18_build_only_guard.py" in d
-    assert "COPY --from=a18-checked-local-lean /opt/mmt/bin/runtime-a1-worker /opt/mmt/bin/runtime-a1-worker" in d
-    assert d.index("RUN python -I /opt/mmt/a18_build_only_guard.py") < d.index("COPY --from=a18-checked-local-lean")
+    revalidated_copy = (
+        "COPY --from=a18-checked-local-lean "
+        "/opt/mmt/bin/runtime-a1-worker /opt/mmt/bin/runtime-a1-worker"
+    )
+    assert revalidated_copy in d
+    assert (
+        d.index("RUN python -I /opt/mmt/a18_build_only_guard.py")
+        < d.index("COPY --from=a18-checked-local-lean")
+    )
     assert 'ENTRYPOINT ["/opt/mmt/bin/runtime-a1-worker"]' in d
     assert "USER 65534:65534" in d
     for text in ("apt-get", "npm install", "pip install", "--privileged"):
