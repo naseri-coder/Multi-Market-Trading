@@ -1,4 +1,4 @@
-name: CERT-A19-R15 Wolfi APK solver and full archive SHA custody (research-only)
+name: CERT-A19-R15 Wolfi four direct signed APK binary custody (closure BLOCKED)
 
 on:
   push:
@@ -75,33 +75,13 @@ jobs:
           fi
           echo SIGNED_INDEX_VALIDATED_BY_NATIVE_APK > "$work/index.status"
           echo R15_NATIVE_APK_INDEX_SIGNATURE_ACCEPTED
-      - name: Resolve exact root constraints with native APK recursive solver (NO fetch yet)
+      - name: Select FOUR exact direct root package versions from R14 signed index, no transitive lock claims
         shell: bash
         run: |
           set -Eeuo pipefail
-          work="$RUNNER_TEMP/cert-a19-r15"
-          image="$(cat "$work/image.txt")"
-          if ! docker run --rm --pull=never --platform linux/amd64 \
-            --network=none --read-only --cap-drop=ALL \
-            --security-opt=no-new-privileges \
-            --pids-limit=32 --memory=192m --user=65534:65534 \
-            --tmpfs /tmp:rw,noexec,nosuid,size=24m,mode=1777 \
-            --mount type=bind,src="$work/localrepo",dst=/mnt/apkrepo,readonly \
-            --mount type=bind,src="$work/native-repositories",dst=/mnt/repositories,readonly \
-            --entrypoint /bin/sh "$image" -ec \
-            'mkdir -p /tmp/apkroot/lib/apk/db /tmp/apkroot/etc/apk;
-             exec /sbin/apk --root /tmp/apkroot \
-               --no-cache --no-progress --keys-dir /etc/apk/keys \
-               --repositories-file /mnt/repositories \
-               fetch --recursive --url \
-               "glibc-2.44=2.44-r8" "python-3.12=3.12.15-r3" "nodejs-24=24.22.0-r0"' \
-            > "$work/solver.urls" 2> "$work/solver.stderr"; then
-            cat "$work/solver.stderr" >&2
-            echo "R15_NATIVE_APK_SOLVER_CONSTRAINTS_REJECTED" >&2
-            exit 1
-          fi
           python3 -m scripts.ci_cert_a19_r15_apk_custody resolve
-      - name: Download exact solver-selected .apk archive bytes, no installation
+          test -s "$RUNNER_TEMP/cert-a19-r15/selection.json"
+      - name: Download exact FOUR R14 direct-root .apk archive bytes, no installation
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -126,7 +106,7 @@ jobs:
           fi
           echo ALL_APK_ARCHIVE_SIGNATURES_VERIFIED_BY_NATIVE_APK > "$work/verified.status"
           echo R15_ALL_APK_ARCHIVES_NATIVE_SIGNATURE_VALID
-      - name: Freeze signed closure and every full .apk SHA256 without running Worker
+      - name: Freeze four root full .apk SHA256 pins; clearly refuse transitive closure claim
         run: |
           set -Eeuo pipefail
           python3 -m scripts.ci_cert_a19_r15_apk_custody complete
@@ -134,7 +114,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: cert-a19-r15-wolfi-full-apk-custody
+          name: cert-a19-r15-wolfi-four-root-apk-custody
           path: |
             ${{ runner.temp }}/cert-a19-r15/r15-custody.json
             ${{ runner.temp }}/cert-a19-r15/selection.json
