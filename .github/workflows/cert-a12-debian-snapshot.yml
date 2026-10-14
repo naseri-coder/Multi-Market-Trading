@@ -55,12 +55,14 @@ jobs:
           Check-Valid-Until: no
           EOF
               echo CERT_A12_SNAPSHOT_PROBE_APT_SIGNATURES_MANDATORY
-              apt-get -o Acquire::Retries=1 update -qq
+              timeout 125s apt-get -o Acquire::Retries=0 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update -qq
               echo CERT_A12_INRELEASE_SHA256_BEGIN
               sha256sum /var/lib/apt/lists/*_InRelease | sed "s|/var/lib/apt/lists/||"
               echo CERT_A12_INRELEASE_SHA256_END
               mkdir -p /tmp/mmt-a11-apt/archives/partial
-              apt-get -y -o Dir::Cache::archives=/tmp/mmt-a11-apt/archives \
+              timeout 125s apt-get -y -o Acquire::Retries=0 -o Acquire::http::Timeout=20 \
+                -o Acquire::https::Timeout=20 \
+                -o Dir::Cache::archives=/tmp/mmt-a11-apt/archives \
                 install --download-only --no-install-recommends nodejs npm > /dev/null
               python /opt/mmt/a11_apt_closure.py verify
               echo CERT_A12_SNAPSHOT_MATCHES_A11_372_DEB_HASHES
