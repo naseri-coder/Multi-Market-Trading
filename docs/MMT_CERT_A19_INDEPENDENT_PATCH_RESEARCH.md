@@ -400,3 +400,15 @@ The single-purpose non-PR [GitHub-hosted R19 run #38645056701](https://github.co
 Evidence GitHub artifact ID **11931782690** (`cert-a19-r19-ts-wasmtime-elf-static-evidence`, two-day retention), actual `r19-report.json` SHA-256 `aeacd3dee432ebbebd2bf3b94f41b13aff5c94bd7eb34dcd16814ad4c6166d55`. RUNTIME-A6 remains DENY, original 199 Critical/High findings review-open and zero CVEs certified closed. Draft PR #275 remains unmerged.
 
 **Verdict:** `CERT_A19_R19_STATIC_ELF_19_OF_SELECTED_COMPONENTS_AND_TS_WASMTIME_HASHES_PASS__NO_WORKER_BUILD_ABI_RUNTIME_OR_SECURITY_CERTIFICATION__A6_DENY_199_OPEN`.
+
+## CERT-A19-R20 — all 36 historical pinned Wolfi APKs and 150 ELF files scanned, loader alias not proven (NO Worker)
+
+[Full R20 signed-byte ELF and fixed-benign-fixture acceptance report](MMT_CERT_A19_R20_FULL_ELF_AND_FIXTURE_SPEC.md).
+
+Single non-PR [GitHub Actions run #38646520589](https://github.com/naseri-coder/Multi-Market-Trading/actions/runs/38646520589) **SUCCEEDED**. It restored exact authenticated R18 36-package and R19 component evidence, verified frozen original R17 signed-index bytes, re-downloaded **all 36 exact whole-APK SHA256** packages totaling **73,750,485 bytes**, checked each compressed data `.PKGINFO datahash` and inventoried **1,934 files**, **75 symlinks**, **0 hardlinks**. Every discovered ELF64 x86-64 file (**150/150**) was inspected by host `readelf`, **without ever executing target ELF, Worker or user code**.
+
+**Observed static details:** no inspected ELF declared a GLIBC requirement above **2.44**, no `DT_NEEDED` *name* lacked a filename/SONAME candidate, but **27 DT_NEEDED names had multiple filename candidates** (typically a symlink alias plus its versioned target; not a proof of 27 conflicts). **1 literal interpreter path**, `/lib64/ld-linux-x86-64.so.2`, was absent from the combined archive pathname graph while **17 ELF files request it**, including Node and Python. The final root filesystem /usr-merge alias was **not** assembled or proved; this is a **loader-path gate BLOCKED**, not a verified runtime incompatibility. R19 Wasmtime wheel's NEEDED names were compared only against package file-name candidates; the wheel itself was not installed.
+
+Evidence artifact `cert-a19-r20-36-apk-all-elf-static-audit` ID **11932642207**, retention two days. Full actual `r20-static-all-elf.json` SHA-256 `72cd119a29ad364cb5cce4eb5e7536783582ccc4a7f4ecf98905f61972fc542b`. The report also freezes benign-only Python/JS/TS/WASM fixture and negative-control contract **as a SPEC, not a test result**. The Wasmtime compiled module is not invented or run.
+
+**Verdict:** `CERT_A19_R20_36_APKS_150_ELFS_STATIC_PASS__LOADER_LIB64_PATH_NOT_PROVEN__NO_RUNTIME_A6_DENY_199_OPEN`. No new Worker/image, TypeScript/WASM execution, per-APK modern signing assertion, dynamic loader test, independently certified rootless/gVisor, production, CVE changes, old A11/A2/A15/A18/main changes or PR merge. A6 stays hard DENY and all 199 findings remain review-open. Suggested R21: source-prove loader symlink/rootfs semantics then separately approve safe fixture-only runtime.
