@@ -114,3 +114,26 @@ The Debian Security Tracker still labels Bookworm vulnerable/postponed; do not o
 **Next required verification:** fetch the exact Debian Bookworm patched source or source archive with signed .dsc + SHA-256; inspect exact `lib/balanced-pool.js`, `lib/interceptor/`, Debian quilt patch series, and Worker-resident `/usr/share/nodejs/undici` copied in A15/A18. Establish SHA-256 pairing before any Debian-specific NOT_AFFECTED or scanner false-positive certification.
 
 Status: `CERT_A19_R3_UPSTREAM_MECHANISM_NEGATIVE_EVIDENCE_DEBIAN_BINARY_UNVERIFIED_NO_CANDIDATE`. Maintain 199/199 original findings review-open, RUNTIME-A6 DENY, no CI/image/production mutations.
+
+## CERT-A19-R4 — Debian source provenance and explicit byte-custody blocker
+
+Observed official Debian Bookworm source package metadata:
+- https://packages.debian.org/bookworm/source/node-undici
+- Exact Debian source version: `5.15.0+dfsg1+~cs20.10.9.3-1+deb12u4`.
+- Debian source components listed: `.dsc`, `.orig.tar.xz`, five component `.orig-*.tar.xz` tarballs, and `.debian.tar.xz`. Package webpage lists **MD5**, which does NOT satisfy CERT-A19 SHA-256 artifact custody.
+- Debian FTP Masters signed acceptance announcement exists: https://lists.debian.org/debian-changes/2024/06/msg00051.html . Message existence does not mean its signature was cryptographically verified in this execution.
+- Debian exact source directory listing `lib/interceptor/` contains `redirectInterceptor.js` as its sole file: https://sources.debian.org/src/node-undici/5.15.0%2Bdfsg1%2B~cs20.10.9.3-1%2Bdeb12u4/lib/interceptor/
+- Debian exact source index identifies `lib/balanced-pool.js` as 5,258 bytes: https://sources.debian.org/src/node-undici/5.15.0%2Bdfsg1%2B~cs20.10.9.3-1%2Bdeb12u4/lib/
+
+### Evidence boundary (fail closed)
+A direct source-file fetch of Debian `lib/balanced-pool.js` was not successful (web content-type rejection, container environment DNS unavailable). This execution therefore DID NOT obtain:
+1. Independently cryptographically verified signed Debian `.dsc` and its SHA-256 hashes for all source components;
+2. Debian-patched file bytes of `lib/balanced-pool.js`, its SHA-256 or quilt-applied patch equivalence;
+3. Stopped A18 Worker runtime file bytes / SHA-256 from `/usr/share/nodejs/undici`;
+4. Proven equality between Debian source file and actual A18 runtime payload.
+
+For an authorized GitHub-hosted ephemeral, harmless **audit-only** successor, fetch the source components declared in the signed `.dsc`, verify Debian signature against a pinned trusted Debian key, SHA-256 check each component, apply Debian patches in clean directory, calculate SHA-256 for the two relevant files and inspect exact BalancedPool option-transfer call. Export stopped A18 image (never start unknown strategies), calculate SHA-256 of matching runtime JS files, and compare hashes. Explicitly reject absent file, mismatch, unknown package origin or missing trusted source signature. Include documented negative cases and protect CI quota with a single targeted run.
+
+No CI triggered during R4; no source or image patch; no claim of new fixed CVEs. The original 199 Critical/High observations remain review-open, A6 DENY preserved, and CERT-A19 PR stays DRAFT.
+
+Verdict: `CERT_A19_R4_OFFICIAL_SOURCE_PACKAGE_LOCATED_BYTE_CUSTODY_BLOCKED_NO_PATCH`.
