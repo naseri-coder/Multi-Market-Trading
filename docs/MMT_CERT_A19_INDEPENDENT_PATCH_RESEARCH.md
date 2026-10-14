@@ -222,3 +222,71 @@ https://security-tracker.debian.org/tracker/CVE-2026-84961 and https://security-
 **R10 verdict:** `CERT_A19_R10_SIGNED_DEBIAN_5X_SPECIFIC_MECHANISMS_NEGATIVE_FIXED_WORKER_NO_EXPLICIT_CALL_EDGE__DEBIAN_TRACKER_VULNERABLE__ZERO_CVE_CLOSURES`.
 
 **Next gate:** independent vendor/Debian applicability review of upstream 7.x/8.x advisory versus Debian 5.x, plus authoritative assessment of Node bootstrap/VM escape and stopped historical image provenance, before considering any scanner triage disposition. Retain PR #275 DRAFT / DO NOT MERGE.
+
+## CERT-A19-R11 — independent Debian / upstream applicability disposition dossier (2026-10-14)
+
+**Mode:** read-only official-source adjudication and decision documentation, no APT/npm, no test re-run, no Docker/Worker execution, no production or release, no patch. This section is **not** an authoritative Debian security-team verdict.
+
+### A. Frozen evidence and scope
+
+- Exact Debian Bookworm **source/binary**: `node-undici 5.15.0+dfsg1+~cs20.10.9.3-1+deb12u4`, fixed historical 372-.deb A11 manifest with `.deb` SHA-256 `78ec8918d63e365bbdec6edd35bebec9e20cc931f084f24e8673badf191d100c`.
+- GitHub-hosted signed source / APT byte evidence (R7: https://github.com/naseri-coder/Multi-Market-Trading/actions/runs/38617730406 ; R8: https://github.com/naseri-coder/Multi-Market-Trading/actions/runs/38619436727) cryptographically checked .dsc signer using ephemeral Ubuntu-packaged Debian keyring, seven source components, and exact patched `lib/balanced-pool.js` SHA-256 `06e20567449a6131d5ae6f049b5d85f17c3139f2fed6a2783f656429180ff865` in both source and binary.
+- The reconstructed stopped A2/A15/A18 package-file SHA matched the above in R9: https://github.com/naseri-coder/Multi-Market-Trading/actions/runs/38620656384 . Historic original A18 image digest was different and **historical byte-identical-image parity was NOT established**.
+- Narrow signed-source / fixed-wrapper static advisory-path assertions passed R10: https://github.com/naseri-coder/Multi-Market-Trading/actions/runs/38624129354 . Static checks do not certify absence of alternate code or VM escape.
+- The source-signer keyring was obtained from the GitHub-hosted Ubuntu package manager; independent offline keyring custody and reproducible rebuilding of the complete package/image were **not** attested.
+- **Official security status checked 2026-10-14:** Debian Tracker currently lists both CVEs for Bookworm 5.15 as `vulnerable` with `[bookworm] <postponed> (Minor issue)` notes. `postponed` does not mean fixed or not affected.
+
+### B. Authority disagreement — two distinct findings
+
+| CVE | Upstream GitHub Security Advisory exact NPM range / precondition | Independent checks against signed Debian 5.15 source and reviewed wrapper | Debian authority and bugs | R11 recommendation |
+|---|---|---|---|---|
+| `CVE-2026-84961` / `GHSA-w293-vg96-wgc3` | `>=7.24.1,<7.29.1` and `>=8.0.0,<8.10.2`. TLS callback loss occurs through `BalancedPool` **JSON stringify/parse** of function-valued `connect`/`tls` options. | Public `BalancedPool` API exists in 5.15 (so mere absence of imports is not enough); exact Debian `lib/balanced-pool.js` instead uses `Object.assign({}, this[kOptions])`, with no claimed JSON deep-clone mechanism. Fixed Worker wrapper has no explicit `undici` / `BalancedPool` call edge. Alternative paths / VM escape unproven. | Debian [tracker](https://security-tracker.debian.org/tracker/CVE-2026-84961) says 5.15 bookworm vulnerable/postponed. [Bug #1146745](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1146745) is **closed for newer unstable 8.10.2**, not proof of any Bookworm fix; that bug says found in 8.9.0. Even Debian trixie 7.3 currently reads vulnerable despite advisory lower bound 7.24.1, further showing version-mapping review needed. | `POSSIBLE_VERSION_RANGE_TRACKER_DISCREPANCY__MAINTAINER_ADJUDICATION_REQUIRED`; **REVIEW_OPEN**, no scanner suppression. |
+| `CVE-2026-13697` / `GHSA-4cwx-7wf7-3272` | `>=7.0.0,<7.29.0` and `>=8.0.0,<8.9.0`. Requires enabling `interceptors.cache()` with relevant malformed qualified `Cache-Control: private`; leak in shared cache or parser error. | In exact signed Debian 5.15, `lib/util/cache.js` (**actual advisory patched path**) and `lib/interceptor/cache.js` absent; `interceptors.cache()` not exposed in inspected `index.js`; fixed Worker wrapper doesn't explicitly enable the interceptor. Alternative implementation and hidden import possibility not globally excluded. | Debian [tracker](https://security-tracker.debian.org/tracker/CVE-2026-13697) says 5.15 bookworm vulnerable/postponed. [Bug #1143070](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1143070) is **closed for newer unstable 8.9.0**, not proof of any Bookworm fix; found in 8.5.0. | `POSSIBLE_MISSING_FEATURE_TRACKER_DISCREPANCY__MAINTAINER_ADJUDICATION_REQUIRED`; **REVIEW_OPEN**, no scanner suppression. |
+
+Primary upstream sources:
+- https://github.com/nodejs/undici/security/advisories/GHSA-w293-vg96-wgc3
+- https://github.com/nodejs/undici/security/advisories/GHSA-4cwx-7wf7-3272
+Debian source tracking: https://security-tracker.debian.org/tracker/source-package/node-undici .
+
+### C. No false equivalence between contradictory scopes
+
+1. The **upstream advisory** pertains to specifically described implementation/version ranges and conditions; verified absence of its mechanism in one exact Debian 5.15 file is strong scoped counterevidence.
+2. The **Debian Security Tracker** is the authoritative published Debian triage state and marks this release vulnerable. Do not override it in the project's scanner or claim a CVE officially fixed or `not-affected`.
+3. Debian BTS bugs #1146745 and #1143070 were closed after newer **unstable** packages; they do **not** close the **Bookworm** tracking entries, which explicitly remain vulnerable/postponed.
+4. This version-mapping conflict does **not** imply a blind backport of a 7.x/8.x fix into 5.15 would work, nor does it justify replacing A11 frozen dependencies without new source/reproducibility reviews.
+5. Do not generalize results for these **two exact CVEs** to the other original 197 findings; all 18 Critical + 181 High findings remain review-open. A18 historic exact-image proof / rootless gVisor host are missing and A6 remains hard DENY.
+
+### D. Decision record, independent reviewer sign-off required
+
+| Gate | 84961 | 13697 |
+|---|---|---|
+| Published upstream range includes Debian 5.15 | **NO** | **NO** |
+| Described affected mechanism found in signed Debian 5.15 inspected paths | **NO** | **NO** |
+| Fixed Worker explicit call to that mechanism | **NO OBSERVED**, not absence proof for guest processes | **NO OBSERVED**, not absence proof for guest processes |
+| Debian Bookworm published triage | **VULNERABLE / POSTPONED** | **VULNERABLE / POSTPONED** |
+| Maintainer/security team says Bookworm `not-affected` | **NOT OBTAINED** | **NOT OBTAINED** |
+| Historic A18 original image byte reproducibility / external host certification | **NOT PROVEN** | **NOT PROVEN** |
+| Authorized CVE closure or patch candidate | **NO** | **NO** |
+| Project disposition | **REVIEW_OPEN / ESCALATE EVIDENCE** | **REVIEW_OPEN / ESCALATE EVIDENCE** |
+
+**Next decisive evidence:** ask the Debian Security Tracker team to clarify whether the 5.15 Bookworm rows were inherited from source-package version threshold or from separately confirmed 5.x-affected code, and request the exact applicable file/patch/entrypoint if the latter. An independent reviewer must evaluate the answer against signed 5.15 Debian bytes and historic image provenance before suggesting any scanner classification changes.
+
+### E. Prepared maintainer inquiry — draft only, **NOT SENT**
+
+Debian's own Security Tracker contributor guidance (https://security-team.debian.org/security_tracker.html) requests evidence-based triage and accepts a security-tracker mailing-list patch or a Salsa merge request. The archived BTS bugs are **not** proof of a change to Bookworm status. This is a draft to be reviewed before initiating any external communication:
+
+> Subject: Review request: Debian bookworm node-undici 5.15 applicability for CVE-2026-84961 and CVE-2026-13697
+>
+> Hello Debian Security Tracker maintainers,
+>
+> We inspected the Debian Bookworm source package node-undici 5.15.0+dfsg1+~cs20.10.9.3-1+deb12u4. We verified the Debian developer-signed .dsc and all seven source archives, applied the packaged patches, and compared the resulting balanced-pool.js SHA-256 with the Debian binary file. We observed `Object.assign({}, this[kOptions])`, not the JSON function-dropping clone described by CVE-2026-84961. We also found neither `lib/util/cache.js` nor `lib/interceptor/cache.js` nor an `interceptors.cache()` export described by CVE-2026-13697. The upstream advisories identify 7.x/8.x vulnerable ranges, while the Debian tracker lists Bookworm 5.15 as vulnerable/postponed.
+>
+> Could you clarify whether the Bookworm entries represent confirmed 5.x-specific vulnerable code/backports, or whether version applicability warrants review? If Bookworm is affected, please identify the code path or patch proving it. We are **not** requesting an automatic downgrade; we have kept both entries open pending maintainer adjudication.
+>
+> Technical evidence: CERT-A19 R7–R10 hosted runs and signed source-file hashes linked in https://github.com/naseri-coder/Multi-Market-Trading/pull/275 . Related Debian bugs: #1146745, #1143070 (newer unstable fixes).
+>
+> Thank you.
+
+**R11 verdict:** `CERT_A19_R11_OFFICIAL_DEBIAN_UPSTREAM_VERSION_MISMATCH_DOCUMENTED_MAINTAINER_REVIEW_REQUIRED_199_REVIEW_OPEN_NO_SECURITY_PATCH`.
+
+**No change in authorization:** main/A11/A18/RUNTIME-A6 unchanged, no new Worker image, no CI quota spent, no Production, TELMIVO, broker, Telegram or unknown code; PR #275 remains DRAFT and must NOT merge.
