@@ -1,0 +1,58 @@
+name: MMT CERT-A1 cross-format audit without execution
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/cert_a1_offline_candidate_review.py"
+      - "tests/unit/test_cert_a1_offline_candidate_review.py"
+      - "docs/MMT_CERT_A1_CROSS_FORMAT_OFFLINE_REVIEW.md"
+      - ".github/workflows/cert-a1-nonproduction-review.yml"
+      - "naseri_markets/native_a1_inert_binary_preflight.py"
+      - "naseri_markets/pine_a1_sma_cross_parity.py"
+      - "naseri_markets/data_a1_file_intake.py"
+      - "naseri_markets/data_runtime_paper_wire_a1.py"
+      - "naseri_markets/runtime_a6_dispatch_fence.py"
+      - "naseri_markets/runtime_a13_security_contract_audit.py"
+      - "naseri_markets/universal_artifact_intake_v1.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  nonproduction-review-never-execution:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: ${{ github.workspace }}/production_source:${{ github.workspace }}
+      MMT_NONPRODUCTION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install pinned test tools and real Parquet decoder only
+        run: |
+          python -m pip install --disable-pip-version-check \
+            pytest==9.1.1 pytest-asyncio==1.4.0 \
+            pyarrow==21.0.0 ruff==0.16.9 pydantic-settings==2.15.0
+      - name: Cross-stage review and fail-closed regression suite
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check \
+            naseri_markets/cert_a1_offline_candidate_review.py \
+            tests/unit/test_cert_a1_offline_candidate_review.py
+          python -m pytest -q -ra \
+            tests/unit/test_cert_a1_offline_candidate_review.py \
+            tests/unit/test_universal_artifact_intake_v1.py \
+            tests/unit/test_native_a1_inert_binary_preflight.py \
+            tests/unit/test_pine_a1_sma_cross_parity.py \
+            tests/unit/test_runtime_a13_security_contract_audit.py \
+            tests/unit/test_runtime_a6_dispatch_fence.py \
+            | tee "$RUNNER_TEMP/cert-a1-tests.log"
+          if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/cert-a1-tests.log"; then
+            echo "CERT_A1_TEST_SKIPPED" >&2
+            exit 1
+          fi
