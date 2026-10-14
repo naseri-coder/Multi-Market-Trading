@@ -158,7 +158,7 @@ def test_no_snapshot_or_run_permission_granted_and_safe_cli_only():
     assert lock["apt_snapshot_pinned"] is False
     assert lock["host_certified"] is False
     assert lock["worker_execution_authorized"] is False
-    assert a11._LOCK_PATH == Path("/opt/mmt/a11_apt_closure.json")
+    assert Path("/opt/mmt/a11_apt_closure.json") == a11._LOCK_PATH
 
 
 def test_source_archive_parser_and_status_validation_fail_closed():
