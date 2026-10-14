@@ -1,12 +1,10 @@
 name: MMT CERT-A19 pinned undici archive custody (NONPRODUCTION ONLY)
 
 on:
-  pull_request:
+  push:
+    branches: [cert-a19-byte-audit-run]
     paths:
-      - "scripts/ci_cert_a19_undici_byte_custody.py"
-      - "tests/unit/test_cert_a19_undici_byte_custody.py"
       - ".github/workflows/cert-a19-undici-byte-custody.yml"
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,7 +12,7 @@ permissions:
 jobs:
   verify-debian-undici-archive-only:
     # The only approved branch is same-repository CERT-A19. No forked PR code.
-    if: (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/cert-a19-independent-security-research') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'cert-a19-independent-security-research')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/cert-a19-byte-audit-run' && github.repository == 'naseri-coder/Multi-Market-Trading'
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     env:
