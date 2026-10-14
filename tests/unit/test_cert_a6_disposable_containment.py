@@ -16,6 +16,7 @@ PROBE_OK = {
     "nonroot": True,
     "rootfs_write_refused": True,
     "external_tcp_refused": True,
+    "loopback_only_interfaces": True,
     "no_named_secrets": True,
 }
 
@@ -79,6 +80,7 @@ def test_fixed_probe_command_and_observation_have_no_authority(monkeypatch):
     assert got.runsc_sha256 == RUNSC_SHA
     assert got.probe_sha256
     assert got.network_probe_refused
+    assert got.loopback_interfaces_only
     assert got.rootfs_probe_refused
     assert got.nonroot_probe_passed
     assert got.named_secret_probe_passed
@@ -156,6 +158,24 @@ def test_any_failed_inside_probe_refuses_and_checks_cleanup(monkeypatch, key):
     with pytest.raises(a6.CertA6Refused, match="CERT_A6_CONTAINMENT_PROBE_NOT_PASSED"):
         _assess()
     assert [x[0][3] for x in invocations] == ["run", "rm", "info", "container"]
+
+
+def test_blackholed_testnet_not_sufficient_for_network_isolation(monkeypatch):
+    # Failed TEST-NET TCP probes can occur on an otherwise connected host.
+    # An additional veth/eth0 interface must refuse the whole assessment.
+    unsafe = PROBE_OK | {"loopback_only_interfaces": False}
+    _, invocations = _test_host(monkeypatch, report=unsafe)
+    with pytest.raises(a6.CertA6Refused, match="CERT_A6_CONTAINMENT_PROBE_NOT_PASSED"):
+        _assess()
+    assert [item[0][3] for item in invocations] == [
+        "run", "rm", "info", "container",
+    ]
+
+
+def test_guest_probe_inspects_actual_kernel_interface_names():
+    assert "socket.if_nameindex()" in a6._PROBE
+    assert '== {"lo"}' in a6._PROBE
+    assert "loopback_only_interfaces" in a6._PROBE
 
 
 def test_orphan_or_cleanup_not_proved_refused(monkeypatch):
