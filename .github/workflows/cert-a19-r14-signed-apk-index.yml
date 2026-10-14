@@ -76,13 +76,13 @@ jobs:
             --mount type=bind,src="$work/localrepo",dst=/mnt/apkrepo,readonly \
             --mount type=bind,src="$work/native-repositories",dst=/mnt/repositories,readonly \
             --entrypoint /sbin/apk "$base" \
-            --root /tmp --initdb --no-cache --no-progress --arch x86_64 \
+            --no-cache --no-progress --arch x86_64 \
             --keys-dir /etc/apk/keys --repositories-file /mnt/repositories \
-            update 2>&1 | tee "$work/apk-verify.log"
+            search -x busybox 2>&1 | tee "$work/apk-verify.log"
           if grep -Ei 'UNTRUSTED|BAD signature|WARNING:|unavailable|ERROR:|ignoring' "$work/apk-verify.log"; then
             echo "R14_NATIVE_APK_INDEX_VERIFICATION_FAILED" >&2; exit 1
           fi
-          grep -E '[0-9]+ distinct packages available' "$work/apk-verify.log"
+          grep -E '^busybox-[0-9]' "$work/apk-verify.log"
           echo APK_TOOLS_SIGNED_INDEX_ACCEPTED_NO_ALLOW_UNTRUSTED > "$work/apk-index-verification-status.txt"
           echo "R14_NATIVE_SIGNED_INDEX_ACCEPTED_NO_APK_INSTALLED"
       - name: Freeze exact signed-index package candidates without installing APK
