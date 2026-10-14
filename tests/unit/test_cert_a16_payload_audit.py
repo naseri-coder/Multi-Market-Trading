@@ -193,7 +193,7 @@ def test_companion_scanner_payload_probe_is_read_only():
     script = Path(a16.__file__).read_text(encoding="utf-8")
     assert '"container", "create"' in script
     assert '"cp", "-L"' in script
-    assert '"docker", "rm"' in script
+    assert '"/usr/bin/docker", "rm"' in script
     for forbidden in ('"docker", "start"', '"docker", "run"',
                       '"docker", "exec"'):
         assert forbidden not in script
