@@ -201,7 +201,7 @@ def verify_installed(lock: object) -> None:
         try:
             result = subprocess.run(
                 ("/usr/bin/dpkg-query", "--show",
-                 "--showformat=\${Status}\t\${Version}\t\${Architecture}",
+                 "--showformat=${Status}\t${Version}\t${Architecture}",
                  item["package"]),
                 stdin=subprocess.DEVNULL, capture_output=True, check=False,
                 timeout=5, shell=False, close_fds=True,
