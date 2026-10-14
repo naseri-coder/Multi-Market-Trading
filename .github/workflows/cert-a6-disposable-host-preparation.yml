@@ -1,0 +1,56 @@
+name: MMT CERT-A6 disposable-host probe preparation (MOCK ONLY)
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/cert_a6_disposable_containment.py"
+      - "tests/unit/test_cert_a6_disposable_containment.py"
+      - "docs/MMT_CERT_A6_DISPOSABLE_HOST_ACCEPTANCE.md"
+      - ".github/workflows/cert-a6-disposable-host-preparation.yml"
+      - "naseri_markets/runtime_a7_disposable_host_preflight.py"
+      - "naseri_markets/runtime_a6_dispatch_fence.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mock-only-host-probe-regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: production_source:.
+      MMT_NONPRODUCTION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install pinned testing and lint dependencies
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --disable-pip-version-check \
+            pytest==9.1.1 pytest-asyncio==1.4.0 \
+            pydantic-settings==2.15.0 ruff==0.16.9
+      - name: Verify strictly MOCK-ONLY tests and preserved A6 launch denial
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check \
+            naseri_markets/cert_a6_disposable_containment.py \
+            tests/unit/test_cert_a6_disposable_containment.py
+          python -m pytest -q -ra \
+            tests/unit/test_cert_a6_disposable_containment.py \
+            tests/unit/test_runtime_a7_disposable_host_preflight.py \
+            tests/unit/test_runtime_a6_dispatch_fence.py \
+            | tee "$RUNNER_TEMP/mmt-cert-a6.log"
+          if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/mmt-cert-a6.log"; then
+            echo "CERT_A6_UNEXECUTED_SECURITY_TEST_REFUSED" >&2
+            exit 1
+          fi
+          echo "CERT_A6_MOCK_ONLY_NOT_HOST_CERTIFIED"
+
+  # Do not call the CERT-A6 executable in GitHub CI.
+  # Real rootless+runsc containment requires user-designated disposable host.
+  # Never use a connected TELMIVO, License Authority or trading server.
