@@ -42,6 +42,7 @@ ROWS = (
     b"2026-10-13T10:15:00Z,2026-10-13T10:30:00Z,101,104,99,103,11\n",
     b"2026-10-13T10:30:00Z,2026-10-13T10:45:00Z,103,105,100,102,12\n",
 )
+ROWS_BYTES = HEADER + b"".join(ROWS)
 ARTIFACTS = {
     RuntimeKind.PYTHON: (
         "fixed.py",
@@ -63,8 +64,10 @@ def offline(monkeypatch):
     monkeypatch.delenv("MMT_PRODUCTION", raising=False)
 
 
-def _prepare(tmp_path: Path, kind=RuntimeKind.PYTHON, raw=HEADER + b"".join(ROWS),
+def _prepare(tmp_path: Path, kind=RuntimeKind.PYTHON, raw=None,
              minimum=2, event=CoreEventType.CLOSED_CANDLE):
+    if raw is None:
+        raw = ROWS_BYTES
     path = tmp_path / "approved.csv"
     path.write_bytes(raw)
     sha = hashlib.sha256(raw).hexdigest()
@@ -152,7 +155,8 @@ def test_deterministic_transcript_and_source_mutation_changes_hash(tmp_path):
     first = review_file_to_runtime_wire(path, **opts)
     second = review_file_to_runtime_wire(path, **opts)
     assert first == second
-    revised = HEADER + ROWS[0] + ROWS[1] + ROWS[2].replace(b",103,105,100,102,12", b",103,105,100,104,12")
+    revised = (HEADER + ROWS[0] + ROWS[1]
+               + ROWS[2].replace(b",103,105,100,102,12", b",103,105,100,104,12"))
     other = tmp_path / "new"
     other.mkdir()
     newpath, newopts = _prepare(other, raw=revised)
@@ -225,10 +229,13 @@ def test_mismatched_source_sha_bad_strategy_and_wrong_language_fail(tmp_path):
         review_file_to_runtime_wire(path, **(opts | {"artifact_sha256": "f" * 64}))
     with pytest.raises(PaperWireRefused, match="BRIDGE_INPUT_OR_WIRE_VALIDATION_FAILED"):
         review_file_to_runtime_wire(path, **(opts | {"kind": RuntimeKind.WASM}))
+    unsafe_artifact = b"import os\nos.system('bad')\n"
     with pytest.raises(PaperWireRefused, match="BRIDGE_INPUT_OR_WIRE_VALIDATION_FAILED"):
-        review_file_to_runtime_wire(path, **(opts | {"artifact": b"import os\nos.system('bad')\n",
-                                             "artifact_sha256": hashlib.sha256(b"import os\nos.system('bad')\n").hexdigest()}))
-    path.write_bytes((HEADER + b"".join(ROWS)).replace(b",100,102,98,101,10", b",100,102,98,999,10"))
+        review_file_to_runtime_wire(path, **(opts | {
+            "artifact": unsafe_artifact,
+            "artifact_sha256": hashlib.sha256(unsafe_artifact).hexdigest(),
+        }))
+    path.write_bytes(ROWS_BYTES.replace(b",100,102,98,101,10", b",100,102,98,999,10"))
     with pytest.raises(PaperWireRefused, match="BRIDGE_INPUT_OR_WIRE_VALIDATION_FAILED"):
         review_file_to_runtime_wire(path, **opts)
 
