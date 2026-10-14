@@ -93,7 +93,7 @@ jobs:
           set -Eeuo pipefail
           work="$RUNNER_TEMP/cert-a19-r15"
           image="$(cat "$work/image.txt")"
-          docker run --rm --pull=never --platform linux/amd64 \
+          if ! docker run --rm --pull=never --platform linux/amd64 \
             --network=none --read-only --cap-drop=ALL \
             --security-opt=no-new-privileges \
             --pids-limit=32 --memory=192m --user=65534:65534 \
@@ -101,7 +101,11 @@ jobs:
             --mount type=bind,src="$work/archives",dst=/mnt/apks,readonly \
             --entrypoint /bin/sh "$image" -ec \
             'set -- /mnt/apks/*.apk; test "$1" != "/mnt/apks/*.apk"; /sbin/apk --no-cache --keys-dir /etc/apk/keys verify "$@"' \
-            > "$work/verify.log" 2>&1
+            > "$work/verify.log" 2>&1; then
+            tail -n 100 "$work/verify.log" >&2
+            echo "R15_APK_VERIFIER_NONZERO_EXIT" >&2
+            exit 1
+          fi
           if grep -Ei 'UNTRUSTED|BAD signature|WARNING:|ERROR:|ignoring' "$work/verify.log"; then
             echo R15_APK_SIGNATURE_VERIFICATION_FAILED >&2; exit 1
           fi
@@ -120,5 +124,6 @@ jobs:
             ${{ runner.temp }}/cert-a19-r15/r15-custody.json
             ${{ runner.temp }}/cert-a19-r15/selection.json
             ${{ runner.temp }}/cert-a19-r15/solver.stderr
+            ${{ runner.temp }}/cert-a19-r15/verify.log
           if-no-files-found: ignore
           retention-days: 2
