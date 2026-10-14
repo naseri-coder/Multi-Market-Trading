@@ -69,8 +69,8 @@ def inspect_packages(text):
         if "P" in fields and "V" in fields:
             records.append((fields["P"], fields["V"]))
     glibc = [(p, v) for p, v in records if p in ("glibc", "glibc-locale-posix")]
-    if not glibc:
-        fail("BASE_GLIBC_NOT_IN_APK_DB")
+    # A base image is not expected to pre-install the final Worker native ABI.
+    # Report absence without falsely certifying glibc compatibility.
     return sorted(glibc), len(records)
 
 
@@ -109,7 +109,8 @@ def main():
                 registry_packages.append(line[2:])
     summary = {
         "stage": "CERT-A19-R13",
-        "status": "WOLFI_SIGNED_BASE_PROVENANCE_AND_STOPPED_FILESYSTEM_VERIFIED",
+        "status": ("WOLFI_SIGNED_BASE_PROVENANCE__GLIBC_INSTALLED_NOT_ABI_TESTED"
+                   if glibc else "WOLFI_SIGNED_BASE_PROVENANCE__GLIBC_NOT_INSTALLED"),
         "candidate_image": IMAGE + "@" + plain,
         "manifest_index_digest": plain,
         "linux_amd64_manifest_digest": manifest_digest,
@@ -120,6 +121,8 @@ def main():
         "observed_container_os": os_name,
         "os_version": os_version,
         "observed_installed_glibc_packages": glibc,
+        "glibc_already_present_in_base": bool(glibc),
+        "glibc_worker_abi_compatibility_verified": False,
         "observed_installed_apk_package_count": installed_count,
         "apk_index_candidate_name_observations_unattested": sorted(set(registry_packages)),
         "python_3_12_in_final_image_verified": False,
