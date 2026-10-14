@@ -35,6 +35,9 @@ on:
       - "deploy/runtime_a2/Dockerfile.a15-lean"
       - "deploy/runtime_a2/Dockerfile.a15-lean.dockerignore"
       - "docs/MMT_CERT_A15_LEAN_IMAGE_COMPARISON.md"
+      - "scripts/ci_cert_a16_payload_audit.py"
+      - "tests/unit/test_cert_a16_payload_audit.py"
+      - "docs/MMT_CERT_A16_PAYLOAD_CVE_RETENTION_AUDIT.md"
       - "deploy/runtime_a2/a8_source_lock.json"
       - "naseri_markets/runtime_a8_supply_chain.py"
       - ".github/workflows/runtime-a2-worker-smoke.yml"
@@ -81,6 +84,8 @@ jobs:
             scripts/ci_cert_a15_image_compare.py \
             deploy/runtime_a2/a15_export_runtime.py \
             tests/unit/test_cert_a15_lean_worker.py \
+            scripts/ci_cert_a16_payload_audit.py \
+            tests/unit/test_cert_a16_payload_audit.py \
             naseri_markets/multilang_runtime_a1.py
           python -m pytest -q -ra \
             tests/unit/test_runtime_a2_worker.py \
@@ -88,6 +93,7 @@ jobs:
             tests/unit/test_cert_a9_worker_image_inventory.py \
             tests/unit/test_cert_a13_sbom_review.py \
             tests/unit/test_cert_a15_lean_worker.py \
+            tests/unit/test_cert_a16_payload_audit.py \
             tests/unit/test_runtime_a8_supply_chain.py \
             tests/unit/test_runtime_a6_dispatch_fence.py \
             | tee "$RUNNER_TEMP/mmt-runtime-a2.txt"
@@ -320,5 +326,30 @@ jobs:
             ${{ runner.temp }}/cert-a15-lean.sbom.json
             ${{ runner.temp }}/cert-a15-lean.scan.json
             ${{ runner.temp }}/cert-a15-comparison.json
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: CERT-A16 stopped-container file-byte audit vs original 199 findings
+        env:
+          GITHUB_ACTIONS: "true"
+          RUNNER_ENVIRONMENT: github-hosted
+          MMT_NONPRODUCTION: "1"
+          MMT_CERT_A16_READ_ONLY: "1"
+        run: |
+          set -Eeuo pipefail
+          python -m scripts.ci_cert_a16_payload_audit \
+            --base-sbom "$RUNNER_TEMP/cert-a13.sbom.json" \
+            --base-scan "$RUNNER_TEMP/cert-a13.scan.json" \
+            --lean-sbom "$RUNNER_TEMP/cert-a15-lean.sbom.json" \
+            --lean-scan "$RUNNER_TEMP/cert-a15-lean.scan.json" \
+            --comparison "$RUNNER_TEMP/cert-a15-comparison.json" \
+            --output "$RUNNER_TEMP/cert-a16-payload-audit.json"
+          test -s "$RUNNER_TEMP/cert-a16-payload-audit.json"
+          echo "CERT_A16_FILES_COPIED_FROM_STOPPED_CONTAINERS_ONLY_NO_CODE_EXECUTION"
+      - name: Upload expiring A16 file SHA mapping with all review-open findings
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cert-a16-actual-payload-sha-review-only
+          path: ${{ runner.temp }}/cert-a16-payload-audit.json
           if-no-files-found: error
           retention-days: 3
