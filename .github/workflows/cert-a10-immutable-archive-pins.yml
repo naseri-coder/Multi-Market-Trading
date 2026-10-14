@@ -1,0 +1,95 @@
+name: MMT CERT-A10 immutable archive bytes (nonproduction only)
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cert-a10-immutable-archive-pins.yml"
+      - "deploy/runtime_a2/Dockerfile"
+      - "deploy/runtime_a2/Dockerfile.dockerignore"
+      - "deploy/runtime_a2/a8_source_lock.json"
+      - "deploy/runtime_a2/a10_wasmtime.lock"
+      - "deploy/runtime_a2/a10_archive_pins.json"
+      - "docs/MMT_CERT_A10_IMMUTABLE_PACKAGE_PINS.md"
+      - "tests/unit/test_cert_a10_immutable_package_pins.py"
+      - "naseri_markets/cert_a10_immutable_package_pins.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  locked-artifact-archive-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: production_source:.
+      MMT_NONPRODUCTION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+      - name: Verify frozen source pins, fail-closed regression and A6 denial
+        run: |
+          set -Eeuo pipefail
+          test "$(uname -m)" = x86_64
+          python -m pip install --disable-pip-version-check \
+            pytest==9.1.1 pytest-asyncio==1.4.0 \
+            pydantic-settings==2.15.0 ruff==0.16.9
+          python -m ruff check \
+            naseri_markets/cert_a10_immutable_package_pins.py \
+            tests/unit/test_cert_a10_immutable_package_pins.py
+          python -m pytest -q -ra \
+            tests/unit/test_cert_a10_immutable_package_pins.py \
+            tests/unit/test_runtime_a8_supply_chain.py \
+            tests/unit/test_runtime_a6_dispatch_fence.py \
+            | tee "$RUNNER_TEMP/cert-a10.txt"
+          if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/cert-a10.txt"; then
+            echo "CERT_A10_UNEXECUTED_CHECK_REFUSED" >&2
+            exit 1
+          fi
+      - name: Compare actual public archives against the committed SHA pins
+        run: |
+          set -Eeuo pipefail
+          docker buildx imagetools inspect \
+            docker.io/library/python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258 \
+            > "$RUNNER_TEMP/a10-base-inspect.txt"
+          mkdir -p "$RUNNER_TEMP/tgz" "$RUNNER_TEMP/wheel"
+          npm pack --ignore-scripts typescript@5.9.3 \
+            --pack-destination "$RUNNER_TEMP/tgz" --silent
+          python -m pip download --no-deps --only-binary=:all: \
+            --dest "$RUNNER_TEMP/wheel" wasmtime==49.0.0
+          python - "$RUNNER_TEMP" <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import sys
+
+          root = pathlib.Path(sys.argv[1])
+          pins = json.loads(pathlib.Path(
+              "deploy/runtime_a2/a10_archive_pins.json"
+          ).read_text())
+          digest = pins["base_image"].rsplit("@", 1)[-1]
+          base = (root / "a10-base-inspect.txt").read_text()
+          if f"Digest:    {digest}" not in base:
+              raise SystemExit("CERT_A10_BASE_DIGEST_NOT_OBSERVED")
+          ts = root / "tgz/typescript-5.9.3.tgz"
+          wheel = root / "wheel" / pins["wasmtime"]["wheel"]
+          files = (
+              (ts, "sha512", pins["typescript"]["sha512"]),
+              (wheel, "sha256", pins["wasmtime"]["sha256"]),
+          )
+          for file, algo, expected in files:
+              if not file.is_file() or not 0 < file.stat().st_size <= 30000000:
+                  raise SystemExit("CERT_A10_ARCHIVE_NOT_PRESENT_OR_OVERSIZED")
+              if hashlib.file_digest(file.open("rb"), algo).hexdigest() != expected:
+                  raise SystemExit("CERT_A10_ACTUAL_ARCHIVE_HASH_MISMATCH")
+          print("CERT_A10_PINNED_ARCHIVE_BYTES_MATCH_NO_UPSTREAM_SIGNATURE")
+          PY
+  # The separate existing A2 fixture workflow exercises the newly pinned
+  # candidate recipe. Hosted rootful Docker is NOT rootless+gVisor certification.

@@ -1,0 +1,4 @@
+# CERT-A10 linux/amd64 wheel SHA256, observed from PyPI in GitHub CI.
+# Byte equality only; not upstream publisher provenance.
+wasmtime==49.0.0 \
+    --hash=sha256:94f0288f9e1c33924995a72bb769f4c4e2885002391589dd6992cdaa35d1990a
