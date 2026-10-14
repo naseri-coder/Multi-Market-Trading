@@ -314,3 +314,16 @@ Disposition: `CERT_A19_R12_ARCHITECTURE_RESEARCH_PASS_SECURITY_CANDIDATE_NOT_BUI
 - No production, main, A11/A12, A2/A15/A18, TELMIVO/Telegram/broker, original 199 findings or A6 hard DENY changes; PR #275 stays DRAFT / DO NOT MERGE.
 
 **Verdict:** `CERT_A19_R13_SIGNED_WOLFI_BASE_DIGEST_AND_STOPPED_ROOTFS_PASS_GLIBC_NOT_INSTALLED_COMPONENTS_AND_ABI_NOT_RUN_199_OPEN`.
+
+## CERT-A19-R14 — Wolfi signed-index package candidate snapshot, **NOT** an APK closure lock
+
+[Independent detailed report and source/version checks](MMT_CERT_A19_R14_SIGNED_APK_INDEX.md).
+
+- After four narrow fail-closed iterations, **single-purpose** [GitHub Actions run #38630624422](https://github.com/naseri-coder/Multi-Market-Trading/actions/runs/38630624422) completed SUCCESS. The exact `cgr.dev/chainguard/wolfi-base` base's Cosign publisher identity/digest was rechecked. Its repository `https://apk.cgr.dev/chainguard` and APK trusted-key files were extracted by `docker create`/`docker cp` from a stopped container.
+- The *same signed-base native APK utility* was run in a tightly limited, network-disabled, read-only nonproduction CI container to inspect the local x86_64 `APKINDEX.tar.gz` with verified-base trusted keys; **NO Worker, no user source, no APK package installation, no new Docker Worker image**. SHA-256 of accepted index: `15f8b555714bfe44b0f4de0ee24910e0533f7b4fbb4a650cf533115c6a4f281a`; 8,083,283 bytes; 122,471 package-version records.
+- Version candidates *observed but **NOT APK-solver selected / NOT archive-SHA-pinned***: `glibc-2.44=2.44-r8`, `python-3.12=3.12.15-r3`, `python-3.12-base=3.12.15-r3`, `nodejs-24=24.22.0-r0`. Version duplicates are preserved as available alternatives. Indexed `C:` checksums are NOT exact full `.apk` archive SHA-256.
+- Evidence artifact `cert-a19-r14-signed-wolfi-index-candidate-versions`, ID `11926177576`, two-day retention. **Known report boolean correction:** hosted report's `worker_or_any_container_code_executed=false` is too broad: trusted `apk` signature/search code **WAS executed**, but no Worker or guest code was. This is documented and corrected in experimental code without rerunning costly CI; do not suppress that distinction.
+- Original A11/A12, A2/A15/A18, RUNTIME-A6 DENY, main, 199 open findings and 0 CVE closures remain unchanged. PR #275 remains DRAFT / NOT MERGED.
+- Next proof gate: independently verify immutable package archives, resolve full consistent transitive dependencies and ELF/ABI, **then** consider fixed four-language nonproduction qualification. No production approval.
+
+Verdict: `CERT_A19_R14_SIGNED_WOLFI_APK_INDEX_AND_CANDIDATE_VERSION_SNAPSHOT_PASS__FULL_ARCHIVE_SHA_AND_CLOSURE_NOT_PROVEN__A6_DENY_199_OPEN`.
