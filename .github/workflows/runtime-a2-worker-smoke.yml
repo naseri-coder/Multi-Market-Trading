@@ -11,6 +11,11 @@ on:
       - "scripts/ci_cert_a8_rootful_docker_smoke.py"
       - "tests/unit/test_cert_a8_ci_rootful_docker_smoke.py"
       - "docs/MMT_CERT_A8_GITHUB_HOSTED_BENIGN_DOCKER_SMOKE.md"
+      - "scripts/ci_cert_a9_worker_image_inventory.py"
+      - "tests/unit/test_cert_a9_worker_image_inventory.py"
+      - "docs/MMT_CERT_A9_WORKER_IMAGE_INVENTORY.md"
+      - "deploy/runtime_a2/a8_source_lock.json"
+      - "naseri_markets/runtime_a8_supply_chain.py"
       - ".github/workflows/runtime-a2-worker-smoke.yml"
   workflow_dispatch:
 
@@ -48,10 +53,14 @@ jobs:
             tests/unit/test_runtime_a2_worker.py \
             scripts/ci_cert_a8_rootful_docker_smoke.py \
             tests/unit/test_cert_a8_ci_rootful_docker_smoke.py \
+            scripts/ci_cert_a9_worker_image_inventory.py \
+            tests/unit/test_cert_a9_worker_image_inventory.py \
             naseri_markets/multilang_runtime_a1.py
           python -m pytest -q -ra \
             tests/unit/test_runtime_a2_worker.py \
             tests/unit/test_cert_a8_ci_rootful_docker_smoke.py \
+            tests/unit/test_cert_a9_worker_image_inventory.py \
+            tests/unit/test_runtime_a8_supply_chain.py \
             tests/unit/test_runtime_a6_dispatch_fence.py \
             | tee "$RUNNER_TEMP/mmt-runtime-a2.txt"
           if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/mmt-runtime-a2.txt"; then
@@ -103,3 +112,11 @@ jobs:
           set -Eeuo pipefail
           python -m scripts.ci_cert_a8_rootful_docker_smoke
           echo "CERT_A8_GITHUB_ROOTFUL_BENIGN_CONTAINER_ONLY_NOT_GVISOR_CERTIFIED"
+      - name: CERT-A9 check installed Worker SHA and actual Python Node npm TS Wasmtime versions
+        env:
+          MMT_NONPRODUCTION: "1"
+          MMT_CERT_A9_INSTALLED_IMAGE_ONLY: "1"
+        run: |
+          set -Eeuo pipefail
+          python -m scripts.ci_cert_a9_worker_image_inventory
+          echo "CERT_A9_INSTALLED_IMAGE_OBSERVED__EXTERNAL_PROVENANCE_NOT_VERIFIED"
