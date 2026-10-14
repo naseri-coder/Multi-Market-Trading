@@ -1,0 +1,136 @@
+name: CERT-A19-R15 Wolfi APK solver and full archive SHA custody (research-only)
+
+on:
+  push:
+    branches: [cert-a19-byte-audit-run]
+    paths:
+      - ".github/workflows/cert-a19-r15-package-custody.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  signed-index-and-apk-archives:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/cert-a19-byte-audit-run' && github.repository == 'naseri-coder/Multi-Market-Trading'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      GITHUB_ACTIONS: "true"
+      MMT_NONPRODUCTION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: Verify fixed Chainguard image publisher and exact R14 repository index bytes
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          work="$RUNNER_TEMP/cert-a19-r15"
+          mkdir -m 0700 "$work"
+          image='cgr.dev/chainguard/wolfi-base@sha256:256c88bb066424045021090932d50be93c8e3f2ce3586707702a401b146f3e43'
+          cosign verify \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            --certificate-identity=https://github.com/chainguard-images/images/.github/workflows/release.yaml@refs/heads/main \
+            "$image" > "$work/cosign-verify.log"
+          printf '%s\n' "$image" > "$work/image.txt"
+          echo FIXED_CHAINGUARD_PUBLISHER_SIGNED > "$work/sigstore.status"
+          docker pull --platform linux/amd64 "$image"
+          cid="$(docker create --pull=never --platform linux/amd64 --entrypoint=/bin/true "$image")"
+          trap 'docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
+          test "$(docker inspect "$cid" --format '{{.State.Status}}')" = created
+          docker cp "$cid:/etc/apk/repositories" "$work/repositories-from-image"
+          docker cp "$cid:/etc/apk/keys" "$work/keydir"
+          test "$(docker inspect "$cid" --format '{{.State.Status}}')" = created
+          grep -Fx 'https://apk.cgr.dev/chainguard' "$work/repositories-from-image"
+          mkdir -p "$work/localrepo/x86_64"
+          curl --proto '=https' --proto-redir '=https' --fail --location --silent --show-error \
+            --retry 1 --connect-timeout 15 --max-time 90 \
+            https://apk.cgr.dev/chainguard/x86_64/APKINDEX.tar.gz \
+            -o "$work/localrepo/x86_64/APKINDEX.tar.gz"
+          cp "$work/localrepo/x86_64/APKINDEX.tar.gz" "$work/APKINDEX.tar.gz"
+          echo '15f8b555714bfe44b0f4de0ee24910e0533f7b4fbb4a650cf533115c6a4f281a  '"$work/APKINDEX.tar.gz" | sha256sum --check --status
+          printf 'file:///mnt/apkrepo\n' > "$work/native-repositories"
+          echo 'R15_EXACT_R14_SIGNED_INDEX_SHA_VERIFIED'
+      - name: Native signed Wolfi APK index check with no network, no install
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          work="$RUNNER_TEMP/cert-a19-r15"
+          image="$(cat "$work/image.txt")"
+          docker run --rm --pull=never --platform linux/amd64 \
+            --network=none --read-only --cap-drop=ALL \
+            --security-opt=no-new-privileges \
+            --pids-limit=32 --memory=192m --user=65534:65534 \
+            --tmpfs /tmp:rw,noexec,nosuid,size=24m,mode=1777 \
+            --mount type=bind,src="$work/localrepo",dst=/mnt/apkrepo,readonly \
+            --mount type=bind,src="$work/native-repositories",dst=/mnt/repositories,readonly \
+            --entrypoint /sbin/apk "$image" \
+            --no-cache --no-progress --keys-dir /etc/apk/keys \
+            --repositories-file /mnt/repositories search -x busybox \
+            > "$work/apk-index-proof.log" 2> "$work/apk-index-proof.err"
+          grep -E '^busybox-[0-9]' "$work/apk-index-proof.log"
+          if grep -Ei 'UNTRUSTED|BAD signature|WARNING:|ERROR:|ignoring' "$work/apk-index-proof.err"; then
+            echo 'R15_UNTRUSTED_INDEX_REFUSED' >&2; exit 1
+          fi
+          echo SIGNED_INDEX_VALIDATED_BY_NATIVE_APK > "$work/index.status"
+          echo R15_NATIVE_APK_INDEX_SIGNATURE_ACCEPTED
+      - name: Resolve exact root constraints with native APK recursive solver (NO fetch yet)
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          work="$RUNNER_TEMP/cert-a19-r15"
+          image="$(cat "$work/image.txt")"
+          docker run --rm --pull=never --platform linux/amd64 \
+            --network=none --read-only --cap-drop=ALL \
+            --security-opt=no-new-privileges \
+            --pids-limit=32 --memory=192m --user=65534:65534 \
+            --tmpfs /tmp:rw,noexec,nosuid,size=24m,mode=1777 \
+            --mount type=bind,src="$work/localrepo",dst=/mnt/apkrepo,readonly \
+            --mount type=bind,src="$work/native-repositories",dst=/mnt/repositories,readonly \
+            --entrypoint /sbin/apk "$image" \
+            --no-cache --no-progress --keys-dir /etc/apk/keys \
+            --repositories-file /mnt/repositories \
+            fetch --recursive --simulate --url \
+            'glibc-2.44=2.44-r8' 'python-3.12=3.12.15-r3' 'nodejs-24=24.22.0-r0' \
+            > "$work/solver.urls" 2> "$work/solver.stderr"
+          python3 -m scripts.ci_cert_a19_r15_apk_custody resolve
+      - name: Download exact solver-selected .apk archive bytes, no installation
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 -m scripts.ci_cert_a19_r15_apk_custody download
+      - name: Verify EVERY downloaded archive signature with the same signed Wolfi trusted keyring
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          work="$RUNNER_TEMP/cert-a19-r15"
+          image="$(cat "$work/image.txt")"
+          docker run --rm --pull=never --platform linux/amd64 \
+            --network=none --read-only --cap-drop=ALL \
+            --security-opt=no-new-privileges \
+            --pids-limit=32 --memory=192m --user=65534:65534 \
+            --tmpfs /tmp:rw,noexec,nosuid,size=24m,mode=1777 \
+            --mount type=bind,src="$work/archives",dst=/mnt/apks,readonly \
+            --entrypoint /bin/sh "$image" -ec \
+            'set -- /mnt/apks/*.apk; test "$1" != "/mnt/apks/*.apk"; /sbin/apk --no-cache --keys-dir /etc/apk/keys verify "$@"' \
+            > "$work/verify.log" 2>&1
+          if grep -Ei 'UNTRUSTED|BAD signature|WARNING:|ERROR:|ignoring' "$work/verify.log"; then
+            echo R15_APK_SIGNATURE_VERIFICATION_FAILED >&2; exit 1
+          fi
+          echo ALL_APK_ARCHIVE_SIGNATURES_VERIFIED_BY_NATIVE_APK > "$work/verified.status"
+          echo R15_ALL_APK_ARCHIVES_NATIVE_SIGNATURE_VALID
+      - name: Freeze signed closure and every full .apk SHA256 without running Worker
+        run: |
+          set -Eeuo pipefail
+          python3 -m scripts.ci_cert_a19_r15_apk_custody complete
+      - name: Upload bounded nonproduction custody evidence only, never archive binaries
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cert-a19-r15-wolfi-full-apk-custody
+          path: ${{ runner.temp }}/cert-a19-r15/r15-custody.json
+            ${{ runner.temp }}/cert-a19-r15/selection.json
+            ${{ runner.temp }}/cert-a19-r15/solver.stderr
+          if-no-files-found: ignore
+          retention-days: 2
