@@ -1,14 +1,28 @@
 # CERT-A10 nonproduction-only fixed linux/amd64 archive candidate.
 # Digest pins are *content equality*, NOT upstream identity or gVisor attestation.
-# APT Debian packages remain mutable/unpinned and block supply-chain certification.
+# APT .deb archive bytes are pinned; mutable Debian mirrors and signatures
+# are NOT independently frozen/attested. Fail closed on any archive drift.
 FROM python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     NODE_PATH=/usr/local/lib/node_modules
 
-RUN apt-get update && apt-get install -y --no-install-recommends nodejs npm \
-    && rm -rf /var/lib/apt/lists/*
+# Exact 372-entry Debian archive closure is validated BEFORE installation.
+# Download into a separate APT cache so Docker apt.conf post-hooks cannot
+# silently remove the bytes prior to hash verification.
+COPY deploy/runtime_a2/a11_apt_closure.py /opt/mmt/a11_apt_closure.py
+COPY deploy/runtime_a2/a11_apt_closure.json /opt/mmt/a11_apt_closure.json
+RUN mkdir -p /tmp/mmt-a11-apt/archives/partial \
+    && apt-get update \
+    && apt-get -y -o Dir::Cache::archives=/tmp/mmt-a11-apt/archives \
+        install --download-only --no-install-recommends nodejs npm \
+    && python /opt/mmt/a11_apt_closure.py verify \
+    && apt-get -y -o Dir::Cache::archives=/tmp/mmt-a11-apt/archives \
+        install --no-download --no-install-recommends nodejs npm \
+    && python /opt/mmt/a11_apt_closure.py installed \
+    && rm -rf /tmp/mmt-a11-apt /var/lib/apt/lists/* \
+    && rm -f /opt/mmt/a11_apt_closure.py /opt/mmt/a11_apt_closure.json
 
 # Download only the exact fixed TypeScript npm archive and verify SHA-512
 # BEFORE running npm. Offline npm cannot silently fetch more dependencies.
