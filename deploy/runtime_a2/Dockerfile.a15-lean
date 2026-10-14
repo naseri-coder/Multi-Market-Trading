@@ -2,6 +2,9 @@
 # Reference is the already-built GitHub CI local A2 image. Do not publish.
 # No apt, npm, pip, network or untrusted source is executed in this build.
 FROM mmt/runtime-a2-candidate:pr AS pinned-a2-fixture-source
+# Source image ends at uid 65534; the ephemeral build exporter needs write
+# access to its own staging directory, never to a host mount.
+USER 0
 COPY deploy/runtime_a2/a15_export_runtime.py /opt/mmt/a15_export_runtime.py
 RUN python -I /opt/mmt/a15_export_runtime.py
 
