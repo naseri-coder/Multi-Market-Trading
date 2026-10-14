@@ -137,3 +137,19 @@ For an authorized GitHub-hosted ephemeral, harmless **audit-only** successor, fe
 No CI triggered during R4; no source or image patch; no claim of new fixed CVEs. The original 199 Critical/High observations remain review-open, A6 DENY preserved, and CERT-A19 PR stays DRAFT.
 
 Verdict: `CERT_A19_R4_OFFICIAL_SOURCE_PACKAGE_LOCATED_BYTE_CUSTODY_BLOCKED_NO_PATCH`.
+
+## CERT-A19-R5 — Targeted GitHub-hosted Debian undici custody gate
+
+New files: scripts/ci_cert_a19_undici_byte_custody.py; tests/unit/test_cert_a19_undici_byte_custody.py; .github/workflows/cert-a19-undici-byte-custody.yml.
+Nine offline targeted tests PASSED locally (no Docker, Node or network execution). Hosted job result must be obtained independently before claiming hosted PASS.
+
+Pinned A11 372-deb closure SHA256: 47bd698232b4f624d1aab35c6453e1f01641b1b6ebdd8d4d7dc38a4dd19ae872.
+Exact Bookworm undici Debian .deb version 5.15.0+dfsg1+~cs20.10.9.3-1+deb12u4, architecture all, A11 archive SHA256: 78ec8918d63e365bbdec6edd35bebec9e20cc931f084f24e8673badf191d100c.
+Official FTP Masters 2024-06-16 source acceptance https://lists.debian.org/debian-changes/2024/06/msg00051.html records .dsc SHA256: 6befcb981dea58f2fdb9bc0d78624d829090105ab955d48e617a02ead37fd44c.
+Small targeted job downloads exactly the pinned .deb and .dsc from deb.debian.org, validates hashes and Debian metadata, extracts rather than installs the binary .deb, and computes exact BalancedPool file SHA with negative checks. It validates A11 closure and preserved A6 DENY.
+
+IMPORTANT LIMIT: No A18 image is constructed or started in this job. The optional --a18-root requires independent stopped-image materialization; until provided, worker_byte_parity is UNVERIFIED_A18_STOPPED_IMAGE_NOT_PROVIDED. NO comparison of actual Worker bytes is asserted.
+Likewise, the signed .dsc is SHA-anchored but its OpenPGP signature is NOT independently verified; full source component tarballs, Debian quilt patch series, and source-to-binary reproduction remain UNVERIFIED. This does NOT authorize a CVE false-positive or remediation claim.
+
+The job is single-purpose, 8-minute timeout, no full A2/A18 build, no Syft/Grype rerun, no Node/Worker/user payload execution, no production/TELMIVO/orders/Telegram, read-only GitHub permissions, 2-day evidence retention. Critical/High review state: 199 OPEN.
+Verdict: CERT_A19_R5_PINNED_DEBIAN_BYTE_AUDIT_PREPARED_A18_RUNTIME_PARITY_UNVERIFIED_NO_CVE_CLOSURE.
