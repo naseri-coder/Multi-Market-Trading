@@ -21,7 +21,6 @@ from .core_api_v1 import (
     CoreBinding,
     CoreContractError,
     CoreDecision,
-    CoreEventType,
     CoreManifest,
     CoreResult,
     DataOrigin,
