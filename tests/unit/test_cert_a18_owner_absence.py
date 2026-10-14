@@ -1,7 +1,6 @@
 """CERT-A18 mock-only tests for proven Debian owner path absence."""
 from __future__ import annotations
 
-import copy
 import json
 from pathlib import Path
 
