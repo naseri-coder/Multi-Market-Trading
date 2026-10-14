@@ -175,7 +175,7 @@ def test_externalized_debian_node_commonjs_lexer_is_explicitly_preserved():
     assert Path("/usr/share/nodejs/cjs-module-lexer") == exporter._CJS
     source = (_ROOT / "deploy/runtime_a2/a15_export_runtime.py").read_text()
     assert '(_CJS / "lexer.js").is_file()' in source
-    assert "(_TS, _WASM, dist, _CJS)" in source
+    assert "(_TS, _WASM, dist, _CJS, _UNDICI, _ACORN)" in source
     assert "A15_EXTERNALIZED_NODE_CJS_LEXER_MISSING" in source
     assert "A15_EXTERNALIZED_NODE_UNDICI_MISSING" in source
     assert "A15_EXTERNALIZED_NODE_ACORN_MISSING" in source
