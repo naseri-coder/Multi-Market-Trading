@@ -1,0 +1,5 @@
+# CERT-A18 dedicated fixed build context; no code/user files or secrets.
+**
+!deploy/
+!deploy/runtime_a2/
+!deploy/runtime_a2/a18_build_only_guard.py
