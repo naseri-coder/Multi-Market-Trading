@@ -424,3 +424,19 @@ Evidence artifact `cert-a19-r20-36-apk-all-elf-static-audit` ID **11932642207**,
 - **Still DENIED:** runtime loader/ABI/Node/Python/TypeScript/Wasmtime fixture parity, independently approved rootless+gVisor host, Worker release, original 199 critical/high finding closure. RUNTIME-A6 stays hard DENY. Main, A11/A2/A15/A18, Telegram/TELMIVO/trading/production and PR merge unchanged.
 
 **Verdict:** `CERT_A19_R21_STATIC_LOADER_LINK_PROVEN_IN_BASE_AND_36_APKS__TWO_ROOTFS_COMPOSITION_COLLISIONS_OPEN__NO_RUNTIME_A6_DENY_199_OPEN`. Suggested R22: confirm loader's exact file-content parity and adjudicate `usr/bin/clear`/`usr/lib64` with verified package-composition semantics before any image or fixture execution.
+
+## CERT-A19-R22 — base-vs-package ELF loader full SHA-256 parity PASS; apko 1.4.11 collision rules provenance PASS, final image OPEN
+
+[Full R22 signed-loader byte and source-pinned filesystem composition decision](MMT_CERT_A19_R22_LOADER_BYTE_PARITY_AND_COMPOSITION.md).
+
+An isolated non-PR [GitHub Actions run #38649169689](https://github.com/naseri-coder/Multi-Market-Trading/actions/runs/38649169689) **SUCCEEDED** for read-only source validation. Restored exact frozen R18 36-APK and R21 symlink evidence; reauthenticated `cgr.dev/chainguard/wolfi-base@sha256:256c88bb066424045021090932d50be93c8e3f2ce3586707702a401b146f3e43` using `cosign verify`, exported **created, never-started** image filesystem as TAR. Four fixed R18 signed-index-bound APK files (`ld-linux-2.44`, `ncurses`, `libffi`, `wolfi-baselayout`) were downloaded and checked by exact prior whole-archive SHA-256, package control and compressed datahash.
+
+**Closed R21 file-content doubt:** signed base and R18-pinned `ld-linux-2.44=2.44-r8` deliver **exactly equal 272,272-byte ELF files** at `usr/lib/ld-linux-x86-64.so.2`; independently measured whole-loader SHA-256 **`2b1529d949956d0913dce1809976adf339adc0d992de5ae6eba21dad0fa9fb09`** in both. Combined with R21 `/lib64 -> usr/lib` path, this establishes the loader's static source-byte parity, **NOT final rootfs composition or dynamic loading PASS**.
+
+Two immutable Go source files from apko v1.4.11 exact release Git commit `5b3c3182430465dd2212a656411267f150034255` passed expected Git blob SHA checks: `pkg/apk/apk/install.go` **`627e6aae37100935e7b298874e224e26d3311a1f`** and `implementation.go` **`588398c9bf71aae2c43bfb167500d5746b87ea64`**. Source rules conditionally require matching file origin/`replaces` for overwrites; allow existing symlink-to-directory under checked conditions; and identify usr-merge via `merged-lib`. These generic rules **do not prove** actual ordering/ownership of the selected packages.
+
+Actual remaining composition decisions (no silent overrides): `usr/bin/clear` base BusyBox symlink vs `ncurses` regular ELF (17,208 bytes, SHA `98011ef86e4d2985ccc4d4a4e529c7790d1cc2e2f94ffa3296d4dc17f51377ed`); `usr/lib64` base/wolfi-baselayout symlink `lib` vs `libffi` directory. Actual `.PKGINFO` of `ncurses`, `libffi`, `wolfi-baselayout` has **no explicit `replaces`**; final installer decisions, file collision order and composed symlink graph remain unproven.
+
+Evidence GitHub artifact `cert-a19-r22-loader-byte-parity-and-collision-review`, ID **11933641716**, 2-day retention; original JSON SHA-256 `41cefc3fc5e72ca023b3f915b5605b9dd950f24860d313c37de56309d67efec7` (6,588 bytes). No package, tool, ELF, Worker, image or target code installed/executed. **All 199 original findings review-open, 0 CVE closures, A6 hard DENY**, no main/A11/A2/A15/A18/production/Telegram/TELMIVO/broker/trading mutation, PR #275 DRAFT / DO NOT MERGE.
+
+**Verdict:** `CERT_A19_R22_LOADER_SHA256_BASE_PACKAGE_IDENTICAL__SOURCE_PINNED_APKO_COLLISIONS_STILL_OPEN__A6_DENY_199_OPEN`. Safe R23 is a separate isolated package-manager rootfs *composition* qualification and exact final file/symlink check, without any guest/Worker execution.
