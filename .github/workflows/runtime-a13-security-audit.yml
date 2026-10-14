@@ -1,0 +1,60 @@
+name: MMT RUNTIME-A13 cross-stage security regression audit
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/runtime_a13_security_contract_audit.py"
+      - "tests/unit/test_runtime_a13_security_contract_audit.py"
+      - "docs/MMT_RUNTIME_A13_SECURITY_GAP_AUDIT.md"
+      - ".github/workflows/runtime-a13-security-audit.yml"
+      - "naseri_markets/runtime_a4_security_evidence.py"
+      - "naseri_markets/runtime_a5_nonce_custody.py"
+      - "naseri_markets/runtime_a6_dispatch_fence.py"
+      - "naseri_markets/runtime_a7_disposable_host_preflight.py"
+      - "naseri_markets/runtime_a8_supply_chain.py"
+      - "naseri_markets/runtime_a9_offline_intent.py"
+      - "naseri_markets/runtime_a10_evidence_anchor.py"
+      - "naseri_markets/runtime_a11_offline_witness.py"
+      - "naseri_markets/runtime_a12_offline_recovery.py"
+      - "naseri_markets/multilang_runtime_a1.py"
+      - "deploy/runtime_a2/Dockerfile"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-regression-and-offline-contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    env:
+      PYTHONPATH: ${{ github.workspace }}/production_source:${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install pinned test-only Python tools
+        run: |
+          python -m pip install --disable-pip-version-check \
+            pytest==9.1.1 pytest-asyncio==1.4.0 \
+            pydantic-settings==2.15.0 ruff==0.16.9
+      - name: Source gates and unchanged A4 through A12 contract regressions
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check \
+            naseri_markets/runtime_a13_security_contract_audit.py \
+            tests/unit/test_runtime_a13_security_contract_audit.py
+          python -m pytest -q -ra \
+            tests/unit/test_runtime_a13_security_contract_audit.py \
+            tests/unit/test_runtime_a4_security_evidence.py \
+            tests/unit/test_runtime_a5_nonce_custody.py \
+            tests/unit/test_runtime_a6_dispatch_fence.py \
+            tests/unit/test_runtime_a7_disposable_host_preflight.py \
+            tests/unit/test_runtime_a8_supply_chain.py \
+            tests/unit/test_runtime_a9_offline_intent.py \
+            tests/unit/test_runtime_a10_evidence_anchor.py \
+            tests/unit/test_runtime_a11_offline_witness.py \
+            tests/unit/test_runtime_a12_offline_recovery.py
