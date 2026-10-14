@@ -1,0 +1,17 @@
+# CERT-A18-R1: evidence-only isolated nonproduction candidate.
+# Both stages read the EXISTING locally built A15 lean tag. No new packages,
+# Docker runtime authorization, user payload, network or registry publication.
+FROM mmt/runtime-a15-lean:pr AS a18-checked-local-lean
+USER 0
+COPY deploy/runtime_a2/a18_build_only_guard.py /opt/mmt/a18_build_only_guard.py
+RUN python -I /opt/mmt/a18_build_only_guard.py
+
+# This is intentionally the SAME A15 runtime payload. Only image metadata
+# differs; its build-only omissions are re-proven against A2 dpkg ownership
+# at CI runtime. Do NOT claim a new CVE patch or image provenance signature.
+FROM mmt/runtime-a15-lean:pr
+LABEL org.opencontainers.image.description="CERT-A18 research only; same A15 payload, evidence-of-absence required"
+LABEL io.mmt.cert_a18="FIXED_PATH_EXCLUSION_PROVENANCE_REVIEW_ONLY"
+USER 65534:65534
+WORKDIR /tmp
+ENTRYPOINT ["/opt/mmt/bin/runtime-a1-worker"]
