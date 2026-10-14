@@ -171,6 +171,36 @@ def test_nested_node_dependencies_require_fixed_elf_libraries(monkeypatch):
     assert any("libnode" in x.name for x in deps)
 
 
+def test_transitive_libnode_dependency_libuv_is_not_omitted(monkeypatch):
+    calls = []
+
+    def ldd(argv, **kwargs):
+        target = argv[1]
+        calls.append(target)
+        if target == "/usr/bin/node":
+            output = (
+                b"libnode.so.108 => /lib/x86_64-linux-gnu/libnode.so.108 (0x1)\n"
+                b"libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x1)\n"
+                b"/lib64/ld-linux-x86-64.so.2 (0x1)\n"
+            )
+        elif target.endswith("libnode.so.108"):
+            output = (
+                b"libuv.so.1 => /lib/x86_64-linux-gnu/libuv.so.1 (0x1)\n"
+                b"libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x1)\n"
+            )
+        else:
+            output = b"linux-vdso.so.1 (0x1)\n"
+        return subprocess.CompletedProcess(argv, 0, stdout=output, stderr=b"")
+
+    monkeypatch.setattr(exporter.subprocess, "run", ldd)
+    monkeypatch.setattr(exporter.Path, "is_file", lambda self: True)
+    deps = exporter._node_dependencies()
+    assert any(p.name == "libuv.so.1" for p in deps)
+    assert any(p.name == "libnode.so.108" for p in deps)
+    assert any(path.endswith("libnode.so.108") for path in calls)
+    assert len(deps) == 4
+
+
 @pytest.mark.parametrize("ldd", [
     b"libnode.so.108 => not found\n",
     b"libnode.so.108 => /tmp/external.so (0x1)\n",
