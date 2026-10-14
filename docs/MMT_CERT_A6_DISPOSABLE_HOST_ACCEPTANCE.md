@@ -33,9 +33,17 @@ mock unit test must never be reported as sandbox certification.
   fixed memory/CPU/PID limits, no bind mounts and small writable tmpfs.
 - The fixed probe tests non-root execution, a refused write at filesystem
   root, a refused TCP connection to TEST-NET address 203.0.113.1, and the
-  absence of a few named credential variables. These are narrow observations;
-  they do NOT rule out untested network paths, environment exposures,
-  sandbox escape, metadata channels, resource exhaustion or compromised host.
+  absence of a few named credential variables. CERT-A7 additionally requires
+  the Linux guest network-interface namespace to expose **only lo**, by
+  querying socket.if_nameindex(). Missing/unsupported interface data or any
+  additional interface returns failure. A TEST-NET destination alone is not
+  a meaningful network-isolation proof because an ordinary internet-enabled
+  machine can also fail to reach that address.
+- These are narrow observations; neither loopback-only interfaces nor Docker
+  --network=none proves every network path, namespace correctness, external
+  firewall policy, kernel/host integrity, metadata channels, or freedom from
+  side channels, environment exposures, resource exhaustion or sandbox escape.
+  Independent approved-host evidence remains required.
 - After any attempt, the tool requests exact-container removal, checks daemon
   liveness and absence of the generated container name. These observations
   are NOT independent process orphan proof.
@@ -91,3 +99,19 @@ CERT_A6_SOURCE_PREPARED_HOST_REQUIRED_NO_EXECUTION_CERTIFICATION
 All runtime-a6 Worker dispatch and quarantine-release permissions remain
 DENY. No real host test, production deploy, broker order, signal/Telegram
 publication, or source strategy mutation is part of this stage.
+
+## CERT-A7: network namespace negative-proof hardening
+
+**Verdict: CERT_A7_NETWORK_INTERFACE_FAIL_CLOSED_SOURCE_TESTED_ONLY.**
+
+The CERT-A6 fixed benign inside-guest probe now requires both a refused
+connection to TEST-NET and evidence that the guest reports exactly the Linux
+loopback network interface. If an apparently isolated guest also reports
+eth0/veth or enumeration fails, the assessment refuses even when the remote
+TCP connection fails. The standalone host run still requires the same A7
+preflight and explicit disposable-host authorization. CI only mocks probe
+responses and does not deploy, inspect a live host or run gVisor.
+
+This improvement reduces a specific false-positive network claim; it does
+NOT elevate the status to independent isolation certification or grant an
+A1/A3 Worker launch. RUNTIME-A6 remains unconditional DENY.
