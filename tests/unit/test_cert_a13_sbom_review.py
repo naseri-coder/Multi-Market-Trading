@@ -62,6 +62,21 @@ def test_complete_image_review_is_not_release_approval(tmp_path):
         assert result[forbidden] is False
 
 
+def test_cyclonedx_may_omit_version_on_unrelated_packages(tmp_path):
+    sbom = copy.deepcopy(SBOM)
+    sbom["components"].append({"type": "file", "name": "generated-file"})
+    a, b = _files(tmp_path, sbom=sbom)
+    assert a13.review(a, b, IMAGE, now=NOW)["components"] == 4
+
+
+def test_expected_nodejs_version_must_be_recorded(tmp_path):
+    sbom = copy.deepcopy(SBOM)
+    sbom["components"][0].pop("version")
+    a, b = _files(tmp_path, sbom=sbom)
+    with pytest.raises(a13.A13Refused, match="A13_EXPECTED_APT_VERSIONS_MISSING"):
+        a13.review(a, b, IMAGE, now=NOW)
+
+
 def test_zero_matches_is_not_vulnerability_free_certificate(tmp_path):
     scan = copy.deepcopy(SCAN)
     scan["matches"] = []
