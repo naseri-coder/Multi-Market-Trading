@@ -1,0 +1,58 @@
+name: CERT-A19-R19 TypeScript Wasmtime and Wolfi native ELF static custody (nonproduction)
+
+on:
+  push:
+    branches: [cert-a19-byte-audit-run]
+    paths:
+      - ".github/workflows/cert-a19-r19-native-static.yml"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  inspect-fixed-artifacts-no-worker:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/cert-a19-byte-audit-run' && github.repository == 'naseri-coder/Multi-Market-Trading'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    env:
+      MMT_NONPRODUCTION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Rehydrate exact immutable 36-package R18 provenance (not a live repository index)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          work="$RUNNER_TEMP/cert-a19-r19"
+          mkdir -m 0700 "$work"
+          mkdir -p "$work/r18art"
+          gh run download 38642890495 \
+            --repo naseri-coder/Multi-Market-Trading \
+            --name cert-a19-r18-apko-signed-offline-closure-audit \
+            --dir "$work/r18art"
+          cp "$work/r18art/APKINDEX.tar.gz" "$work/APKINDEX.tar.gz"
+          cp "$work/r18art/r18-result.json" "$work/r18-result.json"
+          echo '8011fbdaf70278ae83e3729dc2c44a8148a91cf03ea0ef7a3d049e30a65e36a5  '"$work/APKINDEX.tar.gz" | sha256sum --check --status
+          echo '78356a69bf4c7aa50856450b1b4f55f9aaaf4909072891909a9fe73697fd139b  '"$work/r18-result.json" | sha256sum --check --status
+          echo R19_EXACT_SIGNED_R18_36_APK_PROVENANCE_RESTORED
+      - name: Inspect npm TypeScript 5.9.3, PyPI Wasmtime 49 and pinned native APK ELF bytes, STATIC ONLY
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          command -v readelf
+          python3 -m scripts.ci_cert_a19_r19_native_abi_custody
+          test -s "$RUNNER_TEMP/cert-a19-r19/r19-report.json"
+          sha256sum "$RUNNER_TEMP/cert-a19-r19/r19-report.json"
+      - name: Retain static-only provenance JSON, never upload executables, npm tarballs or wheels
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cert-a19-r19-ts-wasmtime-elf-static-evidence
+          path: |
+            ${{ runner.temp }}/cert-a19-r19/r19-report.json
+          if-no-files-found: ignore
+          retention-days: 2
