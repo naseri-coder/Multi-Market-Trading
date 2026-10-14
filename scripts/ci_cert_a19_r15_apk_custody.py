@@ -21,6 +21,7 @@ BASE_URL = "https://apk.cgr.dev/chainguard/x86_64/"
 ROOTS = {
     "glibc-2.44": "2.44-r8",
     "python-3.12": "3.12.15-r3",
+    "python-3.12-base": "3.12.15-r3",
     "nodejs-24": "24.22.0-r0",
 }
 MAX_PACKAGE_COUNT = 180
@@ -139,18 +140,34 @@ def parse_solver(entries):
 
 
 def resolver():
+    """Record only the four exact pinned R14 direct packages; NOT transitive closure."""
     scope()
     entries = index_entries()
-    packages = parse_solver(entries)
+    selected = []
+    for name, version in sorted(ROOTS.items()):
+        data = entries[(name, version)]
+        size = int(data.get("S", "0"))
+        if not 100 < size <= MAX_SINGLE_BYTES:
+            fail("DIRECT_PACKAGE_ARCHIVE_SIZE_INVALID")
+        filename = name + "-" + version + ".apk"
+        selected.append({
+            "name": name, "version": version, "filename": filename,
+            "url": BASE_URL + filename,
+            "index_control_checksum": data["C"],
+            "signed_index_size": size,
+            "index_dependencies": data.get("D", "").split(),
+        })
     report = {
         "stage": "CERT-A19-R15",
-        "phase": "APK_NATIVE_SOLVER_ACCEPTED_SNAPSHOT_NOT_ARCHIVE_LOCK_YET",
+        "phase": "FOUR_DIRECT_ROOT_PACKAGE_ARCHIVE_PROOF_PENDING",
         "base": IMAGE,
         "signed_index_sha256": INDEX_SHA,
-        "exact_root_packages": ROOTS,
-        "solver_selected_package_count": len(packages),
-        "solver_selected_packages": packages,
-        "all_selected_versions_uniquely_identified_in_signed_index": True,
+        "exact_direct_packages": ROOTS,
+        "native_recursive_solver_completed": False,
+        "native_solver_blocker": "ISOLATED_APK_FETCH_RESOLUTION_FAILED_UNRESOLVED",
+        "selected_direct_package_count": len(selected),
+        "solver_selected_packages": selected,
+        "complete_transitive_dependency_closure": False,
         "apk_archives_verified": 0,
         "full_archive_sha256_lock": False,
         "worker_executed": False,
@@ -159,9 +176,8 @@ def resolver():
         "production_authorized": False,
     }
     path("selection.json").write_text(json.dumps(report, indent=2, sort_keys=True)+"\n")
-    path("package_urls.txt").write_text("\n".join(x["url"] for x in packages)+"\n")
-    print("R15_NATIVE_APK_SOLVER_PACKAGE_COUNT=" + str(len(packages)))
-
+    path("package_urls.txt").write_text("\n".join(x["url"] for x in selected)+"\n")
+    print("R15_EXACT_DIRECT_INDEX_PACKAGE_COUNT=" + str(len(selected)))
 
 def download():
     report = json.loads(path("selection.json").read_text())
@@ -187,7 +203,7 @@ def download():
         x["observed_apk_sha256"] = sha(bytes_)
         x["observed_apk_bytes"] = len(bytes_)
         print("R15_FETCHED_PACKAGE=" + x["filename"])
-    report["phase"] = "ARCHIVES_FETCHED_UNTRUSTED_PENDING_NATIVE_SIGNATURE_VERIFICATION"
+    report["phase"] = "FOUR_DIRECT_ARCHIVES_FETCHED_PENDING_NATIVE_SIGNATURE_VERIFICATION"
     report["total_downloaded_bytes"] = total
     path("selection.json").write_text(json.dumps(report, sort_keys=True, indent=2)+"\n")
 
@@ -206,9 +222,11 @@ def complete():
         p = path("archives") / item["filename"]
         if not p.is_file() or p.is_symlink() or sha(p.read_bytes()) != item["observed_apk_sha256"]:
             fail("ARCHIVE_SHA_DRIFT_AFTER_NATIVE_VERIFIER")
-    report["phase"] = "SIGNED_INDEX_SOLVER_PLUS_EACH_APK_NATIVE_SIGNATURE_PASS_AND_SHA256_CAPTURED"
+    report["phase"] = "FOUR_DIRECT_ROOT_APK_SIGNATURES_AND_SHA256_CAPTURED__CLOSURE_NOT_RESOLVED"
     report["apk_archives_verified"] = len(report["solver_selected_packages"])
-    report["full_archive_sha256_lock"] = True
+    report["full_archive_sha256_lock"] = False
+    report["direct_root_apk_archive_full_sha256_verified"] = True
+    report["complete_transitive_dependency_closure"] = False
     report["signature_key_independent_custody_certified"] = False
     report["apk_files_executed_or_installed"] = False
     report["native_apk_verifier_executed_on_fixed_signed_image"] = True
@@ -220,7 +238,7 @@ def complete():
     report["original_199_review_open"] = True
     report["production_authorized"] = False
     path("r15-custody.json").write_text(json.dumps(report, sort_keys=True, indent=2)+"\n")
-    print("CERT_A19_R15_VERIFIED_APK_ARCHIVES=" + str(report["apk_archives_verified"]))
+    print("CERT_A19_R15_VERIFIED_DIRECT_ROOT_APK_ARCHIVES=" + str(report["apk_archives_verified"]))
     print("CERT_A19_R15_ABI_NOT_RUN_A6_DENY_199_OPEN")
 
 
