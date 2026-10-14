@@ -204,9 +204,9 @@ jobs:
         with:
           name: cert-a13-fixed-worker-sbom-vulnerability-evidence
           path: |
-            \${{ runner.temp }}/cert-a13.sbom.json
-            \${{ runner.temp }}/cert-a13.scan.json
-            \${{ runner.temp }}/cert-a13-evidence.json
-            \${{ runner.temp }}/cert-a13.image-id
+            ${{ runner.temp }}/cert-a13.sbom.json
+            ${{ runner.temp }}/cert-a13.scan.json
+            ${{ runner.temp }}/cert-a13-evidence.json
+            ${{ runner.temp }}/cert-a13.image-id
           if-no-files-found: error
           retention-days: 3
