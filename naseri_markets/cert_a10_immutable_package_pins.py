@@ -40,6 +40,7 @@ _EXPECTED = {
 _PIN_FILE = "deploy/runtime_a2/a10_archive_pins.json"
 _RECIPE = "deploy/runtime_a2/Dockerfile"
 _WHEEL = "deploy/runtime_a2/a10_wasmtime.lock"
+_CONTEXT = "deploy/runtime_a2/Dockerfile.dockerignore"
 
 
 class CertA10Refused(ValueError):
@@ -101,6 +102,7 @@ def review_archive_pins(root: Path) -> ArchivePinReview:
         )
         docker = _read(root, _RECIPE, 8192).decode("ascii")
         wheel = _read(root, _WHEEL, 1024).decode("ascii")
+        context = _read(root, _CONTEXT, 1024).decode("ascii")
     except (UnicodeError, ValueError, RecursionError) as exc:
         if isinstance(exc, CertA10Refused):
             raise
@@ -131,6 +133,17 @@ def review_archive_pins(root: Path) -> ArchivePinReview:
         "--hash=sha256:" + _EXPECTED["wasmtime"]["sha256"],
     ]:
         raise CertA10Refused("CERT_A10_WHEEL_SHA256_CHANGED")
+    expected_context = [
+        "# Narrow context for this candidate only; do not modify repository-wide .dockerignore.",
+        "**",
+        "!scripts/",
+        "!scripts/runtime_a2_worker.py",
+        "!deploy/",
+        "!deploy/runtime_a2/",
+        "!deploy/runtime_a2/a10_wasmtime.lock",
+    ]
+    if context.splitlines() != expected_context:
+        raise CertA10Refused("CERT_A10_BUILD_CONTEXT_MUST_BE_NARROW")
     return ArchivePinReview()
 
 
