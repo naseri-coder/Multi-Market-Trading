@@ -150,7 +150,7 @@ def validate_ledger(ledger: dict, apt_packages: dict[str, str]) -> None:
     if (type(ledger["critical_findings"]) is not list
             or len(ledger["critical_findings"]) != 18):
         raise A17Refused("A17_CRITICAL_FINDINGS_LOST")
-    for expected, item in zip(_EXPECTED_CRITICAL, ledger["critical_findings"]):
+    for expected, item in zip(_EXPECTED_CRITICAL, ledger["critical_findings"], strict=True):
         if type(item) is not dict or set(item) != _CRITICAL_KEYS:
             raise A17Refused("A17_CRITICAL_ROW_SCHEMA_CHANGED")
         identity = tuple(item.get(k) for k in (
