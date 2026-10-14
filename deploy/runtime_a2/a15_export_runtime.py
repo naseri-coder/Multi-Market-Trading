@@ -17,6 +17,9 @@ from pathlib import Path
 _ROOTFS = Path("/opt/mmt/a15-rootfs")
 _NODE = Path("/usr/bin/node")
 _TS = Path("/usr/local/lib/node_modules/typescript")
+# Debian's libnode externalizes this CommonJS bootstrap module. The ELF ldd
+# closure alone cannot identify it; only this exact observed pinned file tree.
+_CJS = Path("/usr/share/nodejs/cjs-module-lexer")
 _WASM = Path("/usr/local/lib/python3.12/site-packages/wasmtime")
 _WORKER = Path("/opt/mmt/bin/runtime-a1-worker")
 _LIB_RE = re.compile(r"(?<![A-Za-z0-9])(/[^\s()]+)")
@@ -135,7 +138,9 @@ def export_fixed_runtime(root: Path = _ROOTFS) -> dict:
     deps = _node_dependencies()
     root.mkdir(parents=True, exist_ok=False)
     observed = [_copy_file(path, root) for path in [_NODE, _WORKER, *deps]]
-    for directory in (_TS, _WASM, dist):
+    if not _CJS.is_dir() or not (_CJS / "lexer.js").is_file():
+        raise A15ExportRefused("A15_EXTERNALIZED_NODE_CJS_LEXER_MISSING")
+    for directory in (_TS, _WASM, dist, _CJS):
         target = root / directory.relative_to("/")
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copytree(directory, target, symlinks=False)
@@ -146,6 +151,7 @@ def export_fixed_runtime(root: Path = _ROOTFS) -> dict:
         "typescript_version": "5.9.3",
         "wasmtime_version": "49.0.0",
         "copied_node_shared_libraries": len(deps),
+        "copied_debian_externalized_commonjs_bootstrap": True,
         "copied_runtime_file_hashes": observed,
         "npm_runtime_cli_included": False,
         "original_apt_372_lock_changed": False,
