@@ -7,7 +7,6 @@ is built, no Docker code is executed, and no production authority exists.
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from pathlib import Path
@@ -55,10 +54,13 @@ _NPM_CANDIDATES = {
     "GHSA-23hp-3jrh-7fpw": ["7.5.19"],
     "GHSA-hc6q-2mpp-qw7j": ["5.76.0"],
 }
-_FORBIDDEN_AUTHORITY = (
-    "worker_execution_authorized", "host_rootless_gvisor_certified",
-    "production_authorized", "broker_authorized", "telegram_authorized",
-    "vulnerabilities_remediated_certified",
+_EVIDENCE_GATES = (
+    "DEBIAN_SOURCE_PACKAGE_OWNER_AND_EXACT_BYTES",
+    "OFFICIAL_ADVISORY_VERSION_AND_BACKPORT_STATUS",
+    "REACHABILITY_OR_PROVEN_ABSENCE",
+    "FIXED_CANDIDATE_DIGEST_AND_LICENSE",
+    "UNCHANGED_BASELINE_BENIGN_FOUR_LANGUAGE_EQUIVALENCE",
+    "INDEPENDENT_HOST_ISOLATION_AND_ATTESTATION_FOR_ANY_EXECUTION_APPROVAL",
 )
 _CRITICAL_KEYS = frozenset({
     "advisory_id", "ecosystem", "package", "installed_version", "priority",
@@ -143,7 +145,7 @@ def validate_ledger(ledger: dict, apt_packages: dict[str, str]) -> None:
     }:
         raise A17Refused("A17_SCHEMA_OR_FORGED_FIELDS")
     requirements = ledger["required_independent_evidence"]
-    if type(requirements) is not list or len(requirements) != 6:
+    if type(requirements) is not list or requirements != list(_EVIDENCE_GATES):
         raise A17Refused("A17_MISSING_REMEDIATION_EVIDENCE_GATES")
     if (type(ledger["critical_findings"]) is not list
             or len(ledger["critical_findings"]) != 18):
