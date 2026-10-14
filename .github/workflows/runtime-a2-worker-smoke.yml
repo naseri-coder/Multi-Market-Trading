@@ -148,6 +148,58 @@ jobs:
           set -Eeuo pipefail
           python -m scripts.ci_cert_a9_worker_image_inventory
           echo "CERT_A9_INSTALLED_IMAGE_OBSERVED__EXTERNAL_PROVENANCE_NOT_VERIFIED"
+      - name: CERT-A15 offline build of separate lean candidate from fixed A2 image
+        run: |
+          set -Eeuo pipefail
+          test "$(uname -m)" = x86_64
+          base=mmt/runtime-a2-candidate:pr
+          lean=mmt/runtime-a15-lean:pr
+          before="$(docker image inspect "$base" --format '{{.Id}}')"
+          docker build --pull=false --network=none --tag "$lean" \
+            --file deploy/runtime_a2/Dockerfile.a15-lean .
+          after="$(docker image inspect "$base" --format '{{.Id}}')"
+          test "$before" = "$after"
+          test "$before" != "$(docker image inspect "$lean" --format '{{.Id}}')"
+          echo "A15_SEPARATE_CANDIDATE_BUILT_FROM_PINNED_LOCAL_A2_NO_NETWORK"
+      - name: CERT-A15 verify Node binary loader and direct TypeScript require before fixtures
+        run: |
+          set -Eeuo pipefail
+          docker run --rm --pull=never --network=none --read-only \
+            --cap-drop=ALL --security-opt=no-new-privileges \
+            --pids-limit=32 --memory=256m --memory-swap=256m \
+            --user=65534:65534 \
+            --entrypoint=/usr/bin/node mmt/runtime-a15-lean:pr --version
+          docker run --rm --pull=never --network=none --read-only \
+            --cap-drop=ALL --security-opt=no-new-privileges \
+            --pids-limit=32 --memory=256m --memory-swap=256m \
+            --user=65534:65534 \
+            --entrypoint=/usr/bin/node mmt/runtime-a15-lean:pr \
+            -e "console.log(require('typescript').version)"
+          echo "CERT_A15_DIRECT_NODE_AND_TYPESCRIPT_IMPORT_PASS"
+      - name: CERT-A15 execute identical four fixed benign fixture roundtrips on lean
+        env:
+          MMT_A2_IMAGE: mmt/runtime-a15-lean:pr
+        run: |
+          set -Eeuo pipefail
+          python -m pytest -q -ra \
+            tests/unit/test_runtime_a2_worker.py::test_exact_four_language_benign_fixture_roundtrips
+          echo "CERT_A15_FOUR_BENIGN_LANGUAGE_FIXTURES_PASS"
+      - name: CERT-A15 ensure Node, TypeScript and Wasmtime present, npm and tsc absent
+        run: |
+          set -Eeuo pipefail
+          docker run --rm --pull=never --network=none --read-only \
+            --cap-drop=ALL --security-opt=no-new-privileges \
+            --pids-limit=32 --memory=256m --memory-swap=256m --cpus=0.5 \
+            --user=65534:65534 \
+            --tmpfs=/tmp:rw,noexec,nosuid,nodev,size=8m,mode=1777 \
+            --entrypoint=/usr/local/bin/python mmt/runtime-a15-lean:pr \
+            -I -c 'import importlib.metadata,shutil,subprocess;
+          assert shutil.which("npm") is None and shutil.which("tsc") is None;
+          assert subprocess.check_output(["node","--version"],timeout=4).strip()==b"v18.20.4";
+          assert subprocess.check_output(["node","-e","console.log(require(\"typescript\").version)"],timeout=4).strip()==b"5.9.3";
+          assert importlib.metadata.version("wasmtime")=="49.0.0";
+          import wasmtime;
+          print("A15_NO_NPM_TSC__NODE_TS_WASM_IMPORT_VERIFIED")'
       - name: CERT-A13 install SHA-pinned disposable Syft and Grype binaries
         run: |
           set -Eeuo pipefail
@@ -221,58 +273,6 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-      - name: CERT-A15 offline build of separate lean candidate from fixed A2 image
-        run: |
-          set -Eeuo pipefail
-          test "$(uname -m)" = x86_64
-          base=mmt/runtime-a2-candidate:pr
-          lean=mmt/runtime-a15-lean:pr
-          before="$(docker image inspect "$base" --format '{{.Id}}')"
-          docker build --pull=false --network=none --tag "$lean" \
-            --file deploy/runtime_a2/Dockerfile.a15-lean .
-          after="$(docker image inspect "$base" --format '{{.Id}}')"
-          test "$before" = "$after"
-          test "$before" != "$(docker image inspect "$lean" --format '{{.Id}}')"
-          echo "A15_SEPARATE_CANDIDATE_BUILT_FROM_PINNED_LOCAL_A2_NO_NETWORK"
-      - name: CERT-A15 verify Node binary loader and direct TypeScript require before fixtures
-        run: |
-          set -Eeuo pipefail
-          docker run --rm --pull=never --network=none --read-only \
-            --cap-drop=ALL --security-opt=no-new-privileges \
-            --pids-limit=32 --memory=256m --memory-swap=256m \
-            --user=65534:65534 \
-            --entrypoint=/usr/bin/node mmt/runtime-a15-lean:pr --version
-          docker run --rm --pull=never --network=none --read-only \
-            --cap-drop=ALL --security-opt=no-new-privileges \
-            --pids-limit=32 --memory=256m --memory-swap=256m \
-            --user=65534:65534 \
-            --entrypoint=/usr/bin/node mmt/runtime-a15-lean:pr \
-            -e "console.log(require('typescript').version)"
-          echo "CERT_A15_DIRECT_NODE_AND_TYPESCRIPT_IMPORT_PASS"
-      - name: CERT-A15 execute identical four fixed benign fixture roundtrips on lean
-        env:
-          MMT_A2_IMAGE: mmt/runtime-a15-lean:pr
-        run: |
-          set -Eeuo pipefail
-          python -m pytest -q -ra \
-            tests/unit/test_runtime_a2_worker.py::test_exact_four_language_benign_fixture_roundtrips
-          echo "CERT_A15_FOUR_BENIGN_LANGUAGE_FIXTURES_PASS"
-      - name: CERT-A15 ensure Node, TypeScript and Wasmtime present, npm and tsc absent
-        run: |
-          set -Eeuo pipefail
-          docker run --rm --pull=never --network=none --read-only \
-            --cap-drop=ALL --security-opt=no-new-privileges \
-            --pids-limit=32 --memory=256m --memory-swap=256m --cpus=0.5 \
-            --user=65534:65534 \
-            --tmpfs=/tmp:rw,noexec,nosuid,nodev,size=8m,mode=1777 \
-            --entrypoint=/usr/local/bin/python mmt/runtime-a15-lean:pr \
-            -I -c 'import importlib.metadata,shutil,subprocess;
-          assert shutil.which("npm") is None and shutil.which("tsc") is None;
-          assert subprocess.check_output(["node","--version"],timeout=4).strip()==b"v18.20.4";
-          assert subprocess.check_output(["node","-e","console.log(require(\"typescript\").version)"],timeout=4).strip()==b"5.9.3";
-          assert importlib.metadata.version("wasmtime")=="49.0.0";
-          import wasmtime;
-          print("A15_NO_NPM_TSC__NODE_TS_WASM_IMPORT_VERIFIED")'
       - name: CERT-A15 scan lean image using existing same Grype advisory DB
         env:
           SYFT_CHECK_FOR_APP_UPDATE: "false"
