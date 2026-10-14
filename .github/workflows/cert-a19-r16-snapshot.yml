@@ -126,8 +126,10 @@ jobs:
             --pids-limit=40 --memory=200m --user=65534:65534 \
             --tmpfs /tmp:rw,noexec,nosuid,size=24m,mode=1777 \
             --mount type=bind,src="$work/apk",dst=/mnt/apks,readonly \
+            --mount type=bind,src="$work/localrepo",dst=/mnt/apkrepo,readonly \
+            --mount type=bind,src="$work/repos",dst=/mnt/repos,readonly \
             --entrypoint /bin/sh "$image" -ec \
-            'set -- /mnt/apks/*.apk; test "$1" != "/mnt/apks/*.apk"; exec /sbin/apk --no-cache --keys-dir /etc/apk/keys verify "$@"' \
+            'set -- /mnt/apks/*.apk; test "$1" != "/mnt/apks/*.apk"; exec /sbin/apk --no-cache --no-progress --keys-dir /etc/apk/keys --repositories-file /mnt/repos verify "$@"' \
             > "$work/apk-verify.log" 2>&1; then
             tail -n 80 "$work/apk-verify.log" >&2
             echo R16_APK_ARCHIVE_SIGNATURE_REJECTED >&2
