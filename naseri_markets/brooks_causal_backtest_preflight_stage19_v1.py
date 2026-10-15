@@ -37,8 +37,19 @@ def _canonical(obj: object) -> bytes:
 def _validate_stage18(raw: bytes, capture: Stage17Capture) -> str:
     if type(raw) is not bytes or not 1 <= len(raw) <= 262144:
         raise Stage19Refused("ST19_PINNED_STAGE18_REPORT_REQUIRED")
+    def unique(pairs):
+        body = {}
+        for key, value in pairs:
+            if key in body:
+                raise Stage19Refused("ST19_DUPLICATE_STAGE18_REPORT_KEY")
+            body[key] = value
+        return body
     try:
-        report = json.loads(raw)
+        report = json.loads(raw, object_pairs_hook=unique,
+                            parse_constant=lambda _x: (_ for _ in ()).throw(
+                                Stage19Refused("ST19_NONFINITE_STAGE18_REPORT_VALUE")))
+    except Stage19Refused:
+        raise
     except (ValueError, TypeError, UnicodeError, RecursionError) as exc:
         raise Stage19Refused("ST19_BAD_STAGE18_REPORT") from exc
     if type(report) is not dict:
@@ -46,6 +57,10 @@ def _validate_stage18(raw: bytes, capture: Stage17Capture) -> str:
     declared = report.get("report_sha256")
     unsigned = dict(report)
     unsigned.pop("report_sha256", None)
+    if (type(report.get("scenarios")) is not list
+            or type(report.get("scenario_count")) is not int
+            or len(report["scenarios"]) > 16):
+        raise Stage19Refused("ST19_INVALID_STAGE18_SCENARIO_POPULATION")
     if (type(declared) is not str or not _SHA.fullmatch(declared)
             or hashlib.sha256(_canonical(unsigned)).hexdigest() != declared
             or report.get("stage") != _STAGE18
@@ -117,6 +132,11 @@ def review_stage19_brooks_causal_preflight(
                    or v.utcoffset() != timedelta(0) for v in evaluation_cutoffs_utc)
             or tuple(sorted(set(evaluation_cutoffs_utc))) != evaluation_cutoffs_utc):
         raise Stage19Refused("ST19_PREDECLARED_CAUSAL_CUTS_REQUIRED")
+    if (hashlib.sha256(capture.original_zip).hexdigest() != capture.archive.zip_sha256
+            or hashlib.sha256(capture.original_checksum).hexdigest() != capture.archive.checksum_sha256
+            or hashlib.sha256(capture.archive.canonical_csv_bytes).hexdigest() != capture.archive.csv_sha256
+            or hashlib.sha256(capture.archive.stage12_receipt_bytes).hexdigest() != capture.archive.receipt_sha256):
+        raise Stage19Refused("ST19_STAGE17_CAPTURE_BYTES_CHANGED")
     stage18_hash = _validate_stage18(stage18_report_bytes, capture)
     if (window.parent_official_zip_sha256 != capture.archive.zip_sha256
             or window.parent_monthly_csv_sha256 != capture.archive.csv_sha256
@@ -135,6 +155,9 @@ def review_stage19_brooks_causal_preflight(
             or hashlib.sha256(window.stage12_receipt_bytes).hexdigest() != window.receipt_sha256):
         raise Stage19Refused("ST19_WINDOW_SHA_MISMATCH")
     try:
+        if (not window_csv_path.is_file()
+                or window_csv_path.stat().st_size != len(window.canonical_csv_bytes)):
+            raise Stage19Refused("ST19_WINDOW_LOCAL_FILE_SIZE_DRIFT")
         if window_csv_path.read_bytes() != window.canonical_csv_bytes:
             raise Stage19Refused("ST19_WINDOW_DISK_DATA_CHANGED")
     except OSError as exc:
