@@ -23,6 +23,18 @@ assert finding.evidence == "HTTP_SERVER_FAILURE"
 
 ```
 
+
+## Provider references and classification corrections
+
+The deliberately small mapping was checked against official reference material, with mismatches corrected before this PR: Bybit `110017` is quantity truncation, not a position conflict; Binance `-1013` is a generic invalid-message code and is intentionally left unclassified. HTTP 403 can indicate WAF, regional or other access restrictions, not necessarily a bad API key. Code `40018` indicates an invalid IP in the Bitget API catalog.
+
+- [Binance USD-M error codes](https://developers.binance.com/en/docs/products/derivatives-trading-usds-futures/error-code)
+- [Bybit V5 error codes](https://bybit-exchange.github.io/docs/v5/error)
+- [OKX API reference](https://www.okx.com/docs-v5/en/)
+- [Bitget error codes](https://www.bitget.com/docs/uta/error-code/restapi)
+
+Structured codes and endpoint/market variants still require independent test fixtures before live integration.
+
 ## Acceptance and open limitations
 
 The unit corpus exercises exact venue separation, secret non-disclosure, malformed/oversized evidence, conflicting HTTP and venue codes, transport ambiguity, action immutability and pre-dispatch distinctions. No real exchange API, account, database, telemetry service or broker is contacted. The classifier is **not an official vendor error-code catalog**, and inferred messages are not evidence of actual order acceptance or failure.
