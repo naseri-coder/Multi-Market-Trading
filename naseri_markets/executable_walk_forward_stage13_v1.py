@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -245,6 +245,8 @@ def execute_frozen_walk_forward(
         trusted_receipt_sha256=trusted_receipt_sha256,
         as_of_utc=plan.archive_as_of_utc, operator_ack=True,
     )
+    if pit.contract_kind_claim != "spot":
+        raise ExecutableWalkForwardRefused("STAGE13_SPOT_ONLY_FUNDING_NOT_MODELED")
     approved = validate_historical_file(path, spec)
     if approved.report.sha256 != pit.dataset_sha256:
         raise ExecutableWalkForwardRefused("STAGE13_DATASET_DIGEST_DRIFT")
