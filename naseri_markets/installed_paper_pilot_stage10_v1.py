@@ -80,7 +80,8 @@ def _existing_state(directory: Path) -> dict[str, Path]:
 def _read_jobs(path: Path) -> list[tuple[str, str]]:
     """Read a second process' recorded jobs without initializing a ledger."""
     address = "file:" + quote(str(path), safe="/") + "?mode=ro"
-    with sqlite3.connect(address, uri=True, isolation_level=None, timeout=2) as db:
+    db = sqlite3.connect(address, uri=True, isolation_level=None, timeout=2)
+    try:
         db.execute("PRAGMA query_only=ON")
         db.execute("BEGIN")
         if db.execute("PRAGMA quick_check(1)").fetchone()[0] != "ok":
@@ -88,6 +89,8 @@ def _read_jobs(path: Path) -> list[tuple[str, str]]:
         jobs = db.execute(
             "SELECT job_id,status FROM runtime17_jobs ORDER BY job_id LIMIT 3"
         ).fetchall()
+    finally:
+        db.close()
     if len(jobs) != 2 or len({r[0] for r in jobs}) != 2:
         raise InstalledPilotRefused("TWO_UNIQUE_RUNTIME_JOBS_REQUIRED")
     return jobs
