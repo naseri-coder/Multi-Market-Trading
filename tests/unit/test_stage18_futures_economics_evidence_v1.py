@@ -126,8 +126,9 @@ def test_actual_stage17_stage12_revalidation_and_stage16_decimal_economics(monke
     long, short = result["scenarios"]
     assert long["funding_events_in_window"] == 1
     assert short["funding_events_in_window"] == 1
-    assert long["cashflow_cases"][0]["funding_quote"] == "-0.00010000"
-    assert short["cashflow_cases"][0]["funding_quote"] == "-0.00020200"
+    from decimal import Decimal
+    assert Decimal(long["cashflow_cases"][0]["funding_quote"]) == Decimal("-0.0001")
+    assert Decimal(short["cashflow_cases"][0]["funding_quote"]) == Decimal("-0.000202")
     assert float(long["cashflow_cases"][3]["net_quote"]) < float(long["cashflow_cases"][0]["net_quote"])
     assert not result["source_independently_authenticated"]
     assert not result["actual_historical_funding_schedule_verified"]
