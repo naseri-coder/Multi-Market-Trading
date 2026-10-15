@@ -60,6 +60,7 @@ class FrozenExecutionPlan:
     training_end: datetime
     validation_end: datetime
     study_end: datetime
+    archive_as_of_utc: datetime
     validation_folds: int
     embargo_bars: int
     fee_bps_per_side: Decimal
@@ -71,8 +72,9 @@ class FrozenExecutionPlan:
     def __post_init__(self) -> None:
         starts = tuple(_utc(t) for t in (
             self.training_end, self.validation_end, self.study_end,
+            self.archive_as_of_utc,
         ))
-        if (not starts[0] < starts[1] < starts[2]
+        if (not starts[0] < starts[1] < starts[2] < starts[3]
                 or starts[2] - starts[0] > timedelta(days=400)
                 or type(self.validation_folds) is not int
                 or not 2 <= self.validation_folds <= 8
@@ -235,12 +237,13 @@ def execute_frozen_walk_forward(
             or spec.feed.price_basis is not PriceBasis.TRADE
             or spec.feed.volume_semantics is not VolumeSemantics.TRADED):
         raise ExecutableWalkForwardRefused("STAGE13_CRYPTO_TRADE_CANDLE_ONLY")
-    # Stage-12 checks archive acquisition relative to STUDY END, not any
-    # historical fold entry. This NEVER upgrades historical provenance.
+    # Retrospective archive can be obtained AFTER the last historical bar.
+    # Stage-12 checks archive acquisition by declared archive_as_of_utc,
+    # NEVER claims it existed at any earlier train/validation fold.
     pit = inspect_historical_pit_archive(
         path, spec, receipt_bytes=receipt_bytes,
         trusted_receipt_sha256=trusted_receipt_sha256,
-        as_of_utc=plan.study_end, operator_ack=True,
+        as_of_utc=plan.archive_as_of_utc, operator_ack=True,
     )
     approved = validate_historical_file(path, spec)
     if approved.report.sha256 != pit.dataset_sha256:
@@ -293,6 +296,8 @@ def execute_frozen_walk_forward(
         "strategy_parameters_fitted": False,
         "historical_archival_provider_verified": False,
         "independent_pit_custody_verified": False,
+        "protocol_independently_frozen_before_results": False,
+        "archive_as_of_utc": plan.archive_as_of_utc.isoformat(),
         "funding_mark_contract_economics_verified": False,
         "walk_forward_strategy_refit_per_fold": False,
         "sample_significance_established": False,
