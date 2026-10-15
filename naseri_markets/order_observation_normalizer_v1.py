@@ -244,6 +244,8 @@ def assess_order_observation(
     at = _timestamp(event.occurred_at)
     if progress.last_event_at is not None and at <= _timestamp(progress.last_event_at):
         return decide(ObservationVerdict.QUARANTINED, ObservationReason.OUT_OF_ORDER)
+    if progress.status is OrderStatus.PARTIALLY_FILLED and status is OrderStatus.ACKNOWLEDGED:
+        return decide(ObservationVerdict.QUARANTINED, ObservationReason.STATUS_REGRESSION)
     filled = event.cumulative_filled
     if filled < progress.cumulative_filled:
         return decide(ObservationVerdict.QUARANTINED, ObservationReason.FILLED_REGRESSION)
@@ -253,9 +255,6 @@ def assess_order_observation(
         return decide(ObservationVerdict.QUARANTINED, ObservationReason.TERMINAL_REOPEN)
     if not _coherent(status, filled, progress.requested_quantity):
         return decide(ObservationVerdict.QUARANTINED, ObservationReason.STATUS_QUANTITY_CONFLICT)
-    if progress.status is OrderStatus.PARTIALLY_FILLED and status is OrderStatus.ACKNOWLEDGED:
-        return decide(ObservationVerdict.QUARANTINED, ObservationReason.STATUS_REGRESSION)
-
     updated = replace(
         progress, status=status, cumulative_filled=filled, last_event_at=at,
         receipts=progress.receipts + ((event.event_id, digest),),
