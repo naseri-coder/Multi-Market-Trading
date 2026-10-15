@@ -1,0 +1,130 @@
+name: Stage 10 installed two-binding PAPER restart audit (nonproduction)
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/installed_paper_pilot_stage10_v1.py"
+      - "tests/unit/test_stage10_installed_paper_pilot_v1.py"
+      - "docs/STAGE10_INSTALLED_INTEGRATED_PAPER_PILOT_V1.md"
+      - "platform_release/pyproject.toml"
+      - "scripts/a6_release_preflight.py"
+      - ".github/workflows/stage10-installed-integrated-paper.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  clean-installed-paper:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      MMT_NONPRODUCTION: "1"
+      MMT_PRODUCTION: "0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Static source checks and Stage 10 isolated regression
+        run: |
+          set -Eeuo pipefail
+          python -m pip install 'pytest==9.1.1' 'ruff==0.16.9'
+          python scripts/a6_release_preflight.py
+          python -m ruff check --select E4,F \
+            naseri_markets/installed_paper_pilot_stage10_v1.py \
+            tests/unit/test_stage10_installed_paper_pilot_v1.py
+          mkdir -p "$RUNNER_TEMP/stage10-tests"
+          cp tests/unit/test_stage10_installed_paper_pilot_v1.py \
+             "$RUNNER_TEMP/stage10-tests/test_stage10_installed_paper_pilot_v1.py"
+          PYTHONPATH="$GITHUB_WORKSPACE" python -m pytest -q \
+            "$RUNNER_TEMP/stage10-tests/test_stage10_installed_paper_pilot_v1.py"
+      - name: Build and install only isolated 0.4.0rc1 public preview wheel
+        run: |
+          set -Eeuo pipefail
+          project="$RUNNER_TEMP/stage10-platform"
+          mkdir -p "$RUNNER_TEMP/stage10-wheels" "$RUNNER_TEMP/stage10-cleanroom"
+          python scripts/a6_prepare_package.py --destination "$project" \
+            > "$RUNNER_TEMP/stage10-prepared.json"
+          python -m venv "$RUNNER_TEMP/stage10-venv"
+          "$RUNNER_TEMP/stage10-venv/bin/python" -m pip wheel --no-deps \
+            --wheel-dir "$RUNNER_TEMP/stage10-wheels" "$project"
+          "$RUNNER_TEMP/stage10-venv/bin/python" -m pip install --no-deps \
+            "$RUNNER_TEMP"/stage10-wheels/multi_market_trading-0.4.0rc1-*.whl
+          test -x "$RUNNER_TEMP/stage10-venv/bin/naseri-paper-pilot"
+      - name: Fresh external process execute, reopen, immutability and refusal
+        run: |
+          set -Eeuo pipefail
+          cd "$RUNNER_TEMP/stage10-cleanroom"
+          PYTHONPATH= "$RUNNER_TEMP/stage10-venv/bin/python" - <<'PY'
+          import hashlib
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+
+          env = dict(os.environ, PYTHONPATH="", MMT_NONPRODUCTION="1", MMT_PRODUCTION="0")
+          root = Path(env["RUNNER_TEMP"])
+          app = root / "stage10-venv/bin/naseri-paper-pilot"
+          state = root / "stage10-first-state"
+
+          def call(*args, must_pass=True):
+              p = subprocess.run(
+                  [str(app), "--state-dir", str(state), *args],
+                  env=env, cwd=root / "stage10-cleanroom",
+                  capture_output=True, text=True, timeout=50,
+                  check=False,
+              )
+              if must_pass:
+                  assert p.returncode == 0, (p.returncode, p.stderr)
+                  assert not p.stderr
+                  return json.loads(p.stdout)
+              assert p.returncode == 2
+              assert p.stdout == ""
+              assert "STAGE10_INSTALLED_PAPER_REFUSED" in p.stderr
+
+          call("--run", must_pass=False)
+          assert not state.exists()
+          creation = call(
+              "--run", "--first-symbol", "BTCUSD", "--second-symbol", "ETHUSD",
+              "--first-timeframe", "5m", "--second-timeframe", "1h",
+              "--ack-synthetic-offline",
+          )
+          assert creation["mode"] == "STAGE20_SYNTHETIC_PAPER_ONLY"
+          assert creation["completed_jobs"] == creation["closed_paper_trades"] == 2
+          assert creation["exact_effects"] == 6
+          assert creation["release_verdict"] == "BLOCKED_NONPRODUCTION_UNATTESTED"
+          assert creation["telegram_sent"] is False
+          assert creation["broker_order_sent"] is False
+          assert creation["public_release_authorized"] is False
+
+          files = sorted(state.glob("*.sqlite"))
+          assert len(files) == 5
+          before = {
+              p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in files
+          }
+          call("--run", "--ack-synthetic-offline", must_pass=False)
+          call("--inspect", "--ack-synthetic-offline", must_pass=False)
+          reopened = call(
+              "--inspect", "--ack-synthetic-offline", "--ack-writers-stopped",
+          )
+          repeat = call(
+              "--inspect", "--ack-synthetic-offline", "--ack-writers-stopped",
+          )
+          assert reopened == repeat
+          assert reopened["mode"] == "INSTALLED_TWO_BINDING_SYNTHETIC_PAPER_REOPEN_ONLY"
+          assert reopened["runtime_jobs_done"] == reopened["paper_orders"] == 2
+          assert reopened["exact_initial_effects"] == 6
+          assert reopened["paper_exits"] >= 2
+          assert reopened["integrity_verdict"] == "PASS"
+          assert reopened["release_verdict"] == "BLOCKED_NONPRODUCTION_UNATTESTED"
+          assert reopened["automatic_recovery_authorized"] is False
+          assert reopened["public_release_authorized"] is False
+          after = {
+              p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in files
+          }
+          assert before == after
+          print("STAGE10_CLEAN_WHEEL_TWO_BINDING_REOPEN_PASS_RELEASE_BLOCKED")
+          PY
