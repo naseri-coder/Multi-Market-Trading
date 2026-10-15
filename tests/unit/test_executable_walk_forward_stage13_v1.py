@@ -110,7 +110,7 @@ def test_real_evaluation_runs_on_expanding_training_validation_and_holdout(tmp_p
     assert a["blockers"] == []
     assert len(a["folds"]) == 2
     assert [f["test"]["closed"] for f in a["folds"]] == [1, 1]
-    assert [f["train"]["closed"] for f in a["folds"]] == [1, 2]
+    assert [f["train"]["closed"] for f in a["folds"]] == [2, 3]
     assert a["reserved_final_holdout"]["closed"] == 2
     assert all(f["test"]["core_evaluations"] == 4 for f in a["folds"])
     assert all(f["test"]["filled"] == 1 for f in a["folds"])
@@ -194,7 +194,7 @@ def test_past_fold_cannot_receive_future_data_and_bad_archival_time_refused(tmp_
 def test_real_archive_can_only_be_available_after_its_final_bar(tmp_path):
     parts = fixture(tmp_path)
     plan = parts[-1]
-    with pytest.raises(HistoricalDataRefused, match="WINDOW_OR_ACQUISITION"):
+    with pytest.raises(ExecutableWalkForwardRefused, match="INVALID_FROZEN_FOLDS"):
         run(parts, plan=replace(plan, archive_as_of_utc=plan.study_end))
     assert run(parts)["historical_archival_provider_verified"] is False
 
