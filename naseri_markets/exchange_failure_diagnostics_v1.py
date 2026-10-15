@@ -12,6 +12,7 @@ from enum import StrEnum
 
 class FailureKind(StrEnum):
     AUTHENTICATION = "authentication"
+    ACCESS_RESTRICTED = "access_restricted"
     CLOCK = "clock"
     RATE_LIMIT = "rate_limit"
     SYMBOL = "invalid_symbol"
@@ -47,7 +48,6 @@ _EXACT_CODES: dict[tuple[str, str], FailureKind] = {
     ("binance", "-2015"): FailureKind.AUTHENTICATION,
     ("binance", "-1003"): FailureKind.RATE_LIMIT,
     ("binance", "-1121"): FailureKind.SYMBOL,
-    ("binance", "-1013"): FailureKind.QUANTITY,
     ("binance", "-1111"): FailureKind.QUANTITY,
     ("binance", "-2019"): FailureKind.FUNDS,
     ("binance", "-2022"): FailureKind.POSITION,
@@ -61,9 +61,9 @@ _EXACT_CODES: dict[tuple[str, str], FailureKind] = {
     ("bybit", "10004"): FailureKind.AUTHENTICATION,
     ("bybit", "10006"): FailureKind.RATE_LIMIT,
     ("bybit", "110007"): FailureKind.FUNDS,
-    ("bybit", "110017"): FailureKind.POSITION,
+    ("bybit", "110017"): FailureKind.QUANTITY,
     ("bitget", "40009"): FailureKind.AUTHENTICATION,
-    ("bitget", "40018"): FailureKind.AUTHENTICATION,
+    ("bitget", "40018"): FailureKind.ACCESS_RESTRICTED,
 }
 
 # Only short, high-signal phrases; message text is never exposed or logged.
@@ -84,6 +84,7 @@ _PHRASES: tuple[tuple[str, FailureKind], ...] = (
 
 _ACTIONS = {
     FailureKind.AUTHENTICATION: OperatorAction.CHECK_CONFIGURATION,
+    FailureKind.ACCESS_RESTRICTED: OperatorAction.STOP_AND_REVIEW,
     FailureKind.CLOCK: OperatorAction.CHECK_CONFIGURATION,
     FailureKind.RATE_LIMIT: OperatorAction.WAIT_AND_INSPECT,
     FailureKind.SYMBOL: OperatorAction.CHECK_CONFIGURATION,
@@ -146,8 +147,10 @@ def diagnose_exchange_failure(
     def result(kind: FailureKind, evidence: str) -> FailureDiagnosis:
         return FailureDiagnosis(normalized_venue, kind, _ACTIONS[kind], evidence)
 
-    if http_status in (401, 403):
-        return result(FailureKind.AUTHENTICATION, "HTTP_ACCESS_DENIED")
+    if http_status == 401:
+        return result(FailureKind.AUTHENTICATION, "HTTP_AUTHENTICATION")
+    if http_status == 403:
+        return result(FailureKind.ACCESS_RESTRICTED, "HTTP_ACCESS_RESTRICTED")
     if http_status == 429:
         return result(FailureKind.RATE_LIMIT, "HTTP_RATE_LIMIT")
     # A 5xx gateway result after dispatch does not prove non-execution.
