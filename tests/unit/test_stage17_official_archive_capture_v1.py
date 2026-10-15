@@ -86,7 +86,7 @@ def test_preapproved_pins_are_exact_but_not_authentication(monkeypatch):
         )
 
 
-@pytest.mark.parametrize("year,month", [(2026, 10), (2019, 12), (2024, 13), (2031, 1)])
+@pytest.mark.parametrize("year,month", [(2030, 12), (2019, 12), (2024, 13), (2031, 1)])
 def test_invalid_or_open_month_never_makes_network_call(monkeypatch, year, month):
     def forbidden(*args, **kwargs):
         pytest.fail("network attempted for disallowed month")
