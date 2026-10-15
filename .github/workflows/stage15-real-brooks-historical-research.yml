@@ -34,7 +34,7 @@ jobs:
       - name: Run real frozen V5 worker plus independent provenance regressions
         run: |
           set -Eeuo pipefail
-          python -m pip install 'pytest==9.1.1' 'ruff==0.16.9' 'pyarrow==21.0.0'
+          python -m pip install -e '.[dev]' 'pyarrow==21.0.0'
           python -m ruff check --select E4,F \
             naseri_markets/real_brooks_historical_stage15_v1.py \
             tests/unit/test_real_brooks_historical_stage15_v1.py
