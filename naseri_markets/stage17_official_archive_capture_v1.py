@@ -32,6 +32,7 @@ _ZIP_LIMIT = 8 * 1024 * 1024
 _CHECKSUM_LIMIT = 256
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 _HOST = "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/"
+_URL_RE = re.compile(re.escape(_HOST) + r"BTCUSDT-15m-(?:202[0-9]|2030)-(?:0[1-9]|1[0-2])\.zip(?:\.CHECKSUM)?\Z")
 _USER_AGENT = "NASERI-MARKETS-Research-Archive-Capture/1"
 
 
@@ -82,9 +83,7 @@ def _url_and_month(year: int, month: int) -> tuple[str, str]:
 
 def _get_exact(url: str, limit: int) -> bytes:
     """Only the hardcoded, same-origin TLS 200 response is accepted."""
-    if not url.startswith(_HOST) or not (
-        url.endswith(".zip") or url.endswith(".zip.CHECKSUM")
-    ):
+    if type(url) is not str or not _URL_RE.fullmatch(url):
         raise Stage17Refused("ST17_ONLY_PINNED_OFFICIAL_ENDPOINT")
     opener = urllib.request.build_opener(_NoRedirect())
     req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT, "Accept-Encoding": "identity"})
@@ -171,6 +170,11 @@ def persist_research_capture(capture: Stage17Capture, *, destination: Path) -> d
                    for p in destination.parts)
             or not destination.parent.is_dir()):
         raise Stage17Refused("ST17_RESEARCH_DESTINATION_UNSAFE")
+    if (not _URL_RE.fullmatch(capture.zip_url)
+            or not capture.zip_url.endswith(".zip")
+            or capture.checksum_url != capture.zip_url + ".CHECKSUM"
+            or capture.archive.official_url_claim != capture.zip_url):
+        raise Stage17Refused("ST17_OFFICIAL_CAPTURE_IDENTITY_REQUIRED")
     if (hashlib.sha256(capture.original_zip).hexdigest() != capture.archive.zip_sha256
             or hashlib.sha256(capture.original_checksum).hexdigest() != capture.archive.checksum_sha256
             or hashlib.sha256(capture.archive.canonical_csv_bytes).hexdigest() != capture.archive.csv_sha256):
@@ -244,7 +248,10 @@ def main() -> int:
         )
         report = persist_research_capture(captured, destination=args.destination)
     except (Stage17Refused, ValueError, OSError) as exc:
-        print(json.dumps({"status": "REFUSED", "reason": type(exc).__name__}))
+        error_code = str(exc)
+        if not re.fullmatch(r"(?:ST16|ST17|PIT|HIST)_[A-Z0-9_]+", error_code):
+            error_code = "ST17_CAPTURE_OR_LOCAL_QUALITY_FAILURE"
+        print(json.dumps({"status": "REFUSED", "reason": error_code}))
         return 2
     print(json.dumps(report, indent=2, sort_keys=True))
     return 0
