@@ -7,6 +7,7 @@ Stage-6 instrument metadata is NOT a venue/account eligibility grant.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import re
 import sqlite3
@@ -16,6 +17,10 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Collection
 
+from .core_parameter_guard_v1 import (
+    CoreParametersRefused, MAX_SCHEMA_BYTES, MAX_SETTINGS_BYTES,
+    validate_core_parameters,
+)
 from .contracts import Market
 from .core_api_v1 import CoreBinding, CoreManifest, content_digest
 from .instrument_registry_v1 import CatalogRefused, ListingStatus, MetadataOrigin, ResearchInstrumentCatalog
@@ -56,6 +61,8 @@ class CoreListing:
     version: str
     visibility: str = "PUBLIC"
     manifest: CoreManifest | None = None
+    parameter_schema_bytes: bytes | None = None
+    trusted_parameter_schema_sha256: str | None = None
 
     def __post_init__(self) -> None:
         _identity(self.core_id, "CORE_ID")
@@ -69,6 +76,22 @@ class CoreListing:
                                            or self.manifest.core_id != self.core_id
                                            or self.manifest.core_version != self.version):
             raise ControlRefused("MANIFEST_IDENTITY_MISMATCH")
+        # Review pins come from the trusted host's inventory, NEVER user input.
+        if (self.parameter_schema_bytes is None) != (
+            self.trusted_parameter_schema_sha256 is None
+        ):
+            raise ControlRefused("INCOMPLETE_REVIEWED_PARAMETER_PIN")
+        if self.parameter_schema_bytes is not None:
+            raw = self.parameter_schema_bytes
+            pin = self.trusted_parameter_schema_sha256
+            if (self.manifest is None or type(raw) is not bytes
+                    or not 1 <= len(raw) <= MAX_SCHEMA_BYTES
+                    or type(pin) is not str or not re.fullmatch(
+                        r"[0-9a-f]{64}", pin,
+                    ) or not hmac.compare_digest(
+                        hashlib.sha256(raw).hexdigest(), pin,
+                    )):
+                raise ControlRefused("UNREVIEWED_PARAMETER_SCHEMA")
 
 
 @dataclass(frozen=True, slots=True)
@@ -150,7 +173,7 @@ class OfflineTradingControlCenter:
         existing = {r[0] for r in self._db.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
         )}
-        if existing - {"t12_instances", "t12_bindings", "t12_audit"}:
+        if existing - {"t12_instances", "t12_bindings", "t12_audit", "t12_parameter_settings"}:
             self._db.close()
             raise ControlRefused("DEDICATED_STAGE12_DATABASE_ONLY")
         self._db.execute("PRAGMA foreign_keys=ON")
@@ -174,6 +197,11 @@ class OfflineTradingControlCenter:
             market TEXT NOT NULL, provider TEXT NOT NULL, symbol TEXT NOT NULL,
             timeframe TEXT NOT NULL, timezone TEXT NOT NULL, currency TEXT NOT NULL,
             source_digest TEXT NOT NULL, UNIQUE(instance_id,market,provider,symbol,timeframe));
+          CREATE TABLE IF NOT EXISTS t12_parameter_settings(
+            instance_id TEXT PRIMARY KEY REFERENCES t12_instances(instance_id),
+            core_id TEXT NOT NULL, core_version TEXT NOT NULL,
+            schema_sha256 TEXT NOT NULL, settings_sha256 TEXT NOT NULL,
+            settings_json TEXT NOT NULL, saved_revision INTEGER NOT NULL);
           CREATE TABLE IF NOT EXISTS t12_audit(
             seq INTEGER PRIMARY KEY AUTOINCREMENT, instance_id TEXT NOT NULL,
             actor_id INTEGER NOT NULL, revision INTEGER NOT NULL,
@@ -272,6 +300,108 @@ class OfflineTradingControlCenter:
         self._tx(commit)
         return self.inspect(actor_id, instance_id)
 
+
+    def _checked_parameter_state(self, row: sqlite3.Row, listing: CoreListing):
+        """Recheck every existing stored set against the independent host pin."""
+        existing = self._db.execute(
+            "SELECT * FROM t12_parameter_settings WHERE instance_id=?",
+            (row["instance_id"],),
+        ).fetchone()
+        if listing.parameter_schema_bytes is None:
+            if existing is not None:
+                raise ControlRefused("PARAMETER_REVIEW_PIN_MISSING")
+            return None
+        if existing is None:
+            raise ControlRefused("REVIEWED_CORE_PARAMETERS_REQUIRED")
+        payload = existing["settings_json"].encode("utf-8")
+        if (existing["core_id"] != row["core_id"]
+                or existing["core_version"] != listing.version
+                or existing["schema_sha256"] != listing.trusted_parameter_schema_sha256
+                or not hmac.compare_digest(
+                    hashlib.sha256(payload).hexdigest(), existing["settings_sha256"]
+                ) or not 1 <= existing["saved_revision"] <= row["revision"]):
+            raise ControlRefused("REVIEWED_PARAMETER_SETTINGS_DRIFT")
+        try:
+            result = validate_core_parameters(
+                listing.parameter_schema_bytes, payload,
+                expected_core_id=listing.core_id,
+                expected_core_version=listing.version,
+                trusted_schema_sha256=listing.trusted_parameter_schema_sha256,
+            )
+        except CoreParametersRefused as exc:
+            raise ControlRefused("REVIEWED_PARAMETER_SETTINGS_INVALID") from exc
+        return result
+
+    def set_core_parameters(
+        self, actor_id: int, instance_id: str, *,
+        settings_bytes: bytes, expected_revision: int,
+    ) -> InstanceView:
+        """Atomic CAS persistence of full reviewed settings, NEVER core execution."""
+        if type(settings_bytes) is not bytes or not 1 <= len(settings_bytes) <= MAX_SETTINGS_BYTES:
+            raise ControlRefused("INVALID_PARAMETER_SETTINGS_BYTES")
+        def apply(row, listing):
+            if listing.manifest is None or listing.parameter_schema_bytes is None:
+                raise ControlRefused("REVIEWED_CORE_PARAMETER_SCHEMA_REQUIRED")
+            if row["analysis"] or row["paper"] or row["signals"]:
+                raise ControlRefused("DISABLE_REQUESTS_BEFORE_PARAMETER_EDIT")
+            try:
+                receipt = validate_core_parameters(
+                    listing.parameter_schema_bytes, settings_bytes,
+                    expected_core_id=listing.core_id,
+                    expected_core_version=listing.version,
+                    trusted_schema_sha256=listing.trusted_parameter_schema_sha256,
+                )
+            except CoreParametersRefused as exc:
+                raise ControlRefused("INVALID_REVIEWED_CORE_PARAMETERS") from exc
+            # Canonical JSON bytes are verified by the guard. No untrusted raw
+            # input ever enters SQL, audit payloads or UI error descriptions.
+            self._db.execute(
+                "INSERT INTO t12_parameter_settings("
+                "instance_id,core_id,core_version,schema_sha256,settings_sha256,"
+                "settings_json,saved_revision) VALUES(?,?,?,?,?,?,?) "
+                "ON CONFLICT(instance_id) DO UPDATE SET "
+                "core_id=excluded.core_id,core_version=excluded.core_version,"
+                "schema_sha256=excluded.schema_sha256,"
+                "settings_sha256=excluded.settings_sha256,"
+                "settings_json=excluded.settings_json,"
+                "saved_revision=excluded.saved_revision",
+                (instance_id, listing.core_id, listing.version, receipt.schema_sha256,
+                 receipt.settings_sha256, settings_bytes.decode("utf-8"),
+                 expected_revision + 1),
+            )
+        return self._mutate(
+            actor_id, instance_id, expected_revision, "SET_CORE_PARAMETERS",
+            {"settings_sha256": hashlib.sha256(settings_bytes).hexdigest()},
+            apply,
+        )
+
+    def inspect_core_parameters(self, actor_id: int, instance_id: str) -> dict:
+        """Metadata only: values are not exposed in previews, callbacks or logs."""
+        row, listing = self._row(actor_id, instance_id)
+        if listing.parameter_schema_bytes is None:
+            if self._db.execute(
+                "SELECT 1 FROM t12_parameter_settings WHERE instance_id=?",
+                (instance_id,),
+            ).fetchone():
+                raise ControlRefused("PARAMETER_REVIEW_PIN_MISSING")
+            return {"status": "NO_REVIEWED_SCHEMA", "schema_sha256": None,
+                    "settings_sha256": None, "count": 0,
+                    "trading_authorized": False}
+        existing = self._db.execute(
+            "SELECT settings_sha256 FROM t12_parameter_settings WHERE instance_id=?",
+            (instance_id,),
+        ).fetchone()
+        if existing is None:
+            return {"status": "REVIEWED_SCHEMA_UNCONFIGURED",
+                    "schema_sha256": listing.trusted_parameter_schema_sha256,
+                    "settings_sha256": None, "count": 0,
+                    "trading_authorized": False}
+        verified = self._checked_parameter_state(row, listing)
+        return {"status": "VALIDATED_RESEARCH_SETTINGS",
+                "schema_sha256": verified.schema_sha256,
+                "settings_sha256": verified.settings_sha256,
+                "count": verified.parameter_count, "trading_authorized": False}
+
     def set_request(self, actor_id: int, instance_id: str, *, field: str,
                     requested: bool, expected_revision: int) -> InstanceView:
         if field not in ("analysis", "signals", "paper") or type(requested) is not bool:
@@ -279,6 +409,8 @@ class OfflineTradingControlCenter:
         def apply(row, listing):
             if requested and listing.manifest is None:
                 raise ControlRefused("CORE_ABI_NOT_READY")
+            if requested:
+                self._checked_parameter_state(row, listing)
             if requested and self._db.execute("SELECT 1 FROM t12_bindings WHERE instance_id=?",(instance_id,)).fetchone() is None:
                 raise ControlRefused("BINDING_REQUIRED")
             self._db.execute(f"UPDATE t12_instances SET {field}=? WHERE instance_id=?",(int(requested),instance_id))
@@ -376,6 +508,8 @@ class OfflineTradingControlCenter:
         listing=self._listing(actor_id,instance.core_id)
         if listing.manifest is None or self.catalog is None:
             raise ControlRefused("CORE_ABI_OR_CATALOG_NOT_READY")
+        row, _ = self._row(actor_id, instance_id)
+        self._checked_parameter_state(row, listing)
         values=[]
         for stored in self.bindings(actor_id,instance_id):
             try: item=self.catalog.lookup(stored.provider,stored.symbol,now=now)
