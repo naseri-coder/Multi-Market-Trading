@@ -5,6 +5,7 @@ Command and callbacks are private-chat only and scoped to verified admin IDs.
 """
 from __future__ import annotations
 
+import json
 import re
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
@@ -56,6 +57,8 @@ class TelegramControlPreviewPanel:
                 "نماد: /mmt12_add INSTANCE_ID PROVIDER SYMBOL TIMEFRAME\n"
                 "سرمایه: /mmt12_risk INSTANCE_ID RESERVED NOTIONAL ORDER MAX_ORDERS\n"
                 "حذف نماد: /mmt12_del INSTANCE_ID BINDING_ID\n"
+                "پارامترها: /mmt12_params INSTANCE_ID\n"
+                "ثبت تنظیمات کامل: /mmt12_param_set INSTANCE_ID REV JSON\n"
                 "TIMEFRAME: 1m 5m 15m 30m 1h 4h 12h 1d\n"
                 "LIVE: 🔒 همیشه خاموش | سیگنال واقعی: 🔒 خاموش")
         rows=[]
@@ -79,6 +82,10 @@ class TelegramControlPreviewPanel:
                f"حداکثر ریسک سفارش: {s.max_order_risk_fraction}",
                f"حداکثر Notional: {s.max_notional_fraction}",
                "🔒 انتشار واقعی، معاملات و LIVE: غیرفعال"]
+        params = self.center.inspect_core_parameters(actor, ident)
+        lines.append(f"پارامترها: {params['status']} ({params['count']})")
+        if params["settings_sha256"]:
+            lines.append("اثر انگشت تنظیمات: " + params["settings_sha256"][:16])
         lines += [f"• {v.provider}:{v.symbol} [{v.market}] {v.timeframe} ({v.binding_id})" for v in bindings[:12]]
         rowid=self.center._db.execute("SELECT rowid FROM t12_instances WHERE instance_id=?",(ident,)).fetchone()[0]
         rows=[]
@@ -118,6 +125,41 @@ class TelegramControlPreviewPanel:
                 rev=self.center.inspect(actor,args[0]).revision
                 self.center.remove_binding(actor,args[0],binding_id=args[1],expected_revision=rev)
                 text,markup=self._detail(actor,args[0])
+            elif command == "/mmt12_params" and len(args)==1:
+                s = self.center.inspect(actor, args[0])
+                info = self.center.inspect_core_parameters(actor, args[0])
+                listing = self.center._listing(actor, s.core_id)
+                names = ()
+                if listing.parameter_schema_bytes is not None:
+                    # Host-reviewed JSON is data, never evaluated as Python.
+                    schema = json.loads(listing.parameter_schema_bytes)
+                    names = tuple(
+                        f"{p['name']} ({p['kind']})"
+                        for p in schema["parameters"]
+                    )
+                text = ("پارامترهای مجاز پژوهشی — اجرای معاملات غیرفعال\n"
+                        f"وضعیت: {info['status']}\n"
+                        f"نسخه: {s.revision}\n"
+                        f"اثر انگشت: {info['settings_sha256'] or 'unset'}\n"
+                        + "\n".join(names))
+                markup = None
+            elif command == "/mmt12_param_set":
+                # Entire versioned Stage-6 settings envelope is required.
+                # Do not echo submitted values, even when validation fails.
+                pieces = raw.split(maxsplit=3)
+                if len(pieces) != 4 or len(raw.encode("utf-8")) > 4096:
+                    raise ControlRefused("INVALID_PARAMETER_COMMAND")
+                try:
+                    revision = int(pieces[2])
+                    if str(revision) != pieces[2]:
+                        raise ValueError
+                except ValueError as exc:
+                    raise ControlRefused("INVALID_PARAMETER_REVISION") from exc
+                self.center.set_core_parameters(
+                    actor, pieces[1], settings_bytes=pieces[3].encode("utf-8"),
+                    expected_revision=revision,
+                )
+                text, markup = self._detail(actor, pieces[1])
             elif command == "/mmt12_risk" and len(args)==5:
                 rev=self.center.inspect(actor,args[0]).revision
                 # Reject floats and malformed Decimal syntax; never guess units.
@@ -178,7 +220,8 @@ class TelegramControlPreviewPanel:
     def register(self, application) -> None:
         """Only mounts handlers; never calls Application.run_polling()."""
         from telegram.ext import CommandHandler, CallbackQueryHandler
-        for command in ("mmt12","mmt12_new","mmt12_add","mmt12_del","mmt12_risk"):
+        for command in ("mmt12","mmt12_new","mmt12_add","mmt12_del","mmt12_risk",
+                        "mmt12_params","mmt12_param_set"):
             application.add_handler(CommandHandler(command,self.command))
         application.add_handler(CallbackQueryHandler(self.callback,pattern=r"^t12:"))
 

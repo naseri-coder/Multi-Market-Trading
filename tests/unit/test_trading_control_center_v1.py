@@ -342,7 +342,11 @@ def test_telegram_register_opt_in_not_poll(monkeypatch,center):
     monkeypatch.setitem(sys.modules,"telegram.ext",ext)
     app=SimpleNamespace(handlers=[],add_handler=lambda h:app.handlers.append(h))
     panel.register(app)
-    assert len(app.handlers)==6
+    assert len(app.handlers)==8
+    assert {h[1] for h in app.handlers if h[0]=="command"} == {
+        "mmt12", "mmt12_new", "mmt12_add", "mmt12_del", "mmt12_risk",
+        "mmt12_params", "mmt12_param_set",
+    }
     assert all(item[0] in ("callback","command") for item in app.handlers)
     assert not hasattr(app,"polling_called")
 
@@ -374,7 +378,11 @@ def test_explicit_single_application_dev_mount(monkeypatch,tmp_path):
                                           admin_ids={1001},owner_ids={1001},
                                           listings=(PUBLIC,),catalog=catalog(),explicitly_enabled=True)
     assert handle.application is app and len(seen)==1
-    assert len(app.handlers)==6
+    assert len(app.handlers)==8
+    assert {h[1] for h in app.handlers if h[0]=="command"} == {
+        "mmt12", "mmt12_new", "mmt12_add", "mmt12_del", "mmt12_risk",
+        "mmt12_params", "mmt12_param_set",
+    }
     assert handle.center.available_cores(1001)[0].core_id=="brooks_price_action"
     handle.close()
 

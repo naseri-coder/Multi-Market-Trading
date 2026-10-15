@@ -1,0 +1,50 @@
+name: Stage 11 reviewed core parameter panel (nonproduction)
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/core_parameter_guard_v1.py"
+      - "naseri_markets/trading_control_center_v1.py"
+      - "naseri_markets/trading_control_telegram_v1.py"
+      - "tests/unit/test_stage11_reviewed_core_parameters_v1.py"
+      - "docs/STAGE11_REVIEWED_CORE_PARAMETERS_PANEL_V1.md"
+      - ".github/workflows/stage11-reviewed-core-parameters.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reviewed-parameters:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      MMT_NONPRODUCTION: "1"
+      MMT_PRODUCTION: "0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Preserve immutable legacy release preflight
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+      - name: Run exact focused Stage 11 and existing Stage 6/12 tests
+        run: |
+          set -Eeuo pipefail
+          python -m pip install 'pytest==9.1.1' 'ruff==0.16.9'
+          python -m ruff check --select E4,F \
+            naseri_markets/trading_control_center_v1.py \
+            naseri_markets/trading_control_telegram_v1.py \
+            tests/unit/test_stage11_reviewed_core_parameters_v1.py
+          mkdir -p "$RUNNER_TEMP/stage11-isolated-tests"
+          cp tests/unit/test_stage11_reviewed_core_parameters_v1.py \
+             tests/unit/test_core_parameter_guard_v1.py \
+             tests/unit/test_trading_control_center_v1.py \
+             "$RUNNER_TEMP/stage11-isolated-tests/"
+          PYTHONPATH="$GITHUB_WORKSPACE" python -m pytest -q \
+            "$RUNNER_TEMP/stage11-isolated-tests"
