@@ -243,5 +243,86 @@ def prepare_vision_monthly_um_15m(
     )
 
 
-__all__ = ["VisionArchiveRefused", "VisionPreparedArchive",
-           "prepare_vision_monthly_um_15m"]
+
+@dataclass(frozen=True, slots=True)
+class VisionBrooksWindow:
+    """Explicit research slice bound to the complete monthly source."""
+
+    canonical_csv_bytes: bytes
+    stage12_receipt_bytes: bytes
+    csv_sha256: str
+    receipt_sha256: str
+    parent_monthly_csv_sha256: str
+    parent_official_zip_sha256: str
+    first_open_utc: str
+    last_close_utc: str
+    start_bar_index: int
+    count: int
+    source_independently_authenticated: bool = False
+    selected_without_seeing_outcomes_attested: bool = False
+    blind_out_of_sample_preserved: bool = False
+    stage15_brooks_evaluated: bool = False
+    futures_economic_backtest_run: bool = False
+
+
+def select_reviewed_brooks_window(
+    prepared: VisionPreparedArchive, *,
+    start_bar_index: int, count: int, operator_ack: bool = False,
+) -> VisionBrooksWindow:
+    """Derive 60–512 bars before evaluating Brooks; never silent truncation."""
+    import os
+
+    if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
+            or os.environ.get("MMT_PRODUCTION") == "1"):
+        raise VisionArchiveRefused("ST16_EXPLICIT_NONPRODUCTION_ACK_REQUIRED")
+    if (type(prepared) is not VisionPreparedArchive
+            or type(start_bar_index) is not int or type(count) is not int
+            or not 0 <= start_bar_index < prepared.count
+            or not 60 <= count <= 512
+            or start_bar_index + count > prepared.count):
+        raise VisionArchiveRefused("ST16_EXPLICIT_STAGE15_WINDOW_BOUNDS")
+    if hashlib.sha256(prepared.canonical_csv_bytes).hexdigest() != prepared.csv_sha256:
+        raise VisionArchiveRefused("ST16_PARENT_MONTHLY_CSV_DRIFT")
+    if hashlib.sha256(prepared.stage12_receipt_bytes).hexdigest() != prepared.receipt_sha256:
+        raise VisionArchiveRefused("ST16_PARENT_STAGE12_RECEIPT_DRIFT")
+    parsed = json.loads(prepared.stage12_receipt_bytes)
+    if (parsed.get("dataset_sha256") != prepared.csv_sha256
+            or parsed.get("expected_rows") != prepared.count):
+        raise VisionArchiveRefused("ST16_PARENT_RECEIPT_SCOPE_DRIFT")
+    full = prepared.canonical_csv_bytes.splitlines(keepends=True)
+    if len(full) != prepared.count + 1 or full[0] != (
+            ",".join(_HEADER) + "\n").encode("ascii"):
+        raise VisionArchiveRefused("ST16_PARENT_MONTHLY_ROW_INVENTORY_DRIFT")
+    rows = full[1 + start_bar_index:1 + start_bar_index + count]
+    if len(rows) != count:
+        raise VisionArchiveRefused("ST16_CUT_WINDOW_INCOMPLETE")
+    content = full[0] + b"".join(rows)
+    csv_sha = hashlib.sha256(content).hexdigest()
+    # Each row has exactly the timestamp grid audited by the original
+    # whole-month conversion. Do not invent new bar timestamps.
+    first = rows[0].split(b",", 1)[0].decode("ascii")
+    last_open = rows[-1].split(b",", 1)[0].decode("ascii")
+    last = _iso(datetime.fromisoformat(last_open.replace("Z", "+00:00"))
+                + timedelta(minutes=15))
+    receipt = dict(parsed)
+    receipt.update({
+        "dataset_sha256": csv_sha,
+        "expected_rows": count,
+        "window_start_utc": first,
+        "window_end_utc": last,
+    })
+    receipt_bytes = json.dumps(
+        receipt, sort_keys=True, separators=(",", ":"),
+    ).encode("ascii")
+    return VisionBrooksWindow(
+        content, receipt_bytes, csv_sha, hashlib.sha256(receipt_bytes).hexdigest(),
+        prepared.csv_sha256, prepared.zip_sha256, first, last,
+        start_bar_index, count,
+    )
+
+
+__all__ = [
+    "VisionArchiveRefused", "VisionPreparedArchive", "VisionBrooksWindow",
+    "prepare_vision_monthly_um_15m", "select_reviewed_brooks_window",
+]
+
