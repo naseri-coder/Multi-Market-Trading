@@ -28,6 +28,7 @@ from naseri_markets.historical_pit_quality_stage12_v1 import (
 from naseri_markets.market_data_engine_v1 import (
     FeedDefinition, PriceBasis, VolumeSemantics,
 )
+from naseri_markets import real_brooks_historical_stage15_v1 as reviewed_brooks
 from naseri_markets.real_brooks_historical_stage15_v1 import (
     review_real_brooks_history,
 )
@@ -140,7 +141,9 @@ def test_brooks_bounded_window_preserves_lineage_and_runs_real_engine(tmp_path):
     )
     assert report.rows_validated == 72
     # This is the actual frozen Brooks V5 engine, not an isolated fake signal.
-    root = __import__("pathlib").Path.cwd() / "production_source"
+    # Resolve relative to the reviewed package, never pytest cwd. Full
+    # corpus runners deliberately change directories for isolation.
+    root = __import__("pathlib").Path(reviewed_brooks.__file__).resolve().parents[1] / "production_source"
     output = review_real_brooks_history(
         trimmed, make_spec(cut.csv_sha256),
         receipt_bytes=cut.stage12_receipt_bytes,
