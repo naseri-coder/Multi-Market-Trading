@@ -167,9 +167,6 @@ def test_duplicate_future_bar_detected_and_bounded():
 
 
 def test_no_signal_requires_absence_of_fabricated_targets():
-    empty = study.FrozenGeometry(
-        **{**geometry().__dict__}
-    ) if False else None
     from dataclasses import replace
     normal = replace(geometry(), decision="NO_SIGNAL", entry=None,
                      stop=None, targets=())
