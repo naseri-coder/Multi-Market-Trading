@@ -157,8 +157,10 @@ def _error(
     return {"jsonrpc": "2.0", "id": request_id, "error": payload}
 
 
-def _tool_result(value: dict, *, invalid: bool = False) -> dict:
-    return {
+def _tool_result(
+    value: dict, *, invalid: bool = False, modern: bool = False,
+) -> dict:
+    response = {
         "content": [{
             "type": "text",
             "text": json.dumps(
@@ -167,6 +169,9 @@ def _tool_result(value: dict, *, invalid: bool = False) -> dict:
         }],
         "isError": invalid,
     }
+    if modern:
+        response["resultType"] = "complete"
+    return response
 
 
 def _args(name: str, args: object) -> dict:
@@ -361,12 +366,18 @@ class OfflineMcpSession:
                 "cacheScope": "private",
             })
         if method == "ping":
-            return _response(request_id, result={})
+            return _response(
+                request_id, result={"resultType": "complete"}
+                if self.era == "modern" else {},
+            )
         if method == "tools/list":
             allowed = {"_meta"} if self.era == "modern" else set()
             if type(params) is not dict or set(params) != allowed:
                 return _error(request_id, -32602, "Tool-list parameters refused")
-            return _response(request_id, result={"tools": list(_TOOLS.values())})
+            output = {"tools": list(_TOOLS.values())}
+            if self.era == "modern":
+                output["resultType"] = "complete"
+            return _response(request_id, result=output)
         if method == "tools/call":
             allowed = {"_meta", "name", "arguments"} if self.era == "modern" else {
                 "name", "arguments",
@@ -384,9 +395,13 @@ class OfflineMcpSession:
             ):
                 return _response(request_id, result=_tool_result(
                     {"status": "REFUSED", "reason": "INVALID_OR_UNTRUSTED_EVIDENCE"},
-                    invalid=True,
+                    invalid=True, modern=self.era == "modern",
                 ))
-            return _response(request_id, result=_tool_result(output))
+            return _response(
+                request_id, result=_tool_result(
+                    output, modern=self.era == "modern",
+                ),
+            )
         return _error(request_id, -32601, "Method not found")
 
 
