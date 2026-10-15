@@ -53,7 +53,7 @@ def _gate(*, ack: bool, installed: bool = True) -> None:
 
 def _existing_state(directory: Path) -> dict[str, Path]:
     """Reject symlink, shared, non-owner, nonprivate and missing state roles."""
-    if (type(directory) is not Path or not directory.is_absolute()
+    if (not isinstance(directory, Path) or not directory.is_absolute()
             or directory.is_symlink() or not directory.is_dir()
             or directory.stat().st_uid != os.geteuid()
             or stat.S_IMODE(directory.stat().st_mode) != 0o700):
