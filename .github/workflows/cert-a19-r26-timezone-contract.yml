@@ -1,0 +1,53 @@
+name: CERT-A19-R26 frozen OCI timezone and four-language source-contract review
+
+on:
+  push:
+    branches: [cert-a19-byte-audit-run]
+    paths:
+      - ".github/workflows/cert-a19-r26-timezone-contract.yml"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  frozen-utc-and-resource-contract-only:
+    if: github.repository == 'naseri-coder/Multi-Market-Trading' && github.ref == 'refs/heads/cert-a19-byte-audit-run'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      MMT_NONPRODUCTION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Restore exact R25 static OCI evidence by immutable JSON SHA-256
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          d="$RUNNER_TEMP/cert-a19-r26"
+          mkdir -m 0700 "$d"
+          gh run download 38687049515 \
+            --repo naseri-coder/Multi-Market-Trading \
+            --name cert-a19-r25-final-oci-static-preflight \
+            --dir "$d"
+          echo '26bc9c72b4b49c396a973b783764875566f24b4b2568f9495032ad9dc51f9264  '"$d/r25-static-final-oci.json" | sha256sum -c --status
+          echo '284ccd9f9549fbcd6572c442cc5f9ebf5759d4cdf5ccb419f2235bff8a3e2f61  '"$d/r24-result.json" | sha256sum -c --status
+          echo R26_R25_SOURCE_BYTES_MATCH
+      - name: Read AST and immutable Git blobs ONLY, never import or run any trading/Worker code
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 -m scripts.ci_cert_a19_r26_timezone_contract
+          test -s "$RUNNER_TEMP/cert-a19-r26/r26-timezone-contract.json"
+          sha256sum "$RUNNER_TEMP/cert-a19-r26/r26-timezone-contract.json"
+      - name: Retain report JSON only, never archive executable or target code
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cert-a19-r26-utc-timezone-fourlang-readonly
+          path: ${{ runner.temp }}/cert-a19-r26/r26-timezone-contract.json
+          if-no-files-found: ignore
+          retention-days: 2
