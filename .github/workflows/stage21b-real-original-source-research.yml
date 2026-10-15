@@ -1,0 +1,145 @@
+name: Stage21B original Binance price funding Mark Brooks V5 research
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/stage21b-real-original-source-research.yml"
+      - "naseri_markets/brooks_primary_source_funding_join_stage21b_v1.py"
+      - "naseri_markets/binance_public_funding_mark_stage18_v1.py"
+      - "naseri_markets/brooks_causal_lifecycle_stage21_preflight_v1.py"
+      - "tests/unit/test_stage21b_real_primary_funding_brooks_join_v1.py"
+
+permissions:
+  contents: read
+
+jobs:
+  bounded-genuine-retrospective-funding-join:
+    name: Genuine originals to frozen V5 hypothetical funding model
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      MMT_NONPRODUCTION: "1"
+      MMT_PRODUCTION: "0"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Pinned supported isolated interpreter
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install reviewed project library for isolated V5 subprocess
+        run: python3 -m pip install -e ".[dev]"
+      - name: Acquire exact official public archive bytes; never write into repo
+        run: |
+          python3 - <<'PY'
+          import hashlib, os, pathlib, urllib.request
+          sources = {
+            "trade": ("https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2024-01.zip",
+                      "76953983fcd4cc35ac181c4a1c69d28cbb4ef8b983021aac84a111ea4e82ef69"),
+            "funding": ("https://data.binance.vision/data/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2024-01.zip",
+                        "3e0d30870672aa8f0f937881056e3cfd55913ae5c780cd50b33f2763aa0ba58e"),
+            "mark": ("https://data.binance.vision/data/futures/um/monthly/markPriceKlines/BTCUSDT/15m/BTCUSDT-15m-2024-01.zip",
+                     "aa64b8b765a37c28f11235f2f2ff59f8558b9ff62251315de8b789a22698c926"),
+          }
+          class RefuseRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, *args):
+                  raise RuntimeError("ST21B_PUBLIC_REDIRECT_NOT_REVIEWED")
+          opener = urllib.request.build_opener(RefuseRedirect())
+          root=pathlib.Path(os.environ["RUNNER_TEMP"])/"stage21b-official-only"
+          root.mkdir(mode=0o700)
+          for label, (url,pinned) in sources.items():
+              local=root/label
+              local.mkdir(mode=0o700)
+              name=url.rsplit("/",1)[-1]
+              def get_exact(address,limit):
+                  with opener.open(urllib.request.Request(address,headers={"Accept-Encoding":"identity"}),timeout=25) as result:
+                      if (result.status != 200 or result.geturl()!=address
+                          or result.headers.get("Content-Encoding","identity").lower()!="identity"):
+                          raise RuntimeError("ST21B_UNREVIEWED_PUBLIC_ORIGIN")
+                      raw=result.read(limit+1)
+                  if not 0 < len(raw) <= limit:
+                      raise RuntimeError("ST21B_PUBLIC_BYTES_OUT_OF_BOUNDS")
+                  return raw
+              original=get_exact(url,8*1024*1024)
+              original_chk=get_exact(url+".CHECKSUM",256)
+              digest=hashlib.sha256(original).hexdigest()
+              if digest!=pinned or original_chk.strip(b"\r\n")!=(digest+"  "+name).encode():
+                  raise RuntimeError("ST21B_EXPECTED_OFFICIAL_BYTES_CHANGED")
+              (local/name).write_bytes(original)
+              (local/(name+".CHECKSUM")).write_bytes(original_chk)
+              print("ST21B_PRIMARY_ORIGINAL_SHA "+label+" "+digest)
+          PY
+      - name: Native Stage17 Stage18 Stage15 Stage21B source-joined replay
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          from naseri_markets.stage17_official_archive_capture_v1 import (
+              import_stage17_vision_month_offline,persist_research_capture,
+          )
+          from naseri_markets.brooks_primary_source_funding_join_stage21b_v1 import (
+              run_stage21b_source_joined_brooks_research,
+          )
+          root=Path(os.environ["RUNNER_TEMP"])/"stage21b-official-only"
+          trade_name="BTCUSDT-15m-2024-01.zip"
+          funding_name="BTCUSDT-fundingRate-2024-01.zip"
+          tdir=root/"trade"; fdir=root/"funding"; mdir=root/"mark"
+          capture=import_stage17_vision_month_offline(
+              tdir/trade_name,tdir/(trade_name+".CHECKSUM"),
+              year=2024,month=1,operator_ack=True,
+              expected_zip_sha256="76953983fcd4cc35ac181c4a1c69d28cbb4ef8b983021aac84a111ea4e82ef69",
+              expected_checksum_sha256=hashlib.sha256(
+                  (tdir/(trade_name+".CHECKSUM")).read_bytes()).hexdigest(),
+          )
+          local=root/"stage17-review"
+          persist_research_capture(capture,destination=local)
+          assumptions=json.dumps({
+              "schema_version":1,"provider_claim":"binance_usdm_operator_claim",
+              "symbol":"BTCUSDT","contract_kind":"linear_perpetual",
+              "settle_currency":"USDT","base_units_per_contract":"1",
+              "price_tick":"0.1","quantity_step":"0.001",
+              "taker_fee_fraction":"0.0004","worst_slippage_fraction":"0.0007",
+              "maintenance_margin_fraction":"0.005","source_metadata_sha256":"1"*64,
+          },sort_keys=True,separators=(",",":")).encode()
+          report=run_stage21b_source_joined_brooks_research(
+              capture=capture,
+              stage17_quality_report_bytes=(local/"quality-report.json").read_bytes(),
+              expected_trade_zip_sha256="76953983fcd4cc35ac181c4a1c69d28cbb4ef8b983021aac84a111ea4e82ef69",
+              funding_zip=(fdir/funding_name).read_bytes(),
+              funding_checksum=(fdir/(funding_name+".CHECKSUM")).read_bytes(),
+              expected_funding_zip_sha256="3e0d30870672aa8f0f937881056e3cfd55913ae5c780cd50b33f2763aa0ba58e",
+              mark_zip=(mdir/trade_name).read_bytes(),
+              mark_checksum=(mdir/(trade_name+".CHECKSUM")).read_bytes(),
+              expected_mark_zip_sha256="aa64b8b765a37c28f11235f2f2ff59f8558b9ff62251315de8b789a22698c926",
+              legacy_source=Path(os.environ["GITHUB_WORKSPACE"])/"production_source",
+              contract_assumptions_bytes=assumptions,
+              contract_assumptions_sha256=hashlib.sha256(assumptions).hexdigest(),
+              quantity_contracts="0.01",
+              window_start_bar_index=0,decision_closed_bars=60,next_closed_bars=32,
+              operator_ack=True,
+          )
+          assert report["funding_events_in_future_horizon"]==1
+          assert report["paper_or_live_market_connections_enabled"] is False
+          assert report["trade_fill_evidence_verified"] is False
+          assert report["statistically_valid_prospective_oos_proven"] is False
+          assert report["historical_account_fee_tier_verified"] is False
+          assert report["production_modified"] is False
+          (root/"Stage21B-genuine-source-retrospective-model.json").write_text(
+              json.dumps(report,sort_keys=True,indent=2)+"\n"
+          )
+          print("ST21B_REAL_3_SOURCE_V5_RETROSPECTIVE_RESEARCH_PASS")
+          print("ST21B_REAL_V5_DECISION="+report["actual_frozen_brooks_decision"])
+          print("ST21B_MODEL_TRADE_STATE="+report["model_trade_state"])
+          print("ST21B_SHA256="+report["report_sha256"])
+          print("ST21B_NO_PROVEN_EDGE_NO_LIVE_NO_CONNECTED_PAPER")
+          PY
+      - name: Retain short-lived local review evidence only
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
+        with:
+          name: stage21b-original-three-public-sources-and-model-receipt
+          path: ${{ runner.temp }}/stage21b-official-only/
+          if-no-files-found: error
+          retention-days: 1
