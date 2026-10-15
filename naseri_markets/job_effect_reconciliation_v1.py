@@ -297,11 +297,19 @@ def evaluate_recovery_decisions(
         jobs = db.execute(
             "SELECT job_id,status FROM runtime17_jobs ORDER BY job_id LIMIT 5001"
         ).fetchall()
-    if len(jobs) > 5000 or not jobs:
+    if len(jobs) > 5000:
         raise IntentRefused("STAGE9_BOUNDED_RUNTIME_JOBS_REQUIRED")
     known_jobs = {job["job_id"]: job["status"] for job in jobs}
-    if (len(known_jobs) != len(jobs)
-            or set(known_jobs) != set(expected_effect_kinds_by_job)):
+    if len(known_jobs) != len(jobs):
+        raise IntentRefused("STAGE9_DUPLICATE_RUNTIME_JOBS")
+    # A deleted/missing runtime row must be reported as MISSING_JOB, not
+    # discarded from the evidence population or converted to an invented job.
+    for finding in prior.findings:
+        if finding.job_state == "MISSING" and finding.job_id not in known_jobs:
+            known_jobs[finding.job_id] = "MISSING"
+    if not known_jobs or len(known_jobs) > 5000:
+        raise IntentRefused("STAGE9_BOUNDED_RUNTIME_JOBS_REQUIRED")
+    if set(known_jobs) != set(expected_effect_kinds_by_job):
         raise IntentRefused("STAGE9_INCOMPLETE_JOB_INVENTORY")
     if any(
         finding.job_id not in known_jobs
@@ -358,7 +366,7 @@ def evaluate_recovery_decisions(
     }
     return RecoveryDecisionTable(
         prior.evidence_sha256, _sha(_wire(digest_packet)),
-        tuple(decisions), len(jobs), blocked, bool(blocked),
+        tuple(decisions), len(known_jobs), blocked, bool(blocked),
     )
 
 
