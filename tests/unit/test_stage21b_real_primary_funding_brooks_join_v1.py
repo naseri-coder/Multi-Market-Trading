@@ -9,7 +9,6 @@ import hashlib
 import io
 import json
 import zipfile
-from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 import pytest
