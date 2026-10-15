@@ -147,6 +147,86 @@ def capture_stage17_vision_month(
     )
 
 
+
+def import_stage17_vision_month_offline(
+    zip_path: Path, checksum_path: Path, *, year: int, month: int,
+    operator_ack: bool, expected_zip_sha256: str | None = None,
+    expected_checksum_sha256: str | None = None,
+) -> Stage17Capture:
+    """Import original operator-supplied ZIP/CHECKSUM without ANY network access.
+
+    Retains identical Stage16 strict month and checksum verification. A local
+    import time is not the historical archive acquisition time or publisher
+    signature; no independent authenticity/clock flag is ever set.
+    """
+    import stat
+
+    _assert_nonproduction()
+    if operator_ack is not True:
+        raise Stage17Refused("ST17_EXPLICIT_OPERATOR_ACK_REQUIRED")
+    url, checksum_url = _url_and_month(year, month)
+    archive_name = url.rsplit("/", 1)[-1]
+    if (not isinstance(zip_path, Path) or not isinstance(checksum_path, Path)
+            or not zip_path.is_absolute() or not checksum_path.is_absolute()
+            or zip_path.name != archive_name
+            or checksum_path.name != archive_name + ".CHECKSUM"
+            or zip_path.parent != checksum_path.parent
+            or any(parent.is_symlink() for parent in zip_path.parents)
+            or any(part in ("production_source", ".git", "secrets", "checkpoints")
+                   for part in zip_path.parts)):
+        raise Stage17Refused("ST17_EXACT_ISOLATED_OFFLINE_INPUT_PATHS_REQUIRED")
+    pins_supplied = expected_zip_sha256 is not None or expected_checksum_sha256 is not None
+    if pins_supplied and (
+        type(expected_zip_sha256) is not str or not _SHA.fullmatch(expected_zip_sha256)
+        or type(expected_checksum_sha256) is not str
+        or not _SHA.fullmatch(expected_checksum_sha256)
+    ):
+        raise Stage17Refused("ST17_BOTH_PREAPPROVED_SHA256_REQUIRED")
+
+    def read_original(path: Path, max_bytes: int) -> bytes:
+        # Refuse symlink targets, directories, FIFOs and oversized files before
+        # reading. O_NOFOLLOW + fstat mitigate target substitution via symlink.
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+        try:
+            fd = os.open(path, flags)
+            with os.fdopen(fd, "rb") as source:
+                metadata = os.fstat(source.fileno())
+                if not stat.S_ISREG(metadata.st_mode) or not 1 <= metadata.st_size <= max_bytes:
+                    raise Stage17Refused("ST17_OFFLINE_FILE_TYPE_OR_SIZE_REFUSED")
+                data = source.read(max_bytes + 1)
+                if len(data) != metadata.st_size:
+                    raise Stage17Refused("ST17_OFFLINE_FILE_CHANGED_WHILE_READING")
+                return data
+        except Stage17Refused:
+            raise
+        except OSError as exc:
+            raise Stage17Refused("ST17_OFFLINE_FILE_UNAVAILABLE") from exc
+
+    started = datetime.now(UTC)
+    archive_bytes = read_original(zip_path, _ZIP_LIMIT)
+    checksum_bytes = read_original(checksum_path, _CHECKSUM_LIMIT)
+    completed = datetime.now(UTC)
+    zip_sha = hashlib.sha256(archive_bytes).hexdigest()
+    checksum_sha = hashlib.sha256(checksum_bytes).hexdigest()
+    if pins_supplied and (zip_sha != expected_zip_sha256
+                          or checksum_sha != expected_checksum_sha256):
+        raise Stage17Refused("ST17_OPERATOR_SHA256_PIN_MISMATCH")
+    prepared = prepare_vision_monthly_um_15m(
+        archive_bytes, checksum_bytes,
+        expected_zip_sha256=expected_zip_sha256 if pins_supplied else zip_sha,
+        expected_checksum_sha256=expected_checksum_sha256 if pins_supplied else checksum_sha,
+        year=year, month=month, retrieved_at_utc=completed, operator_ack=True,
+    )
+    return Stage17Capture(
+        archive=prepared, original_zip=archive_bytes,
+        original_checksum=checksum_bytes,
+        capture_started_utc=started.isoformat(),
+        capture_completed_utc=completed.isoformat(),
+        zip_url=url, checksum_url=checksum_url,
+        operator_hashes_preapproved=pins_supplied,
+    )
+
+
 def _make_stage12_spec(sha256: str) -> HistoricalFileSpec:
     feed = FeedDefinition(
         "stage16_binance_vision_um_btcusdt",
