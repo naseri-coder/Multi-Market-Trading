@@ -197,7 +197,7 @@ def test_quantity_regression_and_status_regression_quarantine():
                     at=T0 + timedelta(seconds=1)),
     )
     assert reverted_amount.reason is ObservationReason.FILLED_REGRESSION
-    assert reverted_state.reason is ObservationReason.STATUS_QUANTITY_CONFLICT
+    assert reverted_state.reason is ObservationReason.STATUS_REGRESSION
     assert reverted_amount.progress is prior
     assert reverted_state.progress is prior
 
@@ -207,7 +207,7 @@ def test_partial_status_cannot_drop_to_acknowledged_even_with_zero_fill():
                     cumulative_filled=Decimal("0.4"), last_event_at=T0)
     event = seen("NEW", quantity="0", event_id="later", at=T0 + timedelta(seconds=1))
     result = assess_order_observation(prior, event)
-    assert result.reason is ObservationReason.FILLED_REGRESSION
+    assert result.reason is ObservationReason.STATUS_REGRESSION
 
 
 @pytest.mark.parametrize(("status", "quantity"), [
