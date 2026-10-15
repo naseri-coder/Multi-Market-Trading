@@ -1,0 +1,35 @@
+name: Research CodeQL Python security scan
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/**"
+      - "tests/unit/**"
+      - "docs/STAGE1*"
+      - ".github/workflows/research-codeql-python.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+
+jobs:
+  research-codeql-python:
+    name: Real CodeQL Python analysis
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact reviewed merge candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Initialize authentic CodeQL engine
+        uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          languages: python
+          queries: security-extended
+      - name: Run CodeQL semantic security analysis and upload SARIF
+        uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          category: "/language:python"
