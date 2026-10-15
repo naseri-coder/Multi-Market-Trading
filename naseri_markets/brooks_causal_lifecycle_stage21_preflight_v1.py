@@ -200,14 +200,15 @@ def _model_next_open(
             or t.utcoffset() != timedelta(0) for t in expected_funding_instants)
             or tuple(sorted(set(expected_funding_instants))) != expected_funding_instants):
         raise Stage21StudyRefused("ST21_FUNDING_SCHEDULE_ORDER_DRIFT")
-    in_span = tuple(t for t in expected_funding_instants
-                    if entry_time < t <= exit_time)
-    actual = tuple(e for e in funding_events
-                   if type(e) is FundingMarkScenario
-                   and entry_time < e.at <= exit_time)
-    if (len(actual) != len(funding_events)
-            or tuple(e.at for e in actual) != in_span):
+    # Require a complete, ordered, predeclared funding tape over the WHOLE
+    # supplied future horizon. Events after an early stop/TP are verified but
+    # must not be charged to an already-closed hypothetical position.
+    horizon_end = future[-1]["close_time"]
+    if (any(not entry_time < t <= horizon_end for t in expected_funding_instants)
+            or any(type(e) is not FundingMarkScenario for e in funding_events)
+            or tuple(e.at for e in funding_events) != expected_funding_instants):
         raise Stage21StudyRefused("ST21_MISSING_EXTRA_OR_UNORDERED_FUNDING")
+    actual = tuple(e for e in funding_events if e.at <= exit_time)
     try:
         costs = model_linear_usdm_research_scenario(
             metadata, expected_metadata_sha256=metadata_sha256,
