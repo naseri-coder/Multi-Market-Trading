@@ -44,7 +44,7 @@ Stage 12: settings and requested modes (NOT authorization to trade)
 Stage 16: closed-candle offline orchestration
      │
      ▼
-Stage 17: explicit, bounded queue; PREPARED / CLAIMED / DONE or quarantine
+Stage 17: explicit, bounded queue; PENDING / CLAIMED / DONE / QUARANTINED
      │
      ├── Stage 19: committed pre-call effect intents
      │         └── Stage 19 exact-ID read-only reconciliation (no auto retry)
@@ -138,6 +138,6 @@ Existing proof: [Stage-16 contract](https://github.com/naseri-coder/Multi-Market
 - [x] Record evidence-backed P0/P1/P2 findings without claiming a live reproduction of hypothetical failures.
 - [x] Specify exact narrow acceptance contract for a future Stage-9 implementation.
 - [x] Keep all existing code, databases, manifests, secrets, workflows and Production unchanged.
-- [ ] Separate GitHub PR / full protected checks / optional squash merge of **this document only** (tracked separately; not a claim of operational readiness).
+**Publication verification:** The documentation PR and its protected checks are tracked in GitHub PR metadata; a successful docs-only PR is **not** a new runtime acceptance test or an operational permission.
 
 **Final audit state:** `STAGE8_INTEGRATION_ARCHITECTURE_FREEZE_PASS__RELEASE_BLOCKED`. The first clause means the reviewed architecture and next repair boundary are documented, not that every independently authored module has been installed, run or exercised end-to-end.
