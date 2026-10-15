@@ -10,7 +10,7 @@ import json
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from enum import StrEnum
 
@@ -91,11 +91,13 @@ def _ms_time(value: object) -> datetime:
             raise FillRefused("INVALID_EXECUTION_TIME")
     else:
         raise FillRefused("INVALID_EXECUTION_TIME")
-    return datetime.fromtimestamp(number / 1000, tz=UTC)
+    return datetime.fromtimestamp(number // 1000, tz=UTC) + timedelta(
+        milliseconds=number % 1000
+    )
 
 
 def _mapping(value: object) -> Mapping:
-    if not isinstance(value, Mapping):
+    if type(value) is not dict:
         raise FillRefused("INVALID_EXECUTION_SHAPE")
     return value
 
@@ -203,8 +205,9 @@ def _single_fee(
     if amount in (None, "") and currency in (None, ""):
         return FeeState.PENDING, ()
     # Binance can report zero commission before an asset is assigned.
-    if amount == "0" and currency is None:
-        return FeeState.PENDING, ()
+    if type(amount) is str and currency is None and _DECIMAL.fullmatch(amount):
+        if _number(amount, signed=True) == 0:
+            return FeeState.PENDING, ()
     if amount in (None, "") or currency in (None, ""):
         raise FillRefused("INCOMPLETE_FEE_EVIDENCE")
     return FeeState.OBSERVED, (_fee_one(amount, currency, signed_credit=signed_credit),)
