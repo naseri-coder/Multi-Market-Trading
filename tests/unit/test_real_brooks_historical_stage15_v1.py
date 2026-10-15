@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -11,8 +10,9 @@ import pytest
 
 from naseri_markets.contracts import Instrument, Market
 from naseri_markets.core_api_v1 import CoreEventType, DataOrigin
-from naseri_markets.historical_data_loader_a1 import HistoricalFileSpec
-from naseri_markets.historical_pit_quality_stage12_v1 import HistoricalPitRefused
+from naseri_markets.historical_data_loader_a1 import (
+    HistoricalDataRefused, HistoricalFileSpec,
+)
 from naseri_markets.market_data_engine_v1 import (
     FeedDefinition, PriceBasis, VolumeSemantics,
 )
@@ -175,7 +175,7 @@ def test_bad_utc_archive_or_file_digest_never_starts_real_worker(tmp_path, monke
     item = parts(tmp_path)
     item[0].write_bytes(item[0].read_bytes().replace(b",100,101,99,100,10",
                                                      b",100,102,99,100,10"))
-    with pytest.raises(HistoricalPitRefused, match="HASH|SOURCE"):
+    with pytest.raises(HistoricalDataRefused, match="HASH|SOURCE"):
         evaluate(item)
 
 
