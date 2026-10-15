@@ -107,10 +107,15 @@ def _review(raw: dict, trace: dict, source_digest: str) -> dict:
     if (type(rules) is not list or len(rules) > 80
             or any(type(x) is not str or not 1 <= len(x) <= 100 for x in rules)):
         raise Stage15Refused("BROOKS_RULE_EVIDENCE_INVALID")
-    for name in ("rule_set_version", "configuration_version"):
-        if (type(trace.get(name)) is not str
-                or not _IDENT.fullmatch(trace[name])):
-            raise Stage15Refused("BROOKS_CONFIG_EVIDENCE_INVALID")
+    if (type(trace.get("rule_set_version")) is not str
+            or not _IDENT.fullmatch(trace["rule_set_version"])):
+        raise Stage15Refused("BROOKS_CONFIG_EVIDENCE_INVALID")
+    config = trace.get("configuration_version")
+    # The genuine frozen Brooks policy has a long, composite ctx[...] string,
+    # not a short identifier. Bound printable ASCII without truncating it.
+    if (type(config) is not str or not 1 <= len(config) <= 4096
+            or not all(33 <= ord(character) <= 126 for character in config)):
+        raise Stage15Refused("BROOKS_CONFIG_EVIDENCE_INVALID")
     targets = trace.get("targets")
     if type(targets) is not list:
         raise Stage15Refused("BROOKS_WORKER_TARGETS_INVALID")
