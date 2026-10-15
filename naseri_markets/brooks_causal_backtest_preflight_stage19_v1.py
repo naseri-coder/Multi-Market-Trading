@@ -10,7 +10,7 @@ import hashlib
 import json
 import os
 import re
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from .binance_vision_archive_stage16_v1 import (
