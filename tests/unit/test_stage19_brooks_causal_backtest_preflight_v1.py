@@ -168,7 +168,10 @@ def test_parent_window_pins_and_disk_tamper_fail_closed(tmp_path, monkeypatch):
     args["window"] = select_reviewed_brooks_window(
         args["capture"].archive, start_bar_index=0, count=72, operator_ack=True,
     )
-    args["window_csv_path"].write_bytes(args["window"].canonical_csv_bytes + b"forgery")
+    args["window_csv_path"].write_bytes(
+        args["window"].canonical_csv_bytes.replace(b",100,101,99,100,10",
+                                                    b",100,102,99,100,10", 1)
+    )
     with pytest.raises(Stage19Refused, match="DISK_DATA_CHANGED"):
         review_stage19_brooks_causal_preflight(**args)
 
