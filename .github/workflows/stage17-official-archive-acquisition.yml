@@ -99,6 +99,65 @@ jobs:
           print("CHECKSUM_SHA256="+checksum_sha)
           print("ROWS="+str(len(bars)))
           PY
+      - name: Install reviewed project dependencies for exact Stage16 and Stage12
+        run: python3 -m pip install -e ".[dev]"
+      - name: Execute true Stage16 converter and actual file-backed Stage12 PIT quality
+        env:
+          MMT_NONPRODUCTION: "1"
+          MMT_PRODUCTION: "0"
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from naseri_markets.stage17_official_archive_capture_v1 import (
+              import_stage17_vision_month_offline, persist_research_capture,
+          )
+          from naseri_markets.binance_vision_archive_stage16_v1 import (
+              select_reviewed_brooks_window,
+          )
+          root = Path(os.environ["RUNNER_TEMP"]) / "isolated-stage17-public"
+          name = "BTCUSDT-15m-2024-01.zip"
+          imported = import_stage17_vision_month_offline(
+              root / name, root / (name + ".CHECKSUM"),
+              year=2024, month=1, operator_ack=True,
+          )
+          quality = persist_research_capture(
+              imported, destination=root / "independent-stage12-reviewed",
+          )
+          assert quality["rows"] == 2976
+          assert quality["source_independently_authenticated"] is False
+          assert quality["stage12_evidence_sha256"]
+          window = select_reviewed_brooks_window(
+              imported.archive, start_bar_index=0, count=72,
+              operator_ack=True,
+          )
+          (root / "real-reviewed-first72-bars.csv").write_bytes(
+              window.canonical_csv_bytes
+          )
+          (root / "real-reviewed-first72-stage12-receipt.json").write_bytes(
+              window.stage12_receipt_bytes
+          )
+          evidence = {
+              "exact_stage16_converter_success": True,
+              "exact_stage12_file_backed_quality_success": True,
+              "zip_sha256": imported.archive.zip_sha256,
+              "full_month_canonical_sha256": imported.archive.csv_sha256,
+              "stage12_evidence_sha256": quality["stage12_evidence_sha256"],
+              "derived_72bar_sha256": window.csv_sha256,
+              "operator_preapproved_hashes": False,
+              "independently_authenticated_publisher": False,
+              "independent_archive_revision_attestation": False,
+              "funding_mark_and_margin_verified": False,
+              "brooks_strategy_backtest_executed": False,
+              "live_authorized": False,
+          }
+          (root / "original-source-project-validator.json").write_text(
+              json.dumps(evidence, indent=2, sort_keys=True) + "\n"
+          )
+          print("ST17_REAL_ORIGINAL_ARCHIVE_STAGE16_STAGE12_PASS")
+          print(json.dumps(evidence, sort_keys=True))
+          PY
       - name: Retain only original public bytes and audit claim in short-lived artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
         with:
