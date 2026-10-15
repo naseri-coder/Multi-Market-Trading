@@ -99,6 +99,10 @@ jobs:
           print("CHECKSUM_SHA256="+checksum_sha)
           print("ROWS="+str(len(bars)))
           PY
+      - name: Checkout exact candidate for native validators
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install reviewed project dependencies for exact Stage16 and Stage12
         run: python3 -m pip install -e ".[dev]"
       - name: Execute true Stage16 converter and actual file-backed Stage12 PIT quality
