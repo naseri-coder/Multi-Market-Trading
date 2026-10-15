@@ -60,7 +60,7 @@ def external_trials():
 
 
 def evidence(tmp_path, *, no_signal=False, fee="2", slip="3", external=False):
-    path, spec, receipt, digest, plan = stage13_fixture.__wrapped__(
+    path, spec, receipt, digest, plan = stage13_fixture(
         tmp_path, fee=fee, slip=slip, no_signal=no_signal,
     )
     base = execute_frozen_walk_forward(
