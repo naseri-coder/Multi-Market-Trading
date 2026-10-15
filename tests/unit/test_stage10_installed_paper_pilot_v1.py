@@ -188,3 +188,37 @@ def test_inspect_cannot_be_called_without_ack_or_as_run_mode(paper_fixture, caps
     assert main(["--state-dir", str(paper_fixture), "--run",
                  "--ack-synthetic-offline", "--ack-writers-stopped"]) == 2
     assert "STAGE10_INSTALLED_PAPER_REFUSED" in capsys.readouterr().err
+
+
+def test_a6_release_exact_entrypoint_allowlist_still_refuses_unknown_commands(
+    tmp_path, monkeypatch,
+):
+    import scripts.a6_release_preflight as preflight
+    source = Path(preflight.ROOT)
+    safe = tmp_path / "fake_checked_release"
+    (safe / "platform_release").mkdir(parents=True)
+    (safe / "production_source").mkdir()
+    (safe / "pyproject.toml").write_bytes((source / "pyproject.toml").read_bytes())
+    metadata = (source / "platform_release/pyproject.toml").read_text()
+    assert 'naseri-paper-pilot = "naseri_markets.installed_paper_pilot_stage10_v1:main"' in metadata
+    (safe / "platform_release/pyproject.toml").write_text(metadata)
+    (safe / "compose.yaml").write_text(
+        "name: crypto-price-action\npostgres_data:/var/lib/postgresql/data\n"
+    )
+    (safe / "compose.platform.yaml").write_text(
+        'name: multi-market-trading\nprofiles: ["validation"]\n'
+        'network_mode: none\nread_only: true\n'
+    )
+    (safe / "Dockerfile.platform").write_text("USER 10001:10001\n")
+    (safe / "production_source/SHA256SUMS").write_text("test-sentinel\n")
+    monkeypatch.setattr(preflight, "ROOT", safe)
+    accepted = preflight.check()
+    assert accepted["verdict"] == "A6_SEPARATE_RELEASE_PREVIEW_PASS"
+    assert accepted["preview_runtime_enabled"] is False
+    assert accepted["database_migration_executed"] is False
+    metadata += '\nnaseri-hidden-executor = "unknown.operator:main"\n'
+    # An unauthorized executable must still fail the exact-script inventory
+    # rather than being accepted by a wildcard or a relaxed subset policy.
+    (safe / "platform_release/pyproject.toml").write_text(metadata)
+    with pytest.raises(ValueError, match="A6_CLI_INVALID"):
+        preflight.check()
