@@ -91,7 +91,7 @@ def base_oci_from_docker_save(w):
         layers=info.get("Layers",[])
         if not 1<=len(layers)<=40:deny("DOCKER_LAYERS_OUT_OF_RANGE")
         config_name=info.get("Config","")
-        if not config_name.endswith(".json"):deny("CONFIG_NAME_INVALID")
+        if not re.fullmatch(r"(?:[0-9a-f]{64}\.json|blobs/sha256/[0-9a-f]{64}|[a-z0-9_-]+/json)",config_name):deny("CONFIG_NAME_INVALID")
         configmember=archive.getmember(config_name)
         fh=archive.extractfile(configmember)
         if fh is None:deny("CONFIG_UNREADABLE")
