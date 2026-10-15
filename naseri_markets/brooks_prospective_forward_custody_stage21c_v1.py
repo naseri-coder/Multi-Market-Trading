@@ -150,6 +150,8 @@ def _load_plan(plan_bytes: bytes, plan_sha256: str) -> tuple[BrooksProspectivePl
     try:
         obj = json.loads(plan_bytes, object_pairs_hook=_no_duplicates)
         plan = BrooksProspectivePlan(**obj)
+    except Stage21ForwardRefused:
+        raise
     except (TypeError, ValueError, UnicodeError, KeyError) as exc:
         raise Stage21ForwardRefused("ST21C_EXACT_FROZEN_PLAN_SCHEMA_REQUIRED") from exc
     if _canonical(asdict(plan)) != plan_bytes:
