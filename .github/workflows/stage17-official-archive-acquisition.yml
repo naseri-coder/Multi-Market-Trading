@@ -209,6 +209,59 @@ jobs:
                 ",".join(item["decision"] for item in result["evaluations"]))
           print("REAL_DATA_DECISION_TRACE_SHA256=" + result["report_sha256"])
           PY
+      - name: Diagnose genuine Brooks rejection safely without altering engine
+        if: failure()
+        env:
+          MMT_NONPRODUCTION: "1"
+          MMT_PRODUCTION: "0"
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import re
+          from datetime import UTC, datetime
+          from pathlib import Path
+          import naseri_markets.real_brooks_historical_stage15_v1 as stage15
+          from naseri_markets.brooks_replay import _evaluate_legacy
+          from naseri_markets.stage17_official_archive_capture_v1 import _make_stage12_spec
+          source = Path(os.environ["GITHUB_WORKSPACE"]) / "production_source"
+          root = Path(os.environ["RUNNER_TEMP"]) / "isolated-stage17-public"
+          raw = root / "real-reviewed-first72-bars.csv"
+          evidence = (root / "real-reviewed-first72-stage12-receipt.json").read_bytes()
+          categories = []
+          def safe_inspect(original_source, payload, _timeout):
+              try:
+                  return _evaluate_legacy(original_source, payload)
+              except Exception as exc:
+                  # Only record class and a sanitized, bounded diagnostic category.
+                  kind = type(exc).__name__
+                  category = re.sub(r"[^a-zA-Z_ -]", "_", str(exc))[:120]
+                  categories.append((kind, category))
+                  raise
+          stage15._worker = safe_inspect
+          try:
+              stage15.review_real_brooks_history(
+                  raw, _make_stage12_spec(hashlib.sha256(raw.read_bytes()).hexdigest()),
+                  receipt_bytes=evidence,
+                  trusted_receipt_sha256=hashlib.sha256(evidence).hexdigest(),
+                  archive_as_of_utc=datetime.now(UTC),
+                  legacy_source=source,
+                  evaluation_cutoffs_utc=(
+                      datetime(2024, 1, 1, 15, tzinfo=UTC),
+                      datetime(2024, 1, 1, 18, tzinfo=UTC),
+                  ),
+                  operator_ack=True,
+              )
+          except Exception as exc:
+              print("ST19_OFFLINE_FROZEN_WORKER_DEBUG_CLASS=" + type(exc).__name__)
+          for kind, reason in categories:
+              print("ST19_DIAGNOSTIC=" + kind + ":" + reason)
+          (root / "stage19-genuine-worker-diagnostic.json").write_text(
+              json.dumps({"classes": categories, "real_execution_pass": False,
+                          "actual_trading_pnl": False, "production_changed": False})
+          )
+          PY
       - name: Retain only original public bytes and audit claim in short-lived artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
         with:
