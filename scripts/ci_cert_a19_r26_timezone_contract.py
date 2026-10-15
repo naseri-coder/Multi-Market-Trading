@@ -105,8 +105,7 @@ def main():
     parsedatetime=ast.unparse(get_def(plugin,"_when"))
     must("datetime.fromisoformat" in parsedatetime,"ISO8601_PARSE_CONTRACT_CHANGED")
     worker_process=ast.unparse(get_def(worker,"process"))
-    must('event["observed_at"]' in worker_process and
-         '"observed_at": event["observed_at"]' in worker_process,
+    must("'observed_at': event['observed_at']" in worker_process,
          "WORKER_TIMESTAMP_PASSTHROUGH_CHANGED")
     child=ast.unparse(get_def(worker,"_child"))
     must('NODE_PATH' in child and 'PATH' in child and '"TZ"' not in child and
