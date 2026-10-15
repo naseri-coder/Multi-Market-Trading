@@ -23,7 +23,7 @@ from naseri_markets.futures_economics_evidence_stage18_v1 import (
     Stage18ScenarioTrade, audit_futures_economic_evidence,
 )
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(stage17.__file__).resolve().parents[1]
 SOURCE = ROOT / "production_source"
 BEGIN = datetime(2024, 1, 1, tzinfo=UTC)
 INTERVAL = timedelta(minutes=15)
