@@ -1,26 +1,33 @@
+
 <div align="center">
 
 # 📈 Multi Market Trading
 
-**Multi-market architecture · Public strategy SDK · Offline PAPER verification**
+**Open-source multi-market strategy research · Modular trading cores · Reproducible PAPER workflows**
 
-**معماری چندبازاره، هسته‌های مستقل و مسیر آزمایشی قابل‌تکرار — بدون ادعای معامله یا سیگنال زنده**
+**پلتفرم متن‌باز پژوهش معاملات چندبازاره؛ هسته‌های مستقل، مدیریت ریسک و آزمون‌های قابل‌بازتولید، با اولویت امنیت و شواهد**
 
 [![Public tests](https://github.com/naseri-coder/Multi-Market-Trading/actions/workflows/public-test-corpus.yml/badge.svg?branch=main)](https://github.com/naseri-coder/Multi-Market-Trading/actions/workflows/public-test-corpus.yml)
 [![Publication safety](https://github.com/naseri-coder/Multi-Market-Trading/actions/workflows/publication-safety.yml/badge.svg?branch=main)](https://github.com/naseri-coder/Multi-Market-Trading/actions/workflows/publication-safety.yml)
-[![Legacy v0.3.2](https://img.shields.io/badge/version-v0.3.2-7C3AED)](pyproject.toml)
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache--2.0-0B7285)](LICENSE)
-[![Status](https://img.shields.io/badge/Release-NONPRODUCTION%20ONLY-orange)](docs/PRODUCT_READINESS_AND_RELEASE_GATES_STAGE15_V1.md)
+[![Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-0B7285)](LICENSE)
+[![Nonproduction only](https://img.shields.io/badge/release-NONPRODUCTION_ONLY-orange)](docs/PRODUCT_READINESS_AND_RELEASE_GATES_STAGE15_V1.md)
 
-[شروع سریع](#quickstart) · [وضعیت واقعی](#status) · [معماری](#architecture) · [مستندات](#documents) · [English summary](#english)
+[Overview](#overview) · [Status](#status) · [Recent work](#recent-work) · [Quickstart](#quickstart) · [Architecture](#architecture) · [Roadmap](#roadmap) · [Documentation](#documents) · [English summary](#english)
 
-[کانال توسعه](https://t.me/naseri_coder) · [GitHub Issues](https://github.com/naseri-coder/Multi-Market-Trading/issues) · [Security](SECURITY.md)
+[Issues](https://github.com/naseri-coder/Multi-Market-Trading/issues) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Development channel](https://t.me/naseri_coder)
 
 </div>
 
+<a id="overview"></a>
+## Why Multi Market Trading? | هدف پروژه
+
+Multi Market Trading explores **auditable, strategy-neutral infrastructure** for market research, independent trading cores, explicit operator controls and reproducible PAPER evaluation. It separates strategy decisions from data provenance, market eligibility, risk policy, execution permissions and signal publication. The goal is an open engineering foundation with clear evidence — **not a claim of a profitable trading product**.
+
+این مخزن مسیرهای تحقیق، داده، هسته، انتخاب صرافی/نماد/تایم‌فریم، مدیریت ریسک، چرخه معاملات PAPER و گزارش را به‌صورت تفکیک‌شده توسعه می‌دهد. «وجود کد»، «عبور از تست» و «آمادگی محصول واقعی» سه وضعیت متفاوت هستند.
+
 > [!IMPORTANT]
-> **This repository is not an authorized public signal service or live trading product.** The installed PAPER example produces **synthetic demonstration evidence**, never a broker fill or a real trading recommendation. Source verification, isolated tests and CI are not equivalent to real-feed quality, hostile-code isolation, profitability or deployment approval.
+> **Not authorized for public live trading or real signal delivery.** Installed demonstrations use approved **synthetic/offline PAPER** inputs. Passing CI, signing a package or executing harmless test fixtures does **not** prove profitability, authenticated prices, safe execution of hostile plugins, live exchange eligibility or deployment readiness.
 
 <a id="status"></a>
 ## وضعیت پروژه | Product status
@@ -36,7 +43,41 @@ The repository contains **two intentionally distinct software lines**. **Do not 
 | Telegram development panel | Optional `telegram-admin` extra | فقط تنظیمات و پیش‌نمایش؛ اتصال عملیاتی جدید غیرفعال | `naseri-engine-admin` / opt-in Stage 12 |
 | Universal Core API / risk / lifecycle / research | Stages 3–16 | قراردادها و اجزای PAPER/آزمایشی، **نه یک سرویس LIVE یکپارچه** | کتابخانه‌ها و آزمون‌های مستقل |
 
-**گیت انتشار:** `PRODUCT_NOT_READY_FOR_PUBLIC_OR_LIVE_RELEASE`؛ انتشار کانال تلگرام، معاملات واقعی، اجرای کد ناشناس عمومی و استقرار تجاری هنوز مجاز یا تأیید نشده‌اند. [گزارش آمادگی مرحله ۱۵](docs/PRODUCT_READINESS_AND_RELEASE_GATES_STAGE15_V1.md).
+**Release gate: `PRODUCT_NOT_READY_FOR_PUBLIC_OR_LIVE_RELEASE`.** Autonomous production scanning, real Telegram publication, broker orders, public untrusted-code execution and commercial deployment are not approved. [Readiness report](docs/PRODUCT_READINESS_AND_RELEASE_GATES_STAGE15_V1.md) · [A28 audit](docs/MULTI_MARKET_TRADING_A28_FINAL_PRODUCT_AUDIT.md).
+
+
+<a id="recent-work"></a>
+## Recent engineering | تازه‌ترین پیشرفت‌ها
+
+**Evidence cutoff: 2026-10-15.** This section describes work **merged into `main`**, independently bounded research fixtures, and remaining blockers. A draft PR is not treated as an available release feature.
+
+| Track | What is implemented or demonstrated | What it does **not** establish |
+| --- | --- | --- |
+| **Modular core and control plane** | Universal Core API, separate engine/binding settings for provider, symbol, timeframe and budget, risk and signal lifecycle contracts | No general live trading authorization |
+| **Brooks Price Action** | Public reference core and operator-facing management/PAPER research paths | No verified positive edge or automatic live activation |
+| **Installed PAPER preview** | `0.4.0rc1` synthetic toy-core demo, explicit enable/disable, SQLite replay journal, deduplication and restart-safe inspection | No broker fills, authenticated market feeds or Telegram messages |
+| **Panel → PAPER / Stage 17 supervisor** | Opt-in offline panel-to-risk/lifecycle handoff and recoverable queued replay | Not a continuously running multi-market trading service; cross-ledger atomicity remains unresolved |
+| **DATA-A1** | Real on-disk **CSV/Parquet** bytes with explicit operator authorization, SHA-256 pin, bounded quality report and causal typed replay | External dataset authenticity and Point-in-Time suitability require separate audits |
+| **RUNTIME / CERT** | Inert framed Core API messages and **16 real benign fixture roundtrips** across Python, JavaScript, TypeScript and WebAssembly in disposable CI tests | Not arbitrary uploaded strategies, language feature parity or independently certified hostile-code isolation |
+| **MT-A1** | MQ4/MQ5/opaque EX5 hash-pinned static file acceptance and timeframe-claim checks | No terminal connection, MQL compilation, EX5 inspection beyond byte identity or order execution |
+| **PINE-A1** | Strict Pine v5/v6 **confirmed-bar SMA-cross indicator subset** with offline trace comparison | Not a universal Pine translator, TradingView integration or trading/PnL equivalence |
+| **NATIVE-A1** | Bounded, static PE/ELF header/architecture preflight | No loading/running DLL, EXE or SO files; not malware certification |
+| **Security / supply chain** | Immutable input research, bounded Docker fixture tests, real CycloneDX/Grype evidence and candidate byte-level reviews through **CERT-A18** | Not a release-ready image, vulnerability remediation or permission to open Worker dispatch |
+
+References: [DATA-A1](docs/MMT_DATA_A1_CSV_PARQUET_REPLAY.md) · [CERT-A5 real benign workers](docs/MMT_CERT_A5_REAL_BENIGN_WORKER_REPLAY.md) · [MetaTrader static intake](docs/MMT_MT_A1_OFFLINE_ARTIFACT_PREFLIGHT.md) · [Pine subset](docs/MMT_PINE_A1_SMA_CROSS_SEMANTIC_PARITY.md) · [Native static intake](docs/MMT_NATIVE_A1_INERT_PE_ELF_PREFLIGHT.md).
+
+### Security and release boundaries | مرزهای امنیتی
+
+> [!WARNING]
+> **RUNTIME-A6 keeps general Python/JS/TS/WASM Worker execution unconditionally DENIED.** CI runs only explicit, reviewed harmless fixtures. Do not treat those tests as permission to execute unknown third-party code, or weaken the production fence.
+
+- On **2026-10-14**, the original experimental Worker image had **18 Critical + 181 High** Grype matches. These **199 baseline findings remain open for review**. Changes in scanner counts for lean images are **not automatically fixed CVEs**. [Baseline triage](docs/MMT_CERT_A14_CRITICAL_HIGH_TRIAGE.md) · [Lean-image evidence](docs/MMT_CERT_A15_LEAN_IMAGE_COMPARISON.md).
+- **CERT-A18** checks narrowly scoped absence of specified Debian build-only package paths in a separate benign candidate; it does **not** prove all vulnerable code removed or advisories resolved. [CERT-A18 limitations](docs/MMT_CERT_A18_BUILD_ONLY_ABSENCE_PROOF.md).
+- **CERT-A19** remains a [draft PR #275](https://github.com/naseri-coder/Multi-Market-Trading/pull/275) at this cutoff. Research and verified byte custody are **not** a merged upstream patch or CVE closure.
+- Independent, designated-host **rootless Docker/gVisor and adversarial isolation acceptance** remain pending. GitHub-hosted rootful Docker probes are useful bounded evidence, **not** equivalent certification.
+- Never put production credentials, private strategy code, trading logs, user databases, broker API keys or operational Telegram tokens into public tests or issues.
+
+See [RUNTIME-A6 deny contract](docs/MMT_RUNTIME_A6_DISPATCH_FENCE.md), [independent host requirements](docs/MMT_CERT_A6_DISPOSABLE_HOST_ACCEPTANCE.md) and [security reporting policy](SECURITY.md).
 
 <a id="quickstart"></a>
 ## شروع سریع | Installed PAPER demo
@@ -180,6 +221,28 @@ python -m naseri_markets.runtime_supervisor_health_v1 \
 
 **Brooks Price Action** هسته مرجع عمومی پروژه است؛ فعال‌سازی خودکار آن در محصول جدید از این نمونه نتیجه نمی‌شود. **NY First-Reversal** اختصاصی و *owner-only* است: هیچ سورس، بسته یا مجوز اجرای عمومی آن در مخزن قرار نمی‌گیرد.
 
+
+<a id="roadmap"></a>
+## Roadmap | برنامه آینده
+
+**Evidence-gated priorities — not dates or release promises.** Features below are **planned work**, not deployed or certified capabilities.
+
+| Priority | Engineering direction | Required acceptance evidence |
+| --- | --- | --- |
+| **P0: security closure** | Triage the 199 original Critical/High matches, verify authenticated upstream fixes or individually justified non-applicability, reconcile package provenance and repeat SBOM/Grype reviews | Reproducible case-by-case decisions; **no silent A6 unlock** |
+| **P0: independent isolation** | Test rootless Docker/gVisor and hostile-code boundaries on a separately approved disposable nonproduction host | Independent adversarial evidence and fail-closed review before any future permission proposal |
+| **P1: trustworthy data** | Improve source- and time-aware historical feed provenance, candle integrity, latency/funding metadata and market eligibility checks | Source-specific reports, negative tests and no look-ahead assumptions |
+| **P1: core interoperability** | Strengthen versioned core contracts, safe language/artifact intake and deterministic replay parity | Narrow independently checked semantic oracles; no unsupported universal conversion claims |
+| **P1: integrated PAPER product** | Combine per-core settings, approval workflows, risk controls, observability and restart-safe reconciliation | Isolated, repeatable, nonproduction end-to-end evidence, including cross-database consistency/recovery |
+| **P2: open-source ecosystem** | Improve SDK examples, contributor onboarding, issue triage, CI tests, security documentation and public-core integration | Reviewable, maintainable changes with clear threat-model and compatibility boundaries |
+| **Conditional future** | Research compliant real-market paper/shadow feeds and, *only if all gates pass*, optional limited broker/Telegram pilots | Verified provider permissions, independent security review, operational readiness, kill switches and **explicit authorization**; no live launch scheduled |
+
+### Contributing and protected scope
+
+Useful public contributions include **reproducible bug reports, deterministic PAPER fixtures, no-look-ahead tests, sandbox and supply-chain audits, documentation, and SDK examples**. Check [CONTRIBUTING.md](CONTRIBUTING.md) and open a narrowly scoped [issue](https://github.com/naseri-coder/Multi-Market-Trading/issues).
+
+**Brooks Price Action** is the public reference core; **`NY First-Reversal` is private and owner-only**. Its source, installation package and execution authorization are deliberately outside this repository. Do not propose adding private strategies or production secrets to public examples.
+
 <a id="documents"></a>
 ## راهنما و منابع فنی | Documentation
 
@@ -193,8 +256,12 @@ python -m naseri_markets.runtime_supervisor_health_v1 \
 | PAPER risk, orders, signals | [Risk](docs/UNIVERSAL_PORTFOLIO_RISK_STAGE8_V1.md) · [Lifecycle](docs/UNIVERSAL_ORDER_POSITION_LIFECYCLE_STAGE9_V1.md) · [Signals](docs/SIGNAL_LIFECYCLE_STAGE10_V1.md) |
 | Research, UI, acceptance | [Research](docs/STRATEGY_RESEARCH_LAB_STAGE11_V1.md) · [Control center](docs/TRADING_CONTROL_CENTER_STAGE12_V1.md) · [Reliability](docs/RELIABILITY_INTEGRATION_STAGE13_V1.md) |
 | Independent developer SDK | [SDK and certification](docs/DEVELOPER_SDK_CERTIFICATION_STAGE14_V1.md) |
-| **Stage 16 — explicit panel-to-PAPER integration** | [Offline handoff and installed synthetic E2E](docs/OFFLINE_PANEL_TO_PAPER_STAGE16_V1.md) |\n| **Product readiness and release blockers** | [Stage 15 readiness](docs/PRODUCT_READINESS_AND_RELEASE_GATES_STAGE15_V1.md) · [A28 architecture/product audit](docs/MULTI_MARKET_TRADING_A28_FINAL_PRODUCT_AUDIT.md) |
-| Security, changes and contributing | [Security](SECURITY.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [Roadmap](ROADMAP.md) |
+| **Stage 16 — explicit panel-to-PAPER integration** | [Offline handoff and installed synthetic E2E](docs/OFFLINE_PANEL_TO_PAPER_STAGE16_V1.md) |
+| **Product readiness and release blockers** | [Stage 15 readiness](docs/PRODUCT_READINESS_AND_RELEASE_GATES_STAGE15_V1.md) · [A28 architecture/product audit](docs/MULTI_MARKET_TRADING_A28_FINAL_PRODUCT_AUDIT.md) |
+| Recent data & format contracts | [DATA-A1](docs/MMT_DATA_A1_CSV_PARQUET_REPLAY.md) · [DATA → RUNTIME](docs/MMT_DATA_RUNTIME_PAPER_WIRE_A1.md) · [Cross-format review](docs/MMT_CERT_A1_CROSS_FORMAT_OFFLINE_REVIEW.md) |
+| Runtime & security evidence | [Worker deny](docs/MMT_RUNTIME_A6_DISPATCH_FENCE.md) · [Benign multi-language worker](docs/MMT_CERT_A5_REAL_BENIGN_WORKER_REPLAY.md) · [CERT-A14](docs/MMT_CERT_A14_CRITICAL_HIGH_TRIAGE.md) · [CERT-A18](docs/MMT_CERT_A18_BUILD_ONLY_ABSENCE_PROOF.md) |
+| Third-party file preflight | [MQ4/MQ5/EX5](docs/MMT_MT_A1_OFFLINE_ARTIFACT_PREFLIGHT.md) · [Pine subset](docs/MMT_PINE_A1_SMA_CROSS_SEMANTIC_PARITY.md) · [PE/ELF](docs/MMT_NATIVE_A1_INERT_PE_ELF_PREFLIGHT.md) |
+| Security, changes and contributing | [Security](SECURITY.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [Earlier roadmap](ROADMAP.md) · [Current roadmap](#roadmap) |
 
 ### Verification / بررسی
 
@@ -208,12 +275,17 @@ python -m pytest -q tests/unit/test_paper_demo_cli_v1.py
 
 GitHub CI verifies the **installed preview Wheel**, public toy replay, duplicate protection, reopening durable history and disabled network/order flags in an isolated workspace. These tests do not validate real profitability or production readiness.
 
+
 <a id="english"></a>
 ## English summary
 
-Multi Market Trading is a public, strategy-neutral research and PAPER software project. The **legacy crypto runtime (`crypto-price-action 0.3.2`)** and the **new multi-market preview (`multi-market-trading 0.4.0rc1`)** are separate products. This repository now exposes an installable, explicitly authorized **public toy PAPER demo** (`naseri-paper-demo`) using the existing trusted-local host and SQLite journal. The demo proves the registration → explicit enable → synthetic quote replay → idempotent journal → restart/inspect → disable journey; it **does not** run the newer multi-core modules as one automatic service.
+Multi Market Trading is an **Apache-2.0 open-source, Python-based** software project for strategy-neutral multi-market research, per-core operator control, testable risk/lifecycle contracts and strictly isolated PAPER experimentation.
 
-Market metadata discovery does not imply trading eligibility. Publisher signatures do not make arbitrary plugin code safe. No automatic real-market feeds, Telegram channel delivery, broker orders, strategy profitability or public launch is certified. Production and third-party executable admission remain **blocked pending independent review and authorization**.
+**Available for development:** the `0.4.0rc1` nonproduction preview and synthetic installed PAPER demo; local CSV/Parquet intake and causal replay; bounded Stage 16/17 offline handoff; documented Brooks Price Action core; narrow MetaTrader, Pine and PE/ELF artifact research; and reviewed four-language **benign** Worker CI experiments. The legacy `crypto-price-action 0.3.2` runtime remains a separate software line.
+
+**Not production-ready:** real-money trading, unattended exchange scanning, broker fills, Telegram channel delivery, arbitrary public plugin execution, general code translation, verified trading edge and independently certified malicious-code isolation. Experimental container findings remain open. Untrusted-code admission is **fail-closed**.
+
+The [roadmap](#roadmap) prioritizes proven data provenance, independent security evidence, trustworthy PAPER tests and developer-friendly public APIs before any conditional real-world pilot.
 
 ## مشارکت، امنیت و مجوز | Security & contribution
 
