@@ -237,7 +237,8 @@ def test_privileged_or_invalid_parameter_names_are_denied(bad_name):
 @pytest.mark.parametrize("change", [
     {"kind": "formula"},
     {"kind": "python"},
-    {"name": "fast_period", "kind": "integer", "min": 1, "max": 20},
+    {"name": "fast_period", "kind": "integer", "min": 1,
+     "max": 20, "unknown_default": 10},
     {"name": "fast_period", "kind": "boolean", "default": True},
     {"name": "fast_period", "kind": "integer", "min": 50, "max": 10, "step": 1},
     {"name": "fast_period", "kind": "integer", "min": 1, "max": 10, "step": 0},
