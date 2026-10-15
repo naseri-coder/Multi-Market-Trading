@@ -236,7 +236,7 @@ def test_complete_external_inventory_is_not_optional_when_matrix_supplied(tmp_pa
     sample = evidence(tmp_path)
     with pytest.raises(Stage14Refused, match="EXTERNAL_TRIAL_MATRIX"):
         calculate(sample, matrix=b"{}")
-    with pytest.raises(Stage14Refused, match="EXTERNAL_TRIAL_MATRIX"):
+    with pytest.raises(Stage14Refused, match="EXTERNAL_MATRIX_PIN_MISMATCH"):
         calculate(evidence(tmp_path, external=True), matrix=False)
 
 
