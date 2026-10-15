@@ -311,7 +311,7 @@ def test_stage9_incomplete_operator_job_inventory_refused(tmp_path, wrong_map):
 
 @pytest.mark.parametrize("expected", [
     ("PAPER_RESERVE", "PAPER_RESERVE"),
-    ("DRY_SIGNAL", "PAPER_PLAN"),
+    ("PAPER_PLAN", "DRY_SIGNAL"),
     ("PAPER_RESERVE", "BAD_KIND"),
     ["PAPER_RESERVE"],
 ])
