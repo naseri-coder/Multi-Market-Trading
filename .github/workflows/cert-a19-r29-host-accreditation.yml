@@ -1,0 +1,53 @@
+name: CERT-A19-R29 offline signed-release and host accreditation fail-closed contract
+
+on:
+  push:
+    branches: [cert-a19-byte-audit-run]
+    paths:
+      - ".github/workflows/cert-a19-r29-host-accreditation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  check-source-provenance-and-static-host-policy:
+    if: github.event_name == 'push' && github.repository == 'naseri-coder/Multi-Market-Trading' && github.ref == 'refs/heads/cert-a19-byte-audit-run'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    env:
+      MMT_NONPRODUCTION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Authenticate pinned GitHub release checksum listing BYTES (not a vendor signature)
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          d="$RUNNER_TEMP/cert-a19-r29"
+          mkdir -m 0700 "$d"
+          curl --proto '=https' --proto-redir '=https' \
+            --fail --location --silent --show-error --retry 1 \
+            --connect-timeout 15 --max-time 45 \
+            'https://github.com/google/gvisor/releases/download/release-20261005.0/SHA256SUMS' \
+            -o "$d/gvisor-SHA256SUMS"
+          printf '%s  %s\n' \
+            dc3ea2d7486b9c07d9ad0ae3880b69a1a020708b83c4a8fe3bb781a871ef2308 \
+            "$d/gvisor-SHA256SUMS" | sha256sum --check --status
+          test "$(stat -c%s "$d/gvisor-SHA256SUMS")" -lt 10000
+          echo R29_PUBLIC_CHECKSUM_MANIFEST_BYTES_VERIFIED_BUT_UNSIGNED
+      - name: Run fail-closed 13 negative accreditation policy cases without any container launch
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 -m scripts.ci_cert_a19_r29_host_policy
+          test -s "$RUNNER_TEMP/cert-a19-r29/r29-policy-report.json"
+          sha256sum "$RUNNER_TEMP/cert-a19-r29/r29-policy-report.json"
+      - name: Preserve plain JSON decision only, no executable gVisor binaries
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cert-a19-r29-offline-gvisor-host-policy
+          path: ${{ runner.temp }}/cert-a19-r29/r29-policy-report.json
+          if-no-files-found: ignore
+          retention-days: 2
