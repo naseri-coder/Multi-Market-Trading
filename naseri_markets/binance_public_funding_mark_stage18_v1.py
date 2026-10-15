@@ -12,7 +12,7 @@ import io
 import json
 import os
 import zipfile
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 
 _MONTH_START = datetime(2024, 1, 1, tzinfo=UTC)
