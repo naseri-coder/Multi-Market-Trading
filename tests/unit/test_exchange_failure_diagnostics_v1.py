@@ -15,7 +15,6 @@ from naseri_markets.exchange_failure_diagnostics_v1 import (
     ("binance", "-1022", FailureKind.AUTHENTICATION),
     ("binance", -1003, FailureKind.RATE_LIMIT),
     ("binance", "-1121", FailureKind.SYMBOL),
-    ("binance", "-1013", FailureKind.QUANTITY),
     ("binance", "-2019", FailureKind.FUNDS),
     ("binance", "-2022", FailureKind.POSITION),
     ("binance", "-4016", FailureKind.PRICE_BAND),
@@ -26,6 +25,8 @@ from naseri_markets.exchange_failure_diagnostics_v1 import (
     ("bybit", "10006", FailureKind.RATE_LIMIT),
     ("bybit", "110007", FailureKind.FUNDS),
     ("bitget", "40009", FailureKind.AUTHENTICATION),
+    ("bybit", "110017", FailureKind.QUANTITY),
+    ("bitget", "40018", FailureKind.ACCESS_RESTRICTED),
 ])
 def test_exact_venue_code_mapping(venue, code, expected):
     diagnosis = diagnose_exchange_failure(venue=venue, exchange_code=code)
@@ -41,7 +42,7 @@ def test_same_code_never_implies_other_exchange():
 
 @pytest.mark.parametrize(("status", "category", "action"), [
     (401, FailureKind.AUTHENTICATION, OperatorAction.CHECK_CONFIGURATION),
-    (403, FailureKind.AUTHENTICATION, OperatorAction.CHECK_CONFIGURATION),
+    (403, FailureKind.ACCESS_RESTRICTED, OperatorAction.STOP_AND_REVIEW),
     (429, FailureKind.RATE_LIMIT, OperatorAction.WAIT_AND_INSPECT),
     (500, FailureKind.TRANSPORT_UNKNOWN, OperatorAction.RECONCILE_BEFORE_ANY_RETRY),
     (502, FailureKind.TRANSPORT_UNKNOWN, OperatorAction.RECONCILE_BEFORE_ANY_RETRY),
@@ -137,3 +138,8 @@ def test_absurdly_large_integer_code_is_bounded():
 def test_large_venue_does_not_propagate():
     result = diagnose_exchange_failure(venue="secret" * 1000)
     assert result.venue == "unknown"
+
+
+def test_generic_binance_invalid_message_is_not_misclassified_as_quantity():
+    finding = diagnose_exchange_failure(venue="binance", exchange_code="-1013")
+    assert finding.category is FailureKind.UNCLASSIFIED
