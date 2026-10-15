@@ -32,7 +32,6 @@ _SHA = re.compile(r"[a-f0-9]{64}\Z")
 _FIELDS = ("open_at", "close_at", "open", "high", "low", "close", "volume")
 _ORIGIN = datetime(2024, 1, 1, tzinfo=UTC)
 _END = datetime(2024, 2, 1, tzinfo=UTC)
-_STEP = timedelta(minutes=15)
 _FUNDING = timedelta(hours=8)
 
 
