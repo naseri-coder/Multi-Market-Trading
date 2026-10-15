@@ -202,7 +202,6 @@ def test_no_production_activation_even_for_wellformed_payload(monkeypatch):
     monkeypatch.setenv("MMT_PRODUCTION", "1")
     with pytest.raises(Stage21ForwardRefused, match="NONPRODUCTION"):
         frozen()
-    data,pin = None,None
     with pytest.raises(Stage21ForwardRefused, match="NONPRODUCTION"):
         receive(candles())
 
