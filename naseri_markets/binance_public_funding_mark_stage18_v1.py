@@ -126,10 +126,20 @@ def reconcile_stage18_primary_public_sources(
     schedule = ["funding_time_utc"]
     events = ["funding_time_utc,funding_rate,mark_price"]
     excluded = []
+    funding_source_timestamp_offsets_ms = []
     for i, row in enumerate(funding_rows):
         at_ms = _MONTH_START_MS + i * 8 * 3600000
-        if row[0] != str(at_ms) or row[1] != "8":
+        try:
+            observed_ms = int(row[0])
+        except ValueError as exc:
+            raise Stage18MarketEvidenceRefused("ST18_INVALID_FUNDING_TIMESTAMP") from exc
+        delta = observed_ms - at_ms
+        # Binance archival calc_time may lag the 8-hour boundary by 1-3ms.
+        # Preserve the exact observed offset and accept no broader drift.
+        if row[0] != str(observed_ms) or not 0 <= delta <= 3 or row[1] != "8":
             raise Stage18MarketEvidenceRefused("ST18_FUNDING_INTERVAL_GAP_OR_POLICY_DRIFT")
+        if delta:
+            funding_source_timestamp_offsets_ms.append([i, delta])
         rate = _decimal(row[2], signed=True)
         if i == 0:
             excluded.append("2024-01-01T00:00:00Z:PRECEDING_MARK_CANDLE_NOT_IN_MONTH")
@@ -156,6 +166,9 @@ def reconcile_stage18_primary_public_sources(
         "mark_zip_sha256": _sha(mark_zip),
         "mark_checksum_sha256": _sha(mark_checksum),
         "observed_funding_events": _FUNDING_COUNT,
+        "source_timestamp_jitter_max_ms": 3,
+        "source_timestamps_with_subsecond_offset": len(funding_source_timestamp_offsets_ms),
+        "source_funding_offset_index_and_ms": funding_source_timestamp_offsets_ms,
         "mark_candle_rows": _MARK_COUNT,
         "source_derived_reconciled_funding_events": _FUNDING_COUNT - 1,
         "excluded_boundary_funding_events": excluded,
