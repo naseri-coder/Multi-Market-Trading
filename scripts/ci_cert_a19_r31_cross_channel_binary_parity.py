@@ -39,7 +39,8 @@ def safe_rel(name):
     n=name.removeprefix("./").rstrip("/")
     if n.startswith("/") or any(x in (".","..") for x in n.split("/")) or "\x00" in n:fail("TARBALL_UNSAFE_PATH")
     n=posixpath.normpath(n)
-    if n=="." or n.startswith("../"):fail("TARBALL_UNSAFE_NAME")
+    if n==".":return "."
+    if n.startswith("../"):fail("TARBALL_UNSAFE_NAME")
     if n.startswith("usr/bin/"):n=n[len("usr/bin/"):]
     return n
 def files_stream(path,wanted):
@@ -56,6 +57,7 @@ def files_stream(path,wanted):
                 if meta_count>800:fail("TOO_MANY_TAR_ENTRIES")
                 n=safe_rel(member.name)
                 if member.isdir():continue
+                if n==".":fail("NON_DIRECTORY_ROOT_TAR_ENTRY")
                 if member.isfile():
                     regular_count+=1
                     if not 0<=member.size<=160_000_000:fail("TAR_MEMBER_SIZE_LIMIT")
