@@ -132,7 +132,7 @@ def check_controls(record):
     case("path_traversal",lambda:clean_rel("pool/../../bad.deb"))
     case("redirect_host",lambda:source_host("https://evil.example/runsc.deb"))
     case("http_scheme",lambda:source_host("http://storage.googleapis.com/gvisor/releases/dists/release/InRelease"))
-    case("sha256_release_member_duplicate",lambda:parse_release(b"SHA256:\n "+"0"*64+" 4 main/binary-amd64/Packages.gz\n "+"1"*64+" 4 main/binary-amd64/Packages.gz\n"))
+    case("sha256_release_member_duplicate",lambda:parse_release(("SHA256:\n "+"0"*64+" 4 main/binary-amd64/Packages.gz\n "+"1"*64+" 4 main/binary-amd64/Packages.gz\n").encode()))
     case("package_without_signed_digest",lambda:parse_packages(b"Package: runsc\nArchitecture: amd64\nVersion: 1\nFilename: pool/a.deb\nSize: 5000000\n"))
     case("spoofed_version_or_path",lambda:parse_packages(b"Package: runsc\nArchitecture: amd64\nVersion: 1\nFilename: ../bad.deb\nSize: 5000000\nSHA256: "+b"0"*64+b"\n"))
     return cases
