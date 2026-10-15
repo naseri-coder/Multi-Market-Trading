@@ -193,7 +193,9 @@ def test_pinned_checksum_and_archive_mismatch_refused():
             operator_ack=True,
         )
     forged = b"0"*64 + chk[64:]
-    with pytest.raises(VisionArchiveRefused, match="CHECKSUM_PIN_MISMATCH"):
+    # Hash of the forged CHECKSUM is re-approved for this adversarial case;
+    # the inner archive hash/filename must STILL fail independently.
+    with pytest.raises(VisionArchiveRefused, match="OFFICIAL_NAMED_CHECKSUM_MISMATCH"):
         run_archive(blob, forged)
 
 
