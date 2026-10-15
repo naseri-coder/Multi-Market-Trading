@@ -81,3 +81,82 @@ def test_operator_explicit_cli_ack(tmp_path, capsys):
     assert "STAGE20_PILOT_REFUSED" in capsys.readouterr().err
     assert main(["--state-dir", str(path), "--ack-synthetic-offline"]) == 0
     assert json.loads(capsys.readouterr().out)["completed_jobs"] == 2
+
+
+def test_stage9_real_two_binding_pilot_receipts_and_frozen_crash_snapshots(tmp_path):
+    """Real Stage-20 synthetic execution; Stage-9 observes only closed immutable copies."""
+    import shutil
+    import sqlite3
+
+    from naseri_markets.job_effect_reconciliation_v1 import (
+        EffectEvidencePaths, evaluate_recovery_decisions,
+    )
+
+    pilot = tmp_path / "stage20"
+    run_paper_pilot(pilot, first_symbol="BTCUSD", second_symbol="ETHUSD",
+                    first_timeframe="5m", second_timeframe="1h")
+    paths = EffectEvidencePaths(
+        pilot / "effects.sqlite", pilot / "runtime.sqlite",
+        pilot / "paper.sqlite", pilot / "signals.sqlite",
+    )
+    with sqlite3.connect("file:" + str(paths.runtime) + "?mode=ro", uri=True) as db:
+        jobs = [row[0] for row in db.execute(
+            "SELECT job_id FROM runtime17_jobs ORDER BY job_id")]
+    assert len(jobs) == len(set(jobs)) == 2
+    expected = {
+        job_id: ("DRY_SIGNAL", "PAPER_PLAN", "PAPER_RESERVE")
+        for job_id in jobs
+    }
+    before = tuple(p.read_bytes() for p in (
+        paths.effects, paths.runtime, paths.paper, paths.signal,
+    ))
+    outcome = evaluate_recovery_decisions(
+        paths, expected_effect_kinds_by_job=expected,
+        all_writers_stopped=True, operator_ack=True,
+    )
+    assert outcome == evaluate_recovery_decisions(
+        paths, expected_effect_kinds_by_job=expected,
+        all_writers_stopped=True, operator_ack=True,
+    )
+    assert outcome.reviewed_jobs == 2
+    assert len(outcome.decisions) == 6
+    assert not outcome.operator_review_required
+    assert outcome.blocking_decisions == 0
+    assert {d.classification for d in outcome.decisions} == {
+        "EXACT_TARGET_AND_RECEIPT"
+    }
+    assert not outcome.auto_retry_authorized
+    assert not outcome.cross_database_atomicity_proven
+    assert before == tuple(p.read_bytes() for p in (
+        paths.effects, paths.runtime, paths.paper, paths.signal,
+    ))
+
+    # Simulate a durable target commit followed by a failed job finalization
+    # on an ISOLATED COPIED SNAPSHOT. Original Stage-20 evidence stays pristine.
+    copy_dir = tmp_path / "crash_copy"
+    copy_dir.mkdir(mode=0o700)
+    for original in (paths.effects, paths.runtime, paths.paper, paths.signal):
+        shutil.copy2(original, copy_dir / original.name)
+    snapshot = EffectEvidencePaths(
+        copy_dir / "effects.sqlite", copy_dir / "runtime.sqlite",
+        copy_dir / "paper.sqlite", copy_dir / "signals.sqlite",
+    )
+    with sqlite3.connect(snapshot.runtime) as db:
+        db.execute("UPDATE runtime17_jobs SET status='QUARANTINED' WHERE job_id=?",
+                   (jobs[0],))
+    snapshot_result = evaluate_recovery_decisions(
+        snapshot, expected_effect_kinds_by_job=expected,
+        all_writers_stopped=True, operator_ack=True,
+    )
+    assert snapshot_result.reviewed_jobs == 2
+    assert snapshot_result.blocking_decisions >= 3
+    assert any(
+        d.job_id == jobs[0] and d.classification == "EXACT_TARGET_JOB_UNFINISHED"
+        for d in snapshot_result.decisions
+    )
+    assert snapshot_result.decision_sha256 != outcome.decision_sha256
+    assert not snapshot_result.auto_retry_authorized
+    assert not snapshot_result.ledger_repair_authorized
+    assert before == tuple(p.read_bytes() for p in (
+        paths.effects, paths.runtime, paths.paper, paths.signal,
+    ))

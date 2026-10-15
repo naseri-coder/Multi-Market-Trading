@@ -103,9 +103,17 @@ def _store(tmp_path, *, effect_kind="PAPER_RESERVE", recorded=False, remote=True
     kind = effect_kind
     target = {"PAPER_RESERVE": "pc8_test", "PAPER_PLAN": "pc8_plan",
               "DRY_SIGNAL": "signal_key"}[kind]
+    digest = "b" * 64
+    if kind == "PAPER_PLAN":
+        from naseri_markets.job_effect_intent_v1 import _sha, _wire
+        expected_plan = {"decision_id": "decision_one",
+                         "instance_id": "sample_instance",
+                         "binding_id": "sample_binding",
+                         "source_ref": "stage19_synthetic"}
+        digest = _sha(_wire(expected_plan))
     with OfflineJobEffectLedger(paths.effects, enabled=True) as led:
         iid = led.prepare(job, kind=kind, target_id=target,
-                          request_digest="b" * 64, decision_id="decision_one",
+                          request_digest=digest, decision_id="decision_one",
                           event_digest="a" * 64)
         if recorded:
             led.recorded(iid, target_id=target, receipt={"target": target})
@@ -211,3 +219,193 @@ def test_exact_order_id_stable():
         "binding_a", "decision_b")
     assert _paper_order_id("binding_a", "decision_b") != _paper_order_id(
         "binding_a", "decision_c")
+
+
+# Stage 9 deliberately exercises the EXISTING three Stage-19 effect kinds,
+# with every crash cutpoint treated as local evidence, never as a retry permit.
+def _stage9(paths, kind, *, stopped=True, ack=True, expected=None):
+    from naseri_markets.job_effect_reconciliation_v1 import (
+        evaluate_recovery_decisions,
+    )
+
+    job = _fixture(paths.effects.parent)
+    return evaluate_recovery_decisions(
+        paths,
+        expected_effect_kinds_by_job={job.job_id: (kind,) if expected is None
+                                      else expected},
+        operator_ack=ack, all_writers_stopped=stopped,
+    )
+
+
+@pytest.mark.parametrize("kind", ["PAPER_RESERVE", "PAPER_PLAN", "DRY_SIGNAL"])
+@pytest.mark.parametrize("recorded,remote,state,classification", [
+    (False, False, "CLAIMED", "PREPARED_NO_TARGET_UNKNOWN"),
+    (False, True, "QUARANTINED", "TARGET_EXISTS_RECEIPT_GAP"),
+    (True, True, "CLAIMED", "EXACT_TARGET_JOB_UNFINISHED"),
+    (True, True, "DONE", "EXACT_TARGET_AND_RECEIPT"),
+    (True, False, "DONE", "RECORDED_TARGET_MISSING_CONFLICT"),
+])
+def test_stage9_crash_cutpoint_matrix_is_readonly_and_deterministic(
+    tmp_path, kind, recorded, remote, state, classification,
+):
+    paths = _store(tmp_path, effect_kind=kind, recorded=recorded,
+                   remote=remote, runtime_state=state)
+    evidence_paths = (paths.effects, paths.runtime, paths.paper, paths.signal)
+    frozen_bytes = tuple(p.read_bytes() for p in evidence_paths)
+    report = _stage9(paths, kind)
+    assert report == _stage9(paths, kind)
+    assert report.decisions[0].classification == classification
+    assert report.reviewed_jobs == 1
+    assert len(report.source_evidence_sha256) == len(report.decision_sha256) == 64
+    assert (report.blocking_decisions == 0) == (
+        classification == "EXACT_TARGET_AND_RECEIPT"
+    )
+    assert report.operator_review_required == bool(report.blocking_decisions)
+    assert not report.auto_retry_authorized
+    assert not report.ledger_repair_authorized
+    assert not report.telegram_send_authorized
+    assert not report.broker_orders_authorized
+    assert not report.live_trading_authorized
+    assert not report.exactly_once_proven
+    assert not report.cross_database_atomicity_proven
+    assert not report.operator_expected_set_independently_attested
+    assert frozen_bytes == tuple(p.read_bytes() for p in evidence_paths)
+
+
+def test_stage9_missing_runtime_job_is_included_and_blocked(tmp_path):
+    paths = _store(tmp_path, recorded=True, remote=True)
+    with sqlite3.connect(paths.runtime) as db:
+        db.execute("DELETE FROM runtime17_jobs")
+    report = _stage9(paths, "PAPER_RESERVE")
+    assert report.decisions[0].classification == "MISSING_JOB"
+    assert report.blocking_decisions == 1
+
+
+def test_stage9_ambiguous_signal_outbox_is_not_retryable(tmp_path):
+    paths = _store(tmp_path, effect_kind="DRY_SIGNAL",
+                   recorded=True, remote=True)
+    with sqlite3.connect(paths.signal) as db:
+        db.execute("INSERT INTO offline_signal_commands VALUES(?,?)",
+                   ("signal_key", "CLAIMED"))
+    report = _stage9(paths, "DRY_SIGNAL")
+    assert report.decisions[0].classification == "AMBIGUOUS_SIGNAL_OUTBOX"
+    assert report.decisions[0].action == "BLOCKED_OPERATOR_REVIEW"
+
+
+@pytest.mark.parametrize("wrong_map", [
+    {"another_job": ("PAPER_RESERVE",)},
+    {},
+    {"another_job": ("PAPER_RESERVE",), "unused": ("DRY_SIGNAL",)},
+])
+def test_stage9_incomplete_operator_job_inventory_refused(tmp_path, wrong_map):
+    from naseri_markets.job_effect_reconciliation_v1 import (
+        evaluate_recovery_decisions,
+    )
+    paths = _store(tmp_path, recorded=True, remote=True)
+    with pytest.raises(IntentRefused, match="EXPECTED_JOB_MAP|JOB_INVENTORY"):
+        evaluate_recovery_decisions(
+            paths, expected_effect_kinds_by_job=wrong_map,
+            operator_ack=True, all_writers_stopped=True,
+        )
+
+
+@pytest.mark.parametrize("expected", [
+    ("PAPER_RESERVE", "PAPER_RESERVE"),
+    ("PAPER_PLAN", "DRY_SIGNAL"),
+    ("PAPER_RESERVE", "BAD_KIND"),
+    ["PAPER_RESERVE"],
+])
+def test_stage9_noncanonical_expected_effect_list_refused(tmp_path, expected):
+    paths = _store(tmp_path, recorded=True)
+    with pytest.raises(IntentRefused, match="EXPECTED_EFFECT"):
+        _stage9(paths, "PAPER_RESERVE", expected=expected)
+
+
+def test_stage9_declared_but_missing_effect_detected_despite_done_job(tmp_path):
+    paths = _store(tmp_path, recorded=True, remote=True)
+    report = _stage9(paths, "PAPER_RESERVE",
+                     expected=("PAPER_PLAN", "PAPER_RESERVE"))
+    kinds = {(d.kind, d.classification) for d in report.decisions}
+    assert ("PAPER_RESERVE", "EXACT_TARGET_AND_RECEIPT") in kinds
+    assert ("PAPER_PLAN", "MISSING_EFFECT_INTENT") in kinds
+    assert report.blocking_decisions == 1
+
+
+def test_stage9_unexpected_effect_is_not_laundered_by_exact_receipt(tmp_path):
+    paths = _store(tmp_path, recorded=True, remote=True)
+    report = _stage9(paths, "PAPER_RESERVE", expected=())
+    assert any(d.classification == "UNEXPECTED_OR_DUPLICATE_EFFECT_INTENT"
+               for d in report.decisions)
+    assert report.operator_review_required
+
+
+def test_stage9_pending_empty_job_is_observed_without_safety_grant(tmp_path):
+    from naseri_markets.job_effect_reconciliation_v1 import (
+        evaluate_recovery_decisions,
+    )
+    paths = _store(tmp_path, recorded=True, remote=True)
+    job = _fixture(tmp_path)
+    extra_id = "job17_" + "f" * 64
+    with sqlite3.connect(paths.runtime) as db:
+        db.execute("INSERT INTO runtime17_jobs VALUES(?,?,?,?,?)",
+                   (extra_id, "PENDING", "some_instance", "some_binding", "{}"))
+    report = evaluate_recovery_decisions(
+        paths,
+        expected_effect_kinds_by_job={
+            job.job_id: ("PAPER_RESERVE",),
+            extra_id: (),
+        },
+        operator_ack=True, all_writers_stopped=True,
+    )
+    assert report.reviewed_jobs == 2
+    assert any(d.classification == "PENDING_NO_DISPATCH" for d in report.decisions)
+    assert report.blocking_decisions == 0
+    assert not report.auto_retry_authorized
+
+
+def test_stage9_done_job_without_effect_has_no_completion_proof(tmp_path):
+    from naseri_markets.job_effect_reconciliation_v1 import (
+        evaluate_recovery_decisions,
+    )
+    paths = _store(tmp_path, recorded=True, remote=True)
+    job = _fixture(tmp_path)
+    extra_id = "job17_" + "f" * 64
+    with sqlite3.connect(paths.runtime) as db:
+        db.execute("INSERT INTO runtime17_jobs VALUES(?,?,?,?,?)",
+                   (extra_id, "DONE", "some_instance", "some_binding", "{}"))
+    report = evaluate_recovery_decisions(
+        paths,
+        expected_effect_kinds_by_job={job.job_id: ("PAPER_RESERVE",), extra_id: ()},
+        operator_ack=True, all_writers_stopped=True,
+    )
+    assert "JOB_HAS_NO_EFFECT_PROOF" in [d.classification for d in report.decisions]
+    assert report.operator_review_required
+
+
+def test_stage9_no_audit_without_stop_all_writers_and_ack(tmp_path):
+    paths = _store(tmp_path, recorded=True, remote=True)
+    for ack, stopped in ((False, True), (True, False), (False, False)):
+        with pytest.raises(IntentRefused, match="STOP_WRITERS"):
+            _stage9(paths, "PAPER_RESERVE", ack=ack, stopped=stopped)
+
+
+def test_stage9_production_disabled_and_audit_chain_not_bypassed(tmp_path, monkeypatch):
+    paths = _store(tmp_path, recorded=True, remote=True)
+    monkeypatch.setenv("MMT_PRODUCTION", "1")
+    with pytest.raises(IntentRefused, match="NONPRODUCTION"):
+        _stage9(paths, "PAPER_RESERVE")
+    monkeypatch.delenv("MMT_PRODUCTION")
+    with sqlite3.connect(paths.effects) as db:
+        db.execute("UPDATE effect19_events SET chain_hash=? WHERE seq=1",
+                   ("f" * 64,))
+    with pytest.raises(IntentRefused, match="TAMPERED_EFFECT_AUDIT_CHAIN"):
+        _stage9(paths, "PAPER_RESERVE")
+
+
+def test_stage9_operator_declared_set_changes_decision_digest(tmp_path):
+    paths = _store(tmp_path, recorded=True, remote=True)
+    baseline = _stage9(paths, "PAPER_RESERVE", expected=("PAPER_RESERVE",))
+    changed = _stage9(paths, "PAPER_RESERVE",
+                      expected=("PAPER_PLAN", "PAPER_RESERVE"))
+    assert baseline.source_evidence_sha256 == changed.source_evidence_sha256
+    assert baseline.decision_sha256 != changed.decision_sha256
