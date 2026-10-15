@@ -17,6 +17,10 @@ from pathlib import Path
 from statistics import median
 from typing import Any
 
+from .research_walk_forward_v1 import (
+    WalkForwardRefused, WalkForwardSettings, evaluate_walk_forward,
+)
+
 MAX_MANIFEST = 65536
 MAX_ORDERS = 10000
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}\Z")
@@ -178,13 +182,25 @@ def _metrics(records: list[dict], initial_equity: Decimal) -> dict:
     }
 
 
-def evaluate_stage9_research(db_path: str | Path, protocol_bytes: bytes) -> dict:
+def evaluate_stage9_research(
+    db_path: str | Path, protocol_bytes: bytes, *,
+    walk_forward_folds: int | None = None, embargo_seconds: int = 0,
+) -> dict:
     """Analyze full scoped Stage-9 population from a read-only SQLite snapshot.
 
     Research judgments intentionally never assert profitable real-money edge.
     No mutation, code execution, plugin import, network, broker or Telegram.
     """
     protocol = parse_protocol(protocol_bytes)
+    if walk_forward_folds is None:
+        if type(embargo_seconds) is not int or embargo_seconds != 0:
+            raise ResearchLabRefused("WF_FOLDS_REQUIRED_FOR_EMBARGO")
+        wf_settings = None
+    else:
+        try:
+            wf_settings = WalkForwardSettings(walk_forward_folds, embargo_seconds)
+        except WalkForwardRefused as exc:
+            raise ResearchLabRefused("INVALID_WALK_FORWARD_SETTINGS") from exc
     p = Path(db_path)
     if str(db_path) == ":memory:" or p.is_symlink() or not p.is_file():
         raise ResearchLabRefused("EXISTING_REGULAR_RESEARCH_DB_REQUIRED")
@@ -423,6 +439,16 @@ def evaluate_stage9_research(db_path: str | Path, protocol_bytes: bytes) -> dict
                       "independent_provider_data_verified":False,
                       "prospective_holdout_verified":False,
                       "telegram_sent":False,"broker_order_sent":False}
+        if wf_settings is not None:
+            try:
+                serialized["walk_forward"] = evaluate_walk_forward(
+                    records,
+                    window_start=start, training_end=train_end,
+                    validation_end=validation_end, window_end=end,
+                    settings=wf_settings, min_closed_per_segment=minimum,
+                )
+            except WalkForwardRefused as exc:
+                raise ResearchLabRefused("INVALID_WALK_FORWARD_EVIDENCE") from exc
         serialized["report_sha256"] = _digest(serialized)
         return serialized
     except ResearchLabRefused:
