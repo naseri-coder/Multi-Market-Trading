@@ -41,7 +41,10 @@ jobs:
             naseri_markets/trading_control_center_v1.py \
             naseri_markets/trading_control_telegram_v1.py \
             tests/unit/test_stage11_reviewed_core_parameters_v1.py
-          python -m pytest -q \
-            tests/unit/test_stage11_reviewed_core_parameters_v1.py \
-            tests/unit/test_core_parameter_guard_v1.py \
-            tests/unit/test_trading_control_center_v1.py
+          mkdir -p "$RUNNER_TEMP/stage11-isolated-tests"
+          cp tests/unit/test_stage11_reviewed_core_parameters_v1.py \
+             tests/unit/test_core_parameter_guard_v1.py \
+             tests/unit/test_trading_control_center_v1.py \
+             "$RUNNER_TEMP/stage11-isolated-tests/"
+          PYTHONPATH="$GITHUB_WORKSPACE" python -m pytest -q \
+            "$RUNNER_TEMP/stage11-isolated-tests"
