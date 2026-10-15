@@ -385,10 +385,10 @@ def fill_evidence_digest(value: FillEvidence) -> str:
         "quantity": _canonical_number(value.quantity),
         "unit": value.quantity_unit.value,
         "time": value.occurred_at.astimezone(UTC).isoformat(),
-        "fees": sorted((
-            fee.currency, _canonical_number(fee.amount), fee.direction.value
+        "fees": sorted(
+            (fee.currency, _canonical_number(fee.amount), fee.direction.value)
             for fee in value.fees
-        )),
+        ),
         "fee_state": value.fee_state.value,
         "maker": value.maker,
     }
