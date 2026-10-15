@@ -280,7 +280,7 @@ def test_invalid_time_is_refused(bad):
     {"venue": "BINANCE"},
     {"order_id": "order id"},
     {"event_id": ""},
-    {"native_status": "X" * 49},
+    {"status": "X" * 49},
 ])
 def test_untrusted_strings_cannot_change_contract(kwargs):
     with pytest.raises(ObservationRefused):
