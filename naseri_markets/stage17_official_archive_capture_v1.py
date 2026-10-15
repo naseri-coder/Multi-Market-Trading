@@ -166,7 +166,7 @@ def import_stage17_vision_month_offline(
         raise Stage17Refused("ST17_EXPLICIT_OPERATOR_ACK_REQUIRED")
     url, checksum_url = _url_and_month(year, month)
     archive_name = url.rsplit("/", 1)[-1]
-    if (type(zip_path) is not Path or type(checksum_path) is not Path
+    if (not isinstance(zip_path, Path) or not isinstance(checksum_path, Path)
             or not zip_path.is_absolute() or not checksum_path.is_absolute()
             or zip_path.name != archive_name
             or checksum_path.name != archive_name + ".CHECKSUM"
