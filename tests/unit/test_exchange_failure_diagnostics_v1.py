@@ -90,7 +90,9 @@ def test_unknown_and_malformed_codes_are_not_assumed_safe():
 
 
 def test_oversized_message_is_not_parsed_or_reflected():
-    result = diagnose_exchange_failure(venue="unknown secret provider", message="invalid api key" * 2000)
+    result = diagnose_exchange_failure(
+        venue="unknown secret provider", message="invalid api key" * 2000
+    )
     assert result.venue == "unknown"
     assert result.category is FailureKind.UNCLASSIFIED
     assert len(repr(result)) < 300
@@ -109,7 +111,9 @@ def test_malformed_input_fails_without_interpreting_as_failure(payload):
 
 def test_unknown_venue_not_echoed_into_logs_or_diagnostic():
     secret = "my_token_hidden"
-    result = diagnose_exchange_failure(venue=secret, http_status=418, message="nonstandard response")
+    result = diagnose_exchange_failure(
+        venue=secret, http_status=418, message="nonstandard response"
+    )
     assert result.venue == "unknown"
     assert secret not in repr(result)
     assert result.action is OperatorAction.STOP_AND_REVIEW
