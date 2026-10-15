@@ -89,6 +89,46 @@ jobs:
           (target/"stage18-raw-source-probe.json").write_text(
               json.dumps(reports,sort_keys=True,indent=2)+"\n")
           PY
+      - name: Checkout exact reviewed source for native funding/mark audit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run native Stage18 public source validator on authentic original ZIPs
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+          MMT_NONPRODUCTION: "1"
+          MMT_PRODUCTION: "0"
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from naseri_markets.binance_public_funding_mark_stage18_v1 import (
+              reconcile_stage18_primary_public_sources,
+          )
+          directory = Path(os.environ["RUNNER_TEMP"]) / "stage18-source-evidence"
+          f = "BTCUSDT-fundingRate-2024-01.zip"
+          m = "BTCUSDT-15m-2024-01.zip"
+          report, schedule, events = reconcile_stage18_primary_public_sources(
+              funding_zip=(directory / ("funding-"+f)).read_bytes(),
+              funding_checksum=(directory / ("funding-"+f+".CHECKSUM")).read_bytes(),
+              mark_zip=(directory / ("mark-"+m)).read_bytes(),
+              mark_checksum=(directory / ("mark-"+m+".CHECKSUM")).read_bytes(),
+              operator_ack=True,
+          )
+          assert report["observed_funding_events"] == 93
+          assert report["source_derived_reconciled_funding_events"] == 92
+          assert report["mark_candle_rows"] == 2976
+          assert report["historical_mark_at_exact_settlement_proven"] is False
+          assert report["paper_trading_authorized"] is False
+          (directory/"normalized-funding-schedule-stage18.csv").write_bytes(schedule)
+          (directory/"normalized-funding-rate-mark-proxy-stage18.csv").write_bytes(events)
+          (directory/"original-binance-funding-mark-quality-evidence.json").write_text(
+              json.dumps(report,sort_keys=True,indent=2)+"\n"
+          )
+          print("ST18_OFFICIAL_FUNDING_MARK_NATIVE_AUDIT_PASS")
+          print(json.dumps(report,sort_keys=True))
+          PY
       - name: Store exact original public artifacts outside Git repository
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
         with:
