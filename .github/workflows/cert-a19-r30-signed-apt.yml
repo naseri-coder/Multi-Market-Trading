@@ -1,0 +1,64 @@
+name: CERT-A19-R30 signed gVisor apt metadata and runsc binary custody (nonproduction)
+
+on:
+  push:
+    branches: [cert-a19-byte-audit-run]
+    paths:
+      - ".github/workflows/cert-a19-r30-signed-apt.yml"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  signed-apt-custody-only:
+    if: github.repository == 'naseri-coder/Multi-Market-Trading' && github.ref == 'refs/heads/cert-a19-byte-audit-run'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      MMT_NONPRODUCTION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Restore exact authentic earlier R29 evidence (not trust historical status text)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          d="$RUNNER_TEMP/cert-a19-r30"
+          mkdir -m 0700 "$d"
+          mkdir -p "$d/previous"
+          gh run download 38700270209 --repo naseri-coder/Multi-Market-Trading \
+            --name cert-a19-r29-offline-gvisor-host-policy --dir "$d/previous"
+          cp "$d/previous/r29-policy-report.json" "$d/r29-policy-report.json"
+          echo '16400ae6890cbc5aae0a26df3179ab91db049b2d8fbce60c8e45646af2b0b160  '"$d/r29-policy-report.json" | sha256sum -c --status
+          echo R30_ORIGINAL_R29_EVIDENCE_SHA256_MATCH
+      - name: Verify official gVisor apt signing key and signed package index and inspect runsc DEB as inert data
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          command -v gpg
+          command -v gpgv
+          command -v dpkg-deb
+          python3 -u -m scripts.ci_cert_a19_r30_gvisor_signed_apt
+          test -s "$RUNNER_TEMP/cert-a19-r30/r30-apt-custody.json"
+          sha256sum "$RUNNER_TEMP/cert-a19-r30/r30-apt-custody.json"
+      - name: Upload JSON proof only, no downloaded binaries, apt signing keys, packages or secrets
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cert-a19-r30-gvisor-signed-apt-native-custody
+          path: ${{ runner.temp }}/cert-a19-r30/r30-apt-custody.json
+          if-no-files-found: ignore
+          retention-days: 2
+      - name: Delete downloaded software and key material from ephemeral runner
+        if: always()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          d="$RUNNER_TEMP/cert-a19-r30"
+          test "$d" = "$RUNNER_TEMP/cert-a19-r30"
+          rm -rf -- "$d"
+          echo R30_EPHEMERAL_KEY_AND_PACKAGE_BYTES_PURGED
