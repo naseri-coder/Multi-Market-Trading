@@ -18,7 +18,6 @@ from ._contract_acceptance_fixture_v1 import OfflineContractFixture
 from .contracts import Direction
 from .core_api_v1 import (
     CoreBinding, CoreEventType, DataOrigin, DecisionKind, OfflineCoreHarness,
-    _TIMEFRAME_MINUTES,
 )
 from .historical_data_loader_a1 import HistoricalFileSpec, validate_historical_file
 from .historical_pit_quality_stage12_v1 import inspect_historical_pit_archive
