@@ -1,0 +1,205 @@
+name: CERT-A19-R24 signed Wolfi base actual apko overlay composition trial
+
+on:
+  push:
+    branches: [cert-a19-byte-audit-run]
+    paths:
+      - ".github/workflows/cert-a19-r24-base-overlay.yml"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  scoped-base-overlay-build-and-static-file-proof:
+    if: github.repository == 'naseri-coder/Multi-Market-Trading' && github.ref == 'refs/heads/cert-a19-byte-audit-run'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 28
+    env:
+      MMT_NONPRODUCTION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: Restore R17 R18 R23 frozen evidence with exact SHA256
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          d="$RUNNER_TEMP/cert-a19-r24"
+          mkdir -m 0755 "$d"
+          mkdir "$d/r18" "$d/r23" "$d/keys" "$d/output" "$d/tool"
+          gh run download 38642890495 --repo naseri-coder/Multi-Market-Trading \
+            --name cert-a19-r18-apko-signed-offline-closure-audit --dir "$d/r18"
+          gh run download 38650418247 --repo naseri-coder/Multi-Market-Trading \
+            --name cert-a19-r23-signed-apko-package-only-composition --dir "$d/r23"
+          cp "$d/r18/APKINDEX.tar.gz" "$d/APKINDEX.tar.gz"
+          cp "$d/r18/r18-result.json" "$d/r18-result.json"
+          cp "$d/r23/r23-package-only-rootfs.json" "$d/r23-package-only-rootfs.json"
+          echo '8011fbdaf70278ae83e3729dc2c44a8148a91cf03ea0ef7a3d049e30a65e36a5  '"$d/APKINDEX.tar.gz" | sha256sum -c --status
+          echo '78356a69bf4c7aa50856450b1b4f55f9aaaf4909072891909a9fe73697fd139b  '"$d/r18-result.json" | sha256sum -c --status
+          echo '1e649d3c64bcf70769b32885dcb192b2a3789a49852f1358460284692e814435  '"$d/r23-package-only-rootfs.json" | sha256sum -c --status
+      - name: Verify immutable signed base and derive REAL installed database from never-started container
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          d="$RUNNER_TEMP/cert-a19-r24"
+          image='cgr.dev/chainguard/wolfi-base@sha256:256c88bb066424045021090932d50be93c8e3f2ce3586707702a401b146f3e43'
+          cosign verify --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            --certificate-identity=https://github.com/chainguard-images/images/.github/workflows/release.yaml@refs/heads/main \
+            "$image" > "$d/base-sigstore.log"
+          printf '%s\n' "$image" > "$d/base-id"
+          echo BASE_SIGNED_IDENTITY_VERIFIED > "$d/base-signature.status"
+          docker pull --platform linux/amd64 "$image"
+          docker image inspect "$image" --format '{{.Id}}' > "$d/docker-image-id"
+          cid="$(docker create --pull=never --platform linux/amd64 --entrypoint=/bin/true "$image")"
+          trap 'docker rm "$cid" >/dev/null 2>&1 || true' EXIT
+          test "$(docker inspect "$cid" --format '{{.State.Status}}')" = created
+          for path in /lib/apk/db/installed /usr/lib/apk/db/installed /var/lib/apk/db/installed; do
+            if docker cp "$cid:$path" "$d/base-installed" 2>/dev/null; then break; fi
+          done
+          test -s "$d/base-installed"
+          docker cp "$cid:/etc/apk/keys/." "$d/keys"
+          test "$(docker inspect "$cid" --format '{{.State.Status}}')" = created
+          docker save "$image" -o "$d/base-docker-save.tar"
+          test "$(docker inspect "$cid" --format '{{.State.Status}}')" = created
+          chmod 755 "$d/keys" "$d/output" "$d/tool"
+          find "$d/keys" -type f -name '*.pub' -exec chmod 644 {} +
+          echo R24_ORIGINAL_SIGNED_OCI_SOURCE_EXPORTED_WITHOUT_STARTING
+      - name: Verify frozen native APKINDEX signature against signed base keyring
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          d="$RUNNER_TEMP/cert-a19-r24"
+          mkdir -p "$d/native/x86_64"
+          cp "$d/APKINDEX.tar.gz" "$d/native/x86_64/APKINDEX.tar.gz"
+          printf 'file:///mnt/repo\n' > "$d/repositories"
+          image="$(cat "$d/base-id")"
+          docker run --rm --pull=never --platform linux/amd64 \
+            --network=none --read-only --cap-drop=ALL --security-opt=no-new-privileges \
+            --user=65534:65534 --pids-limit=50 --memory=220m \
+            --mount type=bind,src="$d/native",dst=/mnt/repo,readonly \
+            --mount type=bind,src="$d/repositories",dst=/mnt/repos,readonly \
+            --entrypoint /sbin/apk "$image" \
+            --no-cache --no-progress --keys-dir /etc/apk/keys \
+            --repositories-file /mnt/repos search -x busybox \
+            > "$d/index-native.stdout" 2> "$d/index-native.stderr"
+          if grep -Eiq 'untrusted|bad signature|error:|warning:' "$d/index-native.stderr"; then
+            cat "$d/index-native.stderr";exit 1
+          fi
+          grep -E '^busybox-[0-9]' "$d/index-native.stdout"
+          echo NATIVE_INDEX_SIGNATURE_ACCEPTED > "$d/apkindex.status"
+      - name: Authenticate fixed official apko 1.4.11 release SHA256 and Sigstore signer BEFORE running tool
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          d="$RUNNER_TEMP/cert-a19-r24"
+          prefix='https://github.com/chainguard-dev/apko/releases/download/v1.4.11/apko_1.4.11_linux_amd64.tar.gz'
+          for suffix in '' .sig .crt; do
+            curl --proto '=https' --proto-redir '=https' --fail --location --silent --show-error \
+              --retry 1 --connect-timeout 15 --max-time 90 "$prefix$suffix" -o "$d/apko.tar.gz$suffix"
+          done
+          echo '5445ea2467a4ab0db3e31d9f795133128d0564c7afdaa46fcdaa1ee3cf92c757  '"$d/apko.tar.gz" | sha256sum -c --status
+          cosign verify-blob --certificate "$d/apko.tar.gz.crt" --signature "$d/apko.tar.gz.sig" \
+            --certificate-identity=https://github.com/chainguard-dev/apko/.github/workflows/release.yaml@refs/heads/main \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            "$d/apko.tar.gz" > "$d/apko-sigstore.log"
+          python3 - <<'PY'
+          import os,tarfile,pathlib
+          d=pathlib.Path(os.environ["RUNNER_TEMP"])/"cert-a19-r24"
+          with tarfile.open(d/"apko.tar.gz","r:gz") as t:
+            items=[m for m in t if m.isfile() and pathlib.PurePosixPath(m.name).name=="apko"]
+            if len(items)!=1 or not 15_000_000<items[0].size<150_000_000:
+              raise ValueError("R24_RELEASE_BINARY_UNEXPECTED")
+            file=t.extractfile(items[0])
+            if file is None: raise ValueError("R24_RELEASE_BINARY_UNAVAILABLE")
+            target=d/"tool"/"apko"
+            payload=file.read(150_000_001)
+            if len(payload)!=items[0].size:raise ValueError("R24_APKO_TRUNCATED")
+            target.write_bytes(payload);target.chmod(0o755)
+          PY
+          "$d/tool/apko" version > "$d/apko-version.txt"
+          grep -F '1.4.11' "$d/apko-version.txt"
+          echo SIGNED_APKO_V1_4_11_CONFIRMED > "$d/apko.status"
+      - name: Create exact OCI base from docker-save config and layer bytes; recheck 36 archival pins
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 -u -m scripts.ci_cert_a19_r24_base_overlay prepare
+          mkdir -p "$RUNNER_TEMP/cert-a19-r24/output/oci"
+          chmod -R a+rX "$RUNNER_TEMP/cert-a19-r24/base-oci" "$RUNNER_TEMP/cert-a19-r24/base-metadata" "$RUNNER_TEMP/cert-a19-r24/repo" "$RUNNER_TEMP/cert-a19-r24/keys"
+          chmod 777 "$RUNNER_TEMP/cert-a19-r24/output" "$RUNNER_TEMP/cert-a19-r24/output/oci"
+      - name: Generate actual apko base-image lock with original installed DB; network disabled
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          d="$RUNNER_TEMP/cert-a19-r24"
+          image="$(cat "$d/base-id")"
+          docker run --rm --pull=never --platform linux/amd64 \
+            --network=none --read-only --cap-drop=ALL --security-opt=no-new-privileges \
+            --user=65534:65534 --pids-limit=90 --memory=2200m \
+            --env HOME=/tmp --env TMPDIR=/tmp \
+            --tmpfs /tmp:rw,nosuid,noexec,size=900m,mode=1777 \
+            --mount type=bind,src="$d",dst=/work,readonly \
+            --mount type=bind,src="$d/output",dst=/work/output \
+            --entrypoint /work/tool/apko "$image" \
+            lock --arch x86_64 --output /work/output/r24.lock.json \
+            /work/r24-overlay.apko.yaml \
+            > "$d/apko-lock.stdout" 2> "$d/apko-lock.stderr" || {
+              tail -n 90 "$d/apko-lock.stderr" >&2
+              echo R24_LOCK_FAILED_CANNOT_PROCEED_TO_BUILD >&2
+              exit 1
+            }
+          cp "$d/output/r24.lock.json" "$d/r24.lock.json"
+          python3 -m scripts.ci_cert_a19_r24_base_overlay lock
+      - name: Construct one disposable source-pinned BASE-OVERLAY OCI through apko; no guest execution
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          d="$RUNNER_TEMP/cert-a19-r24"
+          image="$(cat "$d/base-id")"
+          docker run --rm --pull=never --platform linux/amd64 \
+            --network=none --read-only --cap-drop=ALL --security-opt=no-new-privileges \
+            --user=65534:65534 --pids-limit=100 --memory=2500m \
+            --env HOME=/tmp --env TMPDIR=/tmp \
+            --tmpfs /tmp:rw,nosuid,noexec,size=900m,mode=1777 \
+            --mount type=bind,src="$d",dst=/work,readonly \
+            --mount type=bind,src="$d/output",dst=/work/output \
+            --entrypoint /work/tool/apko "$image" \
+            build --arch x86_64 --lockfile /work/output/r24.lock.json \
+            --vcs=false --sbom=false --cache-dir /tmp/apko-cache \
+            /work/r24-overlay.apko.yaml r24-nonproduction:static /work/output/oci \
+            > "$d/apko-build.stdout" 2> "$d/apko-build.stderr" || {
+              tail -n 90 "$d/apko-build.stderr" >&2
+              echo R24_BASE_OVERLAY_BUILD_FAILED_NO_RELEASE_CERTIFICATION >&2
+              exit 1
+            }
+          echo R24_DISPOSABLE_BASE_OVERLAY_BUILT_NO_GUEST_EXECUTION
+      - name: Inspect OCI layers and final clear /usr-lib64 / ELF loader without target execution
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 -m scripts.ci_cert_a19_r24_base_overlay inspect
+          sha256sum "$RUNNER_TEMP/cert-a19-r24/r24-result.json"
+      - name: Upload only R24 JSON and bounded installer diagnostics, never runtime executable or OCI files
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cert-a19-r24-frozen-base-overlay-package-manager-evidence
+          path: |
+            ${{ runner.temp }}/cert-a19-r24/r24-result.json
+            ${{ runner.temp }}/cert-a19-r24/apko-lock.stderr
+            ${{ runner.temp }}/cert-a19-r24/apko-build.stderr
+          if-no-files-found: ignore
+          retention-days: 2
+      - name: Delete disposable base OCI, output OCI, package bytes and caches
+        if: always()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          d="$RUNNER_TEMP/cert-a19-r24"
+          test "$d" = "$RUNNER_TEMP/cert-a19-r24"
+          rm -rf -- "$d/base-oci" "$d/output" "$d/repo" "$d/base-docker-save.tar" "$d/tool/apko"
+          echo R24_TRANSIENT_OCI_AND_PACKAGE_BYTES_PURGED
