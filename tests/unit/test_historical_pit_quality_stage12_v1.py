@@ -208,6 +208,7 @@ def test_unaligned_closed_candles_refused_even_if_contiguous(tmp_path):
         tmp_path, raw=HEADER+row1+row2,
         window_start_utc="2026-10-13T10:01:00Z",
         window_end_utc="2026-10-13T10:31:00Z",
+        retrieved_at_utc="2026-10-13T10:32:00Z",
     )
     with pytest.raises(HistoricalPitRefused, match="UNALIGNED"):
         run(path, spec, receipt)
