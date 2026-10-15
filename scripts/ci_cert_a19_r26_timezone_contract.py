@@ -109,7 +109,7 @@ def main():
          "WORKER_TIMESTAMP_PASSTHROUGH_CHANGED")
     child=ast.unparse(get_def(worker,"_child"))
     must('NODE_PATH' in child and 'PATH' in child and '"TZ"' not in child and
-         "timeout=3.0" in child and '"node"' in child,
+         "timeout=3.0" in child and "'node'" in child,
          "CHILD_EXEC_ENV_OR_TIMEOUT_DRIFT")
     pychild=string_assignment(worker,"PY_CHILD")
     jschild=string_assignment(worker,"JS_CHILD")
