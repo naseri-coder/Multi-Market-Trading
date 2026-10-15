@@ -144,8 +144,14 @@ def unpack_deb_readonly(work,record,deb):
     meta=subprocess.run(["dpkg-deb","-f",str(path),"Package","Version","Architecture"],
                         capture_output=True,text=True,check=False,timeout=35)
     if meta.returncode!=0:stop("DEB_CONTROL_UNREADABLE")
-    v=meta.stdout.strip().splitlines()
+    lines=meta.stdout.strip().splitlines()
+    labeled={k.strip():v.strip() for line in lines if ":" in line for k,v in [line.split(":",1)]}
+    if labeled:
+        v=[labeled.get("Package",""),labeled.get("Version",""),labeled.get("Architecture","")]
+    else:
+        v=lines
     if len(v)<3 or v[0]!="runsc" or v[1]!=record["Version"] or v[2] not in ("amd64","all"):
+        print("R30_DEB_CONTROL_METADATA_FORMAT="+repr(meta.stdout[:400]))
         stop("DEB_CONTROL_DOES_NOT_MATCH_SIGNED_INDEX")
     process=subprocess.Popen(["dpkg-deb","--fsys-tarfile",str(path)],
                              stdout=subprocess.PIPE,stderr=subprocess.PIPE)
