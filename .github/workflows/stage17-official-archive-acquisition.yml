@@ -1,0 +1,108 @@
+name: Stage17 one-shot official public archive acquisition
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/stage17-official-archive-acquisition.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  official-market-archive-readonly:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Fetch exact public archive with strict TLS and content checks
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          python3 - <<'PY'
+          import calendar
+          import csv
+          import hashlib
+          import io
+          import json
+          import os
+          import pathlib
+          import re
+          import urllib.request
+          import zipfile
+          from datetime import UTC, datetime
+
+          name = "BTCUSDT-15m-2024-01.zip"
+          root = "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/"
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  raise RuntimeError("ST17_REMOTE_REDIRECT_REFUSED")
+          agent = urllib.request.build_opener(NoRedirect())
+          def fetch(url, limit):
+              if url not in (root + name, root + name + ".CHECKSUM"):
+                  raise RuntimeError("ST17_UNEXPECTED_ENDPOINT")
+              request = urllib.request.Request(url, headers={"Accept-Encoding": "identity"})
+              with agent.open(request, timeout=20) as response:
+                  if response.status != 200 or response.geturl() != url:
+                      raise RuntimeError("ST17_NON_200_OR_UNREVIEWED_REDIRECT")
+                  if response.headers.get("Content-Encoding", "identity").lower() != "identity":
+                      raise RuntimeError("ST17_COMPRESSED_HTTP_TRANSFER_REFUSED")
+                  raw = response.read(limit + 1)
+                  if not 0 < len(raw) <= limit:
+                      raise RuntimeError("ST17_OVERSIZE_ARCHIVE")
+                  return raw
+          original = fetch(root + name, 8 * 1024 * 1024)
+          checksum = fetch(root + name + ".CHECKSUM", 256)
+          zip_sha = hashlib.sha256(original).hexdigest()
+          checksum_sha = hashlib.sha256(checksum).hexdigest()
+          wanted = (zip_sha + "  " + name).encode()
+          if checksum.strip(b"\r\n") != wanted:
+              raise RuntimeError("ST17_OFFICIAL_CHECKSUM_MISMATCH")
+          with zipfile.ZipFile(io.BytesIO(original)) as z:
+              manifest = z.infolist()
+              if len(manifest) != 1 or manifest[0].filename != name.replace(".zip", ".csv"):
+                  raise RuntimeError("ST17_WRONG_CSV_ARCHIVE")
+              if manifest[0].file_size > 24 * 1024 * 1024:
+                  raise RuntimeError("ST17_OVERSIZE_DECOMPRESSED")
+              payload = z.read(manifest[0])
+          bars = list(csv.reader(io.StringIO(payload.decode("utf-8"))))
+          if len(bars) not in (31*96,31*96+1):
+              raise RuntimeError("ST17_MONTH_GRID_ROW_COUNT_FAILED")
+          if len(bars) == 31*96+1:
+              if bars[0][0].strip().lower() not in ("open time","open_time","opentime"):
+                  raise RuntimeError("ST17_INVALID_HEADER")
+              bars=bars[1:]
+          first = int(datetime(2024,1,1,tzinfo=UTC).timestamp())*1000
+          for i,b in enumerate(bars):
+              if len(b)!=12 or int(b[0])!=first+i*900_000 or int(b[6])!=first+(i+1)*900_000-1:
+                  raise RuntimeError("ST17_MONTH_GRID_INVALID")
+          dest=pathlib.Path(os.environ["RUNNER_TEMP"])/"isolated-stage17-public"
+          dest.mkdir(mode=0o700)
+          (dest/name).write_bytes(original)
+          (dest/(name+".CHECKSUM")).write_bytes(checksum)
+          report={
+              "scope":"nonproduction-official-https-acquisition-only",
+              "source_url":root+name,
+              "checksum_url":root+name+".CHECKSUM",
+              "zip_sha256":zip_sha,"checksum_sha256":checksum_sha,
+              "row_count":len(bars),
+              "local_runner_capture_utc":datetime.now(UTC).isoformat(),
+              "independent_publisher_signature_verified":False,
+              "independently_attested_capture_clock":False,
+              "historical_revision_absence_proven":False,
+              "stage12_local_pit_verified":False,
+              "stage18_funding_and_mark_verified":False,
+              "strategy_backtest_run":False,
+              "live_authorized":False,
+          }
+          (dest/"download-evidence.json").write_text(json.dumps(report,sort_keys=True,indent=2)+"\n")
+          print("ST17_BOUNDED_PUBLIC_ARCHIVE_RECEIVED")
+          print("ZIP_SHA256="+zip_sha)
+          print("CHECKSUM_SHA256="+checksum_sha)
+          print("ROWS="+str(len(bars)))
+          PY
+      - name: Retain only original public bytes and audit claim in short-lived artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
+        with:
+          name: stage17-original-binance-public-2024-01
+          path: ${{ runner.temp }}/isolated-stage17-public/
+          if-no-files-found: error
+          retention-days: 1
