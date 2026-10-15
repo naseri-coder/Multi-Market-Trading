@@ -216,7 +216,11 @@ def test_a6_release_exact_entrypoint_allowlist_still_refuses_unknown_commands(
     assert accepted["verdict"] == "A6_SEPARATE_RELEASE_PREVIEW_PASS"
     assert accepted["preview_runtime_enabled"] is False
     assert accepted["database_migration_executed"] is False
-    metadata += '\nnaseri-hidden-executor = "unknown.operator:main"\n'
+    metadata = metadata.replace(
+        "[tool.setuptools.packages.find]",
+        'naseri-hidden-executor = "unknown.operator:main"\n\n'
+        "[tool.setuptools.packages.find]",
+    )
     # An unauthorized executable must still fail the exact-script inventory
     # rather than being accepted by a wildcard or a relaxed subset policy.
     (safe / "platform_release/pyproject.toml").write_text(metadata)
