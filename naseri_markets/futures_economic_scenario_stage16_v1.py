@@ -10,7 +10,7 @@ import json
 import os
 import re
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
 _HEX = re.compile(r"[0-9a-f]{64}\Z")
@@ -56,7 +56,7 @@ def _amount(value: object, *, allow_negative: bool = False,
 
 def _time(value: datetime) -> datetime:
     if (type(value) is not datetime or value.tzinfo is None
-            or value.utcoffset() != __import__("datetime").timedelta(0)):
+            or value.utcoffset() != timedelta(0)):
         raise FuturesScenarioRefused("ST16_EXPLICIT_UTC_EVENT_TIME_REQUIRED")
     return value.astimezone(UTC)
 
