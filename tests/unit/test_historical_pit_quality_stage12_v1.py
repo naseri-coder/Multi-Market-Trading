@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -263,3 +264,37 @@ def test_forex_tick_mark_and_lookahead_are_not_silently_supported(tmp_path):
         )
         with pytest.raises(HistoricalPitRefused, match="CRYPTO_TRADE_CANDLES"):
             run(path, HistoricalFileSpec(adjusted, spec.expected_sha256, 5), receipt)
+
+
+
+def test_real_parquet_archive_uses_existing_data_a1_decoder(tmp_path):
+    pa = pytest.importorskip("pyarrow")
+    pq = pytest.importorskip("pyarrow.parquet")
+    _csvpath, baseline, receipt = scenario(tmp_path)
+    samples = {
+        "open_at": ["2026-10-13T10:00:00Z", "2026-10-13T10:15:00Z"],
+        "close_at": ["2026-10-13T10:15:00Z", "2026-10-13T10:30:00Z"],
+        "open": ["100", "102"],
+        "high": ["105", "106"],
+        "low": ["99", "101"],
+        "close": ["102", "103"],
+        "volume": ["0", "8"],
+    }
+    archive = tmp_path / "real_parquet_source.parquet"
+    pq.write_table(pa.table({
+        name: pa.array(values, type=pa.string())
+        for name, values in samples.items()
+    }), archive, row_group_size=1)
+    original = archive.read_bytes()
+    digest = hashlib.sha256(original).hexdigest()
+    adjusted_feed = replace(
+        baseline.feed, source_ref="hist_" + digest[:40],
+    )
+    spec = HistoricalFileSpec(adjusted_feed, digest, 5)
+    receipt["dataset_sha256"] = digest
+    report = run(archive, spec, receipt)
+    assert report.dataset_sha256 == digest
+    assert report.rows_validated == 2
+    assert report.zero_volume_rows == 1
+    assert report.provider_authenticated is False
+    assert archive.read_bytes() == original
