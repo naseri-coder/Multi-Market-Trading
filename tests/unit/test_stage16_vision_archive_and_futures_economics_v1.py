@@ -8,6 +8,7 @@ import zipfile
 from dataclasses import replace
 from datetime import UTC, datetime
 from decimal import Decimal as D
+from pathlib import Path
 
 import pytest
 
@@ -143,7 +144,7 @@ def test_brooks_bounded_window_preserves_lineage_and_runs_real_engine(tmp_path):
     # This is the actual frozen Brooks V5 engine, not an isolated fake signal.
     # Resolve relative to the reviewed package, never pytest cwd. Full
     # corpus runners deliberately change directories for isolation.
-    root = __import__("pathlib").Path(reviewed_brooks.__file__).resolve().parents[1] / "production_source"
+    root = Path(reviewed_brooks.__file__).resolve().parents[1] / "production_source"
     output = review_real_brooks_history(
         trimmed, make_spec(cut.csv_sha256),
         receipt_bytes=cut.stage12_receipt_bytes,
