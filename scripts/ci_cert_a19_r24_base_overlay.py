@@ -269,7 +269,7 @@ def inspect_image():
     w=root()
     result=js(read(w/"r24-result.json",350_000))
     base_layout=w/"base-oci"
-    output=w/"overlay-output"
+    output=w/"output"/"oci"
     if not output.is_dir():deny("OCI_OVERLAY_NOT_CREATED")
     base_layers=image_from_layout(base_layout)
     final_layers=image_from_layout(output)
