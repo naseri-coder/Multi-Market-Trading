@@ -162,6 +162,53 @@ jobs:
           print("ST17_REAL_ORIGINAL_ARCHIVE_STAGE16_STAGE12_PASS")
           print(json.dumps(evidence, sort_keys=True))
           PY
+      - name: Genuine frozen Brooks V5 read-only decision trace on genuine candles
+        env:
+          MMT_NONPRODUCTION: "1"
+          MMT_PRODUCTION: "0"
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from datetime import UTC, datetime
+          from pathlib import Path
+          from naseri_markets.stage17_official_archive_capture_v1 import (
+              _make_stage12_spec,
+          )
+          from naseri_markets.real_brooks_historical_stage15_v1 import (
+              review_real_brooks_history,
+          )
+          archive = Path(os.environ["RUNNER_TEMP"]) / "isolated-stage17-public"
+          candle_csv = archive / "real-reviewed-first72-bars.csv"
+          receipt = (archive / "real-reviewed-first72-stage12-receipt.json").read_bytes()
+          from hashlib import sha256
+          data_sha = sha256(candle_csv.read_bytes()).hexdigest()
+          result = review_real_brooks_history(
+              candle_csv, _make_stage12_spec(data_sha),
+              receipt_bytes=receipt,
+              trusted_receipt_sha256=sha256(receipt).hexdigest(),
+              archive_as_of_utc=datetime.now(UTC),
+              legacy_source=Path(os.environ["GITHUB_WORKSPACE"]) / "production_source",
+              evaluation_cutoffs_utc=(
+                  datetime(2024, 1, 1, 15, 0, tzinfo=UTC),
+                  datetime(2024, 1, 1, 18, 0, tzinfo=UTC),
+              ),
+              operator_ack=True,
+          )
+          assert result["actual_brooks_engine_evaluated"] is True
+          assert result["evaluation_count"] == 2
+          assert result["economic_pnl_calculated"] is False
+          assert result["trading_edge_proven"] is False
+          assert result["broker_orders_authorized"] is False
+          assert result["telegram_sent"] is False
+          (archive / "genuine-brooks-v5-on-real-market-decision-trace.json").write_text(
+              json.dumps(result, sort_keys=True, indent=2) + "\n"
+          )
+          print("ST19_ACTUAL_FROZEN_BROOKS_ON_REAL_EXCHANGE_CANDLES_PASS")
+          print("BROOKS_DECISIONS=" +
+                ",".join(item["decision"] for item in result["evaluations"]))
+          print("REAL_DATA_DECISION_TRACE_SHA256=" + result["report_sha256"])
+          PY
       - name: Retain only original public bytes and audit claim in short-lived artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
         with:
