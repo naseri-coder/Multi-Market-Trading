@@ -18,7 +18,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from .brooks_replay import (
-    LEGACY_MANIFEST_SHA256, MAX_WORKER_BYTES, _run_worker,
+    LEGACY_MANIFEST_SHA256, MAX_WORKER_BYTES,
     canonical_snapshot_identity, parse_candle_replay, verify_legacy_source,
 )
 from .historical_data_loader_a1 import HistoricalFileSpec
@@ -30,7 +30,6 @@ _MAX_REPLAY_BARS = 256
 _REPLAY_MIN = 60
 _BROOKS_VERSION = "brooks-trilogy-full-core-v5-context-structural"
 _IDENT = re.compile(r"[A-Za-z0-9_.:-]{1,80}\Z")
-_HEX = re.compile(r"[0-9a-f]{64}\Z")
 
 
 class Stage15Refused(ValueError):
