@@ -1,0 +1,50 @@
+name: Stage 13 executable causal walk-forward (offline)
+
+on:
+  pull_request:
+    paths:
+      - "naseri_markets/executable_walk_forward_stage13_v1.py"
+      - "tests/unit/test_executable_walk_forward_stage13_v1.py"
+      - "docs/STAGE13_EXECUTABLE_CAUSAL_WALK_FORWARD_V1.md"
+      - ".github/workflows/stage13-executable-walk-forward.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stage13-offline-execution:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    env:
+      MMT_NONPRODUCTION: "1"
+      MMT_PRODUCTION: "0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Enforce original package and manifest fences
+        run: |
+          set -Eeuo pipefail
+          bash scripts/verify.sh
+          python scripts/a6_release_preflight.py
+      - name: Static validation and isolated executable forward-chaining tests
+        run: |
+          set -Eeuo pipefail
+          python -m pip install 'pytest==9.1.1' 'ruff==0.16.9' 'pyarrow==21.0.0'
+          python -m ruff check --select E4,F \
+            naseri_markets/executable_walk_forward_stage13_v1.py \
+            tests/unit/test_executable_walk_forward_stage13_v1.py
+          mkdir -p "$RUNNER_TEMP/stage13-isolated"
+          cp tests/unit/test_executable_walk_forward_stage13_v1.py \
+             tests/unit/test_historical_pit_quality_stage12_v1.py \
+             tests/unit/test_historical_data_loader_a1.py \
+             tests/unit/test_data_a1_file_intake.py \
+             tests/unit/test_research_walk_forward_v1.py \
+             tests/unit/test_core_api_v1.py \
+             "$RUNNER_TEMP/stage13-isolated/"
+          PYTHONPATH="$GITHUB_WORKSPACE" python -m pytest -q \
+            "$RUNNER_TEMP/stage13-isolated"
