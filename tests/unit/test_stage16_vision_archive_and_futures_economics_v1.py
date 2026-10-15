@@ -6,7 +6,7 @@ import io
 import json
 import zipfile
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from decimal import Decimal as D
 
 import pytest
