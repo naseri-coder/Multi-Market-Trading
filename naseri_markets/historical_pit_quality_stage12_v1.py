@@ -207,8 +207,8 @@ def inspect_historical_pit_archive(
             or retrieved_at > asof
             or window_end > asof):
         raise HistoricalPitRefused("PIT_WINDOW_OR_ACQUISITION_CUTOFF_REFUSED")
-    if (int(window_start.timestamp()) % int(duration.total_seconds()) != 0
-            or int(window_end.timestamp()) % int(duration.total_seconds()) != 0):
+    if (window_start - datetime(1970, 1, 1, tzinfo=UTC)) % duration != timedelta(0) \
+            or (window_end - datetime(1970, 1, 1, tzinfo=UTC)) % duration != timedelta(0):
         raise HistoricalPitRefused("PIT_UNALIGNED_CANDLE_WINDOW")
 
     approved = validate_historical_file(path, spec)
@@ -226,7 +226,7 @@ def inspect_historical_pit_archive(
         if (packet.received_at > retrieved_at or packet.received_at > asof
                 or candle.close_at > packet.received_at):
             raise HistoricalPitRefused("PIT_LOOKAHEAD_OR_UNAVAILABLE_CANDLE")
-        if int(candle.open_at.timestamp()) % int(duration.total_seconds()) != 0:
+        if (candle.open_at - datetime(1970, 1, 1, tzinfo=UTC)) % duration != timedelta(0):
             raise HistoricalPitRefused("PIT_UNALIGNED_CANDLE")
         zero_volume += int(candle.volume == 0)
         count += 1
