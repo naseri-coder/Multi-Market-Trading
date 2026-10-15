@@ -10,7 +10,9 @@ import pytest
 
 from naseri_markets.contracts import Instrument, Market
 from naseri_markets.core_api_v1 import CoreEventType, DataOrigin
-from naseri_markets.historical_data_loader_a1 import HistoricalFileSpec
+from naseri_markets.historical_data_loader_a1 import (
+    HistoricalDataRefused, HistoricalFileSpec,
+)
 from naseri_markets.historical_pit_quality_stage12_v1 import (
     HistoricalPitRefused,
     inspect_historical_pit_archive,
@@ -174,11 +176,11 @@ def test_gaps_and_wrong_ohlc_use_existing_data_a1_guards(tmp_path):
         b"102,106,101,103,8\n"
     )
     path, spec, receipt = scenario(tmp_path, raw=wrong)
-    with pytest.raises(HistoricalPitRefused, match="UNVERIFIED_BAR_GAP"):
+    with pytest.raises(HistoricalDataRefused, match="UNVERIFIED_BAR_GAP"):
         run(path, spec, receipt)
     bad = HEADER + ROW1.replace(b",100,105,99,102,0", b",100,105,108,102,0") + ROW2
     path, spec, receipt = scenario(tmp_path, raw=bad)
-    with pytest.raises(HistoricalPitRefused, match="INVALID_MARKET_SAMPLE"):
+    with pytest.raises(HistoricalDataRefused, match="INVALID_MARKET_SAMPLE"):
         run(path, spec, receipt)
 
 
@@ -214,7 +216,7 @@ def test_unaligned_closed_candles_refused_even_if_contiguous(tmp_path):
 def test_tampered_csv_refused_by_original_loader(tmp_path):
     path, spec, receipt = scenario(tmp_path)
     path.write_bytes(HEADER + ROW1 + ROW2 + b"\n")
-    with pytest.raises(HistoricalPitRefused, match="SOURCE_HASH_MISMATCH"):
+    with pytest.raises(HistoricalDataRefused, match="SOURCE_HASH_MISMATCH"):
         run(path, spec, receipt)
 
 
