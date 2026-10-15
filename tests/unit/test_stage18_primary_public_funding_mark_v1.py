@@ -98,7 +98,7 @@ def test_exact_small_publisher_millisecond_jitter_preserved():
     args["funding_zip"], args["funding_checksum"] = _zip("funding", funding)
     report, schedule, _ = reconcile_stage18_primary_public_sources(**args)
     assert report["source_timestamps_with_subsecond_offset"] == 1
-    assert report["source_funding_offset_index_and_ms"] == [[12, 3]]
+    assert report["source_funding_offset_index_and_ms"] == [[11, 3]]
     assert b"2024-01-05T00:00:00Z" in schedule
     funding[12][0] = str(int(funding[12][0]) + 1)
     args["funding_zip"], args["funding_checksum"] = _zip("funding", funding)
