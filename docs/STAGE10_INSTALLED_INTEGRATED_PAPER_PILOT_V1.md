@@ -11,7 +11,7 @@ The Stage-20 module was runnable using a Python module invocation but did not ex
 ### Product and package isolation
 
 - Authoritative preview distribution: `multi-market-trading==0.4.0rc1` from `platform_release/pyproject.toml`.
-- New console script: `naseri-paper-pilot` calling `naseri_markets.installed_paper_pilot_stage10_v1:main`.
+- New console script: `naseri-paper-pilot` calling `naseri_markets.installed_paper_pilot_stage10_v1:main`. The historical strict A6 preflight is updated by adding **only this explicit name-to-function mapping**; its exact-match policy, version check, dependency fence and historical separation are unchanged.
 - Original root `crypto-price-action==0.3.2` package, PostgreSQL volume, Docker service, private NY First-Reversal and live server remain untouched.
 - Installation never launches a process, modifies state, attaches provider APIs or sends notifications.
 
@@ -81,6 +81,6 @@ CI tests:
 
 The synthetic data source and trusted demonstration core have **no evidentiary value for real trading profitability**. A clean-wheel success proves only this installed, bounded PAPER product journey; it does not prove a verified Brooks adapter, provider provenance/eligibility, deployment, third-party plugin sandbox or multi-ledger atomicity.
 
-**Change boundary:** 1 new public module, 1 dedicated test module, 1 isolated GitHub workflow, this document, and one entrypoint in `platform_release/pyproject.toml`. No modification to Stage-20 core execution, default CLI, Stage-9 reconciler, database schema, migrations, production code or package root.
+**Change boundary:** 1 new public module, 1 dedicated test module, 1 isolated GitHub workflow, this document, 1 entrypoint in `platform_release/pyproject.toml`, and the **same explicit entrypoint** added to the exact A6 release preflight mapping in `scripts/a6_release_preflight.py`. A dedicated negative test proves unrelated commands are still rejected. No modification to Stage-20 core execution, default CLI, Stage-9 reconciler, database schema, migrations, production code or package root.
 
 **Stop after Stage 10.** Do not start Stage 11 or release/activate the actual public trading bot automatically.
