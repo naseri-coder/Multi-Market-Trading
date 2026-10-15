@@ -19,6 +19,7 @@ MAX_RELATIONS = 48
 
 _NAME = re.compile(r"[a-z][a-z0-9_]{1,39}\Z", re.ASCII)
 _ID = re.compile(r"[A-Za-z][A-Za-z0-9_.:-]{1,79}\Z", re.ASCII)
+_VERSION = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}\Z", re.ASCII)
 _HASH = re.compile(r"[0-9a-f]{64}\Z", re.ASCII)
 _DECIMAL = re.compile(r"-?(?:0|[1-9][0-9]{0,8})(?:\.[0-9]{1,12})?\Z", re.ASCII)
 _CHOICE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,39}\Z", re.ASCII)
@@ -214,7 +215,11 @@ def validate_core_parameters(
     core manifest or publisher review. User-supplied self-pins are NOT trust.
     """
     core_id = _identity(expected_core_id)
-    core_version = _identity(expected_core_version)
+    if type(expected_core_version) is not str or not _VERSION.fullmatch(
+        expected_core_version
+    ):
+        raise CoreParametersRefused("INVALID_CORE_VERSION")
+    core_version = expected_core_version
     if type(trusted_schema_sha256) is not str or not _HASH.fullmatch(
         trusted_schema_sha256
     ):
