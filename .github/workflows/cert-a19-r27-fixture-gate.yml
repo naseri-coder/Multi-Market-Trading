@@ -1,0 +1,59 @@
+name: CERT-A19-R27 explicit-offset fixture contract and A6 host gate, static only
+
+on:
+  push:
+    branches: [cert-a19-byte-audit-run]
+    paths:
+      - ".github/workflows/cert-a19-r27-fixture-gate.yml"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  scoped-static-no-guest-execution:
+    if: github.repository == 'naseri-coder/Multi-Market-Trading' && github.ref == 'refs/heads/cert-a19-byte-audit-run'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      MMT_NONPRODUCTION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Restore exact R25 final OCI and R26 timezone reports, require frozen hashes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          d="$RUNNER_TEMP/cert-a19-r27"
+          mkdir -m 0700 "$d"
+          mkdir "$d/r25" "$d/r26"
+          gh run download 38687049515 --repo naseri-coder/Multi-Market-Trading \
+            --name cert-a19-r25-final-oci-static-preflight --dir "$d/r25"
+          gh run download 38689110409 --repo naseri-coder/Multi-Market-Trading \
+            --name cert-a19-r26-utc-timezone-fourlang-readonly --dir "$d/r26"
+          cp "$d/r25/r25-static-final-oci.json" "$d/r25-static-final-oci.json"
+          cp "$d/r26/r26-timezone-contract.json" "$d/r26-timezone-contract.json"
+          echo '26bc9c72b4b49c396a973b783764875566f24b4b2568f9495032ad9dc51f9264  '"$d/r25-static-final-oci.json" | sha256sum -c --status
+          echo '2de79cd86da7ccc17ce15952455c8b7673cf4161d3f99a32955d668e7e9f1667  '"$d/r26-timezone-contract.json" | sha256sum -c --status
+          echo R27_IMMUTABLE_R25_R26_SOURCE_BYTES_RECHECKED
+      - name: Verify 5 original Git blobs, static rootless/runsc/A6 gates, host-only fixed-offset date vectors
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 -m scripts.ci_cert_a19_r27_fixture_gate
+          test -s "$RUNNER_TEMP/cert-a19-r27/r27-report.json"
+          test -s "$RUNNER_TEMP/cert-a19-r27/r27-vectors.json"
+          sha256sum "$RUNNER_TEMP/cert-a19-r27/r27-report.json" "$RUNNER_TEMP/cert-a19-r27/r27-vectors.json"
+      - name: Preserve reports ONLY, no executable fixtures, runtime packages or Worker images
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cert-a19-r27-fixed-utc-and-host-gate-static
+          path: |
+            ${{ runner.temp }}/cert-a19-r27/r27-report.json
+            ${{ runner.temp }}/cert-a19-r27/r27-vectors.json
+          if-no-files-found: ignore
+          retention-days: 2
