@@ -5,7 +5,6 @@ import asyncio
 import hashlib
 import json
 from dataclasses import replace
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -141,7 +140,6 @@ def test_stale_cas_and_foreign_owner_refused_without_data_leak(store):
 
 def test_edit_requires_all_execution_requests_off(store):
     submit(store)
-    current = store.inspect(OWNER, "private_research")
     # Only the requested flag becomes true, NEVER execution authority.
     store._db.execute(
         "UPDATE t12_instances SET analysis=1 WHERE instance_id='private_research'"
