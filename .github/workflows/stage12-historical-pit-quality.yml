@@ -36,7 +36,7 @@ jobs:
       - name: Inspect and test inherited DATA-A1 and new Stage-12 quality
         run: |
           set -Eeuo pipefail
-          python -m pip install 'pytest==9.1.1' 'ruff==0.16.9'
+          python -m pip install 'pytest==9.1.1' 'ruff==0.16.9' 'pyarrow==21.0.0'
           python -m ruff check --select E4,F \
             naseri_markets/historical_pit_quality_stage12_v1.py \
             tests/unit/test_historical_pit_quality_stage12_v1.py
