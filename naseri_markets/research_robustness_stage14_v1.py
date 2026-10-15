@@ -92,9 +92,9 @@ def _decode(raw: bytes, pin: str) -> dict:
             or val["stress_case_ids"] != _CASE_NAMES):
         raise Stage14Refused("INCOMPLETE_OR_REORDERED_STRESS_INVENTORY")
     ids = val["external_candidate_ids"]
-    if type(ids) is not list or ids != sorted(set(ids)) or any(
-        type(x) is not str or not _ID.fullmatch(x) for x in ids
-    ):
+    if (type(ids) is not list
+            or any(type(x) is not str or not _ID.fullmatch(x) for x in ids)
+            or ids != sorted(set(ids))):
         raise Stage14Refused("INVALID_EXTERNAL_TRIAL_INVENTORY")
     selected = val["selected_external_candidate_id"]
     matrix = val["external_matrix_sha256"]
