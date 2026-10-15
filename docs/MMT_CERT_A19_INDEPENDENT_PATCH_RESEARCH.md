@@ -473,3 +473,17 @@ Unlike R23 package-only minirootfs, R24 took the **exact Sigstore-verified immut
 Original source proof artifact `cert-a19-r24-frozen-base-overlay-package-manager-evidence` ID **11950280583**, two-day retention, final actual `r24-result.json` SHA-256 **`284ccd9f9549fbcd6572c442cc5f9ebf5759d4cdf5ccb419f2235bff8a3e2f61`**. This is a nonproduction, unsigned rebuilt OCI research image, **NOT an authorized production artifact**.
 
 **Verdict:** `CERT_A19_R24_SIGNED_WOLFI_BASE_APKO_LOCKED_OCI_OVERLAY_40_PACKAGES_3_PATHS_PASS__RUNTIME_HOST_NOT_CERTIFIED_A6_DENY_199_OPEN`. Keep **199** initial findings review-open, **0 CVEs** certified fixed, RUNTIME-A6 hard DENY, old A11/A2/A15/A18, `main`, production and PR #275 **DRAFT / DO NOT MERGE** unchanged. Suggested R25: final OS account/trust-path preflight and then separately gated developer-only fixed benign four-language fixture checks.
+
+## CERT-A19-R25 — all 153 final signed-base 40-package OCI ELF files and OS/NSS/CA static preflight, NO target execution
+
+[Complete R25 independently verified static OCI report](MMT_CERT_A19_R25_FINAL_OCI_STATIC_OS_ELF.md).
+
+A dedicated non-PR [GitHub-hosted SUCCESS #38687049515](https://github.com/naseri-coder/Multi-Market-Trading/actions/runs/38687049515) revalidated the immutable successful R24 proof (`284ccd9f9549fbcd6572c442cc5f9ebf5759d4cdf5ccb419f2235bff8a3e2f61`), re-derived the exact original signed Wolfi base+historical signed-index-linked 36 package inputs and original `apko v1.4.11` no-network 40-package OCI overlay, and read every final ELF **as data only** with runner-owned `readelf` (never executed guest/Worker/runtime code).
+
+**Actual final evidence:** 40 installed packages, 11 retained base OCI layers + one overlay = 12, **2,490** merged final filesystem paths, **153** full ELF64 x86-64 static inspections, no declared requirement later than **GLIBC 2.44**. **0** `DT_NEEDED` names entirely without a filename/SONAME candidate, **27** names with multiple candidates (not 27 functional conflicts; link order unproven). Node and Python 3.12 ELF executables present with frozen file hashes; final loader `/lib64/ld-linux-x86-64.so.2` hash `2b1529d949956d0913dce1809976adf339adc0d992de5ae6eba21dad0fa9fb09`, ncurses `usr/bin/clear` hash `98011ef86e4d2985ccc4d4a4e529c7790d1cc2e2f94ffa3296d4dc17f51377ed`, both PASS.
+
+Static Wolfi OS identity `etc/os-release` PASS, passwd/group and `etc/nsswitch.conf` present, CA bundle **121 PEM certificates** with SHA-256 `028fca5150ee1915c4474489985d55c54fceaa680c754cc8d1301734f01b2232` (also resolves via `etc/ssl/cert.pem`). **Timezone database `usr/share/zoneinfo/UTC` NOT FOUND**, TLS/CA/NSS behavior NOT RUN. TS 5.9.3 and Wasmtime 49.0.0 NOT installed; no four-language fixture or rootless/gVisor/host authorization.
+
+Original source and final R25 JSON in short-lived artifact `cert-a19-r25-final-oci-static-preflight` ID **11950214136**, `r25-static-final-oci.json` SHA-256 **`26bc9c72b4b49c396a973b783764875566f24b4b2568f9495032ad9dc51f9264`**, 69,645 bytes. Disposable OCI, package archives and temporary inspected ELF bytes purged. **199 original findings review-open, 0 CVE closures, A6 hard DENY**, original `main`, A11/A2/A15/A18, production/Telegram/TELMIVO/trading unaffected, PR #275 **DRAFT / DO NOT MERGE**.
+
+**Verdict:** `CERT_A19_R25_COMPOSED_40_PACKAGE_OCI_153_ELF_STATIC_AND_OS_PATHS_PASS__TLS_TZ_RUNTIME_AND_HOST_UNVERIFIED__A6_DENY_199_OPEN`. R26 next: read-only time/NSS/CA requirements and signed tzdata if justified before separately scoped fixture work.
