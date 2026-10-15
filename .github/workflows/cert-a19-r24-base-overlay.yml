@@ -18,6 +18,7 @@ jobs:
     env:
       MMT_NONPRODUCTION: "1"
       MMT_R24_DOCKER_SAVE_NATIVE_BLOB_CONFIG: "1"
+      MMT_R24_NONROOT_MATCH_RUNNER_UID: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -140,7 +141,7 @@ jobs:
           image="$(cat "$d/base-id")"
           docker run --rm --pull=never --platform linux/amd64 \
             --network=none --read-only --cap-drop=ALL --security-opt=no-new-privileges \
-            --user=65534:65534 --pids-limit=90 --memory=2200m \
+            --user="$(id -u):$(id -g)" --pids-limit=90 --memory=2200m \
             --env HOME=/tmp --env TMPDIR=/tmp \
             --tmpfs /tmp:rw,nosuid,noexec,size=900m,mode=1777 \
             --mount type=bind,src="$d",dst=/work,readonly \
@@ -163,7 +164,7 @@ jobs:
           image="$(cat "$d/base-id")"
           docker run --rm --pull=never --platform linux/amd64 \
             --network=none --read-only --cap-drop=ALL --security-opt=no-new-privileges \
-            --user=65534:65534 --pids-limit=100 --memory=2500m \
+            --user="$(id -u):$(id -g)" --pids-limit=100 --memory=2500m \
             --env HOME=/tmp --env TMPDIR=/tmp \
             --tmpfs /tmp:rw,nosuid,noexec,size=900m,mode=1777 \
             --mount type=bind,src="$d",dst=/work,readonly \
