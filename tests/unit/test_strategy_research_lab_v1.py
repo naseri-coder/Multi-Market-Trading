@@ -264,3 +264,57 @@ def test_cli_is_opt_in_stdout_only_and_declines_missing_db(tmp_path,capsys):
     result=json.loads(capsys.readouterr().out)
     assert result["expected_order_count"]==3
     assert main(["--db",str(tmp_path/'missing'),"--protocol",str(study),"--ack-offline-research"])==2
+
+
+def test_walk_forward_opt_in_is_reproducible_and_does_not_change_legacy_report(tmp_path):
+    db = seed(tmp_path)
+    original = evaluate_stage9_research(db, protocol())
+    augmented = evaluate_stage9_research(
+        db, protocol(), walk_forward_folds=2, embargo_seconds=3600,
+    )
+    assert "walk_forward" not in original
+    assert original == evaluate_stage9_research(db, protocol())
+    assert augmented == evaluate_stage9_research(
+        db, protocol(), walk_forward_folds=2, embargo_seconds=3600,
+    )
+    assert {k: v for k, v in augmented.items() if k not in (
+        "walk_forward", "report_sha256"
+    )} == {k: v for k, v in original.items() if k != "report_sha256"}
+    assert augmented["walk_forward"]["validation_population"] == 1
+    assert augmented["walk_forward"]["holdout_population"] == 1
+    assert augmented["walk_forward"]["folds"][1]["validation"]["population"] == 0
+    assert "INSUFFICIENT_FOLD_VALIDATION_SAMPLE" in augmented["walk_forward"]["blockers"]
+    assert augmented["readiness"] == "DESCRIPTIVE_ONLY_NOT_PROFITABILITY_PROOF"
+    assert db.is_file()
+
+
+@pytest.mark.parametrize("folds,embargo", [
+    (1, 0), (13, 0), (2, -1), (2, 604801),
+    (2, True), (None, 1),
+])
+def test_invalid_optional_walk_forward_settings_refuse_entire_audit(
+    tmp_path, folds, embargo,
+):
+    db = seed(tmp_path)
+    with pytest.raises(ResearchLabRefused):
+        evaluate_stage9_research(
+            db, protocol(), walk_forward_folds=folds, embargo_seconds=embargo,
+        )
+
+
+def test_offline_cli_exposes_only_explicit_opt_in_walk_forward(tmp_path, capsys):
+    from scripts.mmt_research_lab_v1 import main
+
+    db = seed(tmp_path)
+    study = tmp_path / "wf-study.json"
+    study.write_bytes(protocol())
+    args = [
+        "--db", str(db), "--protocol", str(study), "--ack-offline-research",
+    ]
+    assert main(args + ["--wf-folds", "2", "--wf-embargo-seconds", "3600"]) == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["walk_forward"]["validation_folds"] == 2
+    assert output["walk_forward"]["embargo_seconds"] == 3600
+    assert not output["walk_forward"]["strategy_retraining_performed"]
+    assert main(args + ["--wf-embargo-seconds", "3600"]) == 2
+    assert "RESEARCH_REFUSED" in capsys.readouterr().err
