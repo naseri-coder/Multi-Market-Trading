@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal, ROUND_DOWN
@@ -195,11 +196,14 @@ class OfflinePaperPositionLifecycle(PaperCoreRiskBridge):
             terminal = (snap["status"] in ("CLOSED","REJECTED") or (snap["status"]=="CANCELED" and Decimal(snap["filled_quantity"])==0))
             if risk["status"] != ("RELEASED" if terminal else "ACTIVE"):
                 raise PaperLifecycleRefused("RECONCILIATION_RISK_MISMATCH")
-            totals=self._db.execute("SELECT quantity FROM paper_stage9_exits WHERE order_id=?",(order_id,)).fetchall()
-            if sum((Decimal(x["quantity"]) for x in totals),Decimal(0)) != Decimal(snap["closed_quantity"]):
-                raise PaperLifecycleRefused("RECONCILIATION_EXIT_QUANTITY_MISMATCH")
+            self._verified_exits(order_id, snap)
         self._needs_recovery=False
-        return {"mode":"OFFLINE_RECONCILED_LOCAL_ONLY","broker_verified":False,"orders_checked":self._db.execute("SELECT count(*) FROM paper_stage9_plans").fetchone()[0]}
+        return {
+            "mode": "OFFLINE_RECONCILED_LOCAL_ONLY", "broker_verified": False,
+            "orders_checked": self._db.execute(
+                "SELECT count(*) FROM paper_stage9_plans"
+            ).fetchone()[0],
+        }
 
     def _once(self, action_id: str, payload: object, callback):
         identity(action_id,"action_id")
@@ -471,17 +475,114 @@ class OfflinePaperPositionLifecycle(PaperCoreRiskBridge):
             return receipt
         return self._once(action_id,payload,commit)
 
+    def _verified_exits(self, order_id: str, snapshot: dict) -> list:
+        """Reconcile PnL amounts with economics, bar receipts and closed lots.
+
+        Read-only checks; corrupt PAPER settlement data must never be shown as
+        verified performance, or accepted during an offline restart.
+        """
+        rows = self._db.execute(
+            "SELECT reason,quantity,price,gross,modeled_cost,net,evidence_digest "
+            "FROM paper_stage9_exits WHERE order_id=? ORDER BY rowid",
+            (order_id,),
+        ).fetchall()
+        bars = self._db.execute(
+            "SELECT bar_digest,receipt_json FROM paper_stage9_bars WHERE order_id=?",
+            (order_id,),
+        ).fetchall()
+        expected = Counter()
+        fields = ("reason", "quantity", "price", "gross", "modeled_cost", "net")
+        try:
+            for bar in bars:
+                receipt = json.loads(bar["receipt_json"])
+                if receipt["order_id"] != order_id:
+                    raise PaperLifecycleRefused("PAPER_EXIT_RECEIPT_DRIFT")
+                for exit_receipt in receipt["exits"]:
+                    key = (bar["bar_digest"],) + tuple(
+                        exit_receipt[field] for field in fields
+                    )
+                    expected[key] += 1
+
+            closed = Decimal(snapshot["closed_quantity"])
+            filled = Decimal(snapshot["filled_quantity"])
+            if not closed.is_finite() or not filled.is_finite() or (
+                closed < 0 or filled < closed
+            ):
+                raise PaperLifecycleRefused("PAPER_EXIT_QUANTITY_DRIFT")
+            account_id = snapshot["spec"]["account_id"]
+            account = self._db.execute(
+                "SELECT policy FROM risk_accounts WHERE account_id=?",
+                (account_id,),
+            ).fetchone()
+            if account is None:
+                raise PaperLifecycleRefused("PAPER_EXIT_POLICY_MISSING")
+            policy = json.loads(account["policy"])
+            economics = self._engine._risk.order_economics(order_id)
+            entry = (
+                Decimal(snapshot["average_fill_price"])
+                if filled > 0 else None
+            )
+            if entry is not None and (not entry.is_finite() or entry <= 0):
+                raise PaperLifecycleRefused("PAPER_EXIT_ENTRY_INVALID")
+            aggregate_quantity = Decimal(0)
+            for row in rows:
+                values = [Decimal(row[field]) for field in (
+                    "quantity", "price", "gross", "modeled_cost", "net"
+                )]
+                quantity, price, gross, cost, net = values
+                if (not all(value.is_finite() for value in values)
+                        or quantity <= 0 or price <= 0 or cost < 0
+                        or entry is None):
+                    raise PaperLifecycleRefused("PAPER_EXIT_PNL_INVALID")
+                aggregate_quantity += quantity
+                if economics is None:
+                    multiplier = Decimal(policy["contract_multiplier"])
+                    friction = (
+                        Decimal(policy["roundtrip_fee_fraction"])
+                        + Decimal(policy["worst_slippage_fraction"])
+                    )
+                    sign = (Decimal(1) if snapshot["spec"]["direction"] == "long"
+                            else Decimal(-1))
+                    predicted_gross = sign * (price - entry) * quantity * multiplier
+                    predicted_cost = max(price, entry) * quantity * multiplier * friction
+                else:
+                    predicted_gross, predicted_cost = economics.modeled_exit(
+                        quantity=quantity, entry=entry, exit_price=price,
+                        direction=snapshot["spec"]["direction"],
+                    )
+                if (gross != predicted_gross or cost != predicted_cost
+                        or net != gross - cost):
+                    raise PaperLifecycleRefused("PAPER_EXIT_PNL_DRIFT")
+                key = (row["evidence_digest"],) + tuple(
+                    row[field] for field in fields
+                )
+                if expected[key] <= 0:
+                    raise PaperLifecycleRefused("PAPER_EXIT_RECEIPT_DRIFT")
+                expected[key] -= 1
+            if aggregate_quantity != closed:
+                raise PaperLifecycleRefused("PAPER_EXIT_QUANTITY_DRIFT")
+            if any(expected.values()):
+                raise PaperLifecycleRefused("PAPER_EXIT_RECEIPT_DRIFT")
+        except (KeyError, TypeError, ValueError, ArithmeticError) as exc:
+            if isinstance(exc, PaperLifecycleRefused):
+                raise
+            raise PaperLifecycleRefused("PAPER_EXIT_LEDGER_INVALID") from exc
+        return rows
+
     def performance(self,order_id:str)->dict:
         row,plan=self._plan(order_id)
         snap=self._engine.order_state(order_id)
-        entries=self._db.execute("SELECT reason,quantity,price,gross,modeled_cost,net FROM paper_stage9_exits WHERE order_id=? ORDER BY rowid",(order_id,)).fetchall()
+        entries=self._verified_exits(order_id,snap)
         gross=sum((Decimal(x["gross"]) for x in entries),Decimal(0))
         cost=sum((Decimal(x["modeled_cost"]) for x in entries),Decimal(0))
         net=gross-cost
         initial=Decimal(snap["spec"]["reference_entry"])
         stop=Decimal(snap["spec"]["stop"])
         qty=Decimal(snap["filled_quantity"])
-        ap=self._db.execute("SELECT policy FROM risk_accounts WHERE account_id=?",(snap["spec"]["account_id"],)).fetchone()
+        ap=self._db.execute(
+            "SELECT policy FROM risk_accounts WHERE account_id=?",
+            (snap["spec"]["account_id"],),
+        ).fetchone()
         economics=self._engine._risk.order_economics(order_id)
         mul=(economics.contract_multiplier if economics is not None
              else Decimal(json.loads(ap["policy"])["contract_multiplier"]))
@@ -490,7 +591,11 @@ class OfflinePaperPositionLifecycle(PaperCoreRiskBridge):
                 "filled_quantity":snap["filled_quantity"],"closed_quantity":snap["closed_quantity"],
                 "gross":str(gross),"modeled_cost":str(cost),"net":str(net),
                 "net_realized_r":str(net/initial_risk) if initial_risk>0 else None,
-                "exits":[dict(x) for x in entries],
+                "exits":[
+                    {k:x[k] for k in (
+                        "reason", "quantity", "price", "gross", "modeled_cost", "net"
+                    )} for x in entries
+                ],
                 "economics_digest": economics.digest if economics else None,
                 "quote_currency": economics.settle_currency if economics else None,
                 "broker_verified":False,
