@@ -30,6 +30,7 @@ _STAGE_UNIT_TARGETS = {
     "R31": "tests/unit/test_mmt_r31_private_admin_console_v1.py",
     "R32": "tests/unit/test_mmt_r32_offline_review_kit_and_recovery_v1.py",
     "R33": "tests/unit/test_mmt_r33_live_hard_deny_readiness_v1.py",
+    "R34": "tests/unit/test_mmt_r34_offline_stack_acceptance_v1.py",
 }
 # Every Python source added/modified by stacked PRs #320--#327,
 # excluding the 8 test files (listed in _STAGE_UNIT_TARGETS below).
@@ -83,7 +84,7 @@ class R34ToolFinding:
 
     def __post_init__(self) -> None:
         valid_names = (
-            "R27", "R28", "R29", "R30", "R31", "R32", "R33",
+            "R27", "R28", "R29", "R30", "R31", "R32", "R33", "R34",
             "RUFF_R28_TO_R34", "FULL_UNIT_SUITE", "STATIC_SYNTAX",
         )
         if (type(self.name) is not str or self.name not in valid_names
@@ -128,7 +129,7 @@ class R34OfflineEvidence:
                 or type(self.results) is not tuple
                 or any(type(r) is not R34ToolFinding for r in self.results)
                 or tuple(r.name for r in self.results) != (
-                    *_EXPECTED_STAGE_KEYS, "RUFF_R28_TO_R34",
+                    *_EXPECTED_STAGE_KEYS, "R34", "RUFF_R28_TO_R34",
                     "FULL_UNIT_SUITE", "STATIC_SYNTAX",
                 )):
             raise R34AcceptanceRefused("R34_EXACT_EVIDENCE_CONTRACT_REQUIRED")
@@ -206,7 +207,7 @@ def pending_r34_stage_tests() -> tuple[R34ToolFinding, ...]:
         for stage in _EXPECTED_STAGE_KEYS
     ) + tuple(
         R34ToolFinding(key, "NOT_RUN", None, None)
-        for key in ("RUFF_R28_TO_R34", "FULL_UNIT_SUITE", "STATIC_SYNTAX")
+        for key in ("R34", "RUFF_R28_TO_R34", "FULL_UNIT_SUITE", "STATIC_SYNTAX")
     )
 
 
