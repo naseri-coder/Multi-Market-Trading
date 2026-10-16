@@ -10,7 +10,6 @@ import json
 import os
 import stat
 from collections import Counter
-from datetime import timedelta
 from pathlib import Path
 
 from .brooks_forward_source_custody_stage21g_v1 import _read_original_evidence
@@ -18,7 +17,7 @@ from .brooks_sequential_forward_custody_mmt_r24_v1 import (
     stage24_replay_all_previous_batches,
 )
 from .brooks_future_shadow_paper_mmt_r29_v1 import (
-    FIRST_OPEN, BAR, MAX_TOTAL_BARS, PLAN_SHA, PROTOCOL, R29ShadowRefused,
+    MAX_TOTAL_BARS, PLAN_SHA, PROTOCOL, R29ShadowRefused,
     _canonical, _gate, _hash, _unique, _validated_tape,
 )
 
@@ -124,7 +123,11 @@ def audit_r29_original_source_shadow_session(
     previous_digest = PLAN_SHA
     seen_paths: set[tuple[int, int]] = set()
     for i, path in enumerate(shadow_receipts, start=60):
-        info = path.stat() if isinstance(path, Path) and not path.is_symlink() else None
+        try:
+            info = (path.stat() if isinstance(path, Path)
+                    and not path.is_symlink() else None)
+        except OSError as exc:
+            raise R29ShadowRefused("R29_AUDIT_RECEIPT_STAT_REFUSED") from exc
         if info is None or (info.st_dev, info.st_ino) in seen_paths:
             raise R29ShadowRefused("R29_AUDIT_DUPLICATE_OR_LINKED_RECEIPT")
         seen_paths.add((info.st_dev, info.st_ino))
@@ -155,7 +158,7 @@ def audit_r29_original_source_shadow_session(
         "consecutive_decision_receipts": len(shadow_receipts),
         "first_eligible_decision_utc": "2026-10-20T15:00:00Z",
         "last_decision_close_utc": (
-            tape[59 + len(shadow_receipts)]["close_time"]
+            tape[58 + len(shadow_receipts)]["close_time"]
             if shadow_receipts else None
         ),
         "decision_counts": {x: counters[x] for x in ("LONG", "SHORT", "NO_SIGNAL")},
