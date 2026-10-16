@@ -215,3 +215,37 @@ The fix deliberately **does not remove private-directory or symlink protection**
 The immediate problem was **strict Python class identity**, not a proven PRoot canonical-path mismatch. On POSIX, `Path(...)` constructs a `PosixPath`, so `type(path) is not Path` is True and rejects valid inputs. Both the receipt routine and `_head` worktree validation now use `isinstance(value, Path)`. The worktree check also uses an opened `O_DIRECTORY | O_NOFOLLOW` directory descriptor and `os.path.samefile` for path-identity verification, without trusting `Path.resolve()` string equality. This changes neither the pinned Git SHA requirement nor dirty checkout refusal. A new test creates a **real local, disposable Git repository**, checks SHA and dirty-tree refusal, and rejects a symlinked checkout.
 
 The prior reported result remains **30 passed, 2 failed** at commit `48920b1...`. The current PR now includes **three new negative tests** in addition to the original 32; running the new 35-test suite on the operator's Ubuntu 24.04 PRoot is necessary for acceptance. None of the new tests has been claimed as executed yet.
+
+## R30 downstream offline acceptance: reproducible rejection-code mismatch
+
+The operator ran **six** infrastructure test files (R28–R33, excluding the
+previously reported frozen Brooks R27 worker failure) against PR #327 under
+Python 3.12.3 in disposable Termux/Ubuntu and reported **40 passed, 1 failed**
+with `--maxfail=1`. The first failing parameter case was R30
+`test_r30_any_unsettled_runtime_effects_block[CLAIMED]`: an assertion expected
+`R30_PENDING_DONE_OR_UNKNOWN_RUNTIME_EFFECTS` but code returned
+`R30_UNVERIFIED_RUNTIME_OR_SIDE_EFFECTS`.
+
+The safety outcome was **already fail-closed**: R30 first rejects
+`manual_reconciliation_required=True` before inspecting nonzero runtime job
+counts. The real runtime supervisor correctly sets this flag for CLAIMED or
+QUARANTINED jobs. In R30's test fixture, these jobs also set the flag, so
+the *outer* fence's rejection code is correct and the test expectation was
+incorrect. Correcting the test does not relax or reorder either guard:
+- CLAIMED / QUARANTINED with reconciliation flag set must reject under
+  `UNVERIFIED_RUNTIME_OR_SIDE_EFFECTS`;
+- the same nonzero counts with that flag (incorrectly) false must independently
+  reject under `PENDING_DONE_OR_UNKNOWN_RUNTIME_EFFECTS`;
+- manual reconciliation True with all counters zero still rejects;
+- PENDING / DONE continue to reject due to nonzero counts.
+
+Only the R30 **test** in this stacked R34 branch has changed; no R30 risk
+logic or live trading code has been changed. This causes PR #327 to contain
+one additional downstream test file; the earlier four-file R34-only count
+is no longer true. The underlying R30 Draft PR #323 still requires explicit
+forward/backport reconciliation before any stacked merge plan.
+
+**Status:** new test cases are authored but **not yet executed** on the
+operator's Ubuntu device. The first failing R30 assertion is diagnosed, not
+claimed fixed by execution. Genuine Brooks R27 worker remains deferred and
+not accepted, not deleted/waived.
