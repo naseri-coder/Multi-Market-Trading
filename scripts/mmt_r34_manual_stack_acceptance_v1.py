@@ -19,6 +19,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 from naseri_markets.mmt_r34_offline_stack_acceptance_v1 import (
@@ -33,6 +34,7 @@ from naseri_markets.mmt_r34_offline_stack_acceptance_v1 import (
 
 TEST_TIMEOUT = 240
 SUITE_TIMEOUT = 900
+MAX_CAPTURE_BYTES = 4 * 1024 * 1024  # Never fill test-host storage with logs
 _RUFF_TARGETS = (
     *_STATIC_SOURCES,
     *_STAGE_UNIT_TARGETS.values(),
@@ -187,15 +189,33 @@ def _run(root: Path, name: str, args: tuple[str, ...], timeout: int) -> R34ToolF
                 stdout=stream, stderr=subprocess.STDOUT, close_fds=True,
                 start_new_session=True,
             )
-            try:
-                code = p.wait(timeout=timeout)
-            except subprocess.TimeoutExpired:
+            deadline = time.monotonic() + timeout
+            while True:
+                # Check on disk while the subprocess is still alive. This
+                # protects the disposable host from unlimited test output.
+                if os.fstat(stream.fileno()).st_size > MAX_CAPTURE_BYTES:
+                    reason = "OUTPUT_LIMIT"
+                    break
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    reason = "TIMEOUT"
+                    break
+                try:
+                    code = p.wait(timeout=min(0.2, remaining))
+                    reason = ""
+                    break
+                except subprocess.TimeoutExpired:
+                    continue
+            if reason:
                 try:
                     os.killpg(p.pid, signal.SIGKILL)
                 except ProcessLookupError:
                     pass
                 p.wait()
-                return R34ToolFinding(name, "TIMEOUT", None, None)
+                return R34ToolFinding(name, reason, None, None)
+            # Also check the final buffered output before returning PASS.
+            if os.fstat(stream.fileno()).st_size > MAX_CAPTURE_BYTES:
+                return R34ToolFinding(name, "OUTPUT_LIMIT", None, None)
             stream.seek(0)
             digester = hashlib.sha256()
             while chunk := stream.read(65_536):
