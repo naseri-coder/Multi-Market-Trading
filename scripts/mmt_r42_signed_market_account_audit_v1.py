@@ -225,12 +225,18 @@ def audit(*, policy_path: Path, policy_sha256: str, feed_path: Path,
         raise R42Refused("R42_STALE_OR_CAUSALLY_INVALID_FEED")
     prices = {name: _num(feed[name], positive=name != "volume")
               for name in ("open", "high", "low", "close", "volume", "bid", "ask")}
-    if (prices["low"] > min(prices["open"], prices["close"])
+    try:
+        invalid_price = (
+            prices["low"] > min(prices["open"], prices["close"])
             or prices["high"] < max(prices["open"], prices["close"])
             or prices["low"] > prices["high"]
             or prices["bid"] > prices["ask"]
             or (prices["ask"] - prices["bid"]) * 10000 > prices["close"] * spread_max
-            or any(prices[k] % tick for k in ("open", "high", "low", "close", "bid", "ask"))):
+            or any(prices[k] % tick for k in ("open", "high", "low", "close", "bid", "ask"))
+        )
+    except InvalidOperation as exc:
+        raise R42Refused("R42_DECIMAL_PRECISION_UNSAFE") from exc
+    if invalid_price:
         raise R42Refused("R42_INVALID_OHLC_SPREAD_OR_TICK")
     for item, origin in ((primary, "OFFLINE_PRIMARY_CAPTURE"),
                          (review, "OFFLINE_INDEPENDENT_REVIEW")):
