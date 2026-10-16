@@ -37,8 +37,9 @@ def evidence(*, future=False, merged=False, affirmative=False):
     flags = dict.fromkeys(r33._EVIDENCE_FLAG_FIELDS, affirmative)
     return r33.R33Evidence(
         prs=prs,
-        review_time_utc=datetime(
-            2026, 11, 4 if future else 10, tzinfo=UTC,
+        review_time_utc=(
+            datetime(2026, 11, 4, tzinfo=UTC) if future
+            else datetime(2026, 10, 16, tzinfo=UTC)
         ),
         **flags,
     )
