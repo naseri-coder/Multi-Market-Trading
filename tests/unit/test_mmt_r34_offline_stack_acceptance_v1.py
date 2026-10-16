@@ -373,7 +373,7 @@ def test_r34_timeout_kills_own_process_group(monkeypatch, tmp_path):
             return -9
 
     clock = iter((0.0, 1.0, 3.0))
-    monkeypatch.setattr(runner.time, "monotonic", lambda: next(clock))
+    monkeypatch.setattr(runner, "_monotonic_now", lambda: next(clock))
     monkeypatch.setattr(runner.subprocess, "Popen", TimedOutProcess)
     monkeypatch.setattr(
         runner.os, "killpg", lambda pid, sig: killed.append((pid, sig)),
