@@ -1,0 +1,94 @@
+# R36 — Offline Git-to-Wheel Provenance and RECORD Audit
+
+**Scope: READ-ONLY public source / offline preview only.**
+The Draft R36 branch is stacked on R35, and does not merge, publish,
+rebuild, install services, activate brokers, execute external strategies,
+access Telegram, or change production resources.
+
+## Verified starting evidence
+
+Operator-proven on Android/Termux Ubuntu 24.04 Python 3.12.3:
+R34 public Wheel build, 31 A6/Stage15/PAPER tests, 135 selected R28-R34
+tests, installed synthetic PAPER journaling and independent online SQLite
+backup/recovery plus dedup; R35 Ruff and 14 unit tests, hash-pinned
+non-root *functional* PRoot offline venv install, CLI check and four
+negative installer denials. None is authorization for public/live release.
+PRs R34 #327, R35 #328 and R36 remain unmerged Drafts.
+
+## Security purpose and guarantees
+
+The separate R36 verifier requires all of:
+
+* A caller-supplied **independently recorded, exact** Wheel SHA256.
+* A caller-supplied **independently reviewed exact Git commit SHA** of the
+  R36 source checkout, with local public module and platform metadata
+  paths clean including untracked files. Git checks use optional locks off.
+* R35's bounded ZIP/member/metadata guards, no path traversal, private
+  NYFR module or unexpected installed distribution identities.
+* **Exact byte match** between each public \`naseri_markets/*.py\`
+  module in the current clean Git checkout and the installed-capable
+  Wheel; no extra modules and no unrecognized dist-info entries.
+* Strict PEP 427 \`RECORD\`: all ZIP members listed exactly once, valid
+  SHA256 and uncompressed size for every member except RECORD itself.
+* The Wheel platform tag must be \`py3-none-any\`; its
+  \`console_scripts\` must match every source pyproject entry point.
+* Outputs a canonical logical payload SHA256 independent of timestamps
+  and compression, and a canonical public-source-content SHA256.
+
+This is **local byte-equivalence with independently supplied pins**,
+not a signed SLSA/Sigstore/in-toto attestation, trusted build executor,
+independent commit signature, secret-key signature or network isolation.
+Neither the source commit nor its fingerprint becomes authentic merely
+because the untrusted package says so. The expected SHA and source
+commit must be taken from a *separate approved review channel* and not
+extracted unquestioningly from a Wheel or its self-authored report.
+
+No source or archive modification is performed. The only subprocess
+calls are read-only Git head and status operations, with
+\`GIT_OPTIONAL_LOCKS=0\`. This is not a sandbox for executing malicious
+package code. All successful R36 verdicts keep production, broker,
+Telegram, connected PAPER and LIVE denied.
+
+## Stage 1 — Termux R36 local independent audit
+
+The operator should create a **separate detached R36 worktree** while
+retaining R34 and R35 successful checkout and Wheel. Run Ruff and the
+R36 unit test module with the existing Python 3.12 test venv and the
+same \`--noconftest\` isolation.
+
+Use the Git SHA printed by \`git rev-parse HEAD\` *after checkout*
+as \`--expected-source-commit\`, but verify that SHA against the
+intended GitHub PR head in a separate authorized view. This is a
+source-identity pin, not a cryptographic publisher attestation.
+
+    export MMT_NONPRODUCTION=1
+    unset MMT_PRODUCTION
+    python -m scripts.mmt_r36_offline_release_provenance_v1 \
+      --repository "$PWD" \
+      --wheel /root/mmt-r34-wheel.7iTGsSLb/wheels/multi_market_trading-0.4.0rc1-py3-none-any.whl \
+      --expected-wheel-sha256 a99553947fba0e6a848e1c9b5cdb144408b70f380c8f713f43a14b393c15bc8f \
+      --expected-source-commit "<EXACT-INDEPENDENTLY-VERIFIED-R36-COMMIT>"
+
+**Operator results are PENDING** until actual program output.
+Do not call code tests automatically or auto-Merge.
+
+## Stage 2 — optional independent second local Wheel comparison
+
+\`--compare-wheel /absolute/path/to/second/whl\` independently
+verifies the *second* Wheel against the same clean pinned source and
+Wheel RECORD, then checks whether the normalized uncompressed payload
+SHA256 matches. The program separately displays
+\`second_wheel_identical_bytes\`; \`false\` must not be reported as
+byte-reproducible even if payload digests agree.
+
+The second builder's authenticity and isolation are not established
+by this local comparison. Do not claim reproducible builds without
+independently recorded build environments and external signed proof.
+
+## Remaining release blockers
+
+R27 Brooks frozen worker still deferred; Stage15 remains
+\`PRODUCT_NOT_READY_FOR_PUBLIC_OR_LIVE_RELEASE\` with nine P0 and
+one P1 blockers. Independent real host/user isolation, hostile-plugin
+containment, signed release identity and actual integrated runtime
+acceptance must be separately established before any release.
