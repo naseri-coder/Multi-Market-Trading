@@ -46,7 +46,7 @@ class R41Refused(ValueError):
 def _read_source(path: Path) -> bytes:
     if not isinstance(path, Path) or not path.is_absolute():
         raise R41Refused("R41_ABSOLUTE_SOURCE_REQUIRED")
-    if path.is_symlink() or path.parent.is_symlink():
+    if any(component.is_symlink() for component in (path, *path.parents)):
         raise R41Refused("R41_SYMLINK_SOURCE_REFUSED")
     try:
         fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
