@@ -136,3 +136,37 @@ authorization, connected market access or permission to merge.
 
 R34, R35, R36 remain Draft and unmerged; Stage15 P0/P1 and deferred
 R27 Brooks evidence unchanged.
+
+## 2026-10-16 actual operator isolated Ruff and negative unit suite — PASS
+
+Operator confirmed:
+- Existing Ubuntu/Termux `mmt-r34-lab` PRoot, Python 3.12.3.
+- `/root/mmt-r36-lab` exists as detached worktree and had clean `git status --short`.
+- Existing test venv `/root/mmt-r34-venv/bin/python` has Ruff **0.16.9** and pytest **9.1.1**.
+- Real Ruff execution on `scripts/mmt_r36_offline_release_provenance_v1.py` and
+  `tests/unit/test_mmt_r36_offline_release_provenance_v1.py`:
+  **`All checks passed!`**.
+- First standalone pytest attempt failed on repository-level unknown config
+  option `asyncio_mode` because automatic third-party plugin loading was
+  deliberately disabled; **no tests were executed** in that attempt.
+- Operator reran `pytest -c /dev/null -q -p no:cacheprovider --noconftest`
+  on the exact R36 test module with
+  `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` and
+  `PYTHONDONTWRITEBYTECODE=1`: **`13 passed in 3.79s`**,
+  **`R36_TEST_EXIT=0`**, and `git status --short` empty.
+  The 13 selected pytest cases correspond to the new 12 test functions
+  including one 2-case parameterized test.
+
+**Bounded status:** `R36_REAL_GIT_WHEEL_AUDIT_PASS`,
+`R36_RUFF_PASS`, `R36_NEGATIVE_TESTS_13_PASS`.
+The earlier `pytest` error was a test harness/plugin configuration
+issue resolved by invoking only the isolated R36 unit module, **not**
+by removing tests or weakening supply-chain gates.
+
+**Remaining evidence:** A *second local build* from a new staging
+directory has **not yet** been performed. The optional second-Wheel
+comparison can distinguish source-equivalent uncompressed package
+members from full byte-for-byte reproducibility. Building a second
+archive with the same local toolchain is **not** an independent builder,
+verifiable attestation, hostile build isolation or release certificate.
+Maintain the strict Draft/unmerged P0/P1 and LIVE/production denials.
