@@ -410,3 +410,24 @@ def test_r34_no_implicit_subprocess_or_network_without_opt_in(monkeypatch):
     )
     assert evidence.local_test_runner_executed is False
     assert calls == []
+
+
+def test_r34_current_stacked_python_inventory_is_complete_and_unique():
+    # Frozen baseline for PRs #320 to #327; reconfirm via GitHub on updates.
+    sources = a34._STATIC_SOURCES
+    tests = tuple(a34._STAGE_UNIT_TARGETS.values()) + (
+        "tests/unit/test_mmt_r34_offline_stack_acceptance_v1.py",
+    )
+    assert len(sources) == 16
+    assert len(tests) == 8
+    assert len(set((*sources, *tests))) == 24
+    for expected in (
+        "naseri_markets/brooks_independent_lifecycle_economics_mmt_r27_v1.py",
+        "naseri_markets/offline_runtime_supervisor_v1.py",
+        "scripts/mmt_r29_manual_future_shadow.py",
+        "scripts/mmt_r29_manual_shadow_audit.py",
+        "scripts/mmt_r32_offline_review_kit_v1.py",
+        "scripts/mmt_r32_stopped_recovery_cli_v1.py",
+        "scripts/mmt_r33_manual_live_denial_review_v1.py",
+    ):
+        assert expected in sources
