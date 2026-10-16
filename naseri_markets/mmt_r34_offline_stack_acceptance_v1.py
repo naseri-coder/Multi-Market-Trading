@@ -40,6 +40,8 @@ _STATIC_SOURCES = (
     "naseri_markets/mmt_r31_private_admin_console_v1.py",
     "naseri_markets/mmt_r32_stopped_recovery_review_v1.py",
     "naseri_markets/mmt_r33_live_hard_deny_readiness_v1.py",
+    "naseri_markets/mmt_r34_offline_stack_acceptance_v1.py",
+    "scripts/mmt_r34_manual_stack_acceptance_v1.py",
 )
 _SHA40 = re.compile(r"[0-9a-f]{40}\Z")
 _SHA64 = re.compile(r"[0-9a-f]{64}\Z")
