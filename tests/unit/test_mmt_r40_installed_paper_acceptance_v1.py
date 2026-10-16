@@ -15,6 +15,8 @@ import pytest
 
 from naseri_markets import installed_paper_acceptance_r40_v1 as r40
 
+REAL_GATE = r40._gate
+
 
 @pytest.fixture
 def fixture(tmp_path: Path, monkeypatch):
@@ -252,3 +254,41 @@ def test_cli_missing_ack_no_result_granted(fixture, capsys):
         "--expected-r39-module-sha256", fixture.opts["expected_r39_module_sha256"],
     ]) == 2
     assert "R40_PAPER_ACCEPTANCE_REFUSED" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("setting", ["0", "1", "yes", ""])
+def test_real_gate_any_explicit_production_variable_denied(
+    monkeypatch, setting,
+):
+    monkeypatch.setenv("MMT_NONPRODUCTION", "1")
+    monkeypatch.setenv("MMT_PRODUCTION", setting)
+    monkeypatch.setattr(r40.os, "geteuid", lambda: 12345)
+    monkeypatch.setattr(r40.sys, "version_info", (3, 12, 3))
+    with pytest.raises(r40.R40Refused, match="NONROOT_PY312_STOPPED"):
+        REAL_GATE(operator_ack=True, writers_stopped=True)
+
+
+def test_real_gate_root_denied(monkeypatch):
+    monkeypatch.setenv("MMT_NONPRODUCTION", "1")
+    monkeypatch.delenv("MMT_PRODUCTION", raising=False)
+    monkeypatch.setattr(r40.os, "geteuid", lambda: 0)
+    monkeypatch.setattr(r40.sys, "version_info", (3, 12, 3))
+    with pytest.raises(r40.R40Refused, match="NONROOT_PY312_STOPPED"):
+        REAL_GATE(operator_ack=True, writers_stopped=True)
+
+
+def test_real_gate_wrong_python_version_denied(monkeypatch):
+    monkeypatch.setenv("MMT_NONPRODUCTION", "1")
+    monkeypatch.delenv("MMT_PRODUCTION", raising=False)
+    monkeypatch.setattr(r40.os, "geteuid", lambda: 12345)
+    monkeypatch.setattr(r40.sys, "version_info", (3, 13, 5))
+    with pytest.raises(r40.R40Refused, match="NONROOT_PY312_STOPPED"):
+        REAL_GATE(operator_ack=True, writers_stopped=True)
+
+
+def test_real_gate_valid_only_when_explicitly_isolated(monkeypatch):
+    monkeypatch.setenv("MMT_NONPRODUCTION", "1")
+    monkeypatch.delenv("MMT_PRODUCTION", raising=False)
+    monkeypatch.setattr(r40.os, "geteuid", lambda: 12345)
+    monkeypatch.setattr(r40.sys, "version_info", (3, 12, 3))
+    assert REAL_GATE(operator_ack=True, writers_stopped=True) is None
