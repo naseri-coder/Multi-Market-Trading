@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import argparse
 import ast
-from importlib import metadata
 import hashlib
 import os
 import signal
@@ -21,6 +20,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from importlib import metadata
 from pathlib import Path
 
 from naseri_markets.mmt_r34_offline_stack_acceptance_v1 import (
@@ -116,7 +116,7 @@ def _syntax(root: Path) -> R34ToolFinding:
             raw = _bytes(root, rel)
             ast.parse(raw, filename=rel)
             buffer += hashlib.sha256(raw).digest()
-    except (ValueError, SyntaxError, UnicodeError, R34AcceptanceRefused):
+    except (ValueError, SyntaxError):
         return R34ToolFinding(
             "STATIC_SYNTAX", "FAIL", 1,
             hashlib.sha256(bytes(buffer)).hexdigest(),
@@ -360,7 +360,7 @@ def main(argv: list[str] | None = None) -> int:
             if report_path.is_relative_to(args.source_root.absolute()):
                 raise R34AcceptanceRefused("R34_REPORT_MUST_BE_OUTSIDE_CHECKOUT")
             _private_new_report(report_path, _wire(result) + b"\n")
-    except (R34AcceptanceRefused, ValueError, OSError):
+    except (ValueError, OSError):
         print(_wire({
             "decision": "REVIEW_REFUSED_NO_RELEASE",
             "server_deployment_authorized": False,
