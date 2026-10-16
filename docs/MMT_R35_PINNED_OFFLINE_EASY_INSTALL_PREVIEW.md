@@ -332,3 +332,59 @@ and 0700/0600 permissions, and run negative invocations for stale
 destination, incorrect hash, missing acknowledgement and explicit
 `MMT_PRODUCTION=1`; assert each fails without writing outside the
 sandbox. These follow-up checks have NOT yet been run by the operator.
+
+## 2026-10-16 final PRoot installed negative-gate regression — PASS
+
+After the genuine emulated non-root install reported
+`R35_INSTALLED_OFFLINE_PREVIEW_PASS_RELEASE_DENIED`,
+the operator executed an independent Python diagnostic as
+`nobody` (EUID 65534) inside the disposable Ubuntu/Termux PRoot.
+It reopened the exact successful sandbox
+`/tmp/mmt-r35-install.aFN6KFvc`, verified its 0700 directory
+mode, verified the installed venv directory 0700, and the
+`offline-install-report.json` mode 0600. Both the sandbox Wheel
+and the installer's retained private Wheel were independently hashed
+against the previously established digest
+`a99553947fba0e6a848e1c9b5cdb144408b70f380c8f713f43a14b393c15bc8f`.
+The report's `installation_isolated` was `true`,
+`live_authorized` was `false`, and the result matched the expected
+deny-only installation verdict.
+
+Four actual, independent process invocations of the R35 CLI then
+required exit code **2** and the corresponding refusal reasons.
+The operator's stdout reported:
+
+```json
+{
+  "verdict": "R35_INSTALLED_OFFLINE_NEGATIVE_GATES_PASS",
+  "checks": {
+    "WRONG_SHA256": "PASS",
+    "EXISTING_INSTALL": "PASS",
+    "MISSING_ACK": "PASS",
+    "PRODUCTION_DENIED": "PASS"
+  },
+  "installed_cli": "PASS",
+  "original_install_preserved": true,
+  "live_authorized": false
+}
+```
+
+The negative target directory was checked nonexistent after every
+rejection. The preexisting install was preserved and its
+`venv/bin/naseri-markets --check` was independently executed to
+verify `OFFLINE_PREVIEW`, expected 0.4.0rc1 and all three
+network/order/Telegram permissions `false`. No extra installation,
+services or live activity were authorized.
+
+**Functional R35 disposition:**
+`R35_OPERATOR_PROOT_OFFLINE_INSTALL_AND_NEGATIVE_GATES_ACCEPTED`.
+This is the end of R35's **bounded, test-operator functional scope**
+and supersedes earlier entries' `PENDING` notices for this exact
+PRoot scenario. **Do not confuse this with unrestricted release
+acceptance**: the PR remains Draft and unmerged, PRoot still does
+not independently prove kernel-enforced non-root containment,
+hostile-core sandboxing or network blockade, independent supply
+chain signature or deterministic offline rebuilding. R27 full
+Brooks worker proof and Stage15's P0/P1 release blockers remain
+unresolved. Production trading, public Telegram, broker, private
+NYFR and connected PAPER are all out of scope.
