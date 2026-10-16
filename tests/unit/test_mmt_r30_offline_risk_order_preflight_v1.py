@@ -143,8 +143,19 @@ def test_r30_any_unsettled_runtime_effects_block(bad):
     args = example()
     args["runtime_health"]["counts"][bad] = 1
     if bad in ("CLAIMED", "QUARANTINED"):
+        # The supervisor sets this fence before R30 checks job counters.
+        # Both guards deny new risk; the outer reconciliation fence wins.
         args["runtime_health"]["manual_reconciliation_required"] = True
+        reject(args, "UNVERIFIED_RUNTIME_OR_SIDE_EFFECTS")
+        # A stale/missing reconciliation flag must not bypass the counter guard.
+        args["runtime_health"]["manual_reconciliation_required"] = False
     reject(args, "PENDING_DONE_OR_UNKNOWN_RUNTIME_EFFECTS")
+
+
+def test_r30_manual_reconciliation_blocks_even_with_zero_pending_counts():
+    args = example()
+    args["runtime_health"]["manual_reconciliation_required"] = True
+    reject(args, "UNVERIFIED_RUNTIME_OR_SIDE_EFFECTS")
 
 
 def test_r30_stop_and_order_switch_cannot_be_overridden():
