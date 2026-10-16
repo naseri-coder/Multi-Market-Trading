@@ -200,6 +200,24 @@ def test_mutated_model_net_is_rejected_by_independent_decimal_reconciliation(mon
         )
 
 
+def test_forged_original_stage16_receipt_hash_refused_even_if_net_is_correct(monkeypatch):
+    monkeypatch.setattr(r26,"_source",lambda *_:_geometry("LONG"))
+    real=r26._model_next_open
+    def forged(*args,**kwargs):
+        model=real(*args,**kwargs)
+        assert model["state"]=="HYPOTHETICAL_CLOSED_POSITION"
+        model["economic_receipt_sha256"]="f"*64
+        return model
+    monkeypatch.setattr(r26,"_model_next_open",forged)
+    raw,pin=_meta()
+    with pytest.raises(r26.R26AttributionRefused,match="ECONOMIC_RECEIPT_SHA"):
+        r26.r26_audit_frozen_brooks_two_paths(
+            original_replay_bytes=_replay(),legacy_source=SOURCE,
+            counterfactuals=_paths(),economic_metadata_bytes=raw,
+            economic_metadata_sha256=pin,quantity_contracts="1",operator_ack=True,
+        )
+
+
 def test_gapped_entry_is_reported_as_no_model_fill(monkeypatch):
     monkeypatch.setattr(r26,"_source",lambda *_:_geometry("LONG"))
     flat=list(_paths()[0].post_signal_closed_candles)
