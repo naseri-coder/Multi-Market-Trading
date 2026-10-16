@@ -1,9 +1,6 @@
 name: Stage21E read-only public TSA trust-anchor discovery
 
 on:
-  pull_request:
-    paths:
-      - ".github/workflows/stage21e-tsa-certificate-discovery.yml"
   workflow_dispatch:
 
 permissions:
