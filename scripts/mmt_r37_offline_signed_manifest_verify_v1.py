@@ -17,8 +17,8 @@ from pathlib import Path
 
 DOMAIN = b"MMT-R37-OFFLINE-PREVIEW-MANIFEST-V1\n"
 WHEEL_NAME = "multi_market_trading-0.4.0rc1-py3-none-any.whl"
-SHA256 = re.compile(r"[a-f0-9]{64}\\Z")
-COMMIT = re.compile(r"[a-f0-9]{40}\\Z")
+SHA256 = re.compile(r"[a-f0-9]{64}\Z")
+COMMIT = re.compile(r"[a-f0-9]{40}\Z")
 FIELDS = frozenset({
     "schema", "distribution", "version", "purpose", "source_commit",
     "source_date_epoch", "wheel_filename", "wheel_sha256", "wheel_size",
