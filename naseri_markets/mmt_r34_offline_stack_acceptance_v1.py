@@ -11,7 +11,6 @@ import json
 import os
 import re
 from dataclasses import dataclass
-from datetime import UTC, datetime
 
 _STAGE_PR = {
     "R27": (320, "9864a5165114654e25e8aa0ce83b27b7a268c6cc"),
