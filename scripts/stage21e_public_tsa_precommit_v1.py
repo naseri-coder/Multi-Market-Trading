@@ -15,7 +15,8 @@ import urllib.request
 from datetime import UTC, datetime, timedelta
 
 from naseri_markets.brooks_prospective_forward_custody_stage21c_v1 import (
-    BrooksProspectivePlan, freeze_brooks_prospective_plan,
+    BrooksProspectivePlan,
+    freeze_brooks_prospective_plan,
 )
 from naseri_markets.brooks_replay import LEGACY_MANIFEST_SHA256
 from naseri_markets.brooks_rfc3161_precommitment_stage21d_v1 import (
