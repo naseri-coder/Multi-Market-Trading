@@ -194,7 +194,8 @@ class OfflineRuntimeSupervisor:
                 SELECT j.* FROM runtime17_jobs j
                 WHERE j.status='PENDING' AND j.due_at<=?
                   AND NOT EXISTS (SELECT 1 FROM runtime17_jobs earlier
-                      WHERE earlier.binding_id=j.binding_id AND earlier.status='CLAIMED')
+                      WHERE earlier.binding_id=j.binding_id
+                        AND earlier.status IN ('CLAIMED','QUARANTINED'))
                 ORDER BY j.due_at,j.job_id LIMIT 1
             """, (_utc(now).isoformat(),)).fetchone()
             if row is None:
