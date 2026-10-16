@@ -231,3 +231,42 @@ A real non-root acceptance should occur only in an appropriately
 isolated ordinary Linux account/environment with verified on-disk UID
 and permissions, not by adjusting source guards or claiming permission
 from PRoot ID translation. Keep this PR Draft and release denied.
+
+## 2026-10-16 follow-up correction: PRoot ownership is process-view translated
+
+The operator completed the explicitly read-only Python `os.stat`
+diagnostic against the exact prior probe directory,
+`/tmp/mmt-r35-probe.MceoFspU`. **Actual output:**
+
+```text
+=== ROOT PYTHON VIEW ===
+EUID: 0
+DIRECTORY_OWNER: 0
+DIRECTORY_MODE: 0o700
+=== NOBODY PYTHON VIEW ===
+EUID: 65534
+DIRECTORY_OWNER: 65534
+DIRECTORY_MODE: 0o700
+OWNER_MATCH: True
+```
+
+**Correction to the preceding provisional HALTED conclusion:** root's
+view and `nobody`'s view show ownership through different PRoot UID
+translations. The R35 installer's intended in-process predicate
+`os.geteuid() == os.stat(private_parent).st_uid` evaluates **true**
+when actually invoked inside that `nobody` context. Therefore the
+earlier assessment `R35_PROOT_FILESYSTEM_IDENTITY_INCONSISTENT` is
+**superseded as a blocker to *functional* testing**; it was not a
+demonstrated defect in R35 or an independent security isolation proof.
+
+A narrowly scoped **PRoot-only functional install test** is feasible
+without bypassing non-root or 0700 checks. Copy **only** the reviewed
+R35 installer source and hash-verified public 0.4.0rc1 Wheel into a
+new disposable 0700 `nobody`-created folder under `/tmp`; invoke
+`--install --ack-offline-preview-install` as `nobody`, with
+`MMT_NONPRODUCTION=1`, `PIP_NO_INDEX=1` and new local destination.
+No change to `/root` permissions or production resources is allowed.
+A genuine install/PIP result remains **PENDING**; do not claim success
+until it appears. Separately require real host/user-namespace
+isolation testing before production acceptance. The Draft PR stays
+unmerged; broker/Telegram/connected/LIVE remains denied.
