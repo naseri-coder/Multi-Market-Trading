@@ -27,8 +27,12 @@ PINS = {
         "eab305facdc6ce9406f3a488a602f2b5b62a1b19",
         "89eda2c803415e129deaf705cbf5ca60c2053b287b801c0735783568165d420f",
     ),
+    "tests/unit/test_mmt_r42v_pinned_runtime_acceptance_v1.py": (
+        "ae7ec4f16caf89e9c2dcfc564f9faa9b75874a6a",
+        "dffef2f52bb52794e04d73eedc27cc38f2b7b041531b6ebeb991f589d7e9e5e6",
+    ),
 }
-EXPECTED_TESTS = 51
+EXPECTED_TESTS = 59
 
 
 class AcceptanceBlocked(RuntimeError):
@@ -97,11 +101,12 @@ def evaluate(*, checkout: Path, ack: bool, source_check_only: bool = False) -> t
         raise AcceptanceBlocked("R42V_DIRTY_CHECKOUT")
     files = list(PINS)
     ruff_version = _command(["ruff", "--version"], checkout, env).strip()
-    _command(["ruff", "check", "--isolated", "--no-cache", "--select", "E4,E7,E9,F", *files],
+    _command(["ruff", "check", "--isolated", "--no-cache", "--select", "E4,E7,E9,F", *files,
+              "scripts/mmt_r42v_pinned_runtime_acceptance_v1.py"],
              checkout, env)
     output = _command([sys.executable, "-X", "dev", "-W", "error", "-m", "pytest",
                        "-q", "-c", "/dev/null", "-p", "no:cacheprovider", "--noconftest",
-                       files[1]], checkout, env)
+                       *files[1:]], checkout, env)
     if not re.search(rf"(?m)^\s*{EXPECTED_TESTS} passed in ", output):
         raise AcceptanceBlocked("R42V_UNEXPECTED_TEST_COUNT")
     return {"verdict": "R42V_BOUNDED_PY312_TEST_LINT_PASS_NOT_RELEASE",
