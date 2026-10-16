@@ -31,7 +31,8 @@ def test_pinned_source_only_returns_nonacceptance(checkout):
     assert set(outcome["file_pins"]) == set(r.PINS)
 
 
-def test_python313_does_not_count_as_python312_success(checkout):
+def test_python313_does_not_count_as_python312_success(checkout, monkeypatch):
+    monkeypatch.setattr(r.sys, "version_info", (3, 13, 5))
     with pytest.raises(r.AcceptanceBlocked, match="REAL_PYTHON312_REQUIRED"):
         r.evaluate(checkout=checkout, ack=True)
 
@@ -66,7 +67,8 @@ def test_source_symlink_refused(checkout):
         r.evaluate(checkout=checkout, ack=True, source_check_only=True)
 
 
-def test_cli_never_claims_pass_on_python313(checkout, capsys):
+def test_cli_never_claims_pass_on_python313(checkout, capsys, monkeypatch):
+    monkeypatch.setattr(r.sys, "version_info", (3, 13, 5))
     status = r.main(["--checkout", str(checkout), "--ack-offline-only"])
     output = json.loads(capsys.readouterr().out)
     assert status == 2
