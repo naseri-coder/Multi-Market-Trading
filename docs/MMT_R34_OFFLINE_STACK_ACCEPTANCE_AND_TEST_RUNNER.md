@@ -8,8 +8,8 @@ R27 (PR #320) through R33 (PR #326) are still **OPEN DRAFT UNMERGED** as observe
 
 ### New modules
 
-- `naseri_markets/mmt_r34_offline_stack_acceptance_v1.py`: immutable, exact-order seven-stage test evidence contract R27–R33, Ruff, full unit suite, AST static syntax. Values PASS, FAIL, TIMEOUT, UNAVAILABLE and NOT_RUN are explicit. PASS requires process exit 0 **and a SHA256 of test output**. It checks pinned/observed Git HEAD equality, checkout cleanliness, whether tests really ran, and six distinct independent upstream/OOS/account/recovery gates. Every result, including all PASS with every claimed external proof flag TRUE, ends `REVIEW_ONLY_RELEASE_BLOCKED` and grants zero order/Telegram/LIVE/deploy actions. Test-output digest is a local accountability primitive, not external attestation.
-- `scripts/mmt_r34_manual_stack_acceptance_v1.py`: operator-run stdlib CLI. Requires `MMT_NONPRODUCTION=1`, explicit human consent, a SHA-pinned clean, absolute non-symlink checkout; static Python AST parsing of seven production-research modules and corresponding stage unit test files. Separately opt in to seven stage tests, Ruff, and/or entire `tests/unit` suite. Never starts GitHub Actions or runs an install/deployment command.
+- `naseri_markets/mmt_r34_offline_stack_acceptance_v1.py`: immutable, exact-order eight-stage test evidence contract R27–R34, Ruff, full unit suite, AST static syntax. Values PASS, FAIL, TIMEOUT, UNAVAILABLE and NOT_RUN are explicit. PASS requires process exit 0 **and a SHA256 of test output**. It checks pinned/observed Git HEAD equality, checkout cleanliness, whether tests really ran, and six distinct independent upstream/OOS/account/recovery gates. Every result, including all PASS with every claimed external proof flag TRUE, ends `REVIEW_ONLY_RELEASE_BLOCKED` and grants zero order/Telegram/LIVE/deploy actions. Test-output digest is a local accountability primitive, not external attestation.
+- `scripts/mmt_r34_manual_stack_acceptance_v1.py`: operator-run stdlib CLI. Requires `MMT_NONPRODUCTION=1`, explicit human consent, a SHA-pinned clean, absolute non-symlink checkout; static Python AST parsing of all sixteen changed R27–R34 source modules and all eight stage unit test files. Separately opt in to eight stage tests, Ruff, and/or entire `tests/unit` suite. Never starts GitHub Actions or runs an install/deployment command.
 - `tests/unit/test_mmt_r34_offline_stack_acceptance_v1.py`: checks malformed/faked evidence, ordered stage inventory, even all-green hard refusal, no accidental test subprocess invocation without opt-in, tightly scoped commands, redaction of ambient credential environment, output directory privacy and exclusive non-overwriting report creation.
 
 ## Security boundary and limitations
@@ -101,3 +101,24 @@ The available **isolated local sandbox was inspected directly** (not guessed):
 R34 now checks all of these pinned Python and test toolchain versions before launching pytest/Ruff. Child output to its temporary spool has a **4 MiB ceiling** (bounded inspection every ~200ms), and process groups are terminated on timeout/output overflow. Such a limit does not guarantee no single instantaneous output burst or all possible process escape; do not run untrusted code on a host with operational data. Source-code only regressions were added for these defenses but they have NOT been executed in a Python 3.12 checkout.
 
 This PR remains Draft with no LIVE, no merge, no server access and no GitHub Actions.
+
+## R34 stage completeness and bounded-output follow-up
+
+The stage-by-stage test flag now explicitly includes **R34's own unit tests**
+in addition to R27–R33. All eight stage outcomes are required and ordered in
+the acceptance report; full unit suite remains an additional independent
+selection. The Ruff and source-byte/AST inventories include all 24 Python
+files changed in the PR #320–#327 lineage **exactly once**.
+
+A locally running test process can produce excessive stdout/stderr and fill a
+disposable device's disk. The subprocess capture is now limited to 4 MiB per
+command, polled at bounded intervals; `OUTPUT_LIMIT` is an explicit failed
+terminal state, never PASS. Timeout/output overflow kills the separately
+created POSIX process group. Although this bounds routine output under normal
+scheduling, it is not a hard OS resource quota or a sandbox against hostile
+forked/detached processes. Run only reviewed code in an isolated test host.
+
+The runner now checks exact installed development versions *without importing
+pytest plugins*: pytest 9.1.1, pytest-asyncio 1.4.0 and Ruff 0.16.9. Python
+3.12 remains mandatory for pytest. No real R27–R34 test pass has been claimed
+in this PR without a proper, exact-commit disposable checkout.
