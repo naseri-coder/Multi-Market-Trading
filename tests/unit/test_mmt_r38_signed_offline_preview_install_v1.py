@@ -5,9 +5,7 @@ Tests never launch pip, create a real venv, connect network or trade.
 from __future__ import annotations
 
 import hashlib
-import io
 import json
-import os
 import zipfile
 from pathlib import Path
 
@@ -29,8 +27,7 @@ def canonical(obj: dict) -> bytes:
 def example(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("MMT_NONPRODUCTION", "1")
     monkeypatch.delenv("MMT_PRODUCTION", raising=False)
-    monkeypatch.setattr(r38.os.sys if hasattr(r38.os, "sys") else r37.sys,
-                        "version_info", (3, 12, 3))
+    monkeypatch.setattr(r37.sys, "version_info", (3, 12, 3))
     private = tmp_path / "private"
     private.mkdir(mode=0o700)
     private_key = Ed25519PrivateKey.generate()  # ephemeral, local TEST only
@@ -155,10 +152,9 @@ def test_signer_omitted_from_allowlist_denied(example):
 
 
 def test_signed_stale_manifest_denied(example):
-    params, manifest, policy, rewrite, _ = example
+    params, manifest, policy, _, rewrite_policy = example
     policy["min_source_date_epoch"] = 1704067201
-    params["expected_policy_sha256"] = canonical(policy)
-    params["expected_policy_sha256"] = hashlib.sha256(canonical(policy)).hexdigest()
+    params["expected_policy_sha256"] = rewrite_policy()
     with pytest.raises(r38.R38Refused, match="OLD_MANIFEST_REPLAY_DENIED"):
         r38.preflight(**params)
     assert manifest["source_date_epoch"] == 1704067200
