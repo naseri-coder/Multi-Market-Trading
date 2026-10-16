@@ -31,14 +31,23 @@ _STAGE_UNIT_TARGETS = {
     "R32": "tests/unit/test_mmt_r32_offline_review_kit_and_recovery_v1.py",
     "R33": "tests/unit/test_mmt_r33_live_hard_deny_readiness_v1.py",
 }
+# Every Python source added/modified by stacked PRs #320--#327,
+# excluding the 8 test files (listed in _STAGE_UNIT_TARGETS below).
 _STATIC_SOURCES = (
+    "naseri_markets/brooks_independent_lifecycle_economics_mmt_r27_v1.py",
     "naseri_markets/mmt_r28_unified_offline_runtime_v1.py",
+    "naseri_markets/offline_runtime_supervisor_v1.py",
     "naseri_markets/brooks_future_shadow_paper_mmt_r29_v1.py",
     "naseri_markets/mmt_r29_shadow_session_audit_v1.py",
+    "scripts/mmt_r29_manual_future_shadow.py",
+    "scripts/mmt_r29_manual_shadow_audit.py",
     "naseri_markets/mmt_r30_offline_risk_order_preflight_v1.py",
     "naseri_markets/mmt_r31_private_admin_console_v1.py",
     "naseri_markets/mmt_r32_stopped_recovery_review_v1.py",
+    "scripts/mmt_r32_offline_review_kit_v1.py",
+    "scripts/mmt_r32_stopped_recovery_cli_v1.py",
     "naseri_markets/mmt_r33_live_hard_deny_readiness_v1.py",
+    "scripts/mmt_r33_manual_live_denial_review_v1.py",
     "naseri_markets/mmt_r34_offline_stack_acceptance_v1.py",
     "scripts/mmt_r34_manual_stack_acceptance_v1.py",
 )
