@@ -92,3 +92,47 @@ R27 Brooks frozen worker still deferred; Stage15 remains
 one P1 blockers. Independent real host/user isolation, hostile-plugin
 containment, signed release identity and actual integrated runtime
 acceptance must be separately established before any release.
+
+## 2026-10-16 actual operator Termux source-to-Wheel audit — PASS
+
+The operator ran the R36 read-only audit **using explicit
+`/usr/bin/python3.12`**, version **3.12.3**, inside disposable
+`/root/mmt-r36-lab` at Git SHA
+`24519e919c3a11542ff34eed4a0afa1642656602`.
+Initially their unqualified `python` resolved to Termux
+`/data/data/com.termux/files/usr/bin/python`, which lacked Ruff and
+pytest and caused `R36_OFFLINE_PY312_ONLY`: **this was an interpreter
+mismatch, not a code-test failure**. The corrected explicit Python
+3.12 invocation returned **`R36_AUDIT_EXIT=0`** with the genuine
+JSON values:
+
+```json
+{
+  "verdict": "R36_LOCAL_SOURCE_WHEEL_EQUIVALENCE_PASS_RELEASE_DENIED",
+  "source_commit": "24519e919c3a11542ff34eed4a0afa1642656602",
+  "source_module_bytes_match": true,
+  "public_modules_verified": 221,
+  "source_tree_sha256": "d3a42bf4e81b97775c7b2ca31161f59bcc5020a56ddb2f9935353bc51c9293d0",
+  "wheel_sha256": "a99553947fba0e6a848e1c9b5cdb144408b70f380c8f713f43a14b393c15bc8f",
+  "wheel_bytes": 787808,
+  "wheel_payload_sha256": "a2fbe39808af358fd284240153bd331e67b1fae71bbe6d406004f3e530101659",
+  "wheel_record_verified": true,
+  "files_written": false,
+  "publisher_signature_verified": false,
+  "independent_provenance_verified": false,
+  "production_release_authorized": false,
+  "live_authorized": false
+}
+```
+
+**Bounded acceptance:** actual operator
+`R36_LOCAL_SOURCE_WHEEL_EQUIVALENCE_PASS_RELEASE_DENIED`
+for the *one* source/Wheel pair. **Still pending:** Ruff and pytest
+execution of the 12 new negative R36 unit tests using the previously
+installed Python 3.12 test venv, and any second-Wheel comparison.
+Do not interpret this as an authenticated publisher signature,
+independent build attestation, deterministic rebuild, release
+authorization, connected market access or permission to merge.
+
+R34, R35, R36 remain Draft and unmerged; Stage15 P0/P1 and deferred
+R27 Brooks evidence unchanged.
