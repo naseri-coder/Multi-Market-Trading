@@ -578,3 +578,39 @@ def test_r34_group_exists_but_is_inaccessible_is_never_pass(monkeypatch):
     assert runner._reap_extra_group_members(123456) is True
     item = a34.R34ToolFinding("R34", "ORPHANED_CHILD_GROUP", None, None)
     assert item.status == "ORPHANED_CHILD_GROUP"
+
+
+def test_r34_git_checks_ignore_ambient_git_dir_and_config_injection(
+    monkeypatch, tmp_path,
+):
+    from types import SimpleNamespace
+
+    invoked = []
+
+    def observed_run(argv, **kwargs):
+        invoked.append((argv, kwargs))
+        return SimpleNamespace(returncode=0, stdout="abc\n")
+
+    for key in (
+        "GIT_DIR", "GIT_WORK_TREE", "GIT_CONFIG_PARAMETERS",
+        "GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0",
+        "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY",
+        "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    ):
+        monkeypatch.setenv(key, "evil-injected-value")
+    monkeypatch.setattr(runner.subprocess, "run", observed_run)
+    assert runner._git(tmp_path, "rev-parse", "HEAD") == "abc"
+    argv, kw = invoked[0]
+    assert argv[:3] == ["git", "-C", str(tmp_path)]
+    assert "core.fsmonitor=false" in argv
+    assert "core.hooksPath=/dev/null" in argv
+    assert "submodule.recurse=false" in argv
+    for key in (
+        "GIT_DIR", "GIT_WORK_TREE", "GIT_CONFIG_PARAMETERS",
+        "GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0",
+        "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY",
+        "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    ):
+        assert key not in kw["env"]
+    assert kw["env"]["GIT_CONFIG_NOSYSTEM"] == "1"
+    assert kw["env"]["GIT_OPTIONAL_LOCKS"] == "0"
