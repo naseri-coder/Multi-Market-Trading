@@ -241,3 +241,89 @@ def test_r29_broken_r24_timegrid_is_rejected_before_worker(
             **args, decision_bar_index=60,
         )
     assert not calls
+
+
+def _audit_with_fake_custody(monkeypatch):
+    from naseri_markets import mmt_r29_shadow_session_audit_v1 as audit
+
+    monkeypatch.setattr(
+        audit, "_read_original_evidence", r29._read_original_evidence,
+    )
+    monkeypatch.setattr(
+        audit, "stage24_replay_all_previous_batches",
+        r29.stage24_replay_all_previous_batches,
+    )
+    return audit
+
+
+def test_r29_multi_bar_session_counts_and_preserves_inert_claims(
+    tmp_path, monkeypatch,
+):
+    args, _, _ = staged(tmp_path, monkeypatch, sizes=(60, 1))
+    audit = _audit_with_fake_custody(monkeypatch)
+    first, first_raw = r29.review_r29_one_closed_bar_shadow(
+        **args, decision_bar_index=60,
+    )
+    second, second_raw = r29.review_r29_one_closed_bar_shadow(
+        **args, decision_bar_index=61,
+        previous_r29_receipt_bytes=first_raw,
+    )
+    target = tmp_path / "shadow-audit"
+    target.mkdir(mode=0o700)
+    p0 = r29.save_r29_receipt_exclusive(
+        directory=target.resolve(), receipt=first_raw, operator_ack=True,
+    )
+    p1 = r29.save_r29_receipt_exclusive(
+        directory=target.resolve(), receipt=second_raw, operator_ack=True,
+    )
+    result = audit.audit_r29_original_source_shadow_session(
+        witness_directory=args["witness_directory"],
+        previous_directories=args["previous_directories"],
+        shadow_receipts=(p0, p1), operator_ack=True,
+    )
+    assert result["consecutive_decision_receipts"] == 2
+    assert result["decision_counts"]["NO_SIGNAL"] == 2
+    assert result["last_decision_close_utc"] == "2026-10-20T15:15:00Z"
+    assert result["actual_fills_or_profits_certified"] is False
+    assert result["complete_study_coverage"] is False
+
+
+def test_r29_session_audit_rejects_rehashed_wrong_prefix_and_receipt_gaps(
+    tmp_path, monkeypatch,
+):
+    args, _, _ = staged(tmp_path, monkeypatch, sizes=(60, 1))
+    audit = _audit_with_fake_custody(monkeypatch)
+    _, first_raw = r29.review_r29_one_closed_bar_shadow(
+        **args, decision_bar_index=60,
+    )
+    _, second_raw = r29.review_r29_one_closed_bar_shadow(
+        **args, decision_bar_index=61,
+        previous_r29_receipt_bytes=first_raw,
+    )
+    target = tmp_path / "shadow-audit"
+    target.mkdir(mode=0o700)
+    p0 = r29.save_r29_receipt_exclusive(
+        directory=target.resolve(), receipt=first_raw, operator_ack=True,
+    )
+    p1 = r29.save_r29_receipt_exclusive(
+        directory=target.resolve(), receipt=second_raw, operator_ack=True,
+    )
+    with pytest.raises(r29.R29ShadowRefused, match="DECISION_SOURCE"):
+        audit.audit_r29_original_source_shadow_session(
+            witness_directory=args["witness_directory"],
+            previous_directories=args["previous_directories"],
+            shadow_receipts=(p1,), operator_ack=True,
+        )
+    forged = json.loads(second_raw)
+    forged["source_prefix_sha256"] = "f" * 64
+    unsigned = {k: v for k, v in forged.items() if k != "receipt_sha256"}
+    forged["receipt_sha256"] = hashlib.sha256(
+        r29._canonical(unsigned),
+    ).hexdigest()
+    p1.write_bytes(r29._canonical(forged))
+    with pytest.raises(r29.R29ShadowRefused, match="DECISION_SOURCE"):
+        audit.audit_r29_original_source_shadow_session(
+            witness_directory=args["witness_directory"],
+            previous_directories=args["previous_directories"],
+            shadow_receipts=(p0, p1), operator_ack=True,
+        )
