@@ -149,6 +149,33 @@ def test_callback_failure_quarantines_without_retry(tmp_path):
     control.close()
 
 
+
+def test_r28_quarantined_binding_blocks_a_distinct_pending_job_after_restart(tmp_path):
+    """A new content hash must not evade unresolved side-effect uncertainty."""
+    control, binding, inst = panel_fixture(tmp_path)
+    path = tmp_path / "runtime.sqlite"
+    with OfflineRuntimeSupervisor(path, panel=control, actor_id=123, enabled=True) as s:
+        first = scheduled(s, binding, inst, source="first_event")
+
+        def maybe_wrote_external_ledger(_):
+            raise OSError("unknown cross-ledger effects")
+
+        failed = s.run_due(maybe_wrote_external_ledger,
+                           now=bars()[-1].close_at, operator_ack=True)
+        assert failed[0]["status"] == "QUARANTINED"
+        second = scheduled(s, binding, inst, source="second_event")
+        assert first != second
+    with OfflineRuntimeSupervisor(path, panel=control, actor_id=123, enabled=True) as restarted:
+        assert restarted.run_due(receipt, now=bars()[-1].close_at,
+                                 operator_ack=True) == ()
+        rows = {row["job_id"]: row for row in restarted.jobs()}
+        assert rows[first]["status"] == "QUARANTINED"
+        assert rows[second]["status"] == "PENDING"
+        assert rows[second]["attempt"] == 0
+        assert restarted.health()["manual_reconciliation_required"]
+    control.close()
+
+
 def test_live_claim_and_forged_receipt_are_refused(tmp_path):
     control,binding,inst=panel_fixture(tmp_path)
     with OfflineRuntimeSupervisor(tmp_path/'runtime.sqlite',panel=control,actor_id=123,enabled=True) as s:
