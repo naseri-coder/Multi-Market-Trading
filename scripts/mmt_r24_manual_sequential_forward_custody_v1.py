@@ -10,7 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, timedelta
 from pathlib import Path
 
 from naseri_markets.brooks_forward_source_custody_stage21g_v1 import (
@@ -24,7 +24,8 @@ from naseri_markets.brooks_sequential_forward_custody_mmt_r24_v1 import (
 
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(
-        description="Nonproduction one-time next closed BTCUSDT 15m source-custody receipt",
+        description=("Nonproduction one-time next closed BTCUSDT 15m "
+                     "source-custody receipt"),
     )
     result.add_argument("--ack-research-only", action="store_true")
     result.add_argument("--witness-dir", type=Path, required=True)
