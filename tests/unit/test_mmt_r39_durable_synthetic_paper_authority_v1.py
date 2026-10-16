@@ -36,8 +36,12 @@ def scratch(tmp_path: Path, monkeypatch):
             "restart_verified": True,
             "integrity_verdict": "PASS",
             "release_verdict": "BLOCKED_NONPRODUCTION_UNATTESTED",
-            "bindings": [{"symbol": x, "status": "CLOSED"}
-                         for x in ("BTCUSD", "ETHUSD")],
+            "bindings": [
+                {"symbol": symbol, "timeframe": timeframe,
+                 "binding_id": "fixture_" + symbol,
+                 "order_id": "paper_" + symbol, "status": "CLOSED"}
+                for symbol, timeframe in (("BTCUSD", "5m"), ("ETHUSD", "15m"))
+            ],
             "telegram_sent": False,
             "broker_order_sent": False,
             "real_feed_used": False,
