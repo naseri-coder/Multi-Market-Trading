@@ -386,3 +386,33 @@ def test_distinct_pin_inputs_required(e):
     k["ledger_sha256"] = k["account_sha256"]
     with pytest.raises(r.R42Refused, match="DISTINCT_EVIDENCE"):
         r.audit(**k)
+
+
+
+@pytest.mark.parametrize("changed", ["account", "ledger"])
+def test_r42c_rejects_mismatched_capture_epoch_even_when_values_match(e, changed):
+    """Matching balances/positions/orders from different moments are not parity."""
+    objects, kwargs, update = e
+    objects[changed]["observed_at"] = "2026-10-16T12:00:00Z"
+    update(changed)
+    with pytest.raises(r.R42Refused, match="ACCOUNT_LEDGER_TIMESTAMP_DRIFT"):
+        r.audit(**kwargs)
+
+
+def test_r42c_mismatched_captures_cannot_claim_any_release(e):
+    objects, kwargs, update = e
+    objects["ledger"]["observed_at"] = "2026-10-16T11:59:59Z"
+    update("ledger")
+    assert r.main([
+        "--policy", str(kwargs["policy_path"]),
+        "--policy-sha256", kwargs["policy_sha256"],
+        "--market", str(kwargs["market_path"]),
+        "--market-sha256", kwargs["market_sha256"],
+        "--account", str(kwargs["account_path"]),
+        "--account-sha256", kwargs["account_sha256"],
+        "--ledger", str(kwargs["ledger_path"]),
+        "--ledger-sha256", kwargs["ledger_sha256"],
+        "--region", kwargs["region"],
+        "--as-of-utc", kwargs["as_of_utc"],
+        "--ack-synthetic-offline",
+    ]) == 2
