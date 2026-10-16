@@ -275,3 +275,13 @@ def test_unhashable_timeframe_denied(evidence):
     _,policy,_,refresh,_=evidence
     policy['timeframe']=['5m'];refresh()
     with pytest.raises(r.R42Refused,match='POLICY_TIMEFRAME_INVALID'):verify(evidence)
+
+
+def test_decimal_overprecision_in_signed_feed_denied(evidence):
+    _,_,records,refresh,_=evidence
+    huge='999999999999999999999999999999999999999.00'
+    for field in ('open','high','low','close','bid','ask'):
+        records['feed'][field]=huge
+    refresh()
+    with pytest.raises(r.R42Refused, match='DECIMAL_PRECISION_UNSAFE'):
+        verify(evidence)
