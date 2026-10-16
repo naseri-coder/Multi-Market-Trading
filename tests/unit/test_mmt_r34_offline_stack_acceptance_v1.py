@@ -174,6 +174,7 @@ def test_r34_default_cli_collect_uses_only_static_parse(monkeypatch):
 
 
 def test_r34_stage_runner_explicit_approved_commands_and_only_allowlist(monkeypatch):
+    monkeypatch.setattr(runner, "_project_python_preflight", lambda *_: None)
     cmds = []
 
     def fake_run(root, name, argv, timeout):
@@ -276,6 +277,7 @@ def test_r34_static_preflight_failure_prevents_test_execution(monkeypatch):
 
 
 def test_r34_posttest_source_digest_drift_is_denied(monkeypatch):
+    monkeypatch.setattr(runner, "_project_python_preflight", lambda *_: None)
     visits = []
     monkeypatch.setattr(runner, "_head", lambda *_: None)
     def changed_syntax(_):
@@ -337,4 +339,13 @@ def test_r34_untrusted_pytest_environment_cannot_override_fixed_commands(
         assert key not in env
     assert env["PYTHONNOUSERSITE"] == "1"
     assert env["PYTHONSAFEPATH"] == "1"
+
+
+def test_r34_runner_refuses_unsupported_python_versions():
+    runner._project_python_preflight(True, version=(3, 12))
+    runner._project_python_preflight(False, version=(3, 13))
+    with pytest.raises(a34.R34AcceptanceRefused, match="PYTHON_312_REQUIRED"):
+        runner._project_python_preflight(True, version=(3, 13))
+    with pytest.raises(a34.R34AcceptanceRefused, match="PYTHON_312_REQUIRED"):
+        runner._project_python_preflight(True, version=(3, 11))
 
