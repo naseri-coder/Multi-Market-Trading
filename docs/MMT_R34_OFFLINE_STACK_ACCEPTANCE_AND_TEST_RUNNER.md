@@ -1,0 +1,57 @@
+# MMT R34 — Independent Test-Coverage Preparation and Offline Acceptance Evidence
+
+**Status:** development Draft stacked on R33 PR #326, not main, no actual LIVE, connected PAPER, broker/MT5/Telegram sender, server deployment or GitHub Actions run.
+
+## Why R34 comes next
+
+R27 (PR #320) through R33 (PR #326) are still **OPEN DRAFT UNMERGED** as observed on October 16, 2026. Repeated additions of new feature phases without running real tests leave accumulated acceptance debt. R34 addresses this with a deterministic test runner and deny-only acceptance matrix rather than another trading subsystem. It neither merges existing PRs nor claims that they pass. The original R29 prospective Brooks study is Oct 20–Nov 3 UTC, still in the future on this date.
+
+### New modules
+
+- `naseri_markets/mmt_r34_offline_stack_acceptance_v1.py`: immutable, exact-order seven-stage test evidence contract R27–R33, Ruff, full unit suite, AST static syntax. Values PASS, FAIL, TIMEOUT, UNAVAILABLE and NOT_RUN are explicit. PASS requires process exit 0 **and a SHA256 of test output**. It checks pinned/observed Git HEAD equality, checkout cleanliness, whether tests really ran, and six distinct independent upstream/OOS/account/recovery gates. Every result, including all PASS with every claimed external proof flag TRUE, ends `REVIEW_ONLY_RELEASE_BLOCKED` and grants zero order/Telegram/LIVE/deploy actions. Test-output digest is a local accountability primitive, not external attestation.
+- `scripts/mmt_r34_manual_stack_acceptance_v1.py`: operator-run stdlib CLI. Requires `MMT_NONPRODUCTION=1`, explicit human consent, a SHA-pinned clean, absolute non-symlink checkout; static Python AST parsing of seven production-research modules and corresponding stage unit test files. Separately opt in to seven stage tests, Ruff, and/or entire `tests/unit` suite. Never starts GitHub Actions or runs an install/deployment command.
+- `tests/unit/test_mmt_r34_offline_stack_acceptance_v1.py`: checks malformed/faked evidence, ordered stage inventory, even all-green hard refusal, no accidental test subprocess invocation without opt-in, tightly scoped commands, redaction of ambient credential environment, output directory privacy and exclusive non-overwriting report creation.
+
+## Security boundary and limitations
+
+This runner executes *repository Python test code* when you explicitly select `--run-stage-tests` or `--run-full-unit-suite`; running tests can trigger arbitrary actions if the repository is malicious. Environment sanitization, disabled plugin auto-loading, dummy network proxies and no automatic API credentials are **not a network sandbox**. Thus **only use a disposable NONPRODUCTION Termux environment or equivalently isolated test system**, after reviewing the exact repo content. Do not run on the production Telmivo server, another operational trading server, a host with live broker credentials, or a persistent production DB. Do not claim the runner provides independent provenance or fully hermetic test execution.
+
+It uses fixed `sys.executable -m pytest` arguments with no shell and `-p pytest_asyncio.plugin` explicitly, because `pyproject.toml` requires pytest-asyncio; `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` prevents uncontrolled plugin discovery. `-p no:cacheprovider` and `PYTHONDONTWRITEBYTECODE=1` reduce local writes. Ruff invokes `python -m ruff check`. Each stage is given 240 seconds; full unit suite has an explicit 900-second timeout. Review later whether more time is warranted on an Android device. `PIP_NO_INDEX=1` prevents pip repository access from this helper but does not block arbitrary network calls by third-party test code. No log stdout/stderr is printed; only exit outcome and hashed output are exported. No test command is automatically retried.
+
+## Manual exact-commit Termux validation
+
+First inspect the PR, commit and source in GitHub. Work on a **new disposable checkout**; never touch an operational directory. Check the branch commit immediately before running:
+
+    cd "$HOME/Multi-Market-Trading-R34-TEST"
+    git status --short
+    git rev-parse HEAD
+
+Copy the exact **current R34 PR head SHA** after independently comparing it with the GitHub PR. For example:
+
+    export MMT_NONPRODUCTION=1
+    unset MMT_PRODUCTION
+    mkdir -m 700 -p "$HOME/mmt-r34-audit"
+    python -m scripts.mmt_r34_manual_stack_acceptance_v1 \
+      --source-root "$PWD" \
+      --expected-head REPLACE_WITH_EXACT_R34_COMMIT_SHA \
+      --run-stage-tests \
+      --run-ruff \
+      --output-private-json "$HOME/mmt-r34-audit/stage-tests.json" \
+      --ack-execute-local-repository-tests
+
+A separate, more intensive (not run by default) option is `--run-full-unit-suite`. On any missing tests, invalid pinned HEAD, not-clean source, timeout, import failure, Ruff issue, or missing dependency, the evidence report describes the failure rather than guessing a PASS. The command intentionally exits with status **1 even if all local tests passed** because release remains blocked; exit 2 means preflight/refusal.
+
+The JSON report must be kept in a previously created private `0700` owner directory **outside** the checkout, written as a new `0600` file using exclusive creation. Any attempt to overwrite a previous report or write inside the checkout is refused.
+
+## Gate acceptance checklist for actual human review
+
+1. Execute the six R28–R33 unit test files plus R27, Ruff and full unit suite on exact final R34 SHA; retain original logs privately with independent custody. The runner only stores their SHA256 for comparison and *does not itself retain raw logs*.
+2. Reconcile and correct any failing test/fixture/code finding in its owning PR. **Do not infer a pass from tests existing in GitHub.**
+3. Independently run CodeQL/Publication Safety, dependency and supply-chain inspection, and R32 review-kit+disposable cold restore. GitHub Actions quota is known to be constrained; manual local execution is permissible, but independently attested verification is still necessary.
+4. Review stacked PR ancestry and branch protection from oldest first. R27 and earlier ancestors may still be Draft; do not merge R34 independently onto an unapproved main. Do not merge any PR automatically.
+5. R29 original forward closed-candle data and independent performance/risk witness are not available until after the Oct20–Nov3 study; keep PAPER/LIVE claims separate from synthetic fixture results.
+6. Verify exchange-specific jurisdiction/API permission, trusted live account snapshot, liquidation/fee/funding semantics, crash/UNKNOWN handling and independently monitored one-way kill switch before even considering a further separate LIVE-specific approval.
+
+**As of creation of this PR:** GitHub tool verification of changed files and PR lineage is available. **Full repo pytest, Ruff, CodeQL, actual future market research, cold restore and signed deployment have NOT been executed here.**
+
+**Disposition:** `MMT_R34_OFFLINE_TEST_EVIDENCE_PREPARED_NOT_ACCEPTED` — no release, no merge, no orders.
