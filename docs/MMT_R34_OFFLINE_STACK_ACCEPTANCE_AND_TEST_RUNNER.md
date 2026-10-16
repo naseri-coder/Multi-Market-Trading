@@ -451,3 +451,49 @@ The historical root 0.3.2 manager and
 Actual installed behavior is **TEST_PENDING**. The R27 Brooks frozen
 worker stays DEFERRED, and final verdict remains
 `PRODUCT_NOT_READY_FOR_PUBLIC_OR_LIVE_RELEASE`.
+
+## 2026-10-16 operator-confirmed isolated Wheel install and synthetic smoke
+
+The operator re-used the already reviewed, locally built Wheel in
+`/root/mmt-r34-wheel.7iTGsSLb`. Actual reported command outputs:
+
+- Independent `sha256sum --check`: **OK** for
+  `multi_market_trading-0.4.0rc1-py3-none-any.whl`, digest
+  `a99553947fba0e6a848e1c9b5cdb144408b70f380c8f713f43a14b393c15bc8f`.
+- Fresh `python3.12 -m venv` at
+  `/root/mmt-r34-wheel.7iTGsSLb/wheel-check-venv`, followed by
+  `pip install --no-index --no-deps --no-cache-dir` from the local Wheel
+  with an `env -i` sanitized environment: **Successfully installed
+  multi-market-trading-0.4.0rc1**.
+- **Installed** `naseri-markets --check`, from outside the Git checkout,
+  reported `mode=OFFLINE_PREVIEW`, `version=0.4.0rc1`,
+  `registered_engines=0`, `network_enabled=false`,
+  `orders_enabled=false`, `telegram_enabled=false`,
+  `legacy_database_attached=false`.
+- `python -m naseri_markets.installed_preview_smoke_v1
+  --ack-isolated-preview` inside the standalone venv with
+  `MMT_NONPRODUCTION=1`: **`strategy_decision_validated=true`**.
+  The same output explicitly showed `telegram_sent=false`,
+  `broker_order_sent=false`, `live_feed_verified=false`,
+  `external_plugin_executed=false`, `product_release_authorized=false`.
+- `python -m pip check`: **No broken requirements found**.
+- `git status --short` was empty. Nothing was installed into system
+  Python, the root v0.3.2 manager or operational databases.
+
+**Acceptance bounded verdict:**
+`A6_INSTALLED_OFFLINE_WHEEL_SMOKE_PASS_RELEASE_DENIED`.
+This does NOT verify a complete operational Stage12→7/8/9/10 runtime,
+persistent installed PAPER toy journey, connected feeds, independent
+sandbox, production release, NYFR, or R27 frozen Brooks. The nine P0,
+one P1, and `PRODUCT_NOT_READY_FOR_PUBLIC_OR_LIVE_RELEASE`
+remain untouched.
+
+Next scoped operator-only test should exercise **the installed
+`naseri-paper-demo` entrypoint** inside the same verified isolated venv,
+with a *new private directory* and explicit `MMT_NONPRODUCTION=1`.
+Independently invoke init (disabled), negative pre-enable replay, CAS
+enable, first synthetic replay, duplicate replay, restart via separate
+inspect process, CAS disable with history preservation, and negative
+post-disable replay. Record only synthetic counts/journal SHA; no tokens,
+brokers, external plugins, original private NYFR or real market access.
+**This next acceptance is not yet executed.**
