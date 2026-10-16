@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 import json
-import os
 import sqlite3
 from pathlib import Path
 
 import pytest
 
 from naseri_markets import offline_authoritative_paper_journey_r39_v1 as r39
+
+REAL_GATE = r39._gate
 
 
 @pytest.fixture
@@ -242,14 +243,9 @@ def test_original_production_gate_rejects_any_env_value(scratch, monkeypatch, va
     monkeypatch.setenv("MMT_PRODUCTION", value)
     monkeypatch.setattr(r39.sys, "version_info", (3, 12, 3))
     monkeypatch.setattr(r39.os, "geteuid", lambda: 2000)
-    # Actual R39 gate implementation bypassing the synthetic test fixture.
-    from importlib import import_module
-    import inspect
-    module = import_module("naseri_markets.offline_authoritative_paper_journey_r39_v1")
-    # Resolve original from a saved reference attached to module via reload
-    # would re-import synthetic dependencies; exercise the shared logic directly.
-    assert value in os.environ
-    assert "MMT_PRODUCTION" in os.environ
+    # Bypass the fixture's test-only _gate replacement.
+    with pytest.raises(r39.PaperAuthorityRefused, match="NONROOT_PY312_NONPRODUCTION"):
+        REAL_GATE(operator_ack=True)
 
 
 def test_real_stage20_and_stage10_integrated_synthetic_fixture(scratch, monkeypatch):
