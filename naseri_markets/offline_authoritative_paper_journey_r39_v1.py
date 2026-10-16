@@ -138,7 +138,14 @@ def _verify_outputs(report: dict, *, dry_run_signals: bool, directory: Path) -> 
             or len(report["bindings"]) != 2
             or any(type(x) is not dict for x in report["bindings"])
             or {x.get("symbol") for x in report["bindings"]} != {"BTCUSD", "ETHUSD"}
-            or any(x.get("status") != "CLOSED" for x in report["bindings"])):
+            or any(x.get("status") != "CLOSED" for x in report["bindings"])
+            or {(x.get("symbol"), x.get("timeframe"))
+                for x in report["bindings"]} != {("BTCUSD", "5m"), ("ETHUSD", "15m")}
+            or any(type(x.get("binding_id")) is not str or not x["binding_id"]
+                   or type(x.get("order_id")) is not str or not x["order_id"]
+                   for x in report["bindings"])
+            or len({x["binding_id"] for x in report["bindings"]}) != 2
+            or len({x["order_id"] for x in report["bindings"]}) != 2):
         raise PaperAuthorityRefused("R39_TWO_COMPLETE_BINDINGS_REQUIRED")
     reopen = inspect_installed_paper(
         directory, expected_dry_signals=dry_run_signals,
@@ -181,7 +188,7 @@ def run_new(path: Path, *, dry_run_signals: bool = True,
     )
     os.close(fd)
     request_sha = _hash(_receipt(dry_run_signals=dry_run_signals))
-    with sqlite3.connect(str(location), isolation_level=None, timeout=2) as db:
+    with closing(sqlite3.connect(str(location), isolation_level=None, timeout=2)) as db:
         db.execute("PRAGMA journal_mode=DELETE")
         db.execute("PRAGMA synchronous=FULL")
         db.execute(
