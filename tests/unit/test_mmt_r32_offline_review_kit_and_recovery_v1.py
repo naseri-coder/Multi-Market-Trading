@@ -252,3 +252,36 @@ def test_r32_source_review_kit_never_grants_any_runtime_authority(
         assert manifest[field] is False
     assert "production_source" not in str(manifest)
     assert all(not name.startswith(".env") for name in manifest["partial_review_files"])
+
+
+def test_r32_posixpath_contract_rejects_invalid_types_and_linked_private_parent(
+    fixture_checkout,
+):
+    """A real concrete PosixPath must work; unsafe path inputs must not."""
+    root, sha, parent = fixture_checkout
+    assert isinstance(root, Path)
+    assert type(root) is not Path  # Regression: Path() is PosixPath on Linux.
+    kit._source(root, sha)
+    assert kit._secure_parent(parent) == parent
+    with pytest.raises(kit.R32KitRefused, match="ABSOLUTE_ROOT_AND_PIN"):
+        kit._source(str(root), sha)
+    with pytest.raises(kit.R32KitRefused, match="PRIVATE_PARENT"):
+        kit._secure_parent(str(parent))
+    with pytest.raises(kit.R32KitRefused, match="ABSOLUTE_NEW_DESTINATION"):
+        kit.prepare_r32_review_kit(
+            source_root=root,
+            destination=str(parent / "bad-kit"),
+            expected_head=sha,
+            operator_ack=True,
+        )
+    assert not (parent / "bad-kit").exists()
+    linked = parent.parent / "symlink-to-private"
+    linked.symlink_to(parent, target_is_directory=True)
+    with pytest.raises(kit.R32KitRefused, match="PRIVATE_PARENT"):
+        kit.prepare_r32_review_kit(
+            source_root=root,
+            destination=linked / "kit",
+            expected_head=sha,
+            operator_ack=True,
+        )
+    assert not (linked / "kit").exists()
