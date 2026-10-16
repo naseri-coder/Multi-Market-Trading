@@ -99,7 +99,12 @@ def _installed_identity(expected_module_sha256: str) -> dict:
             record = json.loads(direct_url)
         except (ValueError, TypeError) as exc:
             raise R40Refused("R40_INSTALLED_DIRECT_URL_INVALID") from exc
-        if record.get("dir_info", {}).get("editable") is True:
+        if type(record) is not dict:
+            raise R40Refused("R40_INSTALLED_DIRECT_URL_INVALID")
+        dir_info = record.get("dir_info", {})
+        if type(dir_info) is not dict:
+            raise R40Refused("R40_INSTALLED_DIRECT_URL_INVALID")
+        if dir_info.get("editable") is True:
             raise R40Refused("R40_EDITABLE_SOURCE_INSTALL_REFUSED")
     expected_path = Path(dist.locate_file(_R39_RELATIVE))
     loaded_path = Path(r39.__file__)
