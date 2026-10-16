@@ -194,6 +194,26 @@ def _monotonic_now() -> float:
     return time.monotonic()
 
 
+def _reap_extra_group_members(pid: int) -> bool:
+    """Return True if a test left group members after its leader exited.
+
+    Only POSIX session group members are observable; a descendant can escape
+    via setsid, so never treat this as an independent sandbox certificate.
+    """
+    try:
+        os.killpg(pid, 0)  # Existence probe, NOT a mutation.
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        # Cannot certify a clean process group.
+        return True
+    try:
+        os.killpg(pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    return True
+
+
 def _run(root: Path, name: str, args: tuple[str, ...], timeout: int) -> R34ToolFinding:
     """No shell expansion; hash output rather than disclose tokens/logs."""
     if type(args) is not tuple or not args or timeout <= 0:
@@ -234,6 +254,13 @@ def _run(root: Path, name: str, args: tuple[str, ...], timeout: int) -> R34ToolF
                     pass
                 p.wait()
                 return R34ToolFinding(name, reason, None, None)
+            # A successful direct process exit is NOT proof that all
+            # subprocess children have stopped. Deny PASS if the original
+            # private POSIX process group has any remaining members.
+            if _reap_extra_group_members(p.pid):
+                return R34ToolFinding(
+                    name, "ORPHANED_CHILD_GROUP", None, None,
+                )
             # Also check the final buffered output before returning PASS.
             if os.fstat(stream.fileno()).st_size > MAX_CAPTURE_BYTES:
                 return R34ToolFinding(name, "OUTPUT_LIMIT", None, None)
