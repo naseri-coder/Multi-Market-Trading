@@ -276,3 +276,28 @@ committed to the stacked **Draft PR #327**. The operator must pull the new
 PR head and re-run the R32 unit file, followed by all six R28–R33 files.
 The earlier `66 passed / 1 failed` result does not become a PASS
 until an actual subsequent run succeeds.
+
+## R33 private evidence read: concrete PosixPath bug, fail-closed remediation
+
+The operator ran the R28–R33 offline infrastructure unit files on a clean
+Ubuntu 24.04 Termux checkout with Python 3.12.3 and reported **95 passed / 1
+failed** with `--maxfail=1`. The failing test was
+`test_cli_private_source_bytes_only` in R33. Source inspection confirms
+`type(path) is not Path` rejected the valid POSIX `PosixPath` passed by
+the fixture before performing the private-file checks.
+
+The stacked Draft PR fixes the strict identity bug and strengthens evidence
+custody at the same time: it opens a non-symlinked private parent directory
+with `O_DIRECTORY | O_NOFOLLOW`, checks directory ownership and mode using
+`fstat`, and opens the bounded private file *relative to this validated
+descriptor* using `dir_fd` and `O_NOFOLLOW`. It retains regular-file,
+owner, link-count, file permission, max-size, and post-read size
+verification; both descriptors are explicitly closed even on failure.
+Two additional negative tests check incorrect path types, publicly readable
+parents and symlinked parents; and simulate swapping the private parent's
+pathname with a symlink after the directory descriptor is opened.
+
+**These corrections remain TEST_EXECUTION_PENDING** for the next real Termux
+pytest run. The existing R27 frozen Brooks worker failure remains separate and
+explicitly deferred. No LIVE, broker or Telegram sending capability was added;
+R33 remains `LIVE_HARD_DENY`.
