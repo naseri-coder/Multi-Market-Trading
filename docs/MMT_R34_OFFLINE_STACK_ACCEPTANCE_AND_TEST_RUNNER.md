@@ -83,3 +83,21 @@ This is ONLY a filename/coverage comparison. It does **not** mean AST passed, Ru
 The coverage gap was corrected: R27 source, R28 supervisor modification, R29 CLI modules, R32 review CLIs and R33 CLI are now included. The test runner was also amended to launch explicitly approved tests in a separate POSIX session and kill the process group on deadline, instead of potentially leaving subprocess children. Synthetic negative regressions were authored but **not executed**. The test runner now refuses Python versions other than 3.12 for pytest and checks local source bytes against pinned Git blobs before/after each selected session.
 
 **Remaining execution blocker:** the local sandbox cannot download the full GitHub checkout; available Python is 3.13.5 rather than project-required 3.12. Consequently the actual R27–R34 pytest, full unit suite, Ruff and CodeQL remain **NOT_RUN**, not PASS. No GitHub Actions, server or production service was used.
+
+## 2026-10-16 additional acceptance hardening
+
+The available **isolated local sandbox was inspected directly** (not guessed):
+
+| Actual installed tool | Actual version | Required version | Result |
+|---|---:|---:|---|
+| Python | 3.13.5 | 3.12.x | INCOMPATIBLE |
+| pytest | 9.0.2 | 9.1.1 | INCOMPATIBLE |
+| pytest-asyncio | 1.3.0 | 1.4.0 | INCOMPATIBLE |
+| Ruff | missing | 0.16.9 | NOT INSTALLED |
+| Full repository checkout | unavailable | exact pinned Git HEAD | UNAVAILABLE |
+
+**Real integration test disposition: BLOCKED_BEFORE_EXECUTION.** Do not label unit, integration, Ruff, security or performance tests PASS. Only separately enumerated GitHub content/PR-change coverage checks were performed.
+
+R34 now checks all of these pinned Python and test toolchain versions before launching pytest/Ruff. Child output to its temporary spool has a **4 MiB ceiling** (bounded inspection every ~200ms), and process groups are terminated on timeout/output overflow. Such a limit does not guarantee no single instantaneous output burst or all possible process escape; do not run untrusted code on a host with operational data. Source-code only regressions were added for these defenses but they have NOT been executed in a Python 3.12 checkout.
+
+This PR remains Draft with no LIVE, no merge, no server access and no GitHub Actions.
