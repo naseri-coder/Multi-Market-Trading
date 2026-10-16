@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import stat
 from datetime import datetime
 from pathlib import Path
 
@@ -23,10 +24,21 @@ _MAX_SCENARIOS = 2
 
 
 def _read_bounded_file(path: Path) -> bytes:
-    if (not path.is_absolute() or path.is_symlink() or not path.is_file()
-            or path.stat().st_size < 1 or path.stat().st_size > _MAX_FILE):
+    if (not path.is_absolute() or path.is_symlink() or not path.is_file()):
         raise ValueError("R26_EXPLICIT_BOUNDED_LOCAL_FILE_REQUIRED")
-    return path.read_bytes()
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    try:
+        info = os.fstat(fd)
+        if (not stat.S_ISREG(info.st_mode) or info.st_size < 1
+                or info.st_size > _MAX_FILE):
+            raise ValueError("R26_EXPLICIT_BOUNDED_LOCAL_FILE_REQUIRED")
+        with os.fdopen(fd, "rb", closefd=False) as source:
+            raw = source.read(_MAX_FILE + 1)
+        if len(raw) != info.st_size:
+            raise ValueError("R26_SOURCE_CHANGED_WHILE_READING")
+        return raw
+    finally:
+        os.close(fd)
 
 
 def _no_duplicate_keys(pairs: list[tuple[str, object]]) -> dict:
