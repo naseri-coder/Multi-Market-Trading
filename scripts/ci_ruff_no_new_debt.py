@@ -20,7 +20,9 @@ from collections import Counter
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-LINT_SCOPES = ("production_source", "production_checks", "scripts")
+LINT_SCOPES = (
+    "production_source", "production_checks", "scripts", "naseri_markets", "research_layer",
+)
 CONTEXT_RADIUS = 2
 LEGACY_REGISTRY = "production_checks/ruff_legacy_path_baseline.json"
 
