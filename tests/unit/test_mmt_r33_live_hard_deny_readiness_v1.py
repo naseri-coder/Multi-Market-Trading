@@ -255,3 +255,57 @@ def test_r33_public_baseline_claims_match_real_observed_sha_and_hard_deny():
     result = r33.review_r33_live_readiness(read, operator_ack=True)
     assert result["decision"] == "LIVE_HARD_DENY"
     assert result["can_route_order"] is False
+
+
+def test_cli_private_path_requires_real_path_and_owned_0700_parent(tmp_path):
+    folder = tmp_path / "private"
+    folder.mkdir(mode=0o700)
+    file = folder / "claims.json"
+    file.write_bytes(b"{}")
+    file.chmod(0o600)
+    assert isinstance(file, Path)
+    assert type(file) is not Path  # Python POSIX returns PosixPath.
+    assert cli._read_private(file) == b"{}"
+    with pytest.raises(r33.R33ReadinessRefused, match="PRIVATE_ABSOLUTE"):
+        cli._read_private(str(file))
+    public = tmp_path / "public"
+    public.mkdir(mode=0o755)
+    public_file = public / "claims.json"
+    public_file.write_bytes(b"{}")
+    public_file.chmod(0o600)
+    with pytest.raises(r33.R33ReadinessRefused, match="PRIVATE_PARENT"):
+        cli._read_private(public_file)
+    linked_parent = tmp_path / "linked-parent"
+    linked_parent.symlink_to(folder, target_is_directory=True)
+    with pytest.raises(r33.R33ReadinessRefused, match="PRIVATE_ABSOLUTE"):
+        cli._read_private(linked_parent / file.name)
+
+
+def test_cli_private_read_is_anchored_to_checked_directory_fd(
+    monkeypatch, tmp_path,
+):
+    folder = tmp_path / "private"
+    folder.mkdir(mode=0o700)
+    expected = folder / "claims.json"
+    expected.write_bytes(b'{"safe":true}')
+    expected.chmod(0o600)
+    public = tmp_path / "public"
+    public.mkdir(mode=0o755)
+    (public / "claims.json").write_bytes(b'{"unsafe":true}')
+    moved = tmp_path / "private-original"
+    real_open = cli.os.open
+    swapped = []
+
+    def redirect_path_after_dir_open(path, flags, *args, **kwargs):
+        if path == folder and flags & cli.os.O_DIRECTORY and not swapped:
+            fd = real_open(path, flags, *args, **kwargs)
+            folder.rename(moved)
+            folder.symlink_to(public, target_is_directory=True)
+            swapped.append(True)
+            return fd
+        return real_open(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(cli.os, "open", redirect_path_after_dir_open)
+    assert cli._read_private(expected) == b'{"safe":true}'
+    assert swapped
+    assert (moved / "claims.json").read_bytes() == b'{"safe":true}'
