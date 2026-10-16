@@ -178,6 +178,11 @@ def prepare_r32_review_kit(
     for relative in FILES:
         path = source_root / relative
         data = _read(path, source_root)
+        # Git status alone can miss assume-unchanged/skip-worktree files.
+        # Compare each actual source file to the pinned HEAD blob object.
+        if (_git(source_root, "rev-parse", "HEAD:" + relative)
+                != _git(source_root, "hash-object", "--", relative)):
+            raise R32KitRefused("R32_PINNED_SOURCE_BLOB_DRIFT")
         out = destination / "review-files" / relative
         out.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         _create(out, data)
