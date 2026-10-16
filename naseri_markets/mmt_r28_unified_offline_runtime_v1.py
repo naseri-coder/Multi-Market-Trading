@@ -9,7 +9,7 @@ handoff. Stage 18 audits four independent, stopped-state database snapshots.
 from __future__ import annotations
 
 import os
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
@@ -91,6 +91,7 @@ class R28UnifiedOfflineRuntime:
         return R28RuntimeView(
             protocol="MMT_R28_OFFLINE_UNIFIED_RUNTIME_V1",
             state=("HALTED_MANUAL_RECONCILIATION" if unsafe
+                   else "OFFLINE_EFFECTS_UNATTESTED_NO_LIVE_AUTHORITY" if counts["DONE"]
                    else "OFFLINE_OPERATOR_READY_NO_LIVE_AUTHORITY"),
             queue_counts=dict(counts),
             unresolved_jobs=unsafe,
