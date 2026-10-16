@@ -178,10 +178,12 @@ def prepare_r32_review_kit(
     for relative in FILES:
         path = source_root / relative
         data = _read(path, source_root)
-        # Git status alone can miss assume-unchanged/skip-worktree files.
-        # Compare each actual source file to the pinned HEAD blob object.
+        # Compare THE ACTUAL COPIED BYTES, not a second reread that may
+        # race an attacker. This checkout uses Git SHA-1 object identity;
+        # independent publisher trust is deliberately NOT inferred.
+        blob = (b"blob " + str(len(data)).encode("ascii") + b"\x00" + data)
         if (_git(source_root, "rev-parse", "HEAD:" + relative)
-                != _git(source_root, "hash-object", "--", relative)):
+                != hashlib.sha1(blob).hexdigest()):
             raise R32KitRefused("R32_PINNED_SOURCE_BLOB_DRIFT")
         out = destination / "review-files" / relative
         out.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
