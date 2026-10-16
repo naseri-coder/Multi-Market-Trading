@@ -224,3 +224,33 @@ def test_r32_recovery_ack_production_and_auth_drift_refused(
         recovery.review_r32_stopped_snapshots(
             paths, all_writers_stopped=True, operator_ack=True,
         )
+
+
+def test_r32_assume_unchanged_source_blob_cannot_evade_pin(fixture_checkout):
+    checkout, sha, parent = fixture_checkout
+    target = kit.FILES[0]
+    git(checkout, "update-index", "--assume-unchanged", target)
+    (checkout / target).write_text("ATTACKER CHANGED BYTES, INDEX STILL OLD")
+    # Status can be clean when the file is marked assume-unchanged;
+    # exact captured bytes MUST be bound to HEAD blob nonetheless.
+    assert git(checkout, "status", "--porcelain=v1", "--untracked-files=all") == ""
+    with pytest.raises(kit.R32KitRefused, match="PINNED_SOURCE_BLOB_DRIFT"):
+        make(checkout, sha, parent)
+
+
+def test_r32_source_review_kit_never_grants_any_runtime_authority(
+    fixture_checkout,
+):
+    root, sha, parent = fixture_checkout
+    make(root, sha, parent)
+    manifest = json.loads((parent / "kit" / "manifest.json").read_bytes())
+    for field in (
+        "independent_signer_verified", "artifact_reproducibility_certified",
+        "supply_chain_security_certified", "complete_application_included",
+        "real_installer_included", "production_install_allowed",
+        "paper_or_live_enabled", "broker_orders_enabled",
+        "telegram_sending_enabled", "restore_authorized",
+    ):
+        assert manifest[field] is False
+    assert "production_source" not in str(manifest)
+    assert all(not name.startswith(".env") for name in manifest["partial_review_files"])
