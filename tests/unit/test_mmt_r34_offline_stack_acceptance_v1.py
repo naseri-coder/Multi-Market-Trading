@@ -661,3 +661,40 @@ def test_r34_private_report_rejects_symlink_target_even_inside_private_dir(
     with pytest.raises(a34.R34AcceptanceRefused, match="PRIVATE_NEW_REPORT"):
         runner._private_new_report(link, b"forged")
     assert target.read_bytes() == b"preserve"
+
+
+def test_r34_real_local_git_checkout_accepts_posixpath_and_refuses_dirty(
+    tmp_path,
+):
+    """Regression for strict pathlib type identity on Python 3.12/PRoot."""
+    import subprocess
+
+    repo = tmp_path / "checkout"
+    repo.mkdir()
+
+    def git(*args):
+        return subprocess.run(
+            ["git", "-C", str(repo), *args],
+            check=True, capture_output=True, text=True, timeout=12,
+        ).stdout.strip()
+
+    git("init", "-q")
+    (repo / "README.md").write_text("R34 private offline fixture\n")
+    git("add", "README.md")
+    git(
+        "-c", "user.name=R34-Test",
+        "-c", "user.email=r34-test@example.invalid",
+        "commit", "-q", "-m", "synthetic offline fixture",
+    )
+    head = git("rev-parse", "HEAD")
+    assert len(head) == 40
+    runner._head(repo, head)
+    with pytest.raises(a34.R34AcceptanceRefused, match="PINNED_OR_DIRTY"):
+        runner._head(repo, "0" * 40)
+    (repo / "README.md").write_text("changed after clean verification\n")
+    with pytest.raises(a34.R34AcceptanceRefused, match="PINNED_OR_DIRTY"):
+        runner._head(repo, head)
+    alias = tmp_path / "linked-checkout"
+    alias.symlink_to(repo, target_is_directory=True)
+    with pytest.raises(a34.R34AcceptanceRefused, match="NON_SYMLINKED_ROOT"):
+        runner._head(alias, head)
