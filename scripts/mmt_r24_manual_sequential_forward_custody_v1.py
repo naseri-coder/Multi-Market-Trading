@@ -37,7 +37,8 @@ def parser() -> argparse.ArgumentParser:
     inspect = commands.add_parser("inspect", help="Verify full earlier chain OFFLINE")
     inspect.add_argument("--bars", type=int, choices=(1, 4, 16, 32, 96), default=1)
     capture = commands.add_parser(
-        "capture", help="ONE real public HTTPS GET after closed bar(s), or ledger-only missed window",
+        "capture",
+        help="ONE public HTTPS GET after candle close; expired window logs only",
     )
     capture.add_argument("--bars", type=int, required=True, choices=(1, 4, 16, 32, 96))
     capture.add_argument("--output-dir", type=Path, required=True)
