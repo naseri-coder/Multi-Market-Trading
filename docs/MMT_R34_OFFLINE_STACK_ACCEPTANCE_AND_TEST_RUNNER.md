@@ -18,6 +18,14 @@ This runner executes *repository Python test code* when you explicitly select `-
 
 It uses fixed `sys.executable -m pytest` arguments with no shell and `-p pytest_asyncio.plugin` explicitly, because `pyproject.toml` requires pytest-asyncio; `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` prevents uncontrolled plugin discovery. `-p no:cacheprovider` and `PYTHONDONTWRITEBYTECODE=1` reduce local writes. Ruff invokes `python -m ruff check`. Each stage is given 240 seconds; full unit suite has an explicit 900-second timeout. Review later whether more time is warranted on an Android device. `PIP_NO_INDEX=1` prevents pip repository access from this helper but does not block arbitrary network calls by third-party test code. No log stdout/stderr is printed; only exit outcome and hashed output are exported. No test command is automatically retried.
 
+## Python compatibility and source checkout limitations
+
+The **repository's actual `pyproject.toml`** declares `requires-python >=3.12,<3.13` and development pins `pytest==9.1.1`, `pytest-asyncio==1.4.0` and `ruff==0.16.9`. The R34 runner now **refuses executing pytest with any Python other than 3.12** rather than recording misleading success/failure. Check `python --version` and ensure dependencies are installed independently in a throwaway NONPRODUCTION environment before requesting stage/full pytest. Ruff and read-only AST review alone do not establish executable acceptance.
+
+**2026-10-16 session limitation:** an accessible isolated sandbox provided Python 3.13.5, pytest 9.0.2 and pytest-asyncio 1.3.0 (Ruff absent), with no complete Git checkout and no direct github.com name resolution. Therefore there is **no valid real R27–R34 full-suite PASS in this session**. GitHub source-file existence and ancestry checks are not the same as executing the repository tests. Do not start operational or LIVE services to work around these limitations.
+
+The runner explicitly discards inherited `PYTHONPATH`, `PYTHONHOME`, `PYTEST_ADDOPTS`, `PYTEST_PLUGINS`, Python startup hooks and user-site package paths; for a **separate disposable test checkout**, it reconstructs `PYTHONPATH` exclusively from the chosen checkout's `production_source` and repository root, because the shared `tests/conftest.py` imports the historical `app.core.config`. It remains **not an OS sandbox** and must never run on a production server.
+
 ## Manual exact-commit Termux validation
 
 First inspect the PR, commit and source in GitHub. Work on a **new disposable checkout**; never touch an operational directory. Check the branch commit immediately before running:
