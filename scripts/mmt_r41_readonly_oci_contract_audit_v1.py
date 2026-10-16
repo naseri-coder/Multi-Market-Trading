@@ -92,12 +92,17 @@ def _command_literals(func: ast.FunctionDef) -> tuple[set[str], set[str]]:
         if isinstance(item, ast.Constant) and type(item.value) is str:
             tokens.add(item.value)
         elif isinstance(item, ast.JoinedStr):
-            # f"--name={name}" is the only permitted dynamically filled switch.
-            rendered = "".join(
-                chunk.value if isinstance(chunk, ast.Constant) else "{}"
-                for chunk in item.values
-            )
-            tokens.add(rendered)
+            # Only f"--name={name}", not arbitrary f-string expressions.
+            if (len(item.values) != 2
+                    or not isinstance(item.values[0], ast.Constant)
+                    or item.values[0].value != "--name="
+                    or not isinstance(item.values[1], ast.FormattedValue)
+                    or not isinstance(item.values[1].value, ast.Name)
+                    or item.values[1].value.id != "name"
+                    or item.values[1].conversion != -1
+                    or item.values[1].format_spec is not None):
+                raise R41Refused("R41_UNREVIEWED_DYNAMIC_SWITCH")
+            tokens.add("--name={}")
         elif isinstance(item, ast.Name):
             references.add(item.id)
         elif isinstance(item, ast.Attribute) and isinstance(item.value, ast.Name):
@@ -127,6 +132,19 @@ def check_source(*, source: Path, expected_source_sha256: str,
         raise R41Refused("R41_PINNED_SOURCE_SYNTAX_INVALID") from exc
     for function in _REQUIRED_FUNCTIONS:
         _function(parsed, function)
+    hosts = [node for node in parsed.body if isinstance(node, ast.ClassDef)
+             and node.name == "SecureOfflineCoreHost"]
+    if len(hosts) != 1:
+        raise R41Refused("R41_HOST_CLASS_MISSING")
+    evaluations = [node for node in hosts[0].body
+                   if isinstance(node, ast.FunctionDef)
+                   and node.name == "evaluate"]
+    if len(evaluations) != 1:
+        raise R41Refused("R41_HOST_EVALUATE_MISSING")
+    called = {node.func.id for node in ast.walk(evaluations[0])
+              if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)}
+    if not {"_assert_rootless_socket", "_ensure_rootless_daemon", "_invoke"} <= called:
+        raise R41Refused("R41_ROOTLESS_EVALUATION_CHAIN_MISSING")
     command, references = _command_literals(_function(parsed, "build_run_command"))
     if not _REQUIRED <= command or "--name={}" not in command:
         raise R41Refused("R41_REQUIRED_GVISOR_ISOLATION_FLAGS_MISSING")
