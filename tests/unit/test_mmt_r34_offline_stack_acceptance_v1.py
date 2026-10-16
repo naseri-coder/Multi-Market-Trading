@@ -26,7 +26,7 @@ def fake_evidence(*, green=False):
         a34.R34ToolFinding(name, "PASS", 0, digest())
         if green else a34.R34ToolFinding(name, "NOT_RUN", None, None)
         for name in (
-            "R27", "R28", "R29", "R30", "R31", "R32", "R33",
+            "R27", "R28", "R29", "R30", "R31", "R32", "R33", "R34",
             "RUFF_R28_TO_R34", "FULL_UNIT_SUITE", "STATIC_SYNTAX",
         )
     ]
@@ -76,7 +76,7 @@ def test_r34_even_fake_all_green_tests_do_not_authorize_release():
 def test_r34_single_ruff_failure_must_be_reported():
     item = fake_evidence(green=True)
     rows = list(item.results)
-    rows[7] = a34.R34ToolFinding("RUFF_R28_TO_R34", "FAIL", 1, digest())
+    rows[8] = a34.R34ToolFinding("RUFF_R28_TO_R34", "FAIL", 1, digest())
     report = a34.review_r34_local_stack_evidence(
         replace(item, results=tuple(rows)), operator_ack=True,
     )
@@ -202,9 +202,9 @@ def test_r34_stage_runner_explicit_approved_commands_and_only_allowlist(monkeypa
         run_ruff=True, run_full_suite=True,
         operator_ack=True,
     )
-    assert len(cmds) == 9  # 7 stages, Ruff, full unit tests
+    assert len(cmds) == 10  # 8 stages R27-R34, Ruff, full unit tests
     assert tuple(c[0] for c in cmds) == (
-        "R27", "R28", "R29", "R30", "R31", "R32", "R33",
+        "R27", "R28", "R29", "R30", "R31", "R32", "R33", "R34",
         "RUFF_R28_TO_R34", "FULL_UNIT_SUITE",
     )
     assert all(
@@ -419,9 +419,7 @@ def test_r34_no_implicit_subprocess_or_network_without_opt_in(monkeypatch):
 def test_r34_current_stacked_python_inventory_is_complete_and_unique():
     # Frozen baseline for PRs #320 to #327; reconfirm via GitHub on updates.
     sources = a34._STATIC_SOURCES
-    tests = tuple(a34._STAGE_UNIT_TARGETS.values()) + (
-        "tests/unit/test_mmt_r34_offline_stack_acceptance_v1.py",
-    )
+    tests = tuple(a34._STAGE_UNIT_TARGETS.values())
     assert len(sources) == 16
     assert len(tests) == 8
     assert len(set((*sources, *tests))) == 24
