@@ -174,7 +174,7 @@ def test_forged_prior_receipt_and_wrong_count_blocked(pinned):
     prior=dict(first["stage21c_receipt"])
     prior["last_close_utc"]="2026-10-23T00:00:00Z"
     kw=kwargs(index=2,previous=gate._canon(prior))
-    with pytest.raises(gate.Stage21AdmissionRefused,match="CUSTODY"):
+    with pytest.raises(gate.Stage21AdmissionRefused,match="QUERY_DRIFT"):
         gate.stage21f_admit_future_kline_batch_to_quarantine(**kw)
     kw=dict(pinned)
     kw["original_provider_body_bytes"]=b"[]"
@@ -209,9 +209,11 @@ def test_absence_operator_permission_and_production_never_touch_worker(pinned,mo
         gate.stage21f_admit_future_kline_batch_to_quarantine(**kw)
 
 
-def test_real_future_window_end_is_enforced(pinned):
+def test_unexpected_jump_to_future_study_end_blocked_without_chain(pinned):
     kw=kwargs(index=int((END-START)/STEP)-1,count=2)
-    with pytest.raises(gate.Stage21AdmissionRefused,match="CUSTODY"):
+    # Strict source query anchored to the FIRST pending close refuses the
+    # attempted jump before the full-chain validator could run.
+    with pytest.raises(gate.Stage21AdmissionRefused,match="QUERY_DRIFT"):
         gate.stage21f_admit_future_kline_batch_to_quarantine(**kw)
 
 
