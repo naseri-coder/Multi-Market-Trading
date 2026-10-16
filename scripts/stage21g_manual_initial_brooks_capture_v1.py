@@ -27,7 +27,7 @@ def main() -> None:
     )
     # Only public digests, not source-response bodies or future-trade data.
     print(json.dumps({
-        "stage": result["protocol"] if "protocol" in result else "STAGE21G",
+        "stage": result.get("protocol", "STAGE21G"),
         "original_source_bytes_sha256": result["original_body_sha256"],
         "post_admission_receipt_sha256": result["post_admission_receipt_sha256"],
         "transport_receipt_sha256": result["receipt_sha256"],
