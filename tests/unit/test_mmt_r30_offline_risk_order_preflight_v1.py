@@ -246,3 +246,75 @@ def test_r30_no_side_effect_or_network_module_calls():
     result = evaluate_r30_offline_preorder_risk(**args)
     assert args["portfolio_snapshot"] == before
     assert result["production_modified"] is False
+
+
+
+def test_r30_smaller_policies_block_notional_margin_group_and_engine():
+    args = example()
+    args["account_policy"] = replace(
+        args["account_policy"], max_notional_fraction=D(".005"),
+    )
+    reject(args, "ACCOUNT_NOTIONAL_LIMIT")
+
+    args = example()
+    args["account_policy"] = replace(
+        args["account_policy"], max_margin_fraction=D(".001"),
+    )
+    reject(args, "ACCOUNT_MODELED_MARGIN_LIMIT")
+
+    args = example()
+    args["portfolio_policy"] = replace(
+        args["portfolio_policy"], max_group_risk=D("2"),
+    )
+    reject(args, "CORRELATED_GROUP_LIMIT")
+
+    args = example()
+    args["portfolio_policy"] = replace(
+        args["portfolio_policy"], max_engine_risk=D("2"),
+    )
+    reject(args, "ENGINE_CONCENTRATION_LIMIT")
+
+    args = example()
+    args["portfolio_policy"] = replace(
+        args["portfolio_policy"], max_reserved_risk=D("2"),
+    )
+    reject(args, "PORTFOLIO_RESERVED_RISK_LIMIT")
+
+
+def test_r30_order_count_and_cross_account_portfolio_limit():
+    args = reservations(example(), risk="2", notional="1000", margin="200",
+                        group="independent_group", engine="another_engine")
+    args["account_policy"] = replace(
+        args["account_policy"], max_active_orders=1,
+    )
+    reject(args, "ACTIVE_POSITION_LIMIT")
+
+    args = reservations(example(), risk="699", notional="1000", margin="200",
+                        group="independent_group", engine="another_engine")
+    # Previous exposure belongs to a different account and must STILL count
+    # towards portfolio caps. The account may not be the proposed account.
+    old = args["active_reservations"][0]
+    args["active_reservations"] = (
+        replace(old, account_id="different_account"),
+    )
+    reject(args, "PORTFOLIO_RESERVED_RISK_LIMIT")
+
+
+def test_r30_unconfirmed_status_blocks_even_when_not_in_active_reservation():
+    args = example()
+    args["known_order_statuses"] = {
+        "external_unknown": OrderStatus.SUBMISSION_UNKNOWN,
+    }
+    reject(args, "UNKNOWN_OR_UNCONFIRMED")
+
+
+def test_r30_conservative_snapshot_type_checks():
+    args = example()
+    args["portfolio_snapshot"]["active_orders"] = True
+    reject(args, "ACTIVE_ORDER_COUNT_MISMATCH")
+    args = example()
+    args["portfolio_snapshot"]["reserved_risk"] = "NaN"
+    reject(args, "NEGATIVE_OR_NONFINITE")
+    args = example()
+    args["portfolio_snapshot"]["account_losses"] = {"account_r30": "1e999999"}
+    reject(args, "DAILY_LOSS_DRIFT")
