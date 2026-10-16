@@ -14,6 +14,7 @@ import argparse
 import ast
 import hashlib
 import os
+import signal
 import stat
 import subprocess
 import sys
@@ -177,12 +178,24 @@ def _run(root: Path, name: str, args: tuple[str, ...], timeout: int) -> R34ToolF
     env = _child_environment(root)
     with tempfile.TemporaryFile(mode="w+b") as stream:
         try:
-            p = subprocess.run(
+            # A bounded subprocess.run timeout kills only the immediate
+            # Python process. Tests may have spawned subprocess descendants.
+            # Isolate this invocation in its own POSIX session, then terminate
+            # the process group on a deadline (Termux/Linux).
+            p = subprocess.Popen(
                 args, cwd=root, env=env, stdin=subprocess.DEVNULL,
-                stdout=stream, stderr=subprocess.STDOUT, check=False,
-                timeout=timeout,
+                stdout=stream, stderr=subprocess.STDOUT, close_fds=True,
+                start_new_session=True,
             )
-            code = p.returncode
+            try:
+                code = p.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                try:
+                    os.killpg(p.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                p.wait()
+                return R34ToolFinding(name, "TIMEOUT", None, None)
             stream.seek(0)
             digester = hashlib.sha256()
             while chunk := stream.read(65_536):
@@ -191,8 +204,6 @@ def _run(root: Path, name: str, args: tuple[str, ...], timeout: int) -> R34ToolF
                 name, "PASS" if code == 0 else "FAIL", code,
                 digester.hexdigest(),
             )
-        except subprocess.TimeoutExpired:
-            return R34ToolFinding(name, "TIMEOUT", None, None)
         except OSError:
             return R34ToolFinding(name, "UNAVAILABLE", None, None)
 
