@@ -511,3 +511,70 @@ def test_r34_unavailable_pinned_ruff_is_refused(monkeypatch):
         runner._project_toolchain_preflight(
             pytest_needed=False, ruff_needed=True,
         )
+
+
+def test_r34_orphaned_child_group_refuses_success_and_terminates(
+    monkeypatch, tmp_path,
+):
+    seen = []
+
+    class ExitedParentWithRunningChild:
+        pid = 444333
+
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def wait(self, timeout=None):
+            return 0  # Fake pytest parent success, child survives.
+
+    def process_group(pid, sig):
+        seen.append((pid, sig))
+
+    monkeypatch.setattr(
+        runner.subprocess, "Popen", ExitedParentWithRunningChild,
+    )
+    monkeypatch.setattr(runner.os, "killpg", process_group)
+    finding = runner._run(
+        tmp_path, "R34", ("python", "-m", "pytest", "-q"), 2,
+    )
+    assert finding.status == "ORPHANED_CHILD_GROUP"
+    assert finding.returncode is None
+    assert seen == [
+        (444333, 0), (444333, runner.signal.SIGKILL),
+    ]
+
+
+def test_r34_normal_completed_group_cannot_be_reported_leaking(
+    monkeypatch, tmp_path,
+):
+    class ExitedCleanly:
+        pid = 554477
+
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def wait(self, timeout=None):
+            return 0
+
+    def nonexistent_group(pid, sig):
+        assert (pid, sig) == (554477, 0)
+        raise ProcessLookupError()
+
+    monkeypatch.setattr(runner.subprocess, "Popen", ExitedCleanly)
+    monkeypatch.setattr(runner.os, "killpg", nonexistent_group)
+    finding = runner._run(
+        tmp_path, "R34", ("python", "-m", "pytest", "-q"), 2,
+    )
+    assert finding.status == "PASS"
+    assert finding.returncode == 0
+    assert len(finding.output_sha256) == 64
+
+
+def test_r34_group_exists_but_is_inaccessible_is_never_pass(monkeypatch):
+    def permission_denied(pid, sig):
+        raise PermissionError()
+
+    monkeypatch.setattr(runner.os, "killpg", permission_denied)
+    assert runner._reap_extra_group_members(123456) is True
+    item = a34.R34ToolFinding("R34", "ORPHANED_CHILD_GROUP", None, None)
+    assert item.status == "ORPHANED_CHILD_GROUP"
