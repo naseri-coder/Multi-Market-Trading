@@ -380,3 +380,35 @@ journey: `tests/unit/test_a6_preview.py`,
 shared conftest disabled. These tests have **not yet been run together** in
 this operator session; do not pre-claim a result. Do not install a service,
 start trading or relax any blocker.
+
+## Operator-confirmed A6, Stage15 and public toy PAPER CLI tests (2026-10-16)
+
+After a clean fast-forward to
+`d5fed67cd893662dd7e3eec3bdcdbe41d4bc2fda`, the operator used
+the same disposable Termux/Ubuntu Python 3.12 virtual environment and
+ran the three specifically scoped offline unit-test files with
+`PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`, `--noconftest` and
+`-p pytest_asyncio.plugin`:
+
+- `tests/unit/test_a6_preview.py` — legacy and preview identity separation,
+  bounded source-only staging, private module exclusion, explicit offline CLI.
+- `tests/unit/test_release_readiness_v1.py` — local source shape, deny-only
+  permissions and negative release checks.
+- `tests/unit/test_paper_demo_cli_v1.py` — trusted public toy fixture,
+  isolated temp SQLite journey, duplicate replay refusal, reopen/restart,
+  stopped-mode and tamper/production denial.
+
+**Observed genuine output: `31 passed in 7.80s`**, with an empty
+`git status --short` afterward. This is a separate execution from the
+previously reported 135 selected R28–R34 tests. Thus **166 selected unit
+test cases passed across two runs**, **not** a unified corpus or full
+install acceptance. Source preflights A6 and Stage15 separately passed;
+Stage15's nine P0 and one P1 blockers remain unresolved.
+
+**Next planned limited acceptance:** stage the public 0.4.0rc1 package
+in a new private directory outside the checkout, build a wheel with
+explicit `--no-deps` and no system installation, and inspect its archive
+for identity, public-only modules, console entrypoints and package SHA256.
+No auto-install, Docker, server or database cutover is authorized by
+passing this step. Do not invoke `scripts/install_platform_dev.sh` from
+the root PRoot session; its non-root gate is intentional.
