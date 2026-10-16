@@ -136,11 +136,19 @@ def test_future_unclosed_and_stale_observation_refused(monkeypatch):
 
 
 def test_retrospective_2024_bars_are_not_accepted_into_2026_future_plan(monkeypatch):
+    raw = json.loads(bars(0, 2))
+    historical_start = int(datetime(2024, 1, 1, tzinfo=UTC).timestamp() * 1000)
+    delta = MS - historical_start
+    for row in raw:
+        row[0] -= delta
+        row[6] -= delta
+    params = kw(at=BASE + timedelta(minutes=31), body=json.dumps(raw).encode())
+    params["request_url"] = (
+        "https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT"
+        f"&interval=15m&startTime={historical_start}&limit=2"
+    )
     with pytest.raises(intake.Stage21IntakeRefused, match="FRESH_CLOSED"):
-        admit(monkeypatch, **kw(at=BASE+timedelta(minutes=31),
-                                 body=bars(0, 2).replace(
-                                     str(MS).encode(), b"1704067200000",
-                                 )))
+        admit(monkeypatch, **params)
 
 
 def test_gap_duplicate_or_unsorted_kline_refused(monkeypatch):
