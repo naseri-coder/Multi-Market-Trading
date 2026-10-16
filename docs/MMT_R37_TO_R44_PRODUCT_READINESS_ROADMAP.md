@@ -1,7 +1,7 @@
 # Multi-Market-Trading: bounded roadmap R37–R44 (2026-10-16)
 
 **Status: proposed 8 engineering milestones from the current R36 supply-chain
-evidence; R37 IMPLEMENTED AS DRAFT/SYNTHETIC-TESTED, R38–R44 NOT STARTED.** This is an planning
+evidence; R37 DRAFT/SYNTHETIC-TESTED; R38 DRAFT IMPLEMENTED BUT NOT YET ACCEPTED; R39–R44 NOT STARTED.** This is an planning
 structure, not an assurance that eight phases suffice to certify
 broker-connected/live operation. Keep all PRs Draft/unmerged until their
 acceptance and the separate integration policy is resolved.
@@ -26,7 +26,7 @@ acceptance and the separate integration policy is resolved.
 | Phase | Bounded work | Concrete exit evidence | Status |
 |---|---|---|---|
 | **R37** | Define canonical signed preview manifest, independent pinned trust anchor and fail-closed Ed25519 verification; no real private key in repo | External key custody/revocation policy, authenticated key fingerprint and Python 3.12 negative tests; signed *preview* only | **DRAFT IMPLEMENTED: 23 assistant-local synthetic tests PASS; real publisher key and Python 3.12 acceptance PENDING** |
-| **R38** | Installer/release verification integration, fail-closed on missing/bad signatures, rollback behavior | New scratch install + bad key/revoked key/old manifest/replay cases, zero release grants, independent review | PENDING |
+| **R38** | Separate signed-only *preview* wrapper with externally pinned trust policy; no change to unsigned R35 alternate preview path | 20 authored synthetic denial cases; requires actual Python 3.12 test, real publisher trust, nonroot installation evidence and signed-path migration review | **IMPLEMENTED DRAFT #331; TEST EXECUTION/REAL SIGNER PENDING** |
 | **R39** | One authoritative isolated **PAPER-only** product runtime for config→data→strategy→risk→journal (Stage12→7→8/9→10); strict legacy separation | Audit-quality durable idempotent handoffs and crash/retry contract tests | PENDING |
 | **R40** | Clean installed end-to-end PAPER journey plus deferred frozen R27 Brooks full-core evidence; avoid waivers | Fresh disposable install, reset/restart/reconciliation, no connected order or signal, exact Brooks worker acceptance | PENDING |
 | **R41** | Disposable independent Linux host hostile plugin tests, real least-privilege containment, secrets/operator identity | Rootless Docker + gVisor adversarial evidence, exfiltration/escape/cleanup and revocation review | PENDING; requires isolated host |
@@ -36,8 +36,7 @@ acceptance and the separate integration policy is resolved.
 
 ## Counting rules
 
-- **8 named phases R37–R44 inclusive**. R37 is *started but not
-  finished*; **7 later named phases remain after R37**.
+- **8 named phases R37–R44 inclusive**. R37 is drafted, and R38 is drafted but **not accepted**; **6 later named phases R39–R44** remain in this proposed roadmap, plus R37/R38 outstanding trust and acceptance gates.
 - This is an **estimate of engineering bundles**, not the exact number
   of approvals, tests, PRs or calendar days required. Failed gates may
   add phases and independent-host validation cannot be performed on
