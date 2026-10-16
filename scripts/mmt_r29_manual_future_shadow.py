@@ -45,9 +45,9 @@ def main(argv: list[str] | None = None) -> int:
         previous = (_existing_receipt(args.previous_receipt)
                     if args.previous_receipt else None)
         report, raw = review_r29_one_closed_bar_shadow(
-            witness_directory=args.witness_dir.resolve(),
+            witness_directory=args.witness_dir.absolute(),
             previous_directories=tuple(p.absolute() for p in args.batch_dir),
-            frozen_source=args.frozen_source.resolve(),
+            frozen_source=args.frozen_source.absolute(),
             decision_bar_index=args.decision_bar_index,
             previous_r29_receipt_bytes=previous,
             operator_ack=True,
