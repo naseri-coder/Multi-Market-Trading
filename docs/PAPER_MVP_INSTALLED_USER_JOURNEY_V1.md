@@ -10,7 +10,7 @@ The new installed **naseri-paper-demo** command accepts only the bundled public 
 
 ## Install on a disposable development machine
 
-Use Python **3.12**, a local clone of the public repository, and an isolated user-owned environment, not the server running a trading bot:
+Use Python **3.12**, a local clone of the public repository, and an isolated **non-root** user-owned environment, not the server running a trading bot. The trusted worker inherits the caller's OS privileges:
 
 ~~~~bash
 python3.12 -m venv /tmp/mmt-paper-venv
@@ -45,6 +45,10 @@ Expected: first replay = **RECORDED** and one PAPER signal; second replay = **DU
 | --- | --- |
 | init without explicit reviewed-toy acknowledgement | Refused without state creation |
 | init in an already-existing directory | Refused, no overwrite |
+| init fails after state creation | Best-effort cleanup of the newly created directory; no partial install on a healthy filesystem |
+| any PAPER action invoked as root | Refused before opening or creating state |
+| existing SQLite ledger with extra hard link | Refused on restart before database open |
+| shared or wrong-owner private state/database permissions | Refused on restart |
 | enable with wrong SHA or old revision | Refused (CAS and pinned metadata) |
 | replay without explicit acknowledgement | Refused |
 | replay before enable or after disable | Refused |
@@ -65,3 +69,5 @@ The Stage-15 isolated Wheel smoke test is extended to cover a fresh Python 3.12 
 A successful result means **INSTALLED_PUBLIC_TOY_PAPER_MVP_PASS**, *not* an integrated multi-core product, not a strategy edge, and not a production release. The remaining hard blockers in [Stage 15 readiness](PRODUCT_READINESS_AND_RELEASE_GATES_STAGE15_V1.md) persist: authenticated feeds, durable multi-stage handoff, external broker and Telegram evidence/reconciliation, publisher/runsc security review, real risk/position reconciliation, holdout research and deployment/rollback.
 
 The historical **crypto-price-action 0.3.2** runtime and manager remain distinct from the new **multi-market-trading 0.4.0rc1** preview. No legacy runtime, production database, private NY First-Reversal, server, channel or LIVE order was changed or activated.
+
+The bounded acceptance and residual limitations of the wheel, root, state-mode and hardlink guards are documented in [MMT-FIX-05](MMT_FIX_05_PAPER_INSTALL_RESTART_ACCEPTANCE.md).
