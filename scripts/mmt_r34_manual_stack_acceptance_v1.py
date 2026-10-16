@@ -88,11 +88,23 @@ def _git(root: Path, *args: str) -> str:
 
 def _head(root: Path, sha: str) -> None:
     if (not isinstance(root, Path) or not root.is_absolute()
-            or not root.is_dir() or root.is_symlink()
-            or root.resolve(strict=True) != root):
+            or not root.is_dir() or root.is_symlink()):
         raise R34AcceptanceRefused("R34_EXACT_NON_SYMLINKED_ROOT_REQUIRED")
-    if (_git(root, "rev-parse", "--show-toplevel") != str(root)
-            or _git(root, "rev-parse", "HEAD") != sha
+    try:
+        fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        try:
+            if not stat.S_ISDIR(os.fstat(fd).st_mode):
+                raise R34AcceptanceRefused("R34_NON_DIRECTORY_CHECKOUT")
+        finally:
+            os.close(fd)
+        # Git or PRoot may spell the same inode through a different
+        # canonical pathname. Match the actual directory, not text strings.
+        toplevel = _git(root, "rev-parse", "--show-toplevel")
+        if not os.path.samefile(root, toplevel):
+            raise R34AcceptanceRefused("R34_CHECKOUT_ROOT_MISMATCH")
+    except (OSError, ValueError) as exc:
+        raise R34AcceptanceRefused("R34_CHECKOUT_ROOT_UNVERIFIABLE") from exc
+    if (_git(root, "rev-parse", "HEAD") != sha
             or _git(root, "status", "--porcelain=v1", "--untracked-files=all")):
         raise R34AcceptanceRefused("R34_CHECKOUT_NOT_PINNED_OR_DIRTY")
 
