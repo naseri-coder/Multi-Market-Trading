@@ -13,7 +13,6 @@ from __future__ import annotations
 import argparse
 import ast
 import hashlib
-import json
 import os
 import stat
 import subprocess
@@ -124,7 +123,7 @@ def _syntax(root: Path) -> R34ToolFinding:
     )
 
 
-def _child_environment() -> dict[str, str]:
+def _child_environment(root: Path | None = None) -> dict[str, str]:
     # Reduce ambient accidental credential exposure; NOT a system sandbox.
     sensitive = (
         "PASSWORD", "TOKEN", "SECRET", "API_KEY", "PRIVATE_KEY",
@@ -135,6 +134,14 @@ def _child_environment() -> dict[str, str]:
         if not any(term in k.upper() for term in sensitive)
         and not k.upper().startswith(("TELEGRAM_", "BROKER_", "EXCHANGE_"))
     }
+    # Never inherit arbitrary PYTHONPATH/PYTHONHOME entries from the operator.
+    # The repository intentionally keeps the historical app in production_source.
+    env.pop("PYTHONPATH", None)
+    env.pop("PYTHONHOME", None)
+    if root is not None:
+        env["PYTHONPATH"] = os.pathsep.join(
+            (str(root / "production_source"), str(root))
+        )
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
     env["MMT_NONPRODUCTION"] = "1"
@@ -152,7 +159,7 @@ def _run(root: Path, name: str, args: tuple[str, ...], timeout: int) -> R34ToolF
     """No shell expansion; hash output rather than disclose tokens/logs."""
     if type(args) is not tuple or not args or timeout <= 0:
         raise R34AcceptanceRefused("R34_FIXED_TEST_COMMAND_REQUIRED")
-    env = _child_environment()
+    env = _child_environment(root)
     with tempfile.TemporaryFile(mode="w+b") as stream:
         try:
             p = subprocess.run(
