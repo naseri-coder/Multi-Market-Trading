@@ -297,3 +297,23 @@ def test_r34_posttest_source_digest_drift_is_denied(monkeypatch):
             run_stage_tests=True, operator_ack=True,
         )
     assert len(visits) == 2
+
+
+def test_r34_pythonpath_is_fixed_to_disposable_checkout(monkeypatch, tmp_path):
+    root = tmp_path / "new_test_checkout"
+    root.mkdir()
+    monkeypatch.setenv("PYTHONPATH", "/unsafe/custom/modules")
+    monkeypatch.setenv("PYTHONHOME", "/unsafe/custom/python")
+    env = runner._child_environment(root)
+    assert env["PYTHONPATH"] == (
+        str(root / "production_source") + ":" + str(root)
+    )
+    assert "PYTHONHOME" not in env
+    assert "/unsafe" not in str(env)
+
+
+def test_r34_empty_pythonpath_when_checkout_not_provided(monkeypatch):
+    monkeypatch.setenv("PYTHONPATH", "/unsafe/custom/modules")
+    env = runner._child_environment()
+    assert "PYTHONPATH" not in env
+
