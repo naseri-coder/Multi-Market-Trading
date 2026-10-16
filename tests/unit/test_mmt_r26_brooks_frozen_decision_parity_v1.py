@@ -16,6 +16,7 @@ import pytest
 
 from naseri_markets import brooks_frozen_decision_parity_mmt_r26_v1 as r26
 from naseri_markets.futures_economic_scenario_stage16_v1 import FundingMarkScenario
+from scripts import mmt_r26_offline_brooks_decision_cashflow_audit_v1 as cli
 
 START = datetime(2024, 1, 1, tzinfo=UTC)
 BAR = timedelta(minutes=15)
@@ -332,3 +333,77 @@ def test_one_real_frozen_brooks_v5_subprocess_called_before_counterfactuals(
     assert report["actual_frozen_worker_invocations"] == 1
     assert all(not p["actual_broker_fill_reconciled"] for p in report["counterfactuals"])
     assert report["backtest_trading_edge_demonstrated"] is False
+
+
+def test_termux_cli_requires_explicit_research_ack(monkeypatch,tmp_path):
+    monkeypatch.setenv("MMT_NONPRODUCTION","1")
+    monkeypatch.setattr(
+        cli, "r26_audit_frozen_brooks_two_paths",
+        lambda **kw: pytest.fail("worker or model invoked without consent"),
+    )
+    with pytest.raises(SystemExit,match="NONPRODUCTION"):
+        cli.main([
+            "--original-predecision-replay",str(tmp_path/"missing.json"),
+            "--two-futures-json",str(tmp_path/"missing-futures.json"),
+            "--economic-metadata",str(tmp_path/"missing-meta.json"),
+            "--economic-metadata-sha256","a"*64,
+            "--quantity-contracts","1",
+        ])
+
+
+def test_manual_cli_loads_two_bounded_counterfactuals_without_network(
+    monkeypatch,tmp_path,capsys,
+):
+    replay=tmp_path/"predecision.json"
+    replay.write_bytes(_replay())
+    meta=tmp_path/"contract.json"
+    raw,pin=_meta()
+    meta.write_bytes(raw)
+    cases=_paths(funding=True)
+    futures=tmp_path/"two-paths.json"
+    futures.write_text(json.dumps({
+        "protocol":"MMT_R26_TWO_OPERATOR_HYPOTHETICAL_PATHS_V1",
+        "scenarios":[{
+            "label":case.label,
+            "future_candles":list(case.post_signal_closed_candles),
+            "expected_funding_instants":[t.isoformat()
+                                         for t in case.expected_funding_instants],
+            "funding_events":[{
+                "at":e.at.isoformat(),
+                "funding_rate":e.funding_rate,
+                "referenced_mark_price":e.referenced_mark_price,
+            } for e in case.funding_mark_events],
+        } for case in cases],
+    },sort_keys=True).encode())
+    called=[]
+    def no_market_connection(**kw):
+        called.append(kw)
+        return {"network_used":False,"live_order_authorized":False}
+    monkeypatch.setattr(cli,"r26_audit_frozen_brooks_two_paths",no_market_connection)
+    cli.main([
+        "--ack-research-only",
+        "--original-predecision-replay",str(replay),
+        "--two-futures-json",str(futures),
+        "--economic-metadata",str(meta),
+        "--economic-metadata-sha256",pin,
+        "--quantity-contracts","1",
+    ])
+    assert len(called)==1
+    assert called[0]["original_replay_bytes"]==_replay()
+    assert called[0]["counterfactuals"]==cases
+    assert called[0]["quantity_contracts"]=="1"
+    assert called[0]["operator_ack"] is True
+    assert '"network_used": false' in capsys.readouterr().out
+
+
+def test_manual_cli_refuses_symlinked_counterfactuals_and_duplicate_json(
+    monkeypatch,tmp_path,
+):
+    other=tmp_path/"other.json"
+    other.write_bytes(b"{}")
+    link=tmp_path/"linked.json"
+    link.symlink_to(other)
+    with pytest.raises(ValueError,match="BOUNDED_LOCAL_FILE"):
+        cli._read_bounded_file(link)
+    with pytest.raises(ValueError,match="SCENARIO_JSON_SCHEMA"):
+        cli._paths(b'{"protocol":"x","protocol":"x","scenarios":[]}')
