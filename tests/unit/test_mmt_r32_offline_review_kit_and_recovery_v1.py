@@ -9,9 +9,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from scripts import mmt_r32_offline_review_kit_v1 as kit
 from naseri_markets import mmt_r32_stopped_recovery_review_v1 as recovery
 from naseri_markets.operational_reconciliation_v1 import RecoveryPaths
+from scripts import mmt_r32_offline_review_kit_v1 as kit
 
 
 @pytest.fixture(autouse=True)
