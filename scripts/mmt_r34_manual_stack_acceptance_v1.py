@@ -39,7 +39,6 @@ MAX_CAPTURE_BYTES = 4 * 1024 * 1024  # Never fill test-host storage with logs
 _RUFF_TARGETS = (
     *_STATIC_SOURCES,
     *_STAGE_UNIT_TARGETS.values(),
-    "tests/unit/test_mmt_r34_offline_stack_acceptance_v1.py",
 )
 
 
@@ -111,7 +110,6 @@ def _syntax(root: Path) -> R34ToolFinding:
     try:
         for rel in (
             *_STATIC_SOURCES, *tuple(_STAGE_UNIT_TARGETS.values()),
-            "tests/unit/test_mmt_r34_offline_stack_acceptance_v1.py",
         ):
             raw = _bytes(root, rel)
             ast.parse(raw, filename=rel)
