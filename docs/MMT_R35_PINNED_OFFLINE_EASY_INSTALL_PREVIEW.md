@@ -136,3 +136,28 @@ reported as an independent host-isolation acceptance. Before any
 further state-changing test, inspect the available environment and
 identify an explicitly disposable non-root test context. Keep this PR
 Draft, preserve historical runtime and refuse real trading/Telegram.
+
+## 2026-10-16 environment discovery: non-root installation not yet established
+
+The operator reported real `id` output from the disposable PRoot Ubuntu:
+`uid=0(root) gid=0(root)`, with Android supplementary AIDs.
+`runuser`, `su`, `useradd`, `setpriv` and the Termux `proot`
+executable are visible. `python3.12 --version` returns **3.12.3**.
+An existing `nobody` entry is `uid=65534 gid=65534` with a
+`/usr/sbin/nologin` shell. Root-only paths are reported as
+`/root` = `0700` and the local verified Wheel laboratory
+`/root/mmt-r34-wheel.7iTGsSLb` = `0700`; only
+`/root/mmt-r35-lab` = `0755`, but its `/root` parent is private.
+`git status --short` shows no modifications.
+
+These facts mean **availability of UID-changing commands does not yet
+prove a working non-root context**. Do not `chmod` the root directory
+or the private Wheel laboratory; do not copy sensitive artifacts to a
+public temporary directory. The next harmless diagnostics are
+`runuser -u nobody -- /usr/bin/id` and
+`setpriv --reuid=65534 --regid=65534 --clear-groups /usr/bin/id`,
+capturing whether PRoot permits those calls. If either succeeds, it
+must still be treated as a *PRoot functional test only*, not OS
+host-isolation or production installation certification.
+R35 real non-root installation remains **PENDING** and the draft is
+unmerged.
