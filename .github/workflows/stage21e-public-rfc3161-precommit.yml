@@ -1,16 +1,22 @@
 name: Stage21E one-time independently signed future Brooks preregistration
 
 on:
-  pull_request:
-    paths:
-      - ".github/workflows/stage21e-public-rfc3161-precommit.yml"
-      - "scripts/stage21e_public_tsa_precommit_v1.py"
+  workflow_dispatch:
+    inputs:
+      exact_explicit_approval:
+        description: "Explicitly authorize ONE fresh external public timestamp request"
+        required: true
+        type: choice
+        options:
+          - "NO_REQUEST"
+          - "I_APPROVE_ONE_PUBLIC_RFC3161_TIMESTAMP"
 
 permissions:
   contents: read
 
 jobs:
   single-external-public-rfc3161-stamp:
+    if: ${{ inputs.exact_explicit_approval == 'I_APPROVE_ONE_PUBLIC_RFC3161_TIMESTAMP' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
