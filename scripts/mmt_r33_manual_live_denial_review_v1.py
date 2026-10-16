@@ -34,15 +34,32 @@ def _reject_constant(_: str) -> None:
 
 
 def _read_private(path: Path) -> bytes:
-    if type(path) is not Path or not path.is_absolute() or path.is_symlink():
+    """Read only a bounded, owner-private regular file in an opened 0700 dir.
+
+    File access is relative to the validated directory descriptor, avoiding
+    a check/use race and fragile PRoot path-canonicalization comparisons.
+    """
+    if (not isinstance(path, Path) or not path.is_absolute()
+            or path.is_symlink() or path.parent.is_symlink()):
         raise R33ReadinessRefused("R33_PRIVATE_ABSOLUTE_INPUT_REQUIRED")
-    if (path.parent.is_symlink() or not path.parent.is_dir()
-            or path.parent.resolve(strict=True) != path.parent
-            or path.parent.stat().st_uid != os.geteuid()
-            or stat.S_IMODE(path.parent.stat().st_mode) & 0o077):
-        raise R33ReadinessRefused("R33_PRIVATE_PARENT_REQUIRED")
     try:
-        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+        dir_fd = os.open(
+            path.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+        )
+    except OSError as exc:
+        raise R33ReadinessRefused("R33_PRIVATE_PARENT_REQUIRED") from exc
+    try:
+        parent = os.fstat(dir_fd)
+        if (not stat.S_ISDIR(parent.st_mode)
+                or parent.st_uid != os.geteuid()
+                or stat.S_IMODE(parent.st_mode) & 0o077):
+            raise R33ReadinessRefused("R33_PRIVATE_PARENT_REQUIRED")
+        try:
+            fd = os.open(
+                path.name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=dir_fd,
+            )
+        except OSError as exc:
+            raise R33ReadinessRefused("R33_PRIVATE_FILE_READ_FAILED") from exc
         try:
             st = os.fstat(fd)
             if (not stat.S_ISREG(st.st_mode) or st.st_nlink != 1
@@ -57,8 +74,8 @@ def _read_private(path: Path) -> bytes:
             return raw
         finally:
             os.close(fd)
-    except OSError as exc:
-        raise R33ReadinessRefused("R33_PRIVATE_FILE_READ_FAILED") from exc
+    finally:
+        os.close(dir_fd)
 
 
 def decode_offline_operator_claims(raw: bytes) -> R33Evidence:
