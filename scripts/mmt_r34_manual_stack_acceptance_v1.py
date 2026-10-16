@@ -295,26 +295,49 @@ def _run(root: Path, name: str, args: tuple[str, ...], timeout: int) -> R34ToolF
 
 
 def _private_new_report(path: Path, data: bytes) -> None:
+    """Create an exclusive receipt relative to an opened private directory.
+
+    A pathname equality check against Path.resolve() is not reliable under
+    Termux/PRoot. Security instead rests on an O_NOFOLLOW directory handle,
+    fstat ownership/mode validation and O_EXCL file creation via dir_fd.
+    """
     if (type(path) is not Path or not path.is_absolute()
-            or path.is_symlink() or not path.parent.is_dir()
-            or path.parent.is_symlink()
-            or path.parent.resolve(strict=True) != path.parent):
+            or path.name in ("", ".", "..")
+            or path.is_symlink() or path.parent.is_symlink()):
         raise R34AcceptanceRefused("R34_PRIVATE_NEW_REPORT_PATH_REQUIRED")
-    parent = path.parent.stat()
-    if (parent.st_uid != os.geteuid()
-            or stat.S_IMODE(parent.st_mode) & 0o077):
-        raise R34AcceptanceRefused("R34_PRIVATE_0700_PARENT_REQUIRED")
     try:
-        fd = os.open(
-            path, os.O_CREAT | os.O_WRONLY | os.O_EXCL | os.O_NOFOLLOW,
-            0o600,
+        dir_fd = os.open(
+            path.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
         )
-        with os.fdopen(fd, "wb") as f:
-            f.write(data)
-            f.flush()
-            os.fsync(f.fileno())
     except OSError as exc:
-        raise R34AcceptanceRefused("R34_EXCLUSIVE_REPORT_WRITE_REFUSED") from exc
+        raise R34AcceptanceRefused("R34_PRIVATE_NEW_REPORT_PATH_REQUIRED") from exc
+    try:
+        parent = os.fstat(dir_fd)
+        if (not stat.S_ISDIR(parent.st_mode)
+                or parent.st_uid != os.geteuid()
+                or stat.S_IMODE(parent.st_mode) & 0o077):
+            raise R34AcceptanceRefused("R34_PRIVATE_0700_PARENT_REQUIRED")
+        try:
+            fd = os.open(
+                path.name,
+                os.O_CREAT | os.O_WRONLY | os.O_EXCL | os.O_NOFOLLOW,
+                0o600,
+                dir_fd=dir_fd,
+            )
+            with os.fdopen(fd, "wb") as f:
+                file_stat = os.fstat(f.fileno())
+                if (not stat.S_ISREG(file_stat.st_mode)
+                        or file_stat.st_nlink != 1
+                        or file_stat.st_uid != os.geteuid()
+                        or stat.S_IMODE(file_stat.st_mode) & 0o077):
+                    raise R34AcceptanceRefused("R34_PRIVATE_REPORT_FILE_UNSAFE")
+                f.write(data)
+                f.flush()
+                os.fsync(f.fileno())
+        except OSError as exc:
+            raise R34AcceptanceRefused("R34_EXCLUSIVE_REPORT_WRITE_REFUSED") from exc
+    finally:
+        os.close(dir_fd)
 
 
 def collect_r34_offline_evidence(
