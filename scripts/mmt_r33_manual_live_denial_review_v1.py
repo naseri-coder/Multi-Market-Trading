@@ -71,6 +71,8 @@ def decode_offline_operator_claims(raw: bytes) -> R33Evidence:
             object_pairs_hook=_reject_duplicates,
             parse_constant=_reject_constant,
         )
+    except R33ReadinessRefused:
+        raise
     except (ValueError, UnicodeError, TypeError) as exc:
         raise R33ReadinessRefused("R33_INVALID_INPUT_JSON") from exc
     if (type(data) is not dict or set(data) != {
@@ -112,7 +114,7 @@ def main(argv: list[str] | None = None) -> int:
         result = review_r33_live_readiness(
             claims, operator_ack=args.ack_deny_only_review,
         )
-    except (R33ReadinessRefused, ValueError, OSError):
+    except (ValueError, OSError):
         print(json.dumps({
             "protocol": "MMT_R33_OFFLINE_CLI_V1",
             "decision": "LIVE_HARD_DENY",
