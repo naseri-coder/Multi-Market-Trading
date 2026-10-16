@@ -202,3 +202,42 @@ test environment, modifying R35/R36 source or waiving the pins.
 If absent, retain `R36_SECOND_BUILD_TOOLCHAIN_UNAVAILABLE` and
 `R36_SECOND_BUILD_PENDING`; the final PR remains Draft and
 release/live denied.
+
+## 2026-10-16 pinned offline build tools acquired and SHA-checked — PASS
+
+The operator ran a separate, authorized **PyPI download** of the
+exact public build-tool requirements from
+`platform_release/pyproject.toml` into a new private directory.
+Their observed environment and verification output were:
+
+```text
+TOOLCHAIN_AREA=/root/mmt-r36-toolchain.KC3cP1Ft
+setuptools-80.9.0-py3-none-any.whl: OK
+wheel-0.45.1-py3-none-any.whl: OK
+R36_PINNED_TOOLCHAIN_ACQUIRED
+R36_ACQUISITION_EXIT=0
+```
+
+The independently supplied SHA256 pins used for verification were:
+- `setuptools==80.9.0`:
+  `062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922`
+- `wheel==0.45.1`:
+  `708e7481cc80179af0e556bbf0cc00b8444c7321e2700b8d8580231d13017248`
+
+The downloaded artifact path is:
+`/root/mmt-r36-toolchain.KC3cP1Ft/wheelhouse`.
+No build or full package comparison has yet occurred. The next step
+must keep the successful R34 Ruff/pytest venv and the reference Wheel
+untouched, create a **new** Python 3.12 build venv, install precisely
+these two **locally available** pinned Wheels with
+`pip --no-index --no-deps --require-hashes`, then stage public
+sources with A6 and rebuild using
+`pip wheel --no-build-isolation --no-index --no-deps`.
+Validate the second Wheel using R36 against the original independently
+pinned source SHA and original Wheel SHA. The build result and
+reproducibility verdict remain **PENDING**.
+
+The download step used PyPI network access, but the upcoming
+installation and second build are strictly offline by explicit pip
+flags. No producer signature or independent builder is established;
+Stage15 release and LIVE remain denied.
