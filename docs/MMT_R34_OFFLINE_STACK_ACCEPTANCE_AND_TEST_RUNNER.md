@@ -412,3 +412,42 @@ for identity, public-only modules, console entrypoints and package SHA256.
 No auto-install, Docker, server or database cutover is authorized by
 passing this step. Do not invoke `scripts/install_platform_dev.sh` from
 the root PRoot session; its non-root gate is intentional.
+
+## 2026-10-16 actual offline public Wheel build and static zip inspection
+
+On the disposable Termux/Ubuntu 24.04/Python 3.12.3 checkout, the
+operator fast-forwarded to exact R34 Draft PR head
+`417e7a9fdf1b32847495e94b1a8d7923c029d924` and ran
+`scripts/a6_prepare_package.py` to stage the public-only
+`naseri_markets` distribution outside Git, in
+`/root/mmt-r34-wheel.7iTGsSLb/package`. They then ran
+`python -m pip wheel --no-deps --wheel-dir "$LAB/wheels" "$LAB/package"`.
+Pip reported a successful Wheel build with:
+
+- Artifact: `multi_market_trading-0.4.0rc1-py3-none-any.whl`
+- Size: **787808 bytes**, with **226 ZIP archive entries**.
+- SHA256: `a99553947fba0e6a848e1c9b5cdb144408b70f380c8f713f43a14b393c15bc8f`.
+- Manual ZIP inspection result: **`WHEEL_STATIC_CONTENT_PASS`**.
+  The inspected wheel contained `naseri_markets/platform_cli.py`,
+  dist-info identity/version and the two core entrypoints
+  `naseri-markets` and `naseri-paper-demo`; no forbidden
+  `production_source/`, `app/`, `private_nyfr_core`, `r0_engine`,
+  top-level `.env` or parent traversal names were observed under
+  the specific negative checks performed.
+
+These checks **do not mean the wheel is installed, all packaged code
+is safe, dependent inputs are reproducible, or execution is certified**.
+Build isolation installed its declared build backend requirements and may
+have accessed the public package index; it did not deploy or install the
+preview runtime.
+
+The next proposed step is a separately created **virtualenv** under
+the operator's existing disposable laboratory, importing **only the
+hash-verified local wheel** using `pip --no-index --no-deps`;
+then exercise installed `naseri-markets --check` and the explicit
+synthetic installed-wheel smoke without network or external effects.
+The historical root 0.3.2 manager and
+`scripts/install_platform_dev.sh` are not part of this step.
+Actual installed behavior is **TEST_PENDING**. The R27 Brooks frozen
+worker stays DEFERRED, and final verdict remains
+`PRODUCT_NOT_READY_FOR_PUBLIC_OR_LIVE_RELEASE`.
