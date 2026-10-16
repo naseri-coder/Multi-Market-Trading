@@ -70,15 +70,19 @@ prospective OOS trade-performance record.
 
 ## Manual Termux / desktop local *deny-only* review
 
-Create a new private directory and place a JSON document satisfying
-the exact `prs`, `review_time_utc`, `flags` schema, using the current
-R28–R32 PR values and all sixteen report fields. Use stage docs and the source
-module's `_EVIDENCE_FLAG_FIELDS` list as the complete fixed schema. All
-booleans should remain **false unless independently substantiated**.
+Create a new private directory. A **dated public example** is provided at
+`docs/evidence/MMT_R33_OPERATOR_CLAIMS_BASELINE_20261016.json`.
+It records the five actual observed Draft PR HEADs and sixteen explicitly
+FALSE proof flags as of October 16. Copy the sample **out of the repository**
+and protect it before using the command; never put account credentials or
+tokens into that file. This is a historical template, not current GitHub proof.
+Update it from separately inspected records on any future date.
 
     export MMT_NONPRODUCTION=1
     unset MMT_PRODUCTION
     mkdir -m 700 -p "$HOME/mmt-r33"
+    cp docs/evidence/MMT_R33_OPERATOR_CLAIMS_BASELINE_20261016.json \
+      "$HOME/mmt-r33/operator-claims.json"
     chmod 600 "$HOME/mmt-r33/operator-claims.json"
     python -m scripts.mmt_r33_manual_live_denial_review_v1 \
       --private-evidence-json "$HOME/mmt-r33/operator-claims.json" \
