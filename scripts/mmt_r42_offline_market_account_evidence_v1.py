@@ -147,6 +147,8 @@ def _entities(items: object, *, positions: bool, contract_id: str) -> dict:
 
 def _account(obj: dict, *, provider: str | None, policy: dict, as_of: datetime) -> dict:
     _fields(obj, _ACCOUNT_FIELDS if provider is not None else _LEDGER_FIELDS)
+    if type(obj["schema"]) is not int or obj["schema"] != 1:
+        raise R42Refused("R42_EVIDENCE_SCHEMA_VERSION_INVALID")
     if (obj.get("provider_id", provider) != provider or obj["account_alias"] != policy["account_alias"]
             or obj["currency"] != policy["currency"]):
         raise R42Refused("R42_ACCOUNT_IDENTITY_MISMATCH")
@@ -164,6 +166,8 @@ def _account(obj: dict, *, provider: str | None, policy: dict, as_of: datetime) 
 
 def _market(obj: dict, *, policy: dict, as_of: datetime) -> int:
     _fields(obj, _MARKET_FIELDS)
+    if type(obj["schema"]) is not int or obj["schema"] != 1:
+        raise R42Refused("R42_EVIDENCE_SCHEMA_VERSION_INVALID")
     for field in ("provider_id", "market", "symbol", "contract_id", "price_basis",
                   "volume_semantics", "timeframe_seconds"):
         if type(obj[field]) is not type(policy[field]) or obj[field] != policy[field]:
