@@ -249,8 +249,23 @@ def save_r29_receipt_exclusive(
     try:
         obj = json.loads(receipt.decode("ascii"), object_pairs_hook=_unique)
         digest = obj["receipt_sha256"]
-        if (obj.get("protocol") != PROTOCOL or
-                not isinstance(digest, str) or not SHA.fullmatch(digest)
+        index = obj["decision_bar_index"]
+        sealed_keys = (
+            "broker_orders_sent", "telegram_sent",
+            "connected_paper_enabled", "live_trading_enabled",
+            "actual_fills_verified", "net_profit_verified",
+            "market_source_issuer_authenticity_proven",
+            "receive_time_independently_attested",
+            "prospective_edge_certified", "network_used",
+        )
+        if (obj.get("protocol") != PROTOCOL
+                or obj.get("canonical_plan_sha256") != PLAN_SHA
+                or type(index) is not int or not 60 <= index <= MAX_TOTAL_BARS
+                or any(obj.get(key) is not False for key in sealed_keys)
+                or obj.get("shadow_ledger_only") is not True
+                or obj.get("status") !=
+                "FROZEN_BROOKS_REAL_WORKER_SHADOW_RESEARCH_ONLY"
+                or not isinstance(digest, str) or not SHA.fullmatch(digest)
                 or _canonical(obj) != receipt
                 or digest != _hash(_canonical({
                     k: v for k, v in obj.items() if k != "receipt_sha256"
