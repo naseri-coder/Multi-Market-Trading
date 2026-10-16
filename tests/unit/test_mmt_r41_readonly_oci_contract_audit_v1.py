@@ -172,3 +172,23 @@ def test_cli_wrong_pin_failclosed(source, capsys):
     obj = json.loads(capsys.readouterr().out)
     assert obj["verdict"] == "R41_STATIC_CONTAINMENT_REVIEW_REFUSED"
     assert obj["public_release_authorized"] is False
+
+
+def test_rootless_probe_call_bypass_detected(source):
+    repin(source, b"_ensure_rootless_daemon(self.policy)",
+          b"_unsafe_skip_daemon_probe(self.policy)")
+    with pytest.raises(r41.R41Refused, match="ROOTLESS_EVALUATION_CHAIN_MISSING"):
+        r41.check_source(**source)
+
+
+def test_dynamic_docker_name_expression_denied(source):
+    repin(source, b'f"--name={name}"', b'f"--name={name.upper()}"')
+    with pytest.raises(r41.R41Refused, match="UNREVIEWED_DYNAMIC_SWITCH"):
+        r41.check_source(**source)
+
+
+def test_missing_secure_host_class_denied(source):
+    repin(source, b"class SecureOfflineCoreHost:",
+          b"class UnreviewedCoreHost:")
+    with pytest.raises(r41.R41Refused, match="HOST_CLASS_MISSING"):
+        r41.check_source(**source)
