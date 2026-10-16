@@ -345,3 +345,38 @@ state, so it must not be run inside the current root PRoot session.
 with Ruff PASS and clean Git; `REVIEW_ONLY_RELEASE_BLOCKED` remains the
 only authorized release decision. No LIVE, connected PAPER, broker order,
 Telegram send, deployment, production database, merge or GitHub Actions.
+
+## Operator-confirmed read-only A6 / Stage15 preflight (2026-10-16)
+
+On the disposable Termux Ubuntu PRoot checkout, the operator fast-forwarded
+to `af58e7c2486bc81c16ecbe8c2e9170f9e4d8979e`, then ran
+`python scripts/a6_release_preflight.py` and
+`MMT_NONPRODUCTION=1 python -m scripts.mmt_stage15_readiness --repository .
+--ack-source-audit`. They supplied both JSON outputs and an empty
+`git status --short`.
+
+- A6 verdict: **`A6_SEPARATE_RELEASE_PREVIEW_PASS`**. The legacy
+  `crypto-price-action 0.3.2` and public preview
+  `multi-market-trading 0.4.0rc1` identities remain separate; no migration,
+  legacy DB attachment, private NYFR source or runtime activation occurred.
+- Stage15: **`SOURCE_PREFLIGHT_PASS`**, inspected digest
+  `24125b51235eed3c2c94f76de3595c6d7a01e312e2b06350863cfd4f91765e32`;
+  `offline_preview_candidate=true`. The result retains **nine P0 and
+  one P1 unresolved blockers**. It explicitly states
+  `PRODUCT_NOT_READY_FOR_PUBLIC_OR_LIVE_RELEASE` with all production, LIVE
+  order, Telegram publication and untrusted-plugin permissions **false**.
+- The independent review of the repository's installation source found
+  `scripts/install_platform_dev.sh` is a *state-mutating* isolated
+  nonproduction install and **explicitly refuses effective UID 0**.
+  Therefore do not invoke it inside this root PRoot test shell.
+  The legacy `markets.sh` manager is a distinct v0.3.2 application and
+  must not be mistaken for the new preview's installer.
+
+Next safe acceptance scope is **nonproduction-only unit evidence** for A6
+package separation, Stage15 release denial, and the toy-only PAPER CLI
+journey: `tests/unit/test_a6_preview.py`,
+`tests/unit/test_release_readiness_v1.py`,
+`tests/unit/test_paper_demo_cli_v1.py` with auto-loaded pytest plugins and
+shared conftest disabled. These tests have **not yet been run together** in
+this operator session; do not pre-claim a result. Do not install a service,
+start trading or relax any blocker.
