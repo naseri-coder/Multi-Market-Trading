@@ -127,3 +127,35 @@ application's check-only business logic itself creates no files,
 but a default Python interpreter might otherwise emit __pycache__.
 An attacker-owned or writable environment is **not** a security
 sandbox, even with both signed pins and pip --no-index.
+
+
+## 2026-10-16 assistant-local independent synthetic facade smoke
+
+Using Python **3.13.5** in a disposable assistant sandbox, an
+independently transcribed version of the R38 facade (compiled with
+Python 3.13) was exercised against the **byte-exact GitHub R37**
+verifier source (Git blob
+90b248dfe4a948ccf829c7c4193bf6bb16c34965,
+cryptography 46.0.4). The downstream R35 module was an
+**explicit minimal synthetic stub**, not the actual R35 installer;
+no pip, venv or strategy execution took place. Temporary, ephemeral
+Ed25519 test keys were created in per-test scratch space and are
+not publisher keys.
+
+The separate synthetic smoke returned **20 passed in 0.11s** and
+covered signed check-only, wrong signature, wrong manifest or policy
+pin, revoked/inactive key, replay floor, source mismatch, tampered
+Wheel, replaced key, duplicate policy JSON, explicit Production
+environment, occupied destination, root/no-ack denial, no
+pre-verification installer call, mocked post-install evidence,
+suspicious R35 response and valid/invalid CLI outcomes. The tests
+prove only the *local equivalent facade's* control-flow contract,
+not byte-exact execution of the GitHub R38 branch. They provide
+**no real OS nonroot, actual R35 wheel handling, Python 3.12, hostile
+package containment, independent publisher key custody or release
+attestation**.
+
+The 20 separate GitHub R38 pytest test cases are *authored* and
+their operator Python 3.12.3 execution remains PENDING. No
+GitHub Actions runner was invoked. Scope remains Draft/unmerged and
+all public/LIVE release gates remain denied.
