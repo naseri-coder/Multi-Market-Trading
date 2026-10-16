@@ -170,3 +170,35 @@ members from full byte-for-byte reproducibility. Building a second
 archive with the same local toolchain is **not** an independent builder,
 verifiable attestation, hostile build isolation or release certificate.
 Maintain the strict Draft/unmerged P0/P1 and LIVE/production denials.
+
+## 2026-10-16 second local Wheel build attempted — blocked at toolchain preflight
+
+The operator fast-forwarded the detached R36 source checkout to
+`f1c48708b1fc320a26066c2d383ff620901b0448`
+and started the suggested **second local Wheel** procedure.
+
+The first build-toolchain metadata query on
+`/root/mmt-r34-venv/bin/python` failed **before creating a staging
+directory or running a package build**:
+
+```text
+=== BUILD TOOLCHAIN ===
+importlib.metadata.PackageNotFoundError:
+No package metadata was found for setuptools
+R36_BUILD_EXIT=1
+```
+
+The earlier R36 real source/Wheel audit, Ruff and 13 isolated unit
+tests remain valid. **No second Wheel exists from this invocation**.
+Do not mark payload equivalence, archive byte reproducibility, supply
+chain signatures, or packaging acceptance as achieved.
+
+Next operator diagnostic (read-only) must inspect existing Python 3.12
+environments for *both exact pinned* build dependencies from
+`platform_release/pyproject.toml`:
+`setuptools==80.9.0`, `wheel==0.45.1`. Inspect existing local cached
+Wheels (if any) without downloading, installing into the successful
+test environment, modifying R35/R36 source or waiving the pins.
+If absent, retain `R36_SECOND_BUILD_TOOLCHAIN_UNAVAILABLE` and
+`R36_SECOND_BUILD_PENDING`; the final PR remains Draft and
+release/live denied.
