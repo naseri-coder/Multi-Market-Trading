@@ -254,10 +254,10 @@ def main(argv: list[str] | None = None) -> int:
             evidence, operator_ack=True,
         )
         if args.output_private_json is not None:
-            _private_new_report(
-                args.output_private_json.absolute(),
-                _wire(result) + b"\n",
-            )
+            report_path = args.output_private_json.absolute()
+            if report_path.is_relative_to(args.source_root.absolute()):
+                raise R34AcceptanceRefused("R34_REPORT_MUST_BE_OUTSIDE_CHECKOUT")
+            _private_new_report(report_path, _wire(result) + b"\n")
     except (R34AcceptanceRefused, ValueError, OSError):
         print(_wire({
             "decision": "REVIEW_REFUSED_NO_RELEASE",
