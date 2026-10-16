@@ -202,3 +202,42 @@ def test_r29_private_append_only_receipt_file(tmp_path, monkeypatch):
         r29.save_r29_receipt_exclusive(
             directory=world.resolve(), receipt=raw, operator_ack=True,
         )
+
+
+def test_r29_saver_rejects_even_rehashed_forged_live_flags(tmp_path, monkeypatch):
+    args, _, _ = staged(tmp_path, monkeypatch, sizes=(60,))
+    _, raw = r29.review_r29_one_closed_bar_shadow(
+        **args, decision_bar_index=60,
+    )
+    target = tmp_path / "private-extra"
+    target.mkdir(mode=0o700)
+    forged = json.loads(raw)
+    forged["broker_orders_sent"] = True
+    unsigned = {k: v for k, v in forged.items() if k != "receipt_sha256"}
+    forged["receipt_sha256"] = hashlib.sha256(
+        r29._canonical(unsigned),
+    ).hexdigest()
+    bytes_forged = r29._canonical(forged)
+    with pytest.raises(r29.R29ShadowRefused, match="CHECKPOINT_RECEIPT_INVALID"):
+        r29.save_r29_receipt_exclusive(
+            directory=target.resolve(), receipt=bytes_forged,
+            operator_ack=True,
+        )
+    assert list(target.iterdir()) == []
+
+
+def test_r29_broken_r24_timegrid_is_rejected_before_worker(
+    tmp_path, monkeypatch,
+):
+    args, _, calls = staged(tmp_path, monkeypatch, sizes=(60,))
+    file = (args["previous_directories"][0]
+            / "canonical-reviewed-closed-candles.csv")
+    raw = file.read_bytes()
+    changed = raw.replace(b"2026-10-20T00:15:00Z",
+                          b"2026-10-20T00:30:00Z", 1)
+    file.write_bytes(changed)
+    with pytest.raises(r29.R29ShadowRefused, match="CANDLE_GAP_OR_ORDER"):
+        r29.review_r29_one_closed_bar_shadow(
+            **args, decision_bar_index=60,
+        )
+    assert not calls
