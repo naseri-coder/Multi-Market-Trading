@@ -70,7 +70,8 @@ def _gate(operator_ack: bool) -> None:
 
 def _secure_parent(path: Path) -> Path:
     if (type(path) is not Path or not path.is_absolute()
-            or path.is_symlink() or not path.is_dir()):
+            or path.is_symlink() or not path.is_dir()
+            or path.resolve(strict=True) != path):
         raise R32KitRefused("R32_EXISTING_PRIVATE_PARENT_REQUIRED")
     st = path.stat()
     if (st.st_uid != os.geteuid()
@@ -97,6 +98,7 @@ def _git(root: Path, *args: str) -> str:
 def _source(root: Path, expected_head: str) -> None:
     if (type(root) is not Path or not root.is_absolute()
             or root.is_symlink() or not root.is_dir()
+            or root.resolve(strict=True) != root
             or type(expected_head) is not str
             or SHA.fullmatch(expected_head) is None):
         raise R32KitRefused("R32_ABSOLUTE_ROOT_AND_PIN_REQUIRED")
