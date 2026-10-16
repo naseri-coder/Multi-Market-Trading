@@ -1,6 +1,6 @@
 # Stage 21E — Real Public RFC3161-Stamped Brooks Research Precommitment
 
-**Evidence obtained: genuine, digitally signed external FreeTSA RFC3161 timestamp. Status is RESEARCH-ONLY, not independently accredited TSA custody approval, not OOS, not PAPER activation.**
+**Canonical evidence obtained: genuine, digitally signed external FreeTSA RFC3161 timestamp. Status is RESEARCH-ONLY, not independently accredited TSA custody approval, not OOS, not PAPER activation.**
 
 ## Executed single request and independently repeated validation
 
@@ -36,6 +36,14 @@
 - Missing funding: always **REFUSE**, never zero-fill. Simultaneous stop and TP: **STOP FIRST**.
 - `paper_market_access=false` and NO external exchange credentials.
 - All fee/tick/slippage/contract assumptions are **operator-unverified placeholders**, not historic Binance account fees; changing economic assumptions or frozen code after timestamp invalidates the original plan for the modified protocol.
+
+## Duplicate run observed and automatic issuance disabled
+
+GitHub's `pull_request.paths` initially matched the **cumulative PR diff**, which caused an additional valid external timestamp to be issued on a later documentation commit in run `38836323239`. That later plan is a **different, independent plan** (SHA256 `8bef6411c1000214c0225d38c293f05cfbc2aaede10242f6cdd24e4d48cf13a6`, signed 2026-10-16 01:39:54Z). It is NOT the approved canonical plan for this study, and its token cannot be substituted for the original plan's signature.
+
+The official canonical plan for all subsequent research remains the **first** run `38835965013`, SHA256 `c557e8792ff7f097ee483903e2e6702c622a20f3975af898ee9aca7e257ad94d`, signed 2026-10-16 01:36:00Z. No results from different plans may be pooled without a separately predeclared protocol.
+
+Both public trust-anchor discovery and real RFC3161 issuance workflows have now been changed from automatic PR triggers to **manual workflow_dispatch only**. A fresh token requires the user to explicitly select `I_APPROVE_ONE_PUBLIC_RFC3161_TIMESTAMP`; a later documentation/code commit cannot silently mint additional plans.
 
 ## Preserve and reproduce
 
