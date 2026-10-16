@@ -136,3 +136,66 @@ The R34 source was amended accordingly:
 - add deterministic negative unit tests for both cases. These tests are **authored but not yet executed against the complete project checkout**.
 
 **Limitations:** These protections cannot detect descendants that call `setsid`, avoid PID/process-group reuse races, or constitute OS sandboxing and independent signed evidence. Never run untrusted tests on an operational server. No Merge, LIVE, real account or production environment was used.
+
+
+## Android-only execution route: Ubuntu 24.04 in Termux (manual, unexecuted here)
+
+A workable **version-specific** path is Termux \`proot-distro\` with \`ubuntu:24.04\` on Android, instead of changing a trading/Telegram production host or trying to force Python 3.13 into a Python 3.12-only project. Official \`termux/proot-distro\` README documents \`pkg install proot-distro\`, \`proot-distro install ubuntu:24.04\`, \`--name\`, and \`proot-distro login\`; it does **NOT** claim Docker-grade kernel/network isolation. This guide requires internet, sufficient spare storage and manual approval; no command has been run on the operator's phone.
+
+**In Termux (outside any production folder):**
+
+    pkg update
+    pkg install proot-distro git
+    proot-distro install ubuntu:24.04 --name mmt-r34-lab
+    proot-distro login mmt-r34-lab
+
+**Inside the fresh Ubuntu 24.04 instance (NOT inside an existing bot installation):**
+
+    apt-get update
+    apt-get install -y ca-certificates git python3.12 python3.12-venv
+    python3.12 --version
+    mkdir -p /root/mmt-r34-lab
+    cd /root/mmt-r34-lab
+    git clone --single-branch \
+      --branch feature/mmt-r34-offline-stack-acceptance-evidence-v1 \
+      https://github.com/naseri-coder/Multi-Market-Trading.git src
+    cd src
+    git status --porcelain=v1 --untracked-files=all
+    git rev-parse HEAD
+
+**CRITICAL:** Independently compare printed HEAD to the GitHub PR #327 head displayed at execution time. Do **not** run any tests if different, dirty, or untrusted. Put that independently reviewed exact 40-hex SHA in the final command in place of \`REPLACE_WITH_VERIFIED_PR327_HEAD\`. Use the full exact hash, never a branch name as an authority token.
+
+Create a venv OUTSIDE the audited Git checkout and install exactly the versions from the committed \`pyproject.toml\` (this step can take time on an Android ARM device and can fail if wheels are unavailable):
+
+    python3.12 -m venv /root/mmt-r34-venv
+    . /root/mmt-r34-venv/bin/activate
+    python -m pip install --upgrade pip
+    python -m pip install \
+      'pytest==9.1.1' 'pytest-asyncio==1.4.0' 'ruff==0.16.9' \
+      'alembic==1.20.0' 'asyncpg==0.31.0' 'httpx==0.28.1' \
+      'matplotlib==3.11.2' 'numpy==2.5.3' \
+      'pydantic-settings==2.15.0' 'python-telegram-bot==22.8' \
+      'SQLAlchemy[asyncio]==2.0.54' 'tzdata==2026.4' \
+      'build==1.6.1' 'pyproject-hooks==1.3.3'
+    python --version
+    python -m pytest --version
+    python -m ruff --version
+    git status --porcelain=v1 --untracked-files=all
+
+If package installation fails, **stop and report the exact dependency/version failure**; do not substitute newer versions or falsely mark acceptance PASS. A reproducible requirements lock with hashes will be a separate supply-chain review, not presumed satisfied by pip version pins alone. Do not install the project itself in editable mode into the pinned Git checkout; this can dirty the source inventory.
+
+Run the intentionally **deny-only** R34 script from this reviewed disposable checkout, without any real broker credentials or Telegram bot token:
+
+    export MMT_NONPRODUCTION=1
+    unset MMT_PRODUCTION
+    mkdir -m 700 -p /root/mmt-r34-audit
+    python -m scripts.mmt_r34_manual_stack_acceptance_v1 \
+      --source-root "$PWD" \
+      --expected-head REPLACE_WITH_VERIFIED_PR327_HEAD \
+      --run-stage-tests --run-ruff \
+      --output-private-json /root/mmt-r34-audit/local-acceptance.json \
+      --ack-execute-local-repository-tests
+
+The test runner returns exit code **1 even on locally all-green tests** because independent release authorization is intentionally denied; 2 means refusal/preflight failure. Once the first run is reviewed, \`--run-full-unit-suite\` may be added for a **separate manually authorized local rerun**, using a **new** report filename. Never reuse an existing report path, because the script refuses overwrite. Do not use \`sudo\` or native broker APIs, operational SQLite databases, token files, Docker sockets, production services, server access, GitHub Actions, or external Telegram sending.
+
+**Limitations:** PRoot is not a security sandbox against deliberately malicious local processes; review the exact Git checkout before enabling test execution. Termux background lifecycle, network restrictions, RAM/storage, ARM binary wheels and Python package availability may prevent completion. This route is **prepared but unverified on the operator's Android device**, not a record of passing pytest/Ruff.
