@@ -8,6 +8,7 @@ No real feeds, public strategy execution, services, Telegram or broker orders.
 from __future__ import annotations
 
 import argparse
+from contextlib import closing
 import hashlib
 import json
 import os
@@ -97,7 +98,7 @@ def _read_state(path: Path) -> dict:
     # all writers stopped; R39 owns this journal and never enables WAL.
     address = "file:" + quote(str(file), safe="/") + "?mode=ro&immutable=1"
     try:
-        with sqlite3.connect(address, uri=True, timeout=1) as db:
+        with closing(sqlite3.connect(address, uri=True, timeout=1)) as db:
             db.execute("PRAGMA query_only=ON")
             db.execute("BEGIN")
             if db.execute("PRAGMA quick_check(1)").fetchone()[0] != "ok":
@@ -135,6 +136,7 @@ def _verify_outputs(report: dict, *, dry_run_signals: bool, directory: Path) -> 
         raise PaperAuthorityRefused("R39_STAGE20_REPORT_UNSAFE")
     if (type(report.get("bindings")) is not list
             or len(report["bindings"]) != 2
+            or any(type(x) is not dict for x in report["bindings"])
             or {x.get("symbol") for x in report["bindings"]} != {"BTCUSD", "ETHUSD"}
             or any(x.get("status") != "CLOSED" for x in report["bindings"])):
         raise PaperAuthorityRefused("R39_TWO_COMPLETE_BINDINGS_REQUIRED")
