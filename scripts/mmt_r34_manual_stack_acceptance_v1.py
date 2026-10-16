@@ -123,6 +123,13 @@ def _syntax(root: Path) -> R34ToolFinding:
     )
 
 
+def _project_python_preflight(run_pytest: bool, version: tuple[int, int] | None = None) -> None:
+    # pyproject.toml explicitly requires Python >=3.12,<3.13.
+    current = version if version is not None else sys.version_info[:2]
+    if run_pytest and current != (3, 12):
+        raise R34AcceptanceRefused("R34_PROJECT_PYTHON_312_REQUIRED")
+
+
 def _child_environment(root: Path | None = None) -> dict[str, str]:
     # Reduce ambient accidental credential exposure; NOT a system sandbox.
     sensitive = (
@@ -228,6 +235,7 @@ def collect_r34_offline_evidence(
     pre_syntax = _syntax(root)
     if pre_syntax.status != "PASS":
         raise R34AcceptanceRefused("R34_SOURCE_STATIC_PREFLIGHT_FAILED")
+    _project_python_preflight(run_stage_tests or run_full_suite)
     results = []
     for stage, test_path in _STAGE_UNIT_TARGETS.items():
         results.append(
