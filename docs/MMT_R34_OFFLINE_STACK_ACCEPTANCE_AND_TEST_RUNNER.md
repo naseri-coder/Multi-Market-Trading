@@ -535,3 +535,49 @@ new isolated recovered copy. This will test one limited cold restore,
 not a full disaster-recovery or corruption/fault-injection program.
 Do not overwrite the original toy journal or use any production
 SQLite file. R27 deferred, release/live/broker/Telegram deny unchanged.
+
+## 2026-10-16 operator-confirmed isolated SQLite online backup and recovery
+
+The operator ran a genuine isolated Python 3.12 script against the
+installed, synthetic-only `naseri-paper-demo` journal in
+`/root/mmt-r34-wheel.7iTGsSLb/paper-journey-23de4a99`.
+Before backup it separately inspected the installed CLI's closed/disabled
+revision 3 with exactly one PAPER intent, rejected symlinked source
+paths and restricted the source to the disposable laboratory.
+It used `sqlite3.connect(file:...?mode=ro)` and SQLite's **online
+`Connection.backup()` API**, not a naive live database file copy;
+both original and destination passed `PRAGMA integrity_check` and
+`foreign_key_check`. The immutable bundled toy snapshot and synthetic
+sample were copied into a new private restoration folder before
+reopening the installed CLI on both paths.
+
+Actual operator output:
+
+```json
+{
+  "verdict": "PAPER_SQLITE_BACKUP_RESTORE_PASS",
+  "source_unchanged": true,
+  "restored_signals": 1,
+  "restored_enabled": false,
+  "restored_revision": 3,
+  "journal_sha256": "015292069633e98793514df8af4148eb31dc132bb6b6e72415a9cfad30f89572",
+  "restore_directory": "/root/mmt-r34-wheel.7iTGsSLb/paper-recovery-266c500c",
+  "live_authorized": false
+}
+```
+
+**Accepted narrow evidence:** `PAPER_SQLITE_BACKUP_RESTORE_PASS`.
+It confirms a single coherent, operator-driven cold restore for
+*synthetic offline PAPER* and no source-data modification at the
+application/journal-level checks. It is not a disk-crash, power-loss,
+adversarial corruption, multi-ledger, transactional-restore or full
+production disaster-recovery test. The installed CLI runs from an
+isolated virtualenv, not the legacy v0.3.2 launcher.
+
+**Next validation remains PENDING:** On a *new copy* of the recovered
+offline journal, reenable the previously disabled public toy with
+revision 3, replay the same synthetic event, and require `DUPLICATE`,
+unchanged count and unchanged journal digest. Re-disable and verify
+that both the original journal and the initial restored reference
+are unchanged. Keep all actual broker, Telegram, connected PAPER and
+LIVE permissions false. No release/merge approval is implied.
