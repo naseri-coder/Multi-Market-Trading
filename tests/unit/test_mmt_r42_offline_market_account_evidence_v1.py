@@ -388,7 +388,6 @@ def test_distinct_pin_inputs_required(e):
         r.audit(**k)
 
 
-
 @pytest.mark.parametrize("changed", ["account", "ledger"])
 def test_r42c_rejects_mismatched_capture_epoch_even_when_values_match(e, changed):
     """Matching balances/positions/orders from different moments are not parity."""
