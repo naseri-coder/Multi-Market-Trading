@@ -1,12 +1,16 @@
 """R22 offline lineage and fail-closed Binance schema regression tests."""
 from __future__ import annotations
+
 import hashlib
 import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+
 import pytest
+
 from naseri_markets.brooks_future_kline_admission_stage21f_v1 import (
-    Stage21AdmissionRefused, _rows,
+    Stage21AdmissionRefused,
+    _rows,
 )
 
 ROOT=Path(__file__).resolve().parents[2]
