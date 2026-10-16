@@ -122,3 +122,17 @@ The runner now checks exact installed development versions *without importing
 pytest plugins*: pytest 9.1.1, pytest-asyncio 1.4.0 and Ruff 0.16.9. Python
 3.12 remains mandatory for pytest. No real R27–R34 test pass has been claimed
 in this PR without a proper, exact-commit disposable checkout.
+
+## 2026-10-16 additional source review: POSIX child lifecycle + Git environment
+
+Two independent, disposable local demonstrations were **actually executed** outside the project checkout:
+
+1. A test parent spawned a sleeping subprocess, then itself exited with return code 0. Checking its private POSIX process group correctly found the surviving child and a SIGKILL signal was issued to that group. This validates the operating-system behavior used by the new R34 group-lifecycle guard, **not** a passed R34 repository unit test.
+2. A temporary local `git init` checkout behaved normally with Git's environment cleared; a deliberately injected `GIT_DIR` / `GIT_WORK_TREE` caused the Git check to fail, while a minimally-whitelisted environment and disabled Git hooks/fsmonitor restored the expected normal checkout result. This demonstrates that ambient Git variables can affect acceptance checks.
+
+The R34 source was amended accordingly:
+- after the direct test-runner process finishes, probe the original isolated process group; if any process remains, issue group termination and record `ORPHANED_CHILD_GROUP` rather than `PASS`, regardless of its exit code;
+- pass only whitelisted environment variables to Git, force noninteractive/optional-lock-free read-only operations, and disable `core.fsmonitor`, hooks and submodule recursion to prevent dangerous ambient or repo-local Git behavior;
+- add deterministic negative unit tests for both cases. These tests are **authored but not yet executed against the complete project checkout**.
+
+**Limitations:** These protections cannot detect descendants that call `setsid`, avoid PID/process-group reuse races, or constitute OS sandboxing and independent signed evidence. Never run untrusted tests on an operational server. No Merge, LIVE, real account or production environment was used.
