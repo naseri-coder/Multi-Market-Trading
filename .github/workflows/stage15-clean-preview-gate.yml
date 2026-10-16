@@ -59,8 +59,9 @@ jobs:
             scripts/mmt_stage15_readiness.py \
             tests/unit/test_release_readiness_v1.py
           mkdir -p "$RUNNER_TEMP/stage15-standalone-tests"
-          cp tests/unit/test_release_readiness_v1.py "$RUNNER_TEMP/stage15-standalone-tests/test_release_readiness_v1.py"
-          PYTHONPATH="$GITHUB_WORKSPACE" python -m pytest -q "$RUNNER_TEMP/stage15-standalone-tests/test_release_readiness_v1.py"
+          cp tests/unit/test_release_readiness_v1.py "$RUNNER_TEMP/stage15-standalone-tests/"
+          cp tests/unit/test_paper_demo_cli_v1.py "$RUNNER_TEMP/stage15-standalone-tests/"
+          PYTHONPATH="$GITHUB_WORKSPACE" python -m pytest -q "$RUNNER_TEMP/stage15-standalone-tests"
       - name: Clean-wheel installation and synthetic decision smoke only
         env:
           MMT_NONPRODUCTION: "1"
@@ -73,7 +74,18 @@ jobs:
           python -m venv "$RUNNER_TEMP/venv"
           "$RUNNER_TEMP/venv/bin/python" -m pip wheel --no-deps --wheel-dir "$RUNNER_TEMP/wheels" "$project"
           "$RUNNER_TEMP/venv/bin/python" -m pip install --no-deps "$RUNNER_TEMP"/wheels/multi_market_trading-0.4.0rc1-*.whl
+          "$RUNNER_TEMP/venv/bin/python" -m pip check
           cd "$RUNNER_TEMP/cleanroom"
+          PYTHONPATH= "$RUNNER_TEMP/venv/bin/python" - <<'PY'
+          import naseri_markets
+          import sys
+          from pathlib import Path
+          installed = Path(naseri_markets.__file__).resolve()
+          venv = Path(sys.prefix).resolve()
+          assert venv in installed.parents
+          assert Path(__file__).resolve() != installed
+          print("CLEAN_WHEEL_IMPORT_PROVENANCE_PASS")
+          PY
           PYTHONPATH= "$RUNNER_TEMP/venv/bin/python" -m naseri_markets.installed_preview_smoke_v1 --ack-isolated-preview > "$RUNNER_TEMP/smoke.json"
           "$RUNNER_TEMP/venv/bin/python" - <<'PY'
           import json, os
@@ -108,8 +120,30 @@ jobs:
                   capture_output=True, text=True, timeout=20, check=True)
               return json.loads(process.stdout)
 
+          def refuse(action, *args):
+              proc = subprocess.run(
+                  [str(tool), "--state-dir", str(state), action, *args],
+                  cwd=home / "cleanroom", env=environment,
+                  capture_output=True, text=True, timeout=20, check=False,
+              )
+              assert proc.returncode == 2, (proc.returncode, proc.stderr)
+              assert not proc.stdout
+              assert proc.stderr.startswith("PAPER_DEMO_REFUSED:")
+
+          refuse("init")  # no consent, no directory created
+          assert not state.exists()
           original = invoke("init", "--ack-reviewed-public-toy")
           assert original["revision"] == 1 and not original["enabled"]
+          assert state.stat().st_mode & 0o777 == 0o700
+          ledger = state / "custom_paper.db"
+          assert ledger.stat().st_mode & 0o777 == 0o600
+          linked = home / "hardlinked-ledger.db"
+          os.link(ledger, linked)
+          try:
+              refuse("inspect")  # no second file identity allowed
+          finally:
+              linked.unlink()
+          assert invoke("inspect")["paper_signal_count"] == 0
           assert not original["telegram_sent"] and not original["broker_order_sent"]
           enabled = invoke("enable", "--revision", "1",
                            "--descriptor-sha256", original["descriptor_sha256"])
@@ -128,6 +162,17 @@ jobs:
           assert disabled["paper_signal_count"] == 1
           assert not disabled["release_authorized"]
           assert not disabled["telegram_sent"] and not disabled["broker_order_sent"]
+          state.chmod(0o755)
+          try:
+              refuse("inspect")  # reject a weakened private directory
+          finally:
+              state.chmod(0o700)
+          ledger.chmod(0o644)
+          try:
+              refuse("inspect")  # reject shared SQLite permissions
+          finally:
+              ledger.chmod(0o600)
+          assert invoke("inspect")["journal_sha256"] == first["journal_sha256"]
           denied = subprocess.run(
               [str(tool), "--state-dir", str(state), "replay",
                "--ack-offline-replay"],
