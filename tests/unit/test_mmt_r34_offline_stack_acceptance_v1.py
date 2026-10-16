@@ -255,3 +255,45 @@ def test_r34_no_live_actions_exposed():
     assert not hasattr(runner, "submit_order")
     assert not hasattr(runner, "deploy")
     assert not hasattr(runner, "retry_unknown")
+
+
+def test_r34_static_preflight_failure_prevents_test_execution(monkeypatch):
+    executed = []
+    monkeypatch.setattr(runner, "_head", lambda *_: None)
+    monkeypatch.setattr(
+        runner, "_syntax",
+        lambda _: a34.R34ToolFinding("STATIC_SYNTAX", "FAIL", 1, digest()),
+    )
+    monkeypatch.setattr(
+        runner, "_run", lambda *args, **kwargs: executed.append(args),
+    )
+    with pytest.raises(a34.R34AcceptanceRefused, match="STATIC_PREFLIGHT"):
+        runner.collect_r34_offline_evidence(
+            root=Path("/synthetic/isolated"), expected_head="a" * 40,
+            run_stage_tests=True, operator_ack=True,
+        )
+    assert executed == []
+
+
+def test_r34_posttest_source_digest_drift_is_denied(monkeypatch):
+    visits = []
+    monkeypatch.setattr(runner, "_head", lambda *_: None)
+    def changed_syntax(_):
+        visits.append("inspected")
+        return a34.R34ToolFinding(
+            "STATIC_SYNTAX", "PASS", 0,
+            "0" * 64 if len(visits) == 1 else "1" * 64,
+        )
+    monkeypatch.setattr(runner, "_syntax", changed_syntax)
+    monkeypatch.setattr(
+        runner, "_run",
+        lambda root, name, argv, timeout: a34.R34ToolFinding(
+            name, "PASS", 0, digest(),
+        ),
+    )
+    with pytest.raises(a34.R34AcceptanceRefused, match="SOURCE_CHANGED"):
+        runner.collect_r34_offline_evidence(
+            root=Path("/synthetic/isolated"), expected_head="a" * 40,
+            run_stage_tests=True, operator_ack=True,
+        )
+    assert len(visits) == 2
