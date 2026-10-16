@@ -108,3 +108,22 @@ Do not connect Telegram, broker, services or LIVE, and do not
 use the operational Telmivo server to test this feature.
 Stage15 retains nine P0 and one P1 blocker. R27 Brooks full-core
 worker evidence remains deferred; all stacked PRs are unmerged.
+
+
+## Execution verification caveat and version pin
+
+Static source/PR inspection confirms that the R38 entrypoint delegates
+cryptographic trust verification to R37 and Wheel metadata checks to R35
+**before calling** R35 installation. The 20 authored tests have **not**
+yet been executed against Python 3.12.3 with the optional cryptography
+dependency in a clean disposable host; no synthetic pass or exact
+Ruff result is claimed. Pending user-device-dependent tests are not
+silently treated as passed.
+
+For a genuinely read-only operator check, launch from a clean
+nonproduction environment with PYTHONDONTWRITEBYTECODE=1 to avoid
+Python import cache writes into the source checkout. The R38
+application's check-only business logic itself creates no files,
+but a default Python interpreter might otherwise emit __pycache__.
+An attacker-owned or writable environment is **not** a security
+sandbox, even with both signed pins and pip --no-index.
