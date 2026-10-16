@@ -88,14 +88,16 @@ def test_forbidden_wheel_members_rejected(tmp_path, bad_name):
 def test_symlink_member_rejected(tmp_path):
     f, _ = wheel(tmp_path)
     raw = io.BytesIO()
-    with zipfile.ZipFile(f, "r") as original:
-        with zipfile.ZipFile(raw, "w") as rewritten:
-            for item in original.infolist():
-                rewritten.writestr(item, original.read(item))
-            link = zipfile.ZipInfo("naseri_markets/alias.py")
-            link.create_system = 3
-            link.external_attr = (stat.S_IFLNK | 0o777) << 16
-            rewritten.writestr(link, "../../../etc/passwd")
+    with (
+        zipfile.ZipFile(f, "r") as original,
+        zipfile.ZipFile(raw, "w") as rewritten,
+    ):
+        for item in original.infolist():
+            rewritten.writestr(item, original.read(item))
+        link = zipfile.ZipInfo("naseri_markets/alias.py")
+        link.create_system = 3
+        link.external_attr = (stat.S_IFLNK | 0o777) << 16
+        rewritten.writestr(link, "../../../etc/passwd")
     with pytest.raises(r35.R35Refused, match="UNSAFE_WHEEL_MEMBER"):
         r35._inspect_wheel(raw.getvalue())
 
