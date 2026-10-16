@@ -249,3 +249,30 @@ forward/backport reconciliation before any stacked merge plan.
 operator's Ubuntu device. The first failing R30 assertion is diagnosed, not
 claimed fixed by execution. Genuine Brooks R27 worker remains deferred and
 not accepted, not deleted/waived.
+
+## R32 offline kit PosixPath regression from real 2026-10-16 acceptance run
+
+In a disposable Ubuntu 24.04 / Python 3.12.3 Termux test execution of six
+selected R28–R33 infrastructure test modules (with `--noconftest`), the
+operator reported **66 passed / 1 failed** and `--maxfail=1` stopped at
+`test_r32_pinned_checkout_private_review_kit_roundtrip`:
+`R32_ABSOLUTE_ROOT_AND_PIN_REQUIRED`. This is a real result, not a synthetic
+claim. The cause is three erroneous strict type-identity checks of the form
+`type(value) is not Path` in the R32 review kit. On POSIX Python,
+`Path(...)` produces a concrete `PosixPath` and so legitimate arguments
+were mistakenly rejected before validation.
+
+The source correction is **only** to replace those three guards (for Git
+checkout, existing private parent, and new destination) with
+`not isinstance(value, Path)`. It retains checks of absolute paths, SHA-pinned
+clean checkout, exact source blobs, symlink and output confinement, directory
+ownership and mode `0700`, and exclusive `0600` report files. It does not
+change Brooks, risk/order policy or LIVE boundaries. An additional negative
+test ensures plain strings and symlinked private parents remain rejected,
+while a real `PosixPath` is admitted.
+
+**Acceptance status:** The new R32 source and negative test have been
+committed to the stacked **Draft PR #327**. The operator must pull the new
+PR head and re-run the R32 unit file, followed by all six R28–R33 files.
+The earlier `66 passed / 1 failed` result does not become a PASS
+until an actual subsequent run succeeds.
