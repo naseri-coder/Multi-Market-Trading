@@ -192,6 +192,10 @@ def _child_environment(root: Path | None = None) -> dict[str, str]:
     return env
 
 
+def _monotonic_now() -> float:
+    return time.monotonic()
+
+
 def _run(root: Path, name: str, args: tuple[str, ...], timeout: int) -> R34ToolFinding:
     """No shell expansion; hash output rather than disclose tokens/logs."""
     if type(args) is not tuple or not args or timeout <= 0:
@@ -208,14 +212,14 @@ def _run(root: Path, name: str, args: tuple[str, ...], timeout: int) -> R34ToolF
                 stdout=stream, stderr=subprocess.STDOUT, close_fds=True,
                 start_new_session=True,
             )
-            deadline = time.monotonic() + timeout
+            deadline = _monotonic_now() + timeout
             while True:
                 # Check on disk while the subprocess is still alive. This
                 # protects the disposable host from unlimited test output.
                 if os.fstat(stream.fileno()).st_size > MAX_CAPTURE_BYTES:
                     reason = "OUTPUT_LIMIT"
                     break
-                remaining = deadline - time.monotonic()
+                remaining = deadline - _monotonic_now()
                 if remaining <= 0:
                     reason = "TIMEOUT"
                     break
