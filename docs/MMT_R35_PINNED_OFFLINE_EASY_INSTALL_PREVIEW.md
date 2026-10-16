@@ -161,3 +161,32 @@ must still be treated as a *PRoot functional test only*, not OS
 host-isolation or production installation certification.
 R35 real non-root installation remains **PENDING** and the draft is
 unmerged.
+
+## 2026-10-16 real UID feasibility check PASS in Android PRoot
+
+The operator ran two actual identity checks inside their disposable
+Ubuntu 24.04 PRoot environment (no files or users created):
+
+- `runuser -u nobody -- /usr/bin/id` exited **0** and printed
+  `uid=65534(nobody) gid=65534(nogroup)`.
+- `setpriv --reuid=65534 --regid=65534 --clear-groups /usr/bin/id`
+  exited **0** with the same UID/GID.
+- Running `id` in the original shell still printed `uid=0(root)`.
+
+The PRoot process retained Android supplementary groups; neither
+result is independent OS host-isolation or a proof that filesystem
+ownership, pip/venv creation, network containment or all Linux
+privilege restrictions work as on a standard non-root host.
+
+**Proposed next functional acceptance (not yet executed):**
+have the `nobody` process create an unpredictable **0700** private
+temporary directory in `/tmp` and verify its actual owner/mode; copy
+**only** the already-hash-verified public 0.4.0rc1 Wheel and new R35
+installer Python source into that sandbox without opening `/root`
+permissions. Run the R35 opt-in `--install` using Python 3.12 as
+`nobody` and a new destination inside that owned private sandbox;
+assert SHA256, `pip --no-index --no-deps`, installed CLI deny flags,
+and private install report. This would count as
+`R35_PROOT_NONROOT_FUNCTIONAL_INSTALL`, never real independent host
+security or production release. On any failure, stop without changing
+the non-root refusal gate; do not delete incident artifacts silently.
