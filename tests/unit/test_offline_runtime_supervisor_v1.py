@@ -388,6 +388,112 @@ def test_unauthorized_admin_must_not_read_other_instances(tmp_path):
     control.close()
 
 
+
+def test_r28_real_stage16_fixture_single_route_and_restart_no_duplicate(tmp_path):
+    from naseri_markets.offline_panel_paper_integration_v1 import (
+        OfflinePanelPaperIntegration,
+    )
+    from naseri_markets.mmt_r28_unified_offline_runtime_v1 import (
+        R28UnifiedOfflineRuntime,
+    )
+    control, binding, inst = panel_fixture(tmp_path)
+    path = tmp_path / "runtime.sqlite"
+    host = OfflinePanelPaperIntegration(
+        control, actor_id=123, core=CORE, operator_ack=True,
+    )
+    with OfflineRuntimeSupervisor(path, panel=control, actor_id=123, enabled=True) as s:
+        first_id = scheduled(s, binding, inst)
+        runtime = R28UnifiedOfflineRuntime(
+            s, Stage16ReplayExecutor(host), operator_ack=True,
+        )
+        before = runtime.inspect()
+        assert before.queue_counts["PENDING"] == 1
+        assert before.atomic_cross_database_commit_proven is False
+        out = runtime.run_one(now=bars()[-1].close_at, operator_ack=True)
+        assert out["events"][0]["job_id"] == first_id
+        assert out["events"][0]["status"] == "DONE"
+        assert out["cross_ledger_effects_independently_attested"] is False
+        assert out["broker_order_sent"] is False
+        assert runtime.run_one(
+            now=bars()[-1].close_at, operator_ack=True,
+        )["events"] == []
+    with OfflineRuntimeSupervisor(path, panel=control, actor_id=123, enabled=True) as s:
+        runtime = R28UnifiedOfflineRuntime(
+            s, Stage16ReplayExecutor(host), operator_ack=True,
+        )
+        assert scheduled(s, binding, inst) == first_id
+        assert runtime.run_one(
+            now=bars()[-1].close_at, operator_ack=True,
+        )["events"] == []
+        assert runtime.inspect().done_without_exact_cross_ledger_proof == 1
+    control.close()
+
+
+def test_r28_unresolved_quarantine_blocks_every_new_dispatch(tmp_path):
+    from naseri_markets.offline_panel_paper_integration_v1 import (
+        OfflinePanelPaperIntegration,
+    )
+    from naseri_markets.mmt_r28_unified_offline_runtime_v1 import (
+        R28UnifiedOfflineRuntime, R28RuntimeRefused,
+    )
+    control, binding, inst = panel_fixture(tmp_path)
+    host = OfflinePanelPaperIntegration(
+        control, actor_id=123, core=CORE, operator_ack=True,
+    )
+    with OfflineRuntimeSupervisor(
+        tmp_path / "runtime.sqlite", panel=control, actor_id=123, enabled=True,
+    ) as s:
+        scheduled(s, binding, inst, source="ambiguous")
+
+        def failed_callback(_job):
+            raise OSError("ambiguous result")
+
+        assert s.run_due(failed_callback, now=bars()[-1].close_at,
+                         operator_ack=True)[0]["status"] == "QUARANTINED"
+        scheduled(s, binding, inst, source="future_distinct")
+        runtime = R28UnifiedOfflineRuntime(
+            s, Stage16ReplayExecutor(host), operator_ack=True,
+        )
+        assert runtime.inspect().state == "HALTED_MANUAL_RECONCILIATION"
+        with pytest.raises(R28RuntimeRefused, match="UNRESOLVED_SIDE_EFFECTS"):
+            runtime.run_one(now=bars()[-1].close_at, operator_ack=True)
+        assert s.health()["counts"]["PENDING"] == 1
+    control.close()
+
+
+def test_r28_nonproduction_and_snapshot_approvals_are_fail_closed(
+    tmp_path, monkeypatch,
+):
+    from naseri_markets.offline_panel_paper_integration_v1 import (
+        OfflinePanelPaperIntegration,
+    )
+    from naseri_markets.mmt_r28_unified_offline_runtime_v1 import (
+        R28UnifiedOfflineRuntime, R28RuntimeRefused,
+    )
+    control, _, _ = panel_fixture(tmp_path)
+    host = OfflinePanelPaperIntegration(
+        control, actor_id=123, core=CORE, operator_ack=True,
+    )
+    with OfflineRuntimeSupervisor(
+        tmp_path / "runtime.sqlite", panel=control, actor_id=123, enabled=True,
+    ) as s:
+        with pytest.raises(R28RuntimeRefused, match="NONPRODUCTION_ACK"):
+            R28UnifiedOfflineRuntime(s, Stage16ReplayExecutor(host))
+        runtime = R28UnifiedOfflineRuntime(
+            s, Stage16ReplayExecutor(host), operator_ack=True,
+        )
+        with pytest.raises(R28RuntimeRefused, match="STOPPED_FOUR_SNAPSHOT"):
+            runtime.inspect_stopped_snapshots(
+                object(), all_workers_stopped=True, operator_ack=True,
+            )
+        with pytest.raises(R28RuntimeRefused, match="TIMEZONE_AWARE"):
+            runtime.run_one(now=datetime(2026, 10, 16), operator_ack=True)
+        monkeypatch.setenv("MMT_PRODUCTION", "1")
+        with pytest.raises(R28RuntimeRefused, match="NONPRODUCTION_ACK"):
+            runtime.run_one(now=T0, operator_ack=True)
+    control.close()
+
+
 def test_background_polling_or_network_never_started(tmp_path):
     control,binding,inst=panel_fixture(tmp_path)
     with OfflineRuntimeSupervisor(tmp_path/'runtime.sqlite',panel=control,
