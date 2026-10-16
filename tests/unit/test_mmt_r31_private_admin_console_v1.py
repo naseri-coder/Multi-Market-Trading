@@ -239,7 +239,7 @@ def test_r31_telegram_private_only_and_command_cas(center):
     assert "ALPHAUSD" in u.effective_message.replies[0]
     group = update("/mmt31_view demo_one", chat_id=-123, chat_type="group")
     asyncio.run(panel.command(group, None))
-    assert "غیرمجاز" in group.effective_message.replies[0]
+    assert group.effective_message.replies == []  # no group/channel response
     attacker = update("/mmt31_view demo_one", actor=1002)
     asyncio.run(panel.command(attacker, None))
     assert "غیرمجاز" in attacker.effective_message.replies[0]
