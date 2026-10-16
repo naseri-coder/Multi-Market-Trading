@@ -53,7 +53,9 @@ _STATIC_SOURCES = (
 )
 _SHA40 = re.compile(r"[0-9a-f]{40}\Z")
 _SHA64 = re.compile(r"[0-9a-f]{64}\Z")
-_TERMINAL = frozenset({"PASS", "FAIL", "TIMEOUT", "UNAVAILABLE", "NOT_RUN"})
+_TERMINAL = frozenset({
+    "PASS", "FAIL", "TIMEOUT", "OUTPUT_LIMIT", "UNAVAILABLE", "NOT_RUN",
+})
 
 
 class R34AcceptanceRefused(ValueError):
