@@ -349,3 +349,64 @@ def test_r34_runner_refuses_unsupported_python_versions():
     with pytest.raises(a34.R34AcceptanceRefused, match="PYTHON_312_REQUIRED"):
         runner._project_python_preflight(True, version=(3, 11))
 
+
+
+def test_r34_timeout_kills_own_process_group(monkeypatch, tmp_path):
+    import subprocess
+
+    launches = []
+    killed = []
+
+    class TimedOutProcess:
+        pid = 432101
+
+        def __init__(self, args, **kwargs):
+            launches.append((args, kwargs))
+            self.count = 0
+
+        def wait(self, timeout=None):
+            self.count += 1
+            if self.count == 1:
+                raise subprocess.TimeoutExpired("isolated-test", timeout)
+            return -9
+
+    monkeypatch.setattr(runner.subprocess, "Popen", TimedOutProcess)
+    monkeypatch.setattr(
+        runner.os, "killpg", lambda pid, sig: killed.append((pid, sig)),
+    )
+    finding = runner._run(
+        tmp_path, "R28", ("python", "-m", "pytest", "-q"),
+        2,
+    )
+    assert finding.status == "TIMEOUT"
+    assert finding.returncode is None
+    assert launches[0][1]["start_new_session"] is True
+    assert launches[0][1]["stdin"] == subprocess.DEVNULL
+    assert killed == [(432101, runner.signal.SIGKILL)]
+
+
+def test_r34_no_implicit_subprocess_or_network_without_opt_in(monkeypatch):
+    calls = []
+    monkeypatch.setattr(runner, "_head", lambda *_: None)
+    monkeypatch.setattr(
+        runner, "_syntax",
+        lambda _: a34.R34ToolFinding(
+            "STATIC_SYNTAX", "PASS", 0, digest(),
+        ),
+    )
+    monkeypatch.setattr(
+        runner, "_git",
+        lambda _, *args: (
+            "a" * 40 if args == ("rev-parse", "HEAD") else ""
+        ),
+    )
+    monkeypatch.setattr(
+        runner.subprocess, "Popen",
+        lambda *args, **kwargs: calls.append("EXECUTED"),
+    )
+    evidence = runner.collect_r34_offline_evidence(
+        root=Path("/disposable/review"), expected_head="a" * 40,
+        operator_ack=True,
+    )
+    assert evidence.local_test_runner_executed is False
+    assert calls == []
