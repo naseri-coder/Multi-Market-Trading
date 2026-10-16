@@ -366,10 +366,12 @@ def test_r34_timeout_kills_own_process_group(monkeypatch, tmp_path):
 
         def wait(self, timeout=None):
             self.count += 1
-            if self.count == 1:
+            if timeout is not None:
                 raise subprocess.TimeoutExpired("isolated-test", timeout)
             return -9
 
+    clock = iter((0.0, 1.0, 3.0))
+    monkeypatch.setattr(runner.time, "monotonic", lambda: next(clock))
     monkeypatch.setattr(runner.subprocess, "Popen", TimedOutProcess)
     monkeypatch.setattr(
         runner.os, "killpg", lambda pid, sig: killed.append((pid, sig)),
@@ -431,3 +433,41 @@ def test_r34_current_stacked_python_inventory_is_complete_and_unique():
         "scripts/mmt_r33_manual_live_denial_review_v1.py",
     ):
         assert expected in sources
+
+
+def test_r34_excessive_subprocess_output_is_denied_and_group_killed(
+    monkeypatch, tmp_path,
+):
+    killed = []
+
+    class LogFloodingProcess:
+        pid = 431122
+
+        def __init__(self, args, **kwargs):
+            output = kwargs["stdout"]
+            output.write(b"x" * (runner.MAX_CAPTURE_BYTES + 1))
+            output.flush()
+            self.is_reaped = False
+
+        def wait(self, timeout=None):
+            self.is_reaped = True
+            return -9
+
+    monkeypatch.setattr(runner.subprocess, "Popen", LogFloodingProcess)
+    monkeypatch.setattr(
+        runner.os, "killpg", lambda pid, sig: killed.append((pid, sig)),
+    )
+    finding = runner._run(
+        tmp_path, "R30", ("python", "-m", "pytest", "-q"),
+        timeout=2,
+    )
+    assert finding.status == "OUTPUT_LIMIT"
+    assert finding.returncode is None
+    assert killed == [(431122, runner.signal.SIGKILL)]
+
+
+def test_r34_output_limit_can_never_count_as_success():
+    item = a34.R34ToolFinding("R31", "OUTPUT_LIMIT", None, None)
+    assert item.status == "OUTPUT_LIMIT"
+    with pytest.raises(a34.R34AcceptanceRefused, match="UNTRUSTED_TEST_RESULT"):
+        a34.R34ToolFinding("R31", "MAYBE_PASS", 0, digest())
