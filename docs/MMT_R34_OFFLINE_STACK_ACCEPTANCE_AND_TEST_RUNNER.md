@@ -581,3 +581,65 @@ unchanged count and unchanged journal digest. Re-disable and verify
 that both the original journal and the initial restored reference
 are unchanged. Keep all actual broker, Telegram, connected PAPER and
 LIVE permissions false. No release/merge approval is implied.
+
+## 2026-10-16 operator-confirmed restored PAPER dedup after CAS reenable
+
+The operator ran a genuinely installed `naseri-paper-demo` fixture inside the
+isolated Termux/Ubuntu 24.04 Python 3.12.3 venv. The test created **a third
+new disposable private copy** of the previously restored synthetic SQLite
+PAPER database using SQLite's online backup API; the source and reference
+were separately inspected before and after.
+
+It explicitly verified the restored toy core was disabled at revision 3,
+refused replay before operator reenable, reenabled with the existing trusted
+descriptor SHA and compare-and-swap revision 3→4, replayed the same synthetic
+quote to get `DUPLICATE` with `stored=0`, `duplicate=1`, and exactly one
+persisted signal, and CAS-disabled 4→5. Both original and initial recovery
+reference remained unchanged at their inspected application/journal fields;
+all report permissions for broker order, Telegram delivery and release
+remained false.
+
+The actual operator report was:
+
+```json
+{
+  "verdict": "PAPER_RECOVERY_DEDUP_PASS",
+  "restored_signals": 1,
+  "duplicate_prevented": true,
+  "original_preserved": true,
+  "recovery_reference_preserved": true,
+  "final_enabled": false,
+  "final_revision": 5,
+  "journal_sha256": "015292069633e98793514df8af4148eb31dc132bb6b6e72415a9cfad30f89572",
+  "test_directory": "/root/mmt-r34-wheel.7iTGsSLb/paper-dedup-2fbb0065",
+  "live_authorized": false
+}
+```
+
+This narrows the **toy-only PAPER backup/recovery/idempotence gate**, and
+does not prove multi-ledger crash recovery, untrusted strategy isolation,
+production installation, actual connected market data, R27 Brooks worker
+acceptance, signal publication or LIVE trading readiness.
+
+### Next scope: R35 isolated offline easy-install, distinct from legacy
+
+Source inspection of `scripts/install_platform_dev.sh` on the tested PR
+shows it is **NOT** an entirely offline, mobile-friendly easy installer:
+it requires a non-root user, prepares and builds a wheel from the source,
+then performs `pip install "$WHEEL[telegram-admin]"`, which can resolve
+dependencies from network indexes. In contrast, the operator has
+successfully proven an independently hash-pinned local wheel install using
+`pip --no-index --no-deps`, an inert installed CLI and the toy PAPER
+journey. Do not quietly redefine the existing old manager or weaken the
+existing non-root gate. A separately reviewed next-phase installer should
+require a hash-pinned local wheel and explicit nonproduction consent,
+create a **new private venv/state directory outside repository and legacy
+installation**, install with network package access disabled, and run
+only the inert `naseri-markets --check` and synthetic preview smoke.
+Reject unattended plugin, worker/poller, broker/Telegram, production
+database, in-place upgrade and automatic activation paths. It should
+be reviewed and tested separately before being represented as ready.
+
+**Disposition:** `R34_TOY_RECOVERY_DEDUP_PASS; R35_OFFLINE_INSTALLER_NOT_YET_ACCEPTED`;
+the Draft PR remains unmerged and all release/connected/LIVE gates remain
+closed.
