@@ -69,7 +69,7 @@ def _gate(operator_ack: bool) -> None:
 
 
 def _secure_parent(path: Path) -> Path:
-    if (type(path) is not Path or not path.is_absolute()
+    if (not isinstance(path, Path) or not path.is_absolute()
             or path.is_symlink() or not path.is_dir()
             or path.resolve(strict=True) != path):
         raise R32KitRefused("R32_EXISTING_PRIVATE_PARENT_REQUIRED")
@@ -96,7 +96,7 @@ def _git(root: Path, *args: str) -> str:
 
 
 def _source(root: Path, expected_head: str) -> None:
-    if (type(root) is not Path or not root.is_absolute()
+    if (not isinstance(root, Path) or not root.is_absolute()
             or root.is_symlink() or not root.is_dir()
             or root.resolve(strict=True) != root
             or type(expected_head) is not str
@@ -164,7 +164,7 @@ def prepare_r32_review_kit(
     """
     _gate(operator_ack)
     _source(source_root, expected_head)
-    if type(destination) is not Path or not destination.is_absolute():
+    if not isinstance(destination, Path) or not destination.is_absolute():
         raise R32KitRefused("R32_ABSOLUTE_NEW_DESTINATION_REQUIRED")
     if destination.is_relative_to(source_root):
         raise R32KitRefused("R32_NEVER_WRITE_WITHIN_CHECKOUT")
