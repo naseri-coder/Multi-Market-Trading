@@ -43,3 +43,35 @@ If the source was captured across more than one batch, supply --batch-dir once f
 6. Stage R30–R33 remains unopened: no order routing, connected PAPER, Telegram sending, production installation or LIVE authorization.
 
 **Provisional R29 status:** MMT_R29_MANUAL_SHADOW_IMPLEMENTED_NOT_OOS_ACCEPTED.
+
+## Offline multi-day review (R29 follow-through)
+
+R29 now also includes `naseri_markets/mmt_r29_shadow_session_audit_v1.py` and
+`scripts/mmt_r29_manual_shadow_audit.py`. The auditor replays the complete
+original R24 source archive before reading any checkpoints, checks each private,
+canonical and SHA-bound decision in **unbroken order 60, 61, ...**, compares each
+decision cutoff and exact captured original prefix hash with the admitted tape,
+and counts LONG/SHORT/NO_SIGNAL decisions per UTC day. Missing, duplicate,
+out-of-order, modified, unprivileged and self-rehashed contradictory receipts
+are fail-closed. An empty session is reported as no future decisions, not a
+successful forward simulation. This is a read-only research artifact and does
+not re-run the worker or prove third-party data authenticity.
+
+Example (once real future batches and manually saved checkpoints exist):
+
+    export MMT_NONPRODUCTION=1
+    python -m scripts.mmt_r29_manual_shadow_audit \
+      --witness-dir "$HOME/mmt-witness/original" \
+      --batch-dir "$HOME/mmt-original-batch01" \
+      --receipt "$HOME/mmt-r29-shadow-receipts/r29-shadow-bar-0060.json" \
+      --ack-nonproduction-readonly
+
+For a multi-batch or multi-decision session, repeat both `--batch-dir` and
+`--receipt` in complete chronological order. Incomplete sample windows
+do NOT qualify as complete forward OOS; any calculated decision frequencies
+are descriptive, not net profit, Sharpe, edge or an actual account performance
+claim. Do not infer order fill or funding/fee realism.
+
+**Acceptance remains pending** until the full checkout unit/lint suite, actual
+frozen worker, original future-source custody and the prospectively scheduled
+sample have been verified independently on the final commit. R30 has not begun.
