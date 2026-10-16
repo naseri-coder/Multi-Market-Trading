@@ -79,16 +79,59 @@ _REQUIRED = {
 # or any GitHub test count. Only a separate, authorized operational review can
 # change these findings in a future version of the product.
 _OPEN_BLOCKERS = (
-    ("P0_SINGLE_INTEGRATED_RUNTIME", "No authenticated persistent Stage12-to-Stage7/8/9/10 dispatch and durable handoff exists."),
-    ("P0_CLEAN_INSTALLED_OPERATOR_JOURNEY", "A clean installed wheel end-to-end operator journey is not yet proven for the full new product."),
-    ("P0_RELEASE_IDENTITY_AND_AUTHORITY", "Root legacy runtime and 0.4.0rc1 preview remain separate; one effective release authority and migration plan are not approved."),
-    ("P0_ACCOUNT_RECONCILIATION", "Trusted real account/equity, exposure, remote order state and rollback fencing are not demonstrated."),
-    ("P0_PUBLIC_SIGNAL_DELIVERY", "Actual Telegram channel attestation, delivery/edit receipts, UNKNOWN reconciliation and rate limits are unverified."),
-    ("P0_AUTHENTIC_MULTI_MARKET_FEEDS", "Authenticated provider provenance, instrument/session quality and regional/account eligibility are unverified."),
-    ("P0_EXTERNAL_CORE_CONTAINMENT", "No independent hostile-plugin test of rootless Docker + gVisor on a disposable host."),
-    ("P0_SECRETS_OPERATOR_AUTH", "Operator identity, secret custody, revocation and rollout control are not independently audited."),
-    ("P0_PRODUCTION_RECOVERY", "Backup/restore, multi-worker crash soak, upgrade/rollback and incident rehearsal are not accepted."),
-    ("P1_UNBIASED_PERFORMANCE_EVIDENCE", "No independent genuine-data holdout validates strategy returns; no profitability claim is permitted."),
+    (
+        "P0_SINGLE_INTEGRATED_RUNTIME",
+        "Stage20 provides a synthetic two-binding PAPER pilot, but an "
+        "authenticated, operator-configurable Stage12-to-7/8/9/10 runtime "
+        "with a single effective authority and durable failure recovery "
+        "remains unverified.",
+    ),
+    (
+        "P0_CLEAN_INSTALLED_OPERATOR_JOURNEY",
+        "Stage15 public-toy and Stage10 two-binding synthetic installed PAPER "
+        "journeys do not prove the full authenticated, operator-configurable "
+        "multi-market product journey.",
+    ),
+    (
+        "P0_RELEASE_IDENTITY_AND_AUTHORITY",
+        "Root legacy runtime and 0.4.0rc1 preview remain separate; one "
+        "effective release authority and migration plan are not approved."
+    ),
+    (
+        "P0_ACCOUNT_RECONCILIATION",
+        "Trusted real account/equity, exposure, remote order state and rollback "
+        "fencing are not demonstrated."
+    ),
+    (
+        "P0_PUBLIC_SIGNAL_DELIVERY",
+        "Actual Telegram channel attestation, delivery/edit receipts, UNKNOWN "
+        "reconciliation and rate limits are unverified."
+    ),
+    (
+        "P0_AUTHENTIC_MULTI_MARKET_FEEDS",
+        "Authenticated provider provenance, instrument/session quality and "
+        "regional/account eligibility are unverified."
+    ),
+    (
+        "P0_EXTERNAL_CORE_CONTAINMENT",
+        "No independent hostile-plugin test of rootless Docker + gVisor on a "
+        "disposable host."
+    ),
+    (
+        "P0_SECRETS_OPERATOR_AUTH",
+        "Operator identity, secret custody, revocation and rollout control are "
+        "not independently audited."
+    ),
+    (
+        "P0_PRODUCTION_RECOVERY",
+        "Backup/restore, multi-worker crash soak, upgrade/rollback and incident "
+        "rehearsal are not accepted."
+    ),
+    (
+        "P1_UNBIASED_PERFORMANCE_EVIDENCE",
+        "No independent genuine-data holdout validates strategy returns; no "
+        "profitability claim is permitted."
+    ),
 )
 
 

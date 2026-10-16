@@ -141,3 +141,21 @@ def test_python_source_size_limit_refuses(tmp_path):
     (repo / _REQUIRED["market_data"]).write_bytes(b"x" * 256_001)
     with pytest.raises(ReadinessRefused, match="OVERSIZED"):
         evaluate_source_readiness(repo)
+
+def test_post_fix05_readiness_distinguishes_installed_demos_from_product(tmp_path):
+    """A source preflight must not mistake limited installed PAPER for LIVE."""
+    report = evaluate_source_readiness(fake_repo(tmp_path))
+    findings = {item.code: item for item in report.release_blockers}
+    integrated = findings["P0_SINGLE_INTEGRATED_RUNTIME"]
+    installed = findings["P0_CLEAN_INSTALLED_OPERATOR_JOURNEY"]
+    assert integrated.status == installed.status == "UNVERIFIED_BLOCKER"
+    assert "synthetic two-binding PAPER pilot" in integrated.evidence
+    assert "operator-configurable" in integrated.evidence
+    assert "public-toy" in installed.evidence
+    assert "two-binding synthetic installed PAPER" in installed.evidence
+    assert report.release_verdict == "PRODUCT_NOT_READY_FOR_PUBLIC_OR_LIVE_RELEASE"
+    assert not report.public_signal_authorized
+    assert not report.telegram_publication_authorized
+    assert not report.live_orders_authorized
+    assert not report.production_deployment_authorized
+    assert not report.untrusted_plugins_authorized
