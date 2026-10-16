@@ -298,3 +298,111 @@ def test_target_mismatch_and_invalid_fraction_fail_closed(tmp_path):
         with pytest.raises(PaperLifecycleRefused,match="INVALID_TARGET_FRACTIONS"):
             s.register_plan(CORE.manifest,event,result,decision_id=result.decisions[0].decision_id,
                             order_id=oid,targets=(TargetStep(D(113),D("0.5")),),operator_ack=True)
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "UPDATE paper_stage9_exits SET net='999' WHERE order_id=?",
+        "UPDATE paper_stage9_exits SET gross='999',net='998.435' WHERE order_id=?",
+        "UPDATE paper_stage9_exits SET modeled_cost='-1',net='8' WHERE order_id=?",
+        "UPDATE paper_stage9_exits SET quantity='NaN' WHERE order_id=?",
+        "UPDATE paper_stage9_exits SET price='150',gross='44',net='43.25' WHERE order_id=?",
+    ],
+)
+def test_fix04_pnl_forgery_refused_on_performance_and_restart(tmp_path, sql):
+    path = tmp_path / "fix04-pnl-corrupt.sqlite"
+    service, order_id, _, _ = prepared(path)
+    with service as s:
+        fill(s, order_id)
+        bar = candle(
+            BASE + timedelta(minutes=45),
+            open="107", high="115", low="104", close="113",
+        )
+        assert s.step_closed_bar(order_id, bar, operator_ack=True)["status"] == "CLOSED"
+        assert D(s.performance(order_id)["net"]) == D("6.435")
+        s._db.execute(sql, (order_id,))
+        with pytest.raises(PaperLifecycleRefused, match="PAPER_EXIT_"):
+            s.performance(order_id)
+
+    with OfflinePaperPositionLifecycle(path) as resumed:
+        with pytest.raises(PaperLifecycleRefused, match="PAPER_EXIT_"):
+            resumed.reconcile_offline(operator_ack=True)
+        assert resumed.risk_snapshot("portfolio")["active_orders"] == 0
+
+
+def test_fix04_multitarget_reconciliation_preserves_verified_pnl(tmp_path):
+    path = tmp_path / "fix04-multi-target.sqlite"
+    s, oid, _, _ = prepared(
+        path, targets=(D(110), D(113)), fractions=(D("0.4"), D("0.6")),
+    )
+    with s:
+        fill(s, oid)
+        s.step_closed_bar(
+            oid,
+            candle(BASE + timedelta(minutes=45), open="107", high="111",
+                   low="104", close="109"),
+            operator_ack=True,
+        )
+        first = s.performance(oid)
+        assert len(first["exits"]) == 1
+        assert D(first["net"]) == sum((D(e["net"]) for e in first["exits"]), D(0))
+    with OfflinePaperPositionLifecycle(path) as resumed:
+        resumed.reconcile_offline(operator_ack=True)
+        resumed.step_closed_bar(
+            oid,
+            candle(BASE + timedelta(minutes=60), open="109", high="114",
+                   low="108", close="113"),
+            operator_ack=True,
+        )
+        second = resumed.performance(oid)
+        assert second["status"] == "CLOSED"
+        assert len(second["exits"]) == 2
+        assert D(second["net"]) == sum((D(e["net"]) for e in second["exits"]), D(0))
+        assert resumed.risk_snapshot("portfolio")["active_orders"] == 0
+
+def test_fix04_exit_receipt_tampering_fails_closed(tmp_path):
+    import json
+
+    path = tmp_path / "fix04-bar-receipt.sqlite"
+    s, oid, _, _ = prepared(path)
+    with s:
+        fill(s, oid)
+        bar = candle(
+            BASE + timedelta(minutes=45),
+            open="107", high="115", low="104", close="113",
+        )
+        s.step_closed_bar(oid, bar, operator_ack=True)
+        row = s._db.execute(
+            "SELECT bar_close,receipt_json FROM paper_stage9_bars WHERE order_id=?",
+            (oid,),
+        ).fetchone()
+        receipt = json.loads(row["receipt_json"])
+        receipt["exits"][0]["net"] = "999"
+        s._db.execute(
+            "UPDATE paper_stage9_bars SET receipt_json=? WHERE "
+            "order_id=? AND bar_close=?",
+            (json.dumps(receipt), oid, row["bar_close"]),
+        )
+        with pytest.raises(PaperLifecycleRefused, match="PAPER_EXIT_RECEIPT_DRIFT"):
+            s.performance(oid)
+    with OfflinePaperPositionLifecycle(path) as reopened:
+        with pytest.raises(PaperLifecycleRefused, match="PAPER_EXIT_RECEIPT_DRIFT"):
+            reopened.reconcile_offline(operator_ack=True)
+
+
+def test_fix04_missing_exit_cannot_be_reconciled_after_restart(tmp_path):
+    path = tmp_path / "fix04-missing-exit.sqlite"
+    s, oid, _, _ = prepared(path)
+    with s:
+        fill(s, oid)
+        bar = candle(
+            BASE + timedelta(minutes=45),
+            open="107", high="115", low="104", close="113",
+        )
+        s.step_closed_bar(oid, bar, operator_ack=True)
+        s._db.execute("DELETE FROM paper_stage9_exits WHERE order_id=?", (oid,))
+        with pytest.raises(PaperLifecycleRefused, match="PAPER_EXIT_QUANTITY_DRIFT"):
+            s.performance(oid)
+    with OfflinePaperPositionLifecycle(path) as reopened:
+        with pytest.raises(PaperLifecycleRefused, match="PAPER_EXIT_QUANTITY_DRIFT"):
+            reopened.reconcile_offline(operator_ack=True)
