@@ -13,7 +13,7 @@ import os
 import re
 import stat
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from .brooks_forward_source_custody_stage21g_v1 import (
@@ -172,7 +172,9 @@ def stage24_replay_all_previous_batches(
         if type(count) is not int or not 1 <= count <= 96:
             raise Stage24CustodyRefused("R24_PRIOR_SOURCE_CANDLE_COUNT_NOT_VALID")
         next_close = expected_open + count * _STUDY_BAR
-        if next_close > end or recorded.get("stage21c_receipt", {}).get("sequence") != index + 1:
+        inner = recorded.get("stage21c_receipt")
+        if (next_close > end or type(inner) is not dict
+                or inner.get("sequence") != index + 1):
             raise Stage24CustodyRefused("R24_PRIOR_SOURCE_SEQUENCE_OR_WINDOW_DRIFT")
         if (attempt.get("requested_closed_bars") != count
                 or attempt.get("canonical_plan_sha256") != _CANONICAL_PLAN_SHA
@@ -184,12 +186,20 @@ def stage24_replay_all_previous_batches(
             raise Stage24CustodyRefused("R24_ATTEMPT_PARAMETERS_OR_PROTOCOL_DRIFT")
         if index:
             prior_link = _strict_json(files[_CONTINUATION_NAME])
-            if (prior_link.get("protocol") != "MMT_R24_PREVIOUS_ACCEPTED_BATCH_LINK_V1"
-                    or prior_link.get("previous_batch_digest") != previous_digest
-                    or prior_link.get("previous_outer_receipt_sha256") != last_outer_sha
-                    or prior_link.get("previous_inner_receipt_sha256") != _digest(previous_inner)
-                    or prior_link.get("previous_last_close_utc") != expected_open.isoformat()):
+            expected_link = _link(Stage24ReplayState(
+                next_open_utc=expected_open,
+                previous_inner_receipt_bytes=previous_inner,
+                last_outer_receipt_sha256=last_outer_sha,
+                previous_batch_digest=previous_digest,
+                accepted_batches=index,
+            ))
+            if prior_link != expected_link:
                 raise Stage24CustodyRefused("R24_LOCAL_SOURCE_PREVIOUS_LINK_MISMATCH")
+            if (attempt.get("previous_batch_digest") != previous_digest
+                    or attempt.get("previous_inner_receipt_sha256") != _digest(previous_inner)
+                    or attempt.get("expected_first_open_utc") != expected_open.isoformat()
+                    or attempt.get("expected_last_closed_utc") != next_close.isoformat()):
+                raise Stage24CustodyRefused("R24_ATTEMPT_PREVIOUS_CHAIN_DIGEST_DRIFT")
         if (trace.get("original_body_sha256") != _digest(files["original-venue-response.json"])
                 or trace.get("post_admission_receipt_sha256") != recorded.get("receipt_sha256")
                 or not _sha_string(trace.get("client_observed_tls_peer_certificate_sha256"))):
