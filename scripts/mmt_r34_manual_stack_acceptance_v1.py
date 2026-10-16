@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+from importlib import metadata
 import hashlib
 import os
 import signal
@@ -131,6 +132,24 @@ def _project_python_preflight(run_pytest: bool, version: tuple[int, int] | None 
     current = version if version is not None else sys.version_info[:2]
     if run_pytest and current != (3, 12):
         raise R34AcceptanceRefused("R34_PROJECT_PYTHON_312_REQUIRED")
+
+
+def _project_toolchain_preflight(
+    *, pytest_needed: bool, ruff_needed: bool,
+) -> None:
+    """Check installed distributions WITHOUT importing test/plugin code."""
+    required = {}
+    if pytest_needed:
+        required.update({"pytest": "9.1.1", "pytest-asyncio": "1.4.0"})
+    if ruff_needed:
+        required["ruff"] = "0.16.9"
+    for package, expected_version in required.items():
+        try:
+            actual = metadata.version(package)
+        except metadata.PackageNotFoundError as exc:
+            raise R34AcceptanceRefused("R34_REQUIRED_TEST_TOOL_UNAVAILABLE") from exc
+        if actual != expected_version:
+            raise R34AcceptanceRefused("R34_PINNED_TEST_TOOL_VERSION_MISMATCH")
 
 
 def _child_environment(root: Path | None = None) -> dict[str, str]:
@@ -267,6 +286,10 @@ def collect_r34_offline_evidence(
     if pre_syntax.status != "PASS":
         raise R34AcceptanceRefused("R34_SOURCE_STATIC_PREFLIGHT_FAILED")
     _project_python_preflight(run_stage_tests or run_full_suite)
+    _project_toolchain_preflight(
+        pytest_needed=run_stage_tests or run_full_suite,
+        ruff_needed=run_ruff,
+    )
     results = []
     for stage, test_path in _STAGE_UNIT_TARGETS.items():
         results.append(
