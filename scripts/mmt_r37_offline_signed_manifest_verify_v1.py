@@ -100,7 +100,7 @@ def verify(*, manifest: Path, signature: Path, wheel: Path,
            trusted_public_key: Path, trusted_public_key_spki_sha256: str,
            expected_source_commit: str) -> dict:
     if (os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"
+            or "MMT_PRODUCTION" in os.environ
             or sys.version_info[:2] != (3, 12)):
         raise R37Refused("R37_NONPRODUCTION_PY312_REQUIRED")
     if (type(trusted_public_key_spki_sha256) is not str
