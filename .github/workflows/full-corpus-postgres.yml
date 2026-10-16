@@ -48,6 +48,16 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+      - name: Set up Node.js 22 for four-language fixture tests
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+      - name: Install pinned TypeScript for four-language worker tests
+        run: |
+          set -Eeuo pipefail
+          npm install --global --ignore-scripts --no-audit --no-fund typescript@5.9.3
+          echo "NODE_PATH=$(npm root -g)" >> "$GITHUB_ENV"
+          NODE_PATH="$(npm root -g)" node -e 'if (require("typescript").version !== "5.9.3") process.exit(1)'
 
       - name: Materialize isolated source
         run: |
