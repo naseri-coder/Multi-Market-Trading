@@ -11,7 +11,7 @@ import json
 import os
 import stat
 import zipfile
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -104,7 +104,7 @@ def test_exact_expected_synthetic_member_set_pins_and_prepare(fake_bundle, tmp_p
     assert all((dest/k).read_bytes() == originals[k] for k in r23._REQUIRED_FILES)
     assert stat.S_IMODE((dest/"exact-frozen-brooks-plan.json").stat().st_mode) == 0o600
     manifest = json.loads((dest / "R23-original-artifact-manifest.json").read_bytes())
-    assert manifest["original_source_zip_sha256"] if "original_source_zip_sha256" in manifest else True
+    assert manifest["source_original_zip_sha256"] == receipt["source_original_zip_sha256"]
     assert manifest["production_modified"] is False
     with pytest.raises(r23.R23ReadinessRefused, match="FRESH_PRIVATE"):
         r23.stage23_prepare_witness_from_original_zip(
