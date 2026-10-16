@@ -12,6 +12,21 @@ dependencies = []
 
 [project.optional-dependencies]
 telegram-admin = ["python-telegram-bot==22.8"]
+# Optional *frozen legacy runtime* compatibility closure. The historical
+# Brooks V5 import graph traverses old DB, config, and Telegram modules even
+# for a strictly offline evaluation. Pin to root 0.3.2 dependencies without
+# bundling its Python source into the new platform wheel. Base remains empty.
+brooks-offline = [
+    "alembic==1.20.0",
+    "asyncpg==0.31.0",
+    "httpx==0.28.1",
+    "matplotlib==3.11.2",
+    "numpy==2.5.3",
+    "pydantic-settings==2.15.0",
+    "python-telegram-bot==22.8",
+    "SQLAlchemy[asyncio]==2.0.54",
+    "tzdata==2026.4",
+]
 
 [project.scripts]
 naseri-markets = "naseri_markets.platform_cli:main"
