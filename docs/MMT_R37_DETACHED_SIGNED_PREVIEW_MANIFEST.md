@@ -12,7 +12,7 @@ signalling, activating Telegram/brokers or LIVE trading.
   sorted keys, compact separators, exactly one terminal newline),
   a separately stored **raw 64-byte Ed25519 detached signature**, and
   cryptographic domain separator:
-  `b"MMT-R37-OFFLINE-PREVIEW-MANIFEST-V1\\n"`.
+  `b"MMT-R37-OFFLINE-PREVIEW-MANIFEST-V1\n"`.
 - Requires a trusted Ed25519 **public** PEM key and its independent
   operator-approved SHA256 fingerprint of DER SubjectPublicKeyInfo
   (`--trusted-public-key-spki-sha256`). This fingerprint is NEVER accepted
@@ -43,7 +43,7 @@ Git↔Wheel source and RECORD audit as a separate required check.
 
 The actual manifest MUST be generated with
 `json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=True)`
-then a single `b"\\n"` appended. The signature is over
+then a single `b"\n"` appended. The signature is over
 `DOMAIN + manifest_bytes`. The fingerprint is SHA256 of the
 **DER SPKI** representation of the trusted public key, not of its PEM
 text. The signer must use an **independent, protected MMT release key**
@@ -93,3 +93,46 @@ in this Draft. **Real-publisher verification remains pending.**
   `install_authorized=false` on successful R37 verification.
 - Do not merge Drafts, connect PAPER, activate broker or Telegram,
   modify the legacy crypto-price-action runtime or expose NYFR.
+
+## 2026-10-16 security hardening and assistant-local regression report
+
+Follow-up review identified a production-environment bypass:
+`MMT_PRODUCTION=0`, `true`, `YES`, or even an empty string
+could coexist with `MMT_NONPRODUCTION=1` and pass the initial
+prototype's narrow `MMT_PRODUCTION == "1"` test.
+
+**Remediated:** R37 now refuses **any presence** of the
+`MMT_PRODUCTION` environment variable, not merely the value `1`.
+This is deliberately stricter than historical preview tools and
+cannot enable any release privilege.
+
+Extended the dedicated synthetic unit suite from **13 to 23 cases**:
+the original signature, trusted-key, signed source pin, Wheel hash,
+canonical JSON, duplicate-key, symlink and no-release checks plus
+four explicit production-flag values, missing nonproduction opt-in,
+signed boolean epoch, Wheel symlink, multi-hardlink manifest, actual
+CLI valid-signature deny-only output and actual CLI forged-signature
+refusal. Test-only Ed25519 key material is ephemeral, held only in
+the assistant's disposable sandbox, and **never copied to GitHub**.
+
+The assistant's separate local lab ran **23/23 PASS** with
+Python **3.13.5**, `pytest 9.0.2` and
+`cryptography 46.0.4`, including an actual CLI success/failure
+cycle and no public/LIVE grant. This is **synthetic functional
+evidence only**: the tests monkeypatch `sys.version_info` to
+exercise the Python 3.12 gate. Python 3.12-specific execution and
+Ruff have **not** been run in this lab; no actual release publisher
+key, approved SPKI fingerprint, real signed public Wheel or
+key-custody review was available. No connected host/Telegram/broker,
+Termux operator action or release merge occurred.
+
+Disposition:
+`R37_DRAFT_SYNTHETIC_VERIFIER_TESTS_23_PASS`
+with `R37_REAL_PUBLISHER_SIGNATURE_PENDING` and
+`PRODUCT_NOT_READY_FOR_PUBLIC_OR_LIVE_RELEASE`.
+Before counting R37 as fully operationally accepted, acquire
+independent custody/rotation/revocation authorization for a
+dedicated publisher key, verify actual signed public Wheel on an
+approved Python 3.12 host and perform separate R36 Git/RECORD checks.
+**Do not** reuse a Telmivo signing key, commit a private signing
+key, disable the absence-of-trust-pin checks, or merge the Draft.
