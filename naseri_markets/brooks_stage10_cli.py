@@ -19,6 +19,7 @@ from .brooks_stage10_paper_bridge import (
     BrooksStage10Refused,
     panel_stage10_overview,
 )
+from .brooks_stage10_recovery_v1 import reconcile_stage10_paper
 
 
 def _replay_and_link(args: argparse.Namespace) -> dict:
@@ -67,6 +68,17 @@ def _replay_and_link(args: argparse.Namespace) -> dict:
         "live_orders_authorized": False,
     }
     if signal_id is not None:
+        # Source replay and PAPER reservation are separate SQLite commits.
+        # Never silently turn a *previously recorded* unlinked scan into a
+        # fresh risk reservation after a crash or rejected operator action.
+        if scan["outcome"] != "RECORDED":
+            review = reconcile_stage10_paper(
+                args.state_dir, signal_id=signal_id, account_id=args.account_id,
+            )
+            if review["status"] != "MATCHED_PAPER_ORDER":
+                raise BrooksStage10Refused(
+                    "P08_DUPLICATE_SCAN_MANUAL_RECONCILIATION_REQUIRED"
+                )
         paper = BrooksStage10PaperBridge(args.state_dir).link(
             signal_id=signal_id, account_id=args.account_id,
             quantity=args.quantity, ack_paper_risk=True,
@@ -79,6 +91,8 @@ def _replay_and_link(args: argparse.Namespace) -> dict:
 def run_once(args: argparse.Namespace, *, environment: dict[str, str]) -> dict:
     if args.status:
         return panel_stage10_overview(args.state_dir)
+    if getattr(args, "reconcile", False):
+        return reconcile_stage10_paper(args.state_dir, signal_id=args.signal_id)
     if (
         not args.ack_nonproduction_stage10_paper
         or environment.get("MMT_NONPRODUCTION") != "1"
@@ -102,6 +116,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--state-dir", type=Path, required=True)
     ops = parser.add_mutually_exclusive_group(required=True)
     ops.add_argument("--status", action="store_true")
+    ops.add_argument("--reconcile", action="store_true")
     ops.add_argument("--link", action="store_true")
     ops.add_argument("--replay-and-link", action="store_true")
     parser.add_argument("--replay-file", type=Path)

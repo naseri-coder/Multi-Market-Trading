@@ -8,6 +8,9 @@ on:
       - "naseri_markets/integrated_engine_panel.py"
       - "tests/unit/test_brooks_stage10_paper_bridge.py"
       - "tests/unit/test_brooks_paper07_real_replay_link.py"
+      - "tests/unit/test_brooks_paper08_recovery.py"
+      - "naseri_markets/brooks_stage10_recovery_v1.py"
+      - "docs/MMT_PAPER_08_RECOVERY_ACCEPTANCE.md"
       - "docs/MMT_PAPER_07_PINNED_BROOKS_RISK_ROUTE.md"
       - "scripts/accept_paper07_installed.py"
       - "platform_release/pyproject.toml"
@@ -42,11 +45,16 @@ jobs:
             naseri_markets/integrated_engine_panel.py \
             tests/unit/test_brooks_stage10_paper_bridge.py \
             tests/unit/test_brooks_paper07_real_replay_link.py \
+            tests/unit/test_brooks_paper08_recovery.py \
+            naseri_markets/brooks_stage10_recovery_v1.py \
             scripts/accept_paper07_installed.py \
             tests/unit/test_stage10_telegram_paper_view.py
           python -m ruff check --select E4,F \
             naseri_markets/brooks_stage10_paper_bridge.py \
             naseri_markets/brooks_stage10_cli.py \
+            naseri_markets/brooks_stage10_recovery_v1.py \
+            tests/unit/test_brooks_paper08_recovery.py \
+            scripts/accept_paper07_installed.py \
             naseri_markets/integrated_engine_panel.py \
             tests/unit/test_brooks_stage10_paper_bridge.py \
             tests/unit/test_brooks_paper07_real_replay_link.py \
@@ -59,6 +67,7 @@ jobs:
           python -m pytest -q --confcutdir=tests/unit \
             tests/unit/test_brooks_stage10_paper_bridge.py \
             tests/unit/test_brooks_paper07_real_replay_link.py \
+            tests/unit/test_brooks_paper08_recovery.py \
             tests/unit/test_stage10_telegram_paper_view.py \
             tests/unit/test_execution_position_core_v1.py \
             tests/unit/test_risk_portfolio_manager_v1.py \
@@ -77,6 +86,7 @@ jobs:
           paths=[
               Path("naseri_markets/brooks_stage10_paper_bridge.py"),
               Path("naseri_markets/brooks_stage10_cli.py"),
+              Path("naseri_markets/brooks_stage10_recovery_v1.py"),
           ]
           forbidden={
               "order_send", "order_check", "login", "send_message",
@@ -167,5 +177,9 @@ jobs:
           assert report["broker_orders_sent"] is False
           assert report["telegram_sent"] is False
           assert report["stage20_integrated"] is False
+          assert report["recovery_status"] in (
+              "MATCHED_PAPER_ORDER", "CLEAN_NO_SIGNALS",
+          )
+          assert report["automatic_recovery_authorized"] is False
           print("PINNED_BROOKS_INSTALLED_TWO_PROCESS_PAPER_CI_PASS")
           PY

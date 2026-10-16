@@ -133,6 +133,25 @@ def accept(parent: Path, source: Path) -> dict:
             position = core.order_state(one["order_id"])
             if position["status"] != "CREATED" or position["filled_quantity"] != "0":
                 raise ValueError("PAPER_ORDER_AUTO_FILLED")
+    # Stage08: a fresh independent process must be able to read and
+    # reconcile BOTH persisted ledgers without resuming or mutating either.
+    inspected = subprocess.run(
+        [sys.executable, "-I", "-m", "naseri_markets.brooks_stage10_cli",
+         "--reconcile", "--state-dir", str(state)],
+        cwd=parent, env={
+            "HOME": str(parent), "PYTHONDONTWRITEBYTECODE": "1",
+        }, capture_output=True, text=True, timeout=20, check=False,
+    )
+    if inspected.returncode or not inspected.stdout or inspected.stderr:
+        raise ValueError("P08_INSTALLED_READ_ONLY_RECONCILIATION_REFUSED")
+    recovery = json.loads(inspected.stdout)
+    expected = ("CLEAN_NO_SIGNALS" if first["engine_decision"] == "NO_SIGNAL"
+                else "MATCHED_PAPER_ORDER")
+    if (recovery["status"] != expected
+            or recovery["can_automatically_resume"]
+            or recovery["live_orders_authorized"]
+            or recovery["telegram_publication_authorized"]):
+        raise ValueError("P08_RECOVERY_STATUS_OR_PERMISSION_DRIFT")
     return {
         "verdict": "PINNED_BROOKS_INSTALLED_OFFLINE_PAPER_PASS",
         "decision": first["engine_decision"],
@@ -144,6 +163,8 @@ def accept(parent: Path, source: Path) -> dict:
         "market_feed_used": False,
         "stage20_integrated": False,
         "production_authorized": False,
+        "recovery_status": recovery["status"],
+        "automatic_recovery_authorized": False,
     }
 
 
