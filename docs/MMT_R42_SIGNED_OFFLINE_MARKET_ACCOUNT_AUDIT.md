@@ -84,7 +84,7 @@ Executed in an assistant disposable container with:
 - cryptography 46.0.4
 - PYTEST_DISABLE_PLUGIN_AUTOLOAD=1, PYTHONDONTWRITEBYTECODE=1;
   pytest -c /dev/null --noconftest -p no:cacheprovider;
-- **45 PASSED in 0.23 seconds**, in-memory/temporary synthetic
+- **47 PASSED in 0.23 seconds**, in-memory/temporary synthetic
   account and market files, using ephemeral throwaway Ed25519 keys.
 
 The main GitHub source byte identity was independently confirmed
@@ -101,7 +101,7 @@ signatures, reused key fingerprint, stale/future/replayed feed,
 expired/forged policy, wrong venue/timeframe, wrong volume semantics,
 trading eligibility, high spread and tick violation, account time skew,
 wrong equity/gross exposure/order/position IDs and sequences, malformed
-signed numeric values, duplicate JSON keys and account IDs,
+signed numeric values, duplicate JSON keys and order IDs,
 symlinks and any explicit MMT_PRODUCTION flag, and oversized
 Decimal precision arithmetic. No real-market symbol data or
 broker accounts were accessed.
