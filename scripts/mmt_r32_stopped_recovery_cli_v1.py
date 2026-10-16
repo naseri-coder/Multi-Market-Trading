@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from naseri_markets.mmt_r32_stopped_recovery_review_v1 import (
-    R32RecoveryRefused, review_r32_stopped_snapshots,
+    review_r32_stopped_snapshots,
 )
 from naseri_markets.operational_reconciliation_v1 import RecoveryPaths
 
@@ -29,7 +29,7 @@ def main(argv: list[str] | None = None) -> int:
             all_writers_stopped=args.all_writers_stopped,
             operator_ack=args.ack_nonproduction_review,
         )
-    except (ValueError, OSError, R32RecoveryRefused):
+    except (ValueError, OSError):
         print(json.dumps({
             "status": "REFUSED_MANUAL_REVIEW_REQUIRED",
             "retry_authorized": False, "live_trading_authorized": False,
