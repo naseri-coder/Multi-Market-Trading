@@ -87,7 +87,7 @@ def _git(root: Path, *args: str) -> str:
 
 
 def _head(root: Path, sha: str) -> None:
-    if (type(root) is not Path or not root.is_absolute()
+    if (not isinstance(root, Path) or not root.is_absolute()
             or not root.is_dir() or root.is_symlink()
             or root.resolve(strict=True) != root):
         raise R34AcceptanceRefused("R34_EXACT_NON_SYMLINKED_ROOT_REQUIRED")
@@ -301,7 +301,7 @@ def _private_new_report(path: Path, data: bytes) -> None:
     Termux/PRoot. Security instead rests on an O_NOFOLLOW directory handle,
     fstat ownership/mode validation and O_EXCL file creation via dir_fd.
     """
-    if (type(path) is not Path or not path.is_absolute()
+    if (not isinstance(path, Path) or not path.is_absolute()
             or path.name in ("", ".", "..")
             or path.is_symlink() or path.parent.is_symlink()):
         raise R34AcceptanceRefused("R34_PRIVATE_NEW_REPORT_PATH_REQUIRED")
