@@ -188,7 +188,12 @@ def test_bad_price_unexpected_shape_and_quote_length_refused(pinned):
         data=json.loads(kw["original_provider_body_bytes"])
         data[0][1]=value
         kw["original_provider_body_bytes"]=json.dumps(data).encode()
-        with pytest.raises(gate.Stage21AdmissionRefused,match="CUSTODY"):
+        # The canonical parser now refuses an invalid price BEFORE Stage21C
+        # receipt custody. Both fail closed, but the first refusal is stronger.
+        with pytest.raises(
+            gate.Stage21AdmissionRefused,
+            match="POSITIVE_VENUE_PRICE_REQUIRED|NONCANONICAL_VENUE_NUMBER_REFUSED",
+        ):
             gate.stage21f_admit_future_kline_batch_to_quarantine(**kw)
     kw=dict(pinned)
     data=json.loads(kw["original_provider_body_bytes"])
