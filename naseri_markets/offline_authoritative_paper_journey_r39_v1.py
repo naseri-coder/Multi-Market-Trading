@@ -49,7 +49,7 @@ def _gate(*, operator_ack: bool, writers_stopped: bool | None = None) -> None:
 
 
 def _workspace(path: Path, *, must_exist: bool) -> None:
-    if (type(path) is not Path or not path.is_absolute()
+    if (not isinstance(path, Path) or not path.is_absolute()
             or path.name in ("", ".", "..")
             or path.parent.is_symlink() or not path.parent.is_dir()
             or path.parent.resolve(strict=True) != path.parent
@@ -152,9 +152,10 @@ def _verify_outputs(report: dict, *, dry_run_signals: bool, directory: Path) -> 
             or reopen.get("release_verdict") != "BLOCKED_NONPRODUCTION_UNATTESTED"
             or any(reopen.get(flag) is not False for flag in (
                 "source_authenticated", "live_trading_enabled",
-                "broker_order_sent", "telegram_sent",
-                "public_release_authorized", "auto_retry_authorized",
-            ) if flag in reopen)):
+                "broker_order_sent", "telegram_sent", "profitability_proven",
+                "public_release_authorized", "automatic_recovery_authorized",
+                "exactly_once_guaranteed",
+            ))):
         raise PaperAuthorityRefused("R39_REOPEN_EVIDENCE_UNSAFE")
     return {
         "stage20_report_sha256": _hash(report),
