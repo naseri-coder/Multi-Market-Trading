@@ -23,7 +23,10 @@ from .brooks_causal_lifecycle_stage21_preflight_v1 import (
     _source,
     _validated_continuation,
 )
-from .futures_economic_scenario_stage16_v1 import FundingMarkScenario
+from .futures_economic_scenario_stage16_v1 import (
+    FundingMarkScenario,
+    model_linear_usdm_research_scenario,
+)
 
 _ID = re.compile(r"[a-z][a-z0-9_-]{1,39}\Z")
 _SHA = re.compile(r"[a-f0-9]{64}\Z")
@@ -93,6 +96,7 @@ def _metadata(payload: bytes, pin: str) -> dict:
 
 def _independent_cashflows(
     *, model: dict, decision: str, metadata: dict,
+    metadata_bytes: bytes, metadata_sha256: str,
     quantity: str, funding: tuple[FundingMarkScenario, ...],
 ) -> dict:
     """Separate exact arithmetic from Stage16; checks but cannot certify fees.
@@ -164,6 +168,25 @@ def _independent_cashflows(
     reported_net = _decimal(model.get("net_scenario_quote"))
     if independent_net != reported_net or charged != model.get("funding_event_count"):
         raise R26AttributionRefused("R26_ST16_MODEL_DISAGREES_WITH_INDEPENDENT_DECIMAL")
+    # Attribution requires the original Stage16 economic receipt SHA to
+    # agree too; a forged SHA is not rescued by accidentally correct net PnL.
+    try:
+        original_receipt = model_linear_usdm_research_scenario(
+            metadata_bytes, expected_metadata_sha256=metadata_sha256,
+            side="long" if decision == "LONG" else "short",
+            quantity_contracts=quantity,
+            entry_price=str(entry), exit_price=str(exit_price),
+            entry_at=entry_at, exit_at=exit_at,
+            funding_mark_events=tuple(
+                event for event in funding if entry_at < event.at <= exit_at
+            ),
+            operator_ack=True,
+        )
+    except ValueError as exc:
+        raise R26AttributionRefused("R26_ORIGINAL_STAGE16_CASHFLOW_UNREPRODUCIBLE") from exc
+    if (original_receipt["evidence_sha256"] != model.get("economic_receipt_sha256")
+            or _decimal(original_receipt["net_scenario_quote"]) != independent_net):
+        raise R26AttributionRefused("R26_ORIGINAL_ECONOMIC_RECEIPT_SHA_OR_NET_DRIFT")
     return {
         "verdict": "MODELED_CASHFLOW_ARITHMETIC_RECONCILED_ONLY",
         "model_state": model["state"],
@@ -253,6 +276,8 @@ def r26_audit_frozen_brooks_two_paths(
         )
         economics = _independent_cashflows(
             model=model, decision=frozen.decision, metadata=metadata,
+            metadata_bytes=economic_metadata_bytes,
+            metadata_sha256=economic_metadata_sha256,
             quantity=quantity_contracts, funding=path.funding_mark_events,
         )
         result_paths.append({
