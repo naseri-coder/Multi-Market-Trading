@@ -241,3 +241,67 @@ The download step used PyPI network access, but the upcoming
 installation and second build are strictly offline by explicit pip
 flags. No producer signature or independent builder is established;
 Stage15 release and LIVE remain denied.
+
+## 2026-10-16 actual operator second Wheel verification — content PASS / byte mismatch CONFIRMED
+
+Operator completed a new build using the previously SHA256-checked
+`setuptools==80.9.0` / `wheel==0.45.1` pins, in isolated
+`/root/mmt-r36-rebuild.pHGewHBu`, without touching the reference
+Wheel or successful unit-test venv. Actual operator terminal showed
+`R36_SECOND_BUILD_COMPLETED` and `R36_BUILD_EXIT=0`.
+
+An explicit subsequent **read-only** comparison against the original
+R34 Wheel from the clean R36 checkout at
+`0cfc469d8fd150e1a6bb7a10c76c3914fce6a033`
+produced these independent `sha256sum` values:
+
+```text
+ORIGINAL SHA256:
+a99553947fba0e6a848e1c9b5cdb144408b70f380c8f713f43a14b393c15bc8f
+REBUILD SHA256:
+79c22e89bf04c10e30029af0d2d84ddd23674a5d9514b77e2e196b92d3f01526
+cmp: R36_WHEEL_BYTES_DIFFER
+```
+
+The operator then invoked
+`scripts.mmt_r36_offline_release_provenance_v1` with
+`--compare-wheel` targeting the second local artifact. Verified
+JSON values:
+
+```json
+{
+  "verdict": "R36_SECOND_WHEEL_PAYLOAD_EQUAL_BYTES_DIFFER_RELEASE_DENIED",
+  "source_commit": "0cfc469d8fd150e1a6bb7a10c76c3914fce6a033",
+  "source_module_bytes_match": true,
+  "public_modules_verified": 221,
+  "source_tree_sha256": "d3a42bf4e81b97775c7b2ca31161f59bcc5020a56ddb2f9935353bc51c9293d0",
+  "wheel_sha256": "a99553947fba0e6a848e1c9b5cdb144408b70f380c8f713f43a14b393c15bc8f",
+  "wheel_bytes": 787808,
+  "wheel_payload_sha256": "a2fbe39808af358fd284240153bd331e67b1fae71bbe6d406004f3e530101659",
+  "wheel_record_verified": true,
+  "second_wheel_sha256": "79c22e89bf04c10e30029af0d2d84ddd23674a5d9514b77e2e196b92d3f01526",
+  "second_wheel_same_payload": true,
+  "second_wheel_identical_bytes": false,
+  "files_written": false,
+  "publisher_signature_verified": false,
+  "independent_provenance_verified": false,
+  "production_release_authorized": false,
+  "live_authorized": false
+}
+```
+
+The session ended with `R36_FINAL_VERIFICATION_COMPLETED`,
+`R36_FINAL_EXIT=0` and clean `git status --short`.
+**The tool's zero exit code means the verified payload was equal;
+it does NOT mean byte-for-byte archive reproducibility.**
+
+Disposition: `R36_OPERATOR_LOCAL_SOURCE_PAYLOAD_AND_SECOND_BUILD_PASS`
+but `R36_WHEEL_BYTE_REPRODUCIBILITY_NOT_PROVEN`. Archive byte
+differences remain; likely sources include ZIP metadata timestamps,
+file ordering, compression settings or other ZIP headers. These are
+**hypotheses**, not verified causes. Follow-up may read both ZIP
+central-directory entries and headers to identify the exact difference
+without rebuilding or modifying either artifact. Keep Draft/unmerged;
+publisher authenticity, independently isolated trusted builder,
+Stage15 P0/P1, deferred R27 Brooks and production/LIVE deny gates
+unchanged.
