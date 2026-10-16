@@ -150,3 +150,80 @@ def test_short_signature_denied(setup):
     opts["signature"].write_bytes(b"0" * 63)
     with pytest.raises(r.R37Refused, match="SIGNATURE_LENGTH_INVALID"):
         r.verify(**opts)
+
+
+@pytest.mark.parametrize("setting", ["0", "true", "YES", ""])
+def test_any_explicit_production_setting_denied(setup, monkeypatch, setting):
+    opts, _, _, _ = setup
+    monkeypatch.setenv("MMT_PRODUCTION", setting)
+    with pytest.raises(r.R37Refused, match="NONPRODUCTION_PY312_REQUIRED"):
+        r.verify(**opts)
+
+
+def test_no_nonproduction_ack_denied(setup, monkeypatch):
+    opts, _, _, _ = setup
+    monkeypatch.delenv("MMT_NONPRODUCTION")
+    with pytest.raises(r.R37Refused, match="NONPRODUCTION_PY312_REQUIRED"):
+        r.verify(**opts)
+
+
+def test_signed_boolean_epoch_denied(setup):
+    opts, _, obj, write = setup
+    obj["source_date_epoch"] = True
+    write(obj)
+    with pytest.raises(r.R37Refused, match="MANIFEST_VALUES_INVALID"):
+        r.verify(**opts)
+
+
+def test_local_wheel_symlink_denied(setup):
+    opts, _, _, _ = setup
+    path = opts["wheel"].parent / "source" / r.WHEEL_NAME
+    path.parent.mkdir()
+    path.symlink_to(opts["wheel"])
+    opts["wheel"] = path
+    with pytest.raises(r.R37Refused, match="ABSOLUTE_REGULAR_FILE_REQUIRED"):
+        r.verify(**opts)
+
+
+def test_hardlinked_manifest_denied(setup):
+    import os
+    opts, _, _, _ = setup
+    os.link(opts["manifest"], opts["manifest"].parent / "extra-manifest.json")
+    with pytest.raises(r.R37Refused, match="BOUNDED_SINGLE_LINK_FILE_REQUIRED"):
+        r.verify(**opts)
+
+
+def test_valid_cli_never_grants_install_or_live(setup, capsys):
+    opts, _, _, _ = setup
+    args = [
+        "--manifest", str(opts["manifest"]),
+        "--signature", str(opts["signature"]),
+        "--wheel", str(opts["wheel"]),
+        "--trusted-public-key", str(opts["trusted_public_key"]),
+        "--trusted-public-key-spki-sha256", opts["trusted_public_key_spki_sha256"],
+        "--expected-source-commit", opts["expected_source_commit"],
+    ]
+    assert r.main(args) == 0
+    response = json.loads(capsys.readouterr().out)
+    assert response["install_authorized"] is False
+    assert response["public_release_authorized"] is False
+    assert response["live_authorized"] is False
+    assert response["manifest_signature_valid"] is True
+
+
+def test_signature_invalid_cli_fails_closed(setup, capsys):
+    opts, _, _, _ = setup
+    opts["signature"].write_bytes(b"A" * 64)
+    args = [
+        "--manifest", str(opts["manifest"]),
+        "--signature", str(opts["signature"]),
+        "--wheel", str(opts["wheel"]),
+        "--trusted-public-key", str(opts["trusted_public_key"]),
+        "--trusted-public-key-spki-sha256", opts["trusted_public_key_spki_sha256"],
+        "--expected-source-commit", opts["expected_source_commit"],
+    ]
+    assert r.main(args) == 2
+    response = json.loads(capsys.readouterr().out)
+    assert response["verdict"] == "R37_SIGNATURE_AUDIT_REFUSED"
+    assert response["live_authorized"] is False
+    assert response["public_release_authorized"] is False
