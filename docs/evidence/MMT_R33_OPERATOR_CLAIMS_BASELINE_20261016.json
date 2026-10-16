@@ -1,0 +1,58 @@
+{
+  "prs": [
+    {
+      "number": 321,
+      "head_sha": "03a878b7c7f0d5955427efb2f32e3f5611afc919",
+      "state": "open",
+      "draft": true,
+      "merged": false
+    },
+    {
+      "number": 322,
+      "head_sha": "6031385a463adb9f544dc9250c158b23fdd2a087",
+      "state": "open",
+      "draft": true,
+      "merged": false
+    },
+    {
+      "number": 323,
+      "head_sha": "19f93e500ef4bc6e1854bb1efd02adebfebb4c22",
+      "state": "open",
+      "draft": true,
+      "merged": false
+    },
+    {
+      "number": 324,
+      "head_sha": "9658949fa2bb8d22c6ca6012e9af1bc45e6b460c",
+      "state": "open",
+      "draft": true,
+      "merged": false
+    },
+    {
+      "number": 325,
+      "head_sha": "f857dc66d91bffee022715fa1a00f0f5ba662f3e",
+      "state": "open",
+      "draft": true,
+      "merged": false
+    }
+  ],
+  "review_time_utc": "2026-10-16T08:26:00Z",
+  "flags": {
+    "r29_prospective_complete": false,
+    "r29_original_data_authenticity_attested": false,
+    "r29_independent_oos_risk_review_passed": false,
+    "r30_fault_injection_passed": false,
+    "r31_private_admin_acl_passed": false,
+    "r32_security_release_signed_and_verified": false,
+    "r32_independent_cold_restore_passed": false,
+    "full_test_and_security_suite_passed": false,
+    "venue_jurisdiction_and_api_permission_verified": false,
+    "live_account_balances_and_positions_reconciled": false,
+    "native_live_execution_adapter_independently_reviewed": false,
+    "live_kill_switch_rehearsal_passed": false,
+    "order_unknown_resolution_independently_verified": false,
+    "no_unresolved_orders": false,
+    "no_unreconciled_side_effects": false,
+    "manual_specific_live_permission_provided": false
+  }
+}
