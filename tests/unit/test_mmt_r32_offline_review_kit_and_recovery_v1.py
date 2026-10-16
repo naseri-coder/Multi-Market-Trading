@@ -1,9 +1,7 @@
 """R32 deterministic local kit fixture tests; no actual install/DB/credentials."""
 from __future__ import annotations
 
-import hashlib
 import json
-import os
 import shutil
 import subprocess
 from pathlib import Path
