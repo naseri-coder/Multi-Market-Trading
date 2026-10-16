@@ -317,3 +317,24 @@ def test_r34_empty_pythonpath_when_checkout_not_provided(monkeypatch):
     env = runner._child_environment()
     assert "PYTHONPATH" not in env
 
+
+
+def test_r34_untrusted_pytest_environment_cannot_override_fixed_commands(
+    monkeypatch, tmp_path,
+):
+    for key in (
+        "PYTEST_ADDOPTS", "PYTEST_PLUGINS", "PYTEST_DEBUG",
+        "PYTHONSTARTUP", "PYTHONUSERBASE", "PYTHONINSPECT",
+        "PYTHONWARNINGS", "PYTHONBREAKPOINT",
+    ):
+        monkeypatch.setenv(key, "UNSAFE_INJECTION")
+    env = runner._child_environment(tmp_path)
+    for key in (
+        "PYTEST_ADDOPTS", "PYTEST_PLUGINS", "PYTEST_DEBUG",
+        "PYTHONSTARTUP", "PYTHONUSERBASE", "PYTHONINSPECT",
+        "PYTHONWARNINGS", "PYTHONBREAKPOINT",
+    ):
+        assert key not in env
+    assert env["PYTHONNOUSERSITE"] == "1"
+    assert env["PYTHONSAFEPATH"] == "1"
+
