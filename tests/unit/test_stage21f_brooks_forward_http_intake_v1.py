@@ -94,9 +94,12 @@ def test_two_synthetic_batches_convert_and_chain_without_oos_claim(monkeypatch):
     assert report["number_of_closed_bars"] == 2
     assert report["stage21c_sequence"] == 1
     assert report["canonical_15m_csv_sha256"] == hashlib.sha256(csv).hexdigest()
+    chain = json.loads(receipt)
+    assert chain["receipt_sha256"] == report["stage21c_receipt_sha256"]
     assert report["stage21c_receipt_sha256"] == hashlib.sha256(
         json.dumps(
-            json.loads(receipt), sort_keys=True, separators=(",", ":"),
+            {key: value for key, value in chain.items() if key != "receipt_sha256"},
+            sort_keys=True, separators=(",", ":"),
         ).encode("ascii")
     ).hexdigest()
     assert report["actual_issuer_signed_price_message_verified"] is False
