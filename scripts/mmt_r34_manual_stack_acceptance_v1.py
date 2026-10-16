@@ -138,10 +138,18 @@ def _child_environment(root: Path | None = None) -> dict[str, str]:
     # The repository intentionally keeps the historical app in production_source.
     env.pop("PYTHONPATH", None)
     env.pop("PYTHONHOME", None)
+    for key in (
+        "PYTEST_ADDOPTS", "PYTEST_PLUGINS", "PYTEST_DEBUG",
+        "PYTHONSTARTUP", "PYTHONUSERBASE", "PYTHONINSPECT",
+        "PYTHONWARNINGS", "PYTHONBREAKPOINT",
+    ):
+        env.pop(key, None)
     if root is not None:
         env["PYTHONPATH"] = os.pathsep.join(
             (str(root / "production_source"), str(root))
         )
+    env["PYTHONNOUSERSITE"] = "1"
+    env["PYTHONSAFEPATH"] = "1"
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
     env["MMT_NONPRODUCTION"] = "1"
