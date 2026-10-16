@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import contextlib
 import hashlib
 import os
 import signal
@@ -24,11 +25,11 @@ from importlib import metadata
 from pathlib import Path
 
 from naseri_markets.mmt_r34_offline_stack_acceptance_v1 import (
+    _STAGE_UNIT_TARGETS,
+    _STATIC_SOURCES,
     R34AcceptanceRefused,
     R34OfflineEvidence,
     R34ToolFinding,
-    _STATIC_SOURCES,
-    _STAGE_UNIT_TARGETS,
     _wire,
     review_r34_local_stack_evidence,
 )
@@ -228,10 +229,8 @@ def _reap_extra_group_members(pid: int) -> bool:
     except PermissionError:
         # Cannot certify a clean process group.
         return True
-    try:
+    with contextlib.suppress(ProcessLookupError):
         os.killpg(pid, signal.SIGKILL)
-    except ProcessLookupError:
-        pass
     return True
 
 
@@ -269,10 +268,8 @@ def _run(root: Path, name: str, args: tuple[str, ...], timeout: int) -> R34ToolF
                 except subprocess.TimeoutExpired:
                     continue
             if reason:
-                try:
+                with contextlib.suppress(ProcessLookupError):
                     os.killpg(p.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
                 p.wait()
                 return R34ToolFinding(name, reason, None, None)
             # A successful direct process exit is NOT proof that all
