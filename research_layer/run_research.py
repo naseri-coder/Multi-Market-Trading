@@ -1,7 +1,7 @@
 """Read-only Brooks research pipeline.
 
-This module writes only under research_output/. Production PostgreSQL is opened
-inside READ ONLY transactions and production source files are never modified.
+This module reads explicit offline extracts and writes only to the configured
+research output directory. It never connects to Production PostgreSQL.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from app.modules.brooks_core_v3.knowledge import BrooksKnowledgeEngine
 from app.modules.brooks_core_v3.knowledge.coverage import all_concepts
-from app.modules.market_data.entities import TIMEFRAME_SECONDS, MarketSnapshot
+from app.modules.market_data.entities import TIMEFRAME_SECONDS, Candle, MarketSnapshot
 
 from research_layer.statistics import (
     bayesian_win_interval,
@@ -1493,7 +1493,10 @@ def fmt(x, digits=3):
         return str(x)
 
 
-def generate_report(db, metrics, raw, universe_snapshots, universe_findings, pattern_dbs):
+def generate_report(
+    db, metrics, raw, universe_snapshots, universe_findings, pattern_dbs,
+    *, market_series_count: int, raw_market_candles: int,
+):
     overall = db.execute(
         "SELECT * FROM pattern_stats WHERE pattern='ALL_ACTUAL_SIGNALS' AND sample_type='ACTUAL'"
     ).fetchone()
@@ -1550,17 +1553,16 @@ def generate_report(db, metrics, raw, universe_snapshots, universe_findings, pat
         "",
         "## Executive Summary",
         "",
-        f"- Production signals observed: **{len(raw['signals'])}**; actual closed signals with reconstructable R: **{len(closed)}**.",
-        f"- Raw market universe: **{
-            len(SYMBOLS)
-            * len(TIMEFRAMES)
-            * 2
-            * RAW_CANDLE_LIMIT:,                                    } candles requested** across BTC/ETH/SOL, Spot/Futures and six timeframes.",
-        f"- Knowledge replay snapshots evaluated: **{
-            universe_snapshots:,                                                     }**; findings stored: **{
-            universe_findings:,                                                                                                                                                       }**.",
+        f"- Supplied signal records: **{len(raw['signals'])}**; "
+        f"actual closed signals with reconstructable R: **{len(closed)}**.",
+        f"- Raw market candles supplied: **{raw_market_candles:,}** across "
+        f"**{market_series_count}** observed market series.",
+        f"- Knowledge replay snapshots evaluated: **{universe_snapshots:,}**; "
+        f"findings stored: **{universe_findings:,}**.",
         f"- Independent pattern research databases created: **{len(pattern_dbs)}**.",
-        f"- Actual aggregate positive-outcome rate: **{fmt(overall.get('win_rate'))}**; expectancy: **{fmt(overall.get('expectancy'))} R**; profit factor: **{fmt(overall.get('profit_factor'))}**.",
+        f"- Actual aggregate positive-outcome rate: **{fmt(overall.get('win_rate'))}**; "
+        f"expectancy: **{fmt(overall.get('expectancy'))} R**; "
+        f"profit factor: **{fmt(overall.get('profit_factor'))}**.",
         f"- Bayesian 95% win interval: **[{fmt(overall.get('bayes_low'))}, {
             fmt(overall.get('bayes_high'))
         }]**; bootstrap expectancy interval: **[{fmt(overall.get('bootstrap_low'))}, {
@@ -1641,19 +1643,29 @@ def generate_report(db, metrics, raw, universe_snapshots, universe_findings, pat
         "",
         "## Evidence and Data Quality",
         "",
-        "- Production PostgreSQL was accessed in READ ONLY transactions.",
-        "- MFE/MAE are reconstructed from public closed candles between entry activation and closure and expressed in initial stop-distance R units.",
-        "- Realized R is reconstructed from recorded leveraged P/L divided by the recorded initial risk percentage.",
-        "- Entry slippage is the difference between recorded activated entry price and configured entry price. Bid/ask spread is unavailable from kline data and is therefore reported as unavailable, never imputed.",
-        "- Execution record delay is event-record timestamp minus the candle-close timestamp in ENTRY_ACTIVATED metadata; it is not exchange matching-engine latency.",
+        "- This run reads supplied offline extracts and does not access Production PostgreSQL.",
+        "- MFE/MAE are reconstructed from public closed candles between entry "
+        "activation and closure and expressed in initial stop-distance R units.",
+        "- Realized R is reconstructed from recorded leveraged P/L divided by the "
+        "recorded initial risk percentage.",
+        "- Entry slippage is the difference between recorded activated entry price and "
+        "configured entry price. Bid/ask spread is unavailable from kline data and "
+        "is therefore reported as unavailable, never imputed.",
+        "- Execution record delay is event-record timestamp minus the candle-close "
+        "timestamp in ENTRY_ACTIVATED metadata; it is not exchange matching-engine latency.",
         "",
         "## Limitations",
         "",
-        "- The live production sample spans only about two days and contains BTC/ETH on 15m/1h; many patterns have small or zero actual-trade samples.",
-        "- Any rows outside the supplied signal extract are observational market research, not live trading performance.",
-        "- Historical Knowledge findings are generated with the current read-only Knowledge Engine, not necessarily the exact historical engine version used when each old signal was produced.",
-        "- Public OHLCV does not provide historical bid/ask spread or true exchange execution latency.",
-        "- Multiple correlated signals can share the same market move; statistical independence should not be assumed.",
+        "- The supplied sample may have limited historical, market and timeframe "
+        "coverage; verify its actual span and instruments before interpreting rankings.",
+        "- Any rows outside the supplied signal extract are observational market "
+        "research, not live trading performance.",
+        "- Historical Knowledge findings use the current read-only Knowledge Engine, "
+        "not necessarily the historical engine version recorded for each signal.",
+        "- Public OHLCV does not provide historical bid/ask spread or true "
+        "exchange execution latency.",
+        "- Multiple correlated signals can share the same market move; "
+        "statistical independence should not be assumed.",
         "",
         "## Recommended Calibrations — Recommendations Only",
         "",
@@ -1789,7 +1801,11 @@ async def main(*, raw_extract: Path, market_extract: Path, output_dir: Path):
     reliability_rows = generate_reliability_matrix(db)
     covariance_n = export_covariance(metrics)
     generate_charts(db, metrics, corr_names, corr_matrix)
-    generate_report(db, metrics, raw, snapshots, findings, pattern_dbs)
+    generate_report(
+        db, metrics, raw, snapshots, findings, pattern_dbs,
+        market_series_count=len(series),
+        raw_market_candles=sum(len(candles) for candles in series.values()),
+    )
     db.commit()
     db.close()
     summary = {
