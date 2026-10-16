@@ -270,3 +270,65 @@ A genuine install/PIP result remains **PENDING**; do not claim success
 until it appears. Separately require real host/user-namespace
 isolation testing before production acceptance. The Draft PR stays
 unmerged; broker/Telegram/connected/LIVE remains denied.
+
+## 2026-10-16 observed PRoot non-root functional offline installation — PASS
+
+The operator genuinely ran the R35 CLI in Ubuntu 24.04 Python 3.12.3
+inside Android Termux/PRoot, using the emulated unprivileged user
+`nobody` after the verified PRoot UID/stat process-view correction.
+
+After fast-forwarding the R35 Draft checkout to
+`95bf8c9ac40e9f1acfee6daac061b22ad9eb1ceb`, the operator
+independently verified SHA256 of the original public 0.4.0rc1 Wheel,
+created a fresh `0700` private `nobody` sandbox, and ran Python
+`os.geteuid() == os.stat(sandbox).st_uid == 65534`. Output:
+`NONROOT_PRIVATE_PARENT_PASS`. The operator copied only the R35
+public installer and the already hash-verified public Wheel into
+`/tmp/mmt-r35-install.aFN6KFvc` and independently verified the
+copied Wheel SHA256 as **OK**.
+
+The actual command then invoked the installer as `nobody` using
+`env -i`, explicit `MMT_NONPRODUCTION=1`, `PIP_NO_INDEX=1`,
+`PYTHONNOUSERSITE=1`, `--install` and its required acknowledgement,
+with an initially absent destination. **The live output was:**
+
+```json
+{
+  "broker_orders_enabled": false,
+  "installation_isolated": true,
+  "live_authorized": false,
+  "production_install_allowed": false,
+  "telegram_enabled": false,
+  "verdict": "R35_INSTALLED_OFFLINE_PREVIEW_PASS_RELEASE_DENIED",
+  "version": "0.4.0rc1",
+  "wheel_bytes": 787808,
+  "wheel_members": 226,
+  "wheel_sha256": "a99553947fba0e6a848e1c9b5cdb144408b70f380c8f713f43a14b393c15bc8f",
+  "writes_performed": true
+}
+```
+
+The operator independently displayed the same JSON from the new
+`new-preview/offline-install-report.json` and printed
+`R35_TEST_EXIT=0` (not merely an optimistic expected result).
+The installer source invokes `pip --no-index --no-deps --no-cache-dir`,
+`pip check`, and the inert installed `naseri-markets --check` before
+printing its success verdict; no original 0.3.2 runtime/DB, operational
+server, real data feed, broker or Telegram action was requested.
+
+**Accepted narrowly:** `R35_PROOT_NONROOT_FUNCTIONAL_INSTALL_PASS`.
+This establishes functioning offline Wheel installation into a fresh
+emulated non-root venv under PRoot, NOT an independently audited
+kernel-enforced unprivileged-user boundary, disconnected-network
+firewall, hostile-code sandbox, whole-service persistence test or
+production release. The R35 Draft PR remains unmerged; Stage15's
+nine P0 and one P1 blockers and deferred R27 frozen Brooks proof
+remain unresolved. Broker orders, connected PAPER, Telegram delivery,
+private NYFR and LIVE remain denied.
+
+**Remaining final R35 audit suggestion:** re-run the *installed* CLI
+from the new private `nobody` venv, verify report/Wheel byte digest
+and 0700/0600 permissions, and run negative invocations for stale
+destination, incorrect hash, missing acknowledgement and explicit
+`MMT_PRODUCTION=1`; assert each fails without writing outside the
+sandbox. These follow-up checks have NOT yet been run by the operator.
