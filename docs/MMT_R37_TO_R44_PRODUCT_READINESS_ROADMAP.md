@@ -1,7 +1,7 @@
 # Multi-Market-Trading: bounded roadmap R37–R44 (2026-10-16)
 
 **Status: proposed 8 engineering milestones from the current R36 supply-chain
-evidence; R37 STARTED, R38–R44 NOT STARTED.** This is an planning
+evidence; R37 IMPLEMENTED AS DRAFT/SYNTHETIC-TESTED, R38–R44 NOT STARTED.** This is an planning
 structure, not an assurance that eight phases suffice to certify
 broker-connected/live operation. Keep all PRs Draft/unmerged until their
 acceptance and the separate integration policy is resolved.
@@ -25,7 +25,7 @@ acceptance and the separate integration policy is resolved.
 
 | Phase | Bounded work | Concrete exit evidence | Status |
 |---|---|---|---|
-| **R37** | Define canonical signed preview manifest, independent pinned trust anchor and fail-closed Ed25519 verification; no real private key in repo | External key custody/revocation policy, authenticated key fingerprint and Python 3.12 negative tests; signed *preview* only | **STARTED: prototype Draft PR #330, synthetic assistant tests only** |
+| **R37** | Define canonical signed preview manifest, independent pinned trust anchor and fail-closed Ed25519 verification; no real private key in repo | External key custody/revocation policy, authenticated key fingerprint and Python 3.12 negative tests; signed *preview* only | **DRAFT IMPLEMENTED: 23 assistant-local synthetic tests PASS; real publisher key and Python 3.12 acceptance PENDING** |
 | **R38** | Installer/release verification integration, fail-closed on missing/bad signatures, rollback behavior | New scratch install + bad key/revoked key/old manifest/replay cases, zero release grants, independent review | PENDING |
 | **R39** | One authoritative isolated **PAPER-only** product runtime for config→data→strategy→risk→journal (Stage12→7→8/9→10); strict legacy separation | Audit-quality durable idempotent handoffs and crash/retry contract tests | PENDING |
 | **R40** | Clean installed end-to-end PAPER journey plus deferred frozen R27 Brooks full-core evidence; avoid waivers | Fresh disposable install, reset/restart/reconciliation, no connected order or signal, exact Brooks worker acceptance | PENDING |
