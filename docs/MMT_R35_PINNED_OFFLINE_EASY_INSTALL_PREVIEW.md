@@ -190,3 +190,44 @@ and private install report. This would count as
 `R35_PROOT_NONROOT_FUNCTIONAL_INSTALL`, never real independent host
 security or production release. On any failure, stop without changing
 the non-root refusal gate; do not delete incident artifacts silently.
+
+## 2026-10-16 filesystem identity mismatch: PRoot non-root install HALTED
+
+The operator first exited the PRoot container unintentionally during
+a previous `set -e` command; the Android Termux shell did not have
+`runuser` or `/tmp`. They then returned to the existing Ubuntu
+container using `proot-distro login mmt-r34-lab`, confirming
+`uid=0(root)`, Python **3.12.3** and `runuser`.
+
+An actual probe of the proposed PRoot-nonroot installation destination
+returned:
+
+```text
+CREATE_EXIT=0
+PROBE_DIR=/tmp/mmt-r35-probe.MceoFspU
+700 0:0 /tmp/mmt-r35-probe.MceoFspU
+WRITE_EXIT=0
+```
+
+The new probe directory was created by
+`runuser -u nobody -- mktemp -d /tmp/mmt-r35-probe.XXXXXXXX`,
+yet `stat` in the parent shell reported the directory owner as
+**UID 0 / GID 0** (not the apparent 65534 identity) with mode 0700.
+`runuser -u nobody -- test -w "$AREA"` returned success, but
+`test -w` is an access check and is **not proof of an actual write
+operation**. Thus, the emulated-user identity, filesystem ownership
+and effective permission behavior are inconsistent with assumptions
+required for proving independent non-root confinement. The existing
+R35 installer's `_new_destination` requires owner `st_uid` to match
+`os.geteuid()` and a 0700 parent; do **not** weaken this check, chown
+/chmod private root directories, or silently treat virtual PRoot IDs as
+a kernel isolation boundary.
+
+**Decision:** `R35_PROOT_FILESYSTEM_IDENTITY_INCONSISTENT`;
+`R35_NONROOT_INSTALL_UNVERIFIED`; no successful R35 `--install`
+output was observed. A focused, read-only Python UID/stat diagnostic
+inside the emulated `nobody` context can clarify the precise mismatch.
+A real non-root acceptance should occur only in an appropriately
+isolated ordinary Linux account/environment with verified on-disk UID
+and permissions, not by adjusting source guards or claiming permission
+from PRoot ID translation. Keep this PR Draft and release denied.
