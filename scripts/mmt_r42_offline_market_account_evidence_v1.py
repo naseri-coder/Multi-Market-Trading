@@ -80,12 +80,16 @@ def _read(path: Path, expected_sha256: str) -> dict:
     try:
         obj = json.loads(data.decode("utf-8"), object_pairs_hook=_pairs,
                          parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
-    except (UnicodeError, ValueError, TypeError) as exc:
+    except (UnicodeError, ValueError, TypeError, RecursionError) as exc:
         if isinstance(exc, R42Refused):
             raise
         raise R42Refused("R42_EVIDENCE_INVALID_JSON") from exc
-    if (type(obj) is not dict or json.dumps(obj, sort_keys=True, separators=(",", ":"),
-            ensure_ascii=True, allow_nan=False).encode() + b"\n" != data):
+    try:
+        canonical = json.dumps(obj, sort_keys=True, separators=(",", ":"),
+                               ensure_ascii=True, allow_nan=False).encode() + b"\n"
+    except (ValueError, TypeError, RecursionError, OverflowError) as exc:
+        raise R42Refused("R42_EVIDENCE_INVALID_JSON") from exc
+    if type(obj) is not dict or canonical != data:
         raise R42Refused("R42_EVIDENCE_NONCANONICAL")
     return obj
 
