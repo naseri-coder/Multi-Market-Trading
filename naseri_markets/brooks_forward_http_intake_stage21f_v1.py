@@ -15,7 +15,8 @@ import hashlib
 import io
 import json
 import re
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from email.utils import parsedate_to_datetime
 
 from .brooks_prospective_forward_custody_stage21c_v1 import (
@@ -109,11 +110,9 @@ def _original_data_to_canonical(raw: bytes) -> tuple[bytes, int, int]:
         if type(row[11]) is not str or row[11] != "0":
             raise Stage21IntakeRefused("ST21F_RESERVED_EXCHANGE_COLUMN_DRIFT")
         opening, high, low, closing = (row[i] for i in (1, 2, 3, 4))
-        from decimal import Decimal
         a, b, c, d = (Decimal(n) for n in (opening, high, low, closing))
         if not c <= min(a, d) <= max(a, d) <= b:
             raise Stage21IntakeRefused("ST21F_CANDLE_OHLC_INCONSISTENT")
-        from datetime import UTC, datetime
         begin = datetime.fromtimestamp(start / 1000, tz=UTC)
         end = datetime.fromtimestamp((start + _STEP_MS) / 1000, tz=UTC)
         writer.writerow((
@@ -212,7 +211,9 @@ def stage21f_admit_offline_binance_response(
         raise Stage21IntakeRefused("ST21F_INVALID_UNTRUSTED_HTTP_DATE") from exc
     if (date.tzinfo is None or not timedelta(0) <= now - date <= timedelta(minutes=5)):
         raise Stage21IntakeRefused("ST21F_HTTP_DATE_OPERATOR_TIME_DRIFT")
-    if (type(original_http_response_sha256) is not str
+    if (type(original_http_response_body) is not bytes
+            or type(original_http_response_sha256) is not str
+            or not re.fullmatch(r"[0-9a-f]{64}", original_http_response_sha256)
             or _hash(original_http_response_body) != original_http_response_sha256):
         raise Stage21IntakeRefused("ST21F_EXACT_RESPONSE_BYTES_DIGEST_MISMATCH")
     csv_bytes, first_ms, last_ms = _original_data_to_canonical(original_http_response_body)
@@ -222,7 +223,6 @@ def stage21f_admit_offline_binance_response(
     )
     if type(request_url) is not str or request_url != expected_url:
         raise Stage21IntakeRefused("ST21F_EXACT_READONLY_REQUEST_URL_REQUIRED")
-    from datetime import UTC, datetime
     beginning = datetime.fromtimestamp(first_ms / 1000, tz=UTC)
     last_end = datetime.fromtimestamp(last_ms / 1000, tz=UTC)
     if (beginning < start or last_end > end
