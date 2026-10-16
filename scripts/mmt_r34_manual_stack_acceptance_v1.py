@@ -197,7 +197,8 @@ def collect_r34_offline_evidence(
         results.append(
             _run(root, stage, (
                 sys.executable, "-m", "pytest", "-q",
-                "-p", "no:cacheprovider", test_path,
+                "-p", "no:cacheprovider", "-p", "pytest_asyncio.plugin",
+                test_path,
             ), TEST_TIMEOUT)
             if run_stage_tests else R34ToolFinding(stage, "NOT_RUN", None, None)
         )
@@ -210,7 +211,8 @@ def collect_r34_offline_evidence(
     results.append(
         _run(root, "FULL_UNIT_SUITE", (
             sys.executable, "-m", "pytest", "-q",
-            "-p", "no:cacheprovider", "tests/unit",
+            "-p", "no:cacheprovider", "-p", "pytest_asyncio.plugin",
+            "tests/unit",
         ), SUITE_TIMEOUT)
         if run_full_suite else R34ToolFinding("FULL_UNIT_SUITE", "NOT_RUN", None, None)
     )
