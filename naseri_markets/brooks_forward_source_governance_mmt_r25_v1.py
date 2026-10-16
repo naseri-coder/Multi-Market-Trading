@@ -181,10 +181,10 @@ def r25_offline_chain_governance(
         verified = state.accepted_batches
         last_digest = state.previous_batch_digest
     else:
-        next_open = _timestamp(policy["study_start_utc"])
+        next_open = datetime.fromisoformat(policy["study_start_utc"])
         verified = 0
         last_digest = _CANONICAL_PLAN_SHA
-    signed_end = _timestamp(policy["study_end_utc"])
+    signed_end = datetime.fromisoformat(policy["study_end_utc"])
     if not next_open <= signed_end:
         raise Stage25PolicyRefused("R25_ACCEPTED_CHAIN_EXCEEDS_SIGNED_END")
     missing_before_now = (
