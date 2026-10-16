@@ -77,3 +77,34 @@ using absolute paths. In the current user's root-only PRoot session
 
 The stacked Draft PR must not be merged or represented as product-ready.
 Stage15's nine P0 and one P1 blockers remain unresolved.
+
+## 2026-10-16 operator-proven Termux root check-only acceptance
+
+The operator used their real disposable Ubuntu Python 3.12 Termux
+environment and created a **detached worktree at
+`eb8c6b62a4161f589abb5c8edcbf30bb0760cc60`**,
+distinct from the original R34 tree. They executed the R35 test module
+with `--noconftest` and disabled pytest plugin autoload, with explicit
+`pytest_asyncio.plugin`; actual output: **`14 passed in 1.87s`**.
+
+Their initial Ruff check reported **one style-only `SIM117` error**
+(nested `with` statements in the symlink-archive negative fixture),
+with no other errors reported. This specific test syntax has now been
+rewritten as one parenthesized multi-context `with`, preserving the
+test's original fixture/negative assertions; actual operator rerun
+of Ruff and pytest on the amended head is **PENDING**.
+
+The operator also ran genuine root-compatible **read-only
+`--check-only`** against the previously hash-verified
+`multi_market_trading-0.4.0rc1-py3-none-any.whl`. Actual stdout included
+`verdict=R35_OFFLINE_WHEEL_PREFLIGHT_PASS`, `wheel_members=226`,
+`wheel_bytes=787808`, SHA256
+`a99553947fba0e6a848e1c9b5cdb144408b70f380c8f713f43a14b393c15bc8f`,
+`writes_performed=false`, and all LIVE/broker/Telegram/production
+permissions false. Their negative output confirmed
+`NO_INSTALL_WRITES_CONFIRMED` and `git status --short` returned empty.
+
+**Bounded decision:** `R35_CHECK_ONLY_OPERATOR_PASS`, but
+`R35_INSTALLATION_NOT_YET_ACCEPTED` (the actual non-root path was
+not run). Do not merge Draft PR, circumvent non-root checks, install
+old v0.3.2 runtime or operate any connected/live services.
