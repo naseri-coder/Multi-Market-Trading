@@ -285,3 +285,19 @@ def test_decimal_overprecision_in_signed_feed_denied(evidence):
     refresh()
     with pytest.raises(r.R42Refused, match='DECIMAL_PRECISION_UNSAFE'):
         verify(evidence)
+
+
+def test_feed_wrong_volume_semantics_denied(evidence):
+    _, _, records, refresh, _ = evidence
+    records['feed']['volume_semantics'] = 'UNKNOWN'
+    refresh()
+    with pytest.raises(r.R42Refused, match='FEED_ORIGIN_OR_SEMANTICS_INVALID'):
+        verify(evidence)
+
+
+def test_cross_currency_account_review_denied(evidence):
+    _, _, records, refresh, _ = evidence
+    records['review']['currency'] = 'USD'
+    refresh()
+    with pytest.raises(r.R42Refused, match='ACCOUNT_IDENTITY_OR_ORIGIN_MISMATCH'):
+        verify(evidence)
