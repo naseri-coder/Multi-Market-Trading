@@ -261,3 +261,42 @@ def test_r31_private_only_api_no_telegram_transport_or_live_methods(center):
     assert not hasattr(console, "send_order")
     assert not hasattr(console, "enable_live")
     assert not hasattr(console, "acknowledge_dry_run")
+
+
+def test_r31_group_or_nonmatching_chat_responds_to_nobody(center):
+    setup(center)
+    panel = R31PrivateTelegramAdminPanel(
+        R31OfflineAdminConsole(center, operator_ack=True),
+    )
+    for chat_type, chat_id in (
+        ("group", -45), ("supergroup", -10099),
+        ("channel", -100100), ("private", 2009),
+    ):
+        forged = update(
+            "/mmt31_off demo_one 3", actor=1001,
+            chat_id=chat_id, chat_type=chat_type,
+        )
+        asyncio.run(panel.command(forged, None))
+        assert forged.effective_message.replies == []
+
+
+def test_r31_handler_registration_does_not_start_polling(center, monkeypatch):
+    import sys
+    import types
+
+    panel = R31PrivateTelegramAdminPanel(
+        R31OfflineAdminConsole(center, operator_ack=True),
+    )
+    fake = types.ModuleType("telegram.ext")
+    fake.CommandHandler = lambda command, callback: (command, callback)
+    monkeypatch.setitem(sys.modules, "telegram.ext", fake)
+    handlers = []
+
+    class DummyApplication:
+        def add_handler(self, handler):
+            handlers.append(handler)
+
+    panel.register(DummyApplication())
+    assert [cmd for cmd, _ in handlers] == [
+        "mmt31", "mmt31_view", "mmt31_off", "mmt31_signal",
+    ]
