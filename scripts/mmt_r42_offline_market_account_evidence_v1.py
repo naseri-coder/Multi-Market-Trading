@@ -236,6 +236,10 @@ def audit(*, policy_path: Path, market_path: Path, account_path: Path, ledger_pa
                       policy=policy, as_of=as_of)
     baseline = _account(_read(ledger_path, ledger_sha256), provider=None,
                         policy=policy, as_of=as_of)
+    # Equal values from distinct capture times are not a single reconciled
+    # synthetic snapshot. No tolerance is safe without a sequence authority.
+    if source["observed_at"] != baseline["observed_at"]:
+        raise R42Refused("R42_ACCOUNT_LEDGER_TIMESTAMP_DRIFT")
     if source["balances"] != baseline["balances"]:
         raise R42Refused("R42_ACCOUNT_EQUITY_OR_MARGIN_DRIFT")
     if source["positions"] != baseline["positions"]:
