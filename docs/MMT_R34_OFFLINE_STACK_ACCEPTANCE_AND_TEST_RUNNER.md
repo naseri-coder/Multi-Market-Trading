@@ -63,3 +63,23 @@ The JSON report must be kept in a previously created private `0700` owner direct
 **As of creation of this PR:** GitHub tool verification of changed files and PR lineage is available. **Full repo pytest, Ruff, CodeQL, actual future market research, cold restore and signed deployment have NOT been executed here.**
 
 **Disposition:** `MMT_R34_OFFLINE_TEST_EVIDENCE_PREPARED_NOT_ACCEPTED` — no release, no merge, no orders.
+
+## 2026-10-16 continuation: performed Python file inventory check (limited PASS)
+
+A real GitHub connector comparison enumerated the changed filenames for PRs #320 through #327 (R27–R34). It computed their distinct changed Python source/test paths, and compared the result against this PR's static sources, per-stage unit tests and R34 self-test.
+
+| Audit item | Observed |
+|---|---|
+| PRs reviewed by filename | 8 (#320–#327) |
+| Distinct changed Python files | 24 |
+| Python source and CLI files in static audit | 16 |
+| Python test files in static audit | 8 |
+| Changed Python files missing from source/test inventory | **0** |
+| Unexpected Python files in declared inventory | **0** |
+| Result of filename-coverage comparison | **PASS** |
+
+This is ONLY a filename/coverage comparison. It does **not** mean AST passed, Ruff passed, pytest passed, CodeQL passed, security or provenance independently verified, or LIVE approved.
+
+The coverage gap was corrected: R27 source, R28 supervisor modification, R29 CLI modules, R32 review CLIs and R33 CLI are now included. The test runner was also amended to launch explicitly approved tests in a separate POSIX session and kill the process group on deadline, instead of potentially leaving subprocess children. Synthetic negative regressions were authored but **not executed**. The test runner now refuses Python versions other than 3.12 for pytest and checks local source bytes against pinned Git blobs before/after each selected session.
+
+**Remaining execution blocker:** the local sandbox cannot download the full GitHub checkout; available Python is 3.13.5 rather than project-required 3.12. Consequently the actual R27–R34 pytest, full unit suite, Ruff and CodeQL remain **NOT_RUN**, not PASS. No GitHub Actions, server or production service was used.
