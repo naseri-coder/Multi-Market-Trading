@@ -11,10 +11,7 @@ import csv
 import hashlib
 import io
 import json
-import os
-import re
 from datetime import timedelta
-from pathlib import Path
 
 from .brooks_prospective_forward_custody_stage21c_v1 import (
     _gate,
@@ -35,7 +32,6 @@ _CANONICAL_SIGNER_SHA = "8bfb0305bb64e2571ca507552ef3245cb1c2fee8728e0ff86892250
 _API_ORIGIN = "https://fapi.binance.com"
 _API_PATH = "/fapi/v1/klines"
 _MAX_PAYLOAD = 131072
-_SHA = re.compile(r"[a-f0-9]{64}\Z")
 
 
 class Stage21AdmissionRefused(ValueError):
