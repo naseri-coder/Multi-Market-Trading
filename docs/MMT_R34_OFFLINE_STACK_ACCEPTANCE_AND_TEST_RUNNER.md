@@ -497,3 +497,41 @@ inspect process, CAS disable with history preservation, and negative
 post-disable replay. Record only synthetic counts/journal SHA; no tokens,
 brokers, external plugins, original private NYFR or real market access.
 **This next acceptance is not yet executed.**
+
+## 2026-10-16 real installed toy PAPER journal lifecycle completed
+
+At the previously hash-verified installed `multi-market-trading 0.4.0rc1`
+Wheel in the disposable Termux/Ubuntu venv, the operator supplied an
+actual stdout JSON report:
+
+```json
+{
+  "verdict": "INSTALLED_PAPER_JOURNEY_PASS",
+  "state_directory": "/root/mmt-r34-wheel.7iTGsSLb/paper-journey-23de4a99",
+  "signals": 1,
+  "final_enabled": false,
+  "final_revision": 3,
+  "journal_sha256": "015292069633e98793514df8af4148eb31dc132bb6b6e72415a9cfad30f89572",
+  "live_authorized": false
+}
+```
+
+The operator's isolated Python harness invoked the installed
+`naseri-paper-demo` entrypoint as independent OS processes with
+`MMT_NONPRODUCTION=1`. It asserted initial disabled revision 1, blocked
+replay before enable, explicitly SHA-pinned enable at revision 2,
+exactly one `RECORDED` synthetic PAPER event, repeat `DUPLICATE`
+without digest change, independent-process `inspect` persistence,
+CAS disable to revision 3 preserving journal content, and disabled
+post-stop replay; it checked all obtained reports consistently claimed
+no broker order, Telegram delivery or release authority. This confirms
+a real *installed* toy-only lifecycle, not full-service Stage12→7/8/9/10
+integration or production readiness.
+
+**Next operator-only evidence target:** SQLite `PRAGMA integrity_check`,
+`foreign_key_check`, a consistent SQLite online backup made only from
+this disposable closed toy journal, and a read-only `inspect` of a
+new isolated recovered copy. This will test one limited cold restore,
+not a full disaster-recovery or corruption/fault-injection program.
+Do not overwrite the original toy journal or use any production
+SQLite file. R27 deferred, release/live/broker/Telegram deny unchanged.
