@@ -77,14 +77,30 @@ def _head(root: Path, sha: str) -> None:
 def _bytes(root: Path, rel: str, *, limit: int = 1_048_576) -> bytes:
     file = root / rel
     if (file.is_symlink() or not file.is_file()
-            or file.resolve(strict=True).is_relative_to(root) is False):
+            or any(item.is_symlink() for item in file.parents
+                   if item != root and item.is_relative_to(root))
+            or not file.resolve(strict=True).is_relative_to(root)):
         raise R34AcceptanceRefused("R34_SOURCE_PATH_INVALID")
     try:
-        value = file.read_bytes()
+        fd = os.open(file, os.O_RDONLY | os.O_NOFOLLOW)
+        try:
+            st = os.fstat(fd)
+            if (not stat.S_ISREG(st.st_mode) or st.st_nlink != 1
+                    or not 1 <= st.st_size <= limit):
+                raise R34AcceptanceRefused("R34_REGULAR_BOUNDED_SOURCE_REQUIRED")
+            with os.fdopen(fd, "rb", closefd=False) as stream:
+                value = stream.read(limit + 1)
+        finally:
+            os.close(fd)
     except OSError as exc:
         raise R34AcceptanceRefused("R34_SOURCE_READ_FAILED") from exc
-    if not 1 <= len(value) <= limit:
-        raise R34AcceptanceRefused("R34_SOURCE_SIZE_INVALID")
+    if len(value) != st.st_size:
+        raise R34AcceptanceRefused("R34_CHANGED_SOURCE_DURING_READ")
+    # Git status can conceal assume-unchanged or skip-worktree modifications:
+    # verify the EXACT bytes parsed/executed against the HEAD blob identity.
+    obj = b"blob " + str(len(value)).encode("ascii") + b"\x00" + value
+    if hashlib.sha1(obj).hexdigest() != _git(root, "rev-parse", "HEAD:" + rel):
+        raise R34AcceptanceRefused("R34_PINNED_SOURCE_BLOB_MISMATCH")
     return value
 
 
@@ -192,6 +208,9 @@ def collect_r34_offline_evidence(
     )):
         raise R34AcceptanceRefused("R34_BOOLEAN_TEST_SELECTION_REQUIRED")
     _head(root, expected_head)
+    pre_syntax = _syntax(root)
+    if pre_syntax.status != "PASS":
+        raise R34AcceptanceRefused("R34_SOURCE_STATIC_PREFLIGHT_FAILED")
     results = []
     for stage, test_path in _STAGE_UNIT_TARGETS.items():
         results.append(
@@ -216,7 +235,11 @@ def collect_r34_offline_evidence(
         ), SUITE_TIMEOUT)
         if run_full_suite else R34ToolFinding("FULL_UNIT_SUITE", "NOT_RUN", None, None)
     )
-    results.append(_syntax(root))
+    post_syntax = _syntax(root)
+    if (post_syntax.status != "PASS"
+            or post_syntax.output_sha256 != pre_syntax.output_sha256):
+        raise R34AcceptanceRefused("R34_SOURCE_CHANGED_DURING_TEST_SESSION")
+    results.append(post_syntax)
     clean_after = not _git(
         root, "status", "--porcelain=v1", "--untracked-files=all",
     )
