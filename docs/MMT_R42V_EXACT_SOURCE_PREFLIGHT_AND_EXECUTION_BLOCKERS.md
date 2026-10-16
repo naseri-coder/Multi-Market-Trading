@@ -5,6 +5,8 @@
 **Upstream chain:** R41 Draft #334 → R42 canonical candidate Draft #336 → R42-C Draft #337 → this R42-V evidence-only Draft.  
 **Pin:** R42-C reviewed head `3624bce93a20dd9dfe7b22928055c718d6a8f85e`. Do not substitute moving branch names for this evidence.
 
+> **Update dated 2026-10-16 (supersedes the earlier local-execution PENDING claim below):** The exact committed R42-C source and test files were subsequently reconstructed and Git-blob verified in the isolated nonroot assistant container and **48/48 committed synthetic tests PASSED on Python 3.13.5**, repeated under strict dev/warnings with plugin autoload off and under coverage. The three new cases correctly failed against a disposable timestamp-gate-removal mutation. See [actual executed evidence](MMT_R42V_LOCAL_EXACT_COMMITTED_TEST_RESULTS_20261016.md). **Python 3.12 runtime, Ruff, full-repository tests, installed nonroot acceptance and real provider/account verification remain PENDING**. The historical below report records the earlier checkpoint, not the most recent result.
+
 ## Exact GitHub file identities
 
 | Path | Git blob SHA-1 at the reviewed R42-C head |
