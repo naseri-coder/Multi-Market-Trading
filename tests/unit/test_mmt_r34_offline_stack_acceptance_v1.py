@@ -175,6 +175,7 @@ def test_r34_default_cli_collect_uses_only_static_parse(monkeypatch):
 
 def test_r34_stage_runner_explicit_approved_commands_and_only_allowlist(monkeypatch):
     monkeypatch.setattr(runner, "_project_python_preflight", lambda *_: None)
+    monkeypatch.setattr(runner, "_project_toolchain_preflight", lambda **_: None)
     cmds = []
 
     def fake_run(root, name, argv, timeout):
@@ -278,6 +279,7 @@ def test_r34_static_preflight_failure_prevents_test_execution(monkeypatch):
 
 def test_r34_posttest_source_digest_drift_is_denied(monkeypatch):
     monkeypatch.setattr(runner, "_project_python_preflight", lambda *_: None)
+    monkeypatch.setattr(runner, "_project_toolchain_preflight", lambda **_: None)
     visits = []
     monkeypatch.setattr(runner, "_head", lambda *_: None)
     def changed_syntax(_):
@@ -471,3 +473,43 @@ def test_r34_output_limit_can_never_count_as_success():
     assert item.status == "OUTPUT_LIMIT"
     with pytest.raises(a34.R34AcceptanceRefused, match="UNTRUSTED_TEST_RESULT"):
         a34.R34ToolFinding("R31", "MAYBE_PASS", 0, digest())
+
+
+def test_r34_pinned_pytest_asyncio_ruff_versions_accept_only_exact(monkeypatch):
+    required = {
+        "pytest": "9.1.1",
+        "pytest-asyncio": "1.4.0",
+        "ruff": "0.16.9",
+    }
+    monkeypatch.setattr(
+        runner.metadata, "version", lambda name: required[name],
+    )
+    runner._project_toolchain_preflight(
+        pytest_needed=True, ruff_needed=True,
+    )
+
+
+def test_r34_wrong_pinned_test_toolchain_is_refused(monkeypatch):
+    observed = {
+        "pytest": "9.0.2",
+        "pytest-asyncio": "1.3.0",
+        "ruff": "0.16.9",
+    }
+    monkeypatch.setattr(
+        runner.metadata, "version", lambda name: observed[name],
+    )
+    with pytest.raises(a34.R34AcceptanceRefused, match="PINNED_TEST_TOOL"):
+        runner._project_toolchain_preflight(
+            pytest_needed=True, ruff_needed=True,
+        )
+
+
+def test_r34_unavailable_pinned_ruff_is_refused(monkeypatch):
+    def missing(_):
+        raise runner.metadata.PackageNotFoundError("ruff")
+
+    monkeypatch.setattr(runner.metadata, "version", missing)
+    with pytest.raises(a34.R34AcceptanceRefused, match="REQUIRED_TEST_TOOL"):
+        runner._project_toolchain_preflight(
+            pytest_needed=False, ruff_needed=True,
+        )
