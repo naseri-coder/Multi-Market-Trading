@@ -6,6 +6,21 @@ structure, not an assurance that eight phases suffice to certify
 broker-connected/live operation. Keep all PRs Draft/unmerged until their
 acceptance and the separate integration policy is resolved.
 
+## R42-C canonical source review checkpoint (not operational acceptance)
+
+R42 has **two diverged Draft implementations**, #335 and #336, sharing R41 #334.
+The strictly pinned, four-input **synthetic evidence auditor** in #336 was
+selected as the **only canonical R42 source candidate** for future review.
+Its R42-C descendant adds a hard denial on mismatched `observed_at` timestamps
+between synthetic account and local ledger and three authored regression
+scenarios. The separate Ed25519-based #335 remains Draft research; do not
+merge both sibling branches or treat local signatures as real provider provenance.
+See `docs/MMT_R42C_CANONICAL_SELECTION_AND_DIVERGENCE.md`.
+
+**R42-C source-selection code authored; exact committed GitHub tests on Python 3.12,
+whole-stack installation and real account/feed evidence still PENDING.**
+Keep R43/R44 unstarted and all Stage15 release blockers unchanged.
+
 ## Current verified baseline
 
 - R34 original `multi-market-trading==0.4.0rc1` public-only Wheel
