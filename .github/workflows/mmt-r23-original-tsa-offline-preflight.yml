@@ -1,0 +1,71 @@
+name: MMT R23 offline genuine original FreeTSA witness proof
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/mmt-r23-original-tsa-offline-preflight.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  original-third-party-stamp-offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - name: Checkout proposed exact MMT research commit without credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Use Python 3.12 with OS OpenSSL, no trading or account dependencies
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Retrieve only original external timestamp artifact from approved historical GitHub run
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: stage21e-external-rfc3161-brooks-preregistration
+          repository: naseri-coder/Multi-Market-Trading
+          run-id: 38835965013
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/r23-original-witness/
+      - name: Inspect original externally signed timestamp bytes and study window OFFLINE
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+          PYTHONPATH: "."
+          MMT_NONPRODUCTION: "1"
+          MMT_PRODUCTION: "0"
+          R23_ORIGINAL_WITNESS_FOLDER: ${{ runner.temp }}/r23-original-witness
+        run: |
+          python3 - <<'PY'
+          from datetime import UTC, datetime
+          from pathlib import Path
+          import os
+          from naseri_markets.brooks_termux_readiness_mmt_r23_v1 import (
+              stage23_offline_witness_preflight,
+          )
+          original=Path(os.environ["R23_ORIGINAL_WITNESS_FOLDER"]).resolve(strict=True)
+          result=stage23_offline_witness_preflight(
+              evidence_directory=original,
+              at_utc=datetime.now(UTC),
+              operator_ack=True,
+          )
+          assert result["actual_external_rfc3161_signature_verified"] is True
+          assert result["canonical_frozen_plan_sha256"] == (
+              "c557e8792ff7f097ee483903e2e6702c622a20f3975af898ee9aca7e257ad94d"
+          )
+          assert result["externally_signed_timestamp_utc"] == (
+              "2026-10-16T01:36:00+00:00"
+          )
+          assert result["study_start_utc"] == "2026-10-20T00:00:00Z"
+          assert result["study_end_utc"] == "2026-11-03T00:00:00Z"
+          assert result["future_market_candles_received"] is False
+          assert result["paper_mode_active"] is False
+          assert result["live_orders_authorized"] is False
+          assert result["production_modified"] is False
+          print("MMT_R23_GENUINE_EXTERNAL_RFC3161_ORIGINAL_ARTIFACT_CRYPTO_PASS")
+          print("MMT_R23_SIGNED_UTC="+result["externally_signed_timestamp_utc"])
+          print("MMT_R23_NO_DATA_COLLECTED_NO_PAPER_NO_ORDERS")
+          PY
