@@ -11,7 +11,9 @@ import csv
 import hashlib
 import io
 import json
+import re
 from datetime import timedelta
+from decimal import Decimal
 
 from .brooks_prospective_forward_custody_stage21c_v1 import (
     _gate,
@@ -32,6 +34,7 @@ _CANONICAL_SIGNER_SHA = "8bfb0305bb64e2571ca507552ef3245cb1c2fee8728e0ff86892250
 _API_ORIGIN = "https://fapi.binance.com"
 _API_PATH = "/fapi/v1/klines"
 _MAX_PAYLOAD = 131072
+_VENUE_DECIMAL = re.compile(r"(?:0|[1-9][0-9]{0,17})(?:\.[0-9]{1,12})?\Z")
 
 
 class Stage21AdmissionRefused(ValueError):
@@ -49,12 +52,45 @@ def _canon(v: object) -> bytes:
     ).encode("ascii")
 
 
+def _strict_venue_decimal(value: object, *, positive: bool = False) -> Decimal:
+    if type(value) is not str or not _VENUE_DECIMAL.fullmatch(value):
+        raise Stage21AdmissionRefused("ST21F_NONCANONICAL_VENUE_NUMBER_REFUSED")
+    parsed = Decimal(value)
+    if positive and parsed <= 0:
+        raise Stage21AdmissionRefused("ST21F_POSITIVE_VENUE_PRICE_REQUIRED")
+    return parsed
+
+
+def _strict_venue_integer(value: object) -> int:
+    if type(value) is not int or not 0 <= value <= 9999999999999:
+        raise Stage21AdmissionRefused("ST21F_INVALID_VENUE_INTEGER")
+    return value
+
+
+def _reject_nonfinite_constant(_value: str) -> None:
+    raise Stage21AdmissionRefused("ST21F_NONFINITE_JSON_CONSTANT")
+
+
+def _reject_duplicate_json_fields(fields: list[tuple[str, object]]) -> dict:
+    output = {}
+    for key, value in fields:
+        if key in output:
+            raise Stage21AdmissionRefused("ST21F_DUPLICATE_JSON_FIELDS")
+        output[key] = value
+    return output
+
+
 def _rows(raw: bytes, *, start, expected: int) -> bytes:
     """Strict canonical Binance futures REST 12-column payload, no extra rows."""
     if type(raw) is not bytes or not 2 <= len(raw) <= _MAX_PAYLOAD:
         raise Stage21AdmissionRefused("ST21F_BOUNDED_ORIGINAL_PROVIDER_BYTES_REQUIRED")
     try:
-        data = json.loads(raw, parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
+        data = json.loads(
+            raw.decode("ascii"), parse_constant=_reject_nonfinite_constant,
+            object_pairs_hook=_reject_duplicate_json_fields,
+        )
+    except Stage21AdmissionRefused:
+        raise
     except (ValueError, UnicodeError, TypeError) as exc:
         raise Stage21AdmissionRefused("ST21F_BAD_RAW_KLINE_JSON") from exc
     if (type(data) is not list or len(data) != expected
@@ -65,11 +101,19 @@ def _rows(raw: bytes, *, start, expected: int) -> bytes:
     csvwriter.writerow(("open_at", "close_at", "open", "high", "low", "close", "volume"))
     for n, row in enumerate(data):
         open_ms = int((start + timedelta(minutes=15*n)).timestamp() * 1000)
-        if (type(row[0]) is not int or type(row[6]) is not int
-                or row[0] != open_ms or row[6] != open_ms + 900000 - 1):
+        if (_strict_venue_integer(row[0]) != open_ms
+                or _strict_venue_integer(row[6]) != open_ms + 900000 - 1):
             raise Stage21AdmissionRefused("ST21F_MISSING_DUPLICATED_OR_UNCLOSED_KLINE_GRID")
-        if any(type(row[j]) is not str for j in (1, 2, 3, 4, 5)):
-            raise Stage21AdmissionRefused("ST21F_STRICT_MARKET_PRICE_TYPES_REQUIRED")
+        opening, high, low, closing = (
+            _strict_venue_decimal(row[j], positive=True) for j in (1, 2, 3, 4)
+        )
+        for j in (5, 7, 9, 10):
+            _strict_venue_decimal(row[j])
+        _strict_venue_integer(row[8])
+        if row[11] != "0" or type(row[11]) is not str:
+            raise Stage21AdmissionRefused("ST21F_RESERVED_VENUE_COLUMN_DRIFT")
+        if not low <= min(opening, closing) <= max(opening, closing) <= high:
+            raise Stage21AdmissionRefused("ST21F_INVALID_VENUE_OHLC_GEOMETRY")
         csvwriter.writerow((
             _iso(start + timedelta(minutes=15*n)),
             _iso(start + timedelta(minutes=15*(n+1))),
