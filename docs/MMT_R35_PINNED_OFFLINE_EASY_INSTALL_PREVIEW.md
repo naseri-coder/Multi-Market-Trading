@@ -108,3 +108,31 @@ permissions false. Their negative output confirmed
 `R35_INSTALLATION_NOT_YET_ACCEPTED` (the actual non-root path was
 not run). Do not merge Draft PR, circumvent non-root checks, install
 old v0.3.2 runtime or operate any connected/live services.
+
+## 2026-10-16 operator rerun at corrected R35 HEAD — PASS
+
+In the disposable Android/Termux PRoot Ubuntu Python 3.12 test checkout
+`/root/mmt-r35-lab`, the operator fast-forwarded to exact Git commit
+`1d0795126e226d72b276cda86e9dcf49c8198121`. The real command
+`python -m ruff check --no-cache` for both the R35 installer and its
+unit test returned **`All checks passed!`**, and isolated
+`pytest -q -p no:cacheprovider -p pytest_asyncio.plugin --noconftest`
+for the R35 unit module returned **`14 passed in 3.49s`**.
+The operator's `git status --short` reported no local changes.
+
+These results supersede the earlier pending style-retest note. The
+previous operator `--check-only` against the exact SHA256-pinned local
+Wheel had already returned `R35_OFFLINE_WHEEL_PREFLIGHT_PASS` and
+`NO_INSTALL_WRITES_CONFIRMED` at the same application-code version;
+the intervening change only reformatted one negative test and this
+document. No actual R35 `--install` was performed.
+
+**Verified status:** `R35_RUFF_AND_14_UNIT_PASS` +
+`R35_CHECK_ONLY_PASS`. **Outstanding:**
+`R35_REAL_NONROOT_INSTALL_AND_ISOLATED_RESULT_PENDING`. The current
+PRoot root identity cannot establish a genuine independent kernel-level
+non-root security boundary; an emulated UID in PRoot should never be
+reported as an independent host-isolation acceptance. Before any
+further state-changing test, inspect the available environment and
+identify an explicitly disposable non-root test context. Keep this PR
+Draft, preserve historical runtime and refuse real trading/Telegram.
