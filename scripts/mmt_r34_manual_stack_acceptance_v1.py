@@ -35,9 +35,8 @@ TEST_TIMEOUT = 240
 SUITE_TIMEOUT = 900
 _RUFF_TARGETS = (
     *_STATIC_SOURCES,
-    "naseri_markets/mmt_r34_offline_stack_acceptance_v1.py",
-    "scripts/mmt_r34_manual_stack_acceptance_v1.py",
     *_STAGE_UNIT_TARGETS.values(),
+    "tests/unit/test_mmt_r34_offline_stack_acceptance_v1.py",
 )
 
 
@@ -107,7 +106,10 @@ def _bytes(root: Path, rel: str, *, limit: int = 1_048_576) -> bytes:
 def _syntax(root: Path) -> R34ToolFinding:
     buffer = bytearray()
     try:
-        for rel in (*_STATIC_SOURCES, *tuple(_STAGE_UNIT_TARGETS.values())):
+        for rel in (
+            *_STATIC_SOURCES, *tuple(_STAGE_UNIT_TARGETS.values()),
+            "tests/unit/test_mmt_r34_offline_stack_acceptance_v1.py",
+        ):
             raw = _bytes(root, rel)
             ast.parse(raw, filename=rel)
             buffer += hashlib.sha256(raw).digest()
