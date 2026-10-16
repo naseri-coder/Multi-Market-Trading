@@ -301,3 +301,47 @@ pathname with a symlink after the directory descriptor is opened.
 pytest run. The existing R27 frozen Brooks worker failure remains separate and
 explicitly deferred. No LIVE, broker or Telegram sending capability was added;
 R33 remains `LIVE_HARD_DENY`.
+
+## 2026-10-16 operator-confirmed selected R28–R34 acceptance milestone
+
+The user/operator in an explicitly disposable **Termux PRoot Ubuntu 24.04**
+checkout ran genuine Python **3.12.3** tests after fast-forwarding to the exact
+Draft PR #327 commit:
+
+`cf3cb3d9fc9a6470ef3e0988d81295c8026c1c47`
+
+They supplied actual local console output. The commands and observed results:
+
+- `python -m ruff check --no-cache` over **all eight changed Python files
+  in this PR**: **`All checks passed!`**.
+- `python -m pytest -q -p no:cacheprovider -p pytest_asyncio.plugin
+  --noconftest --maxfail=1` over seven selected unit-test files:
+  `test_offline_runtime_supervisor_v1.py`, R29, R30, R31, R32, R33
+  and R34: **`135 passed in 18.94s`**.
+- `git status --short`: **empty** (clean checkout at reported head).
+
+This **overrides earlier pending-retest notes** for these specific tests,
+including R30/R32/R33's now accepted regressions and R34's own 35 tests.
+The result is genuine selected *unit-test* and Ruff evidence; it is **not**
+a full repository test suite, full 24-file R27–R34 static audit, installed
+wheel proof, source-signature verification, CodeQL, Docker/database
+integration evidence, adversarial sandbox attestation, or a production
+release authorization. Shared project `conftest.py` was explicitly skipped.
+The R27 real frozen Brooks worker smoke reported a separate failure and
+remains **DEFERRED / NOT_ACCEPTED**, never silently waived.
+
+Read-only GitHub inspection confirms this repository ships *two*
+different installation identities: the historical `crypto-price-action
+0.3.2` root Docker/manager path and the separate public
+`multi-market-trading 0.4.0rc1` nonproduction preview. Do **not** claim that
+`bash markets.sh` installs the new multi-market product. An existing
+`scripts/a6_release_preflight.py` performs a **read-only** separation and
+metadata check; it is an appropriate, bounded next manual acceptance step
+before deciding on an isolated, non-root preview install. The existing
+`scripts/install_platform_dev.sh` explicitly refuses root and modifies
+state, so it must not be run inside the current root PRoot session.
+
+**Current stage status:** `R34_SELECTED_R28_TO_R34_135_UNIT_TESTS_PASS`
+with Ruff PASS and clean Git; `REVIEW_ONLY_RELEASE_BLOCKED` remains the
+only authorized release decision. No LIVE, connected PAPER, broker order,
+Telegram send, deployment, production database, merge or GitHub Actions.
