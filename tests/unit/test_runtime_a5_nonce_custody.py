@@ -7,6 +7,7 @@ import json
 import os
 import sqlite3
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
 
@@ -31,16 +32,29 @@ OPERATORS = frozenset({101})
 
 
 def _profile(monkeypatch, kind=RuntimeKind.PYTHON):
-    monkeypatch.setattr(os, "geteuid", lambda: 1001)
-    return RuntimeProfile(
-        kind,
-        SecurePluginPolicy(
+    """Build the synthetic rootless profile for a fixture Docker endpoint.
+
+    The synthetic endpoint pretends to belong to uid 1001, so the policy object
+    is validated while a fake effective uid is installed.  The patch is scoped
+    with ``monkeypatch.context()`` - the same convention as
+    ``test_durable_isolated_core_gate_stage22_v1.host`` - because the ledger
+    files created by these tests must keep satisfying the *real* owner check in
+    ``naseri_markets.durable_runtime_a3._approved_dir``.  Leaving the fake uid
+    installed made the whole module pass only on hosts whose user id happens to
+    be 1001 (the GitHub-hosted runner) and fail everywhere else.
+    """
+    with monkeypatch.context() as local:
+        local.setattr(os, "geteuid", lambda: 1001)
+        policy = SecurePluginPolicy(
             enabled=True,
             image="registry.invalid/fixture@sha256:" + "a" * 64,
             docker_binary="/usr/bin/docker",
             docker_socket="unix:///run/user/1001/docker.sock",
             timeout_seconds=3.0,
-        ),
+        )
+    return RuntimeProfile(
+        kind,
+        policy,
         reviewed_image_sha256="a" * 64,
         worker_reviewed=True,
     )
@@ -192,6 +206,40 @@ def test_revoke_blocks_review_and_no_release(tmp_path, monkeypatch):
             )
     finally:
         ledger.close()
+
+
+def test_ledger_directory_must_be_private_and_owned_by_effective_uid(tmp_path, monkeypatch):
+    """The A3 private-directory fence must fail closed for unsafe parents.
+
+    This keeps the owner/permission half of ``_approved_dir`` covered without
+    faking the effective uid: an exposed parent directory is refused, while the
+    owner-only directory owned by the real test user is accepted.
+    """
+    monkeypatch.setenv("MMT_NONPRODUCTION", "1")
+    exposed = tmp_path / "exposed"
+    exposed.mkdir(mode=0o755)
+    with pytest.raises(DurableRuntimeRefused,
+                       match="PRIVATE_OWNER_ONLY_DIRECTORY_REQUIRED"):
+        RuntimeChallengeLedger(exposed / "a5.sqlite")
+    private = tmp_path / "private"
+    private.mkdir(mode=0o700)
+    ledger = RuntimeChallengeLedger(private / "a5.sqlite")
+    try:
+        assert _issue(ledger, _profile(monkeypatch)).execution_authorized is False
+    finally:
+        ledger.close()
+
+
+def test_relative_or_symlinked_ledger_paths_are_refused(tmp_path, monkeypatch):
+    monkeypatch.setenv("MMT_NONPRODUCTION", "1")
+    with pytest.raises(DurableRuntimeRefused,
+                       match="PRIVATE_ABSOLUTE_LEDGER_PATH_REQUIRED"):
+        RuntimeChallengeLedger(Path("relative.sqlite"))
+    link = tmp_path / "symlinked"
+    link.symlink_to(tmp_path)
+    with pytest.raises(DurableRuntimeRefused,
+                       match="PRIVATE_ABSOLUTE_LEDGER_PATH_REQUIRED"):
+        RuntimeChallengeLedger(link / "a5.sqlite")
 
 
 def test_operator_and_environment_gates(tmp_path, monkeypatch):

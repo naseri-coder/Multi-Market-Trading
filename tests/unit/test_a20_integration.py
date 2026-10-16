@@ -37,6 +37,23 @@ def await_state(predicate, duration=3.5):
     pytest.fail("A20_MONOTONIC_GUARDIAN_TRANSITION_NOT_SEEN")
 
 
+# These tests drive a real scoped worker through ``systemd-run`` and the A18
+# guardian, which refuses to run outside an ephemeral non-root GitHub runner
+# (see ``ephemeral_runner_gap`` in tests/conftest.py).  Declaring the capability
+# keeps them honest: they run for real on the runner, they are skipped with an
+# explicit reason elsewhere, and ``MMT_REQUIRE_EPHEMERAL_RUNNER=1`` turns the
+# gap back into a hard failure.
+EPHEMERAL_RUNNER_TESTS = frozenset({
+    "test_a20_untampered_signed_start_strict_worker_real_kernel_cgroup",
+    "test_a20_invalid_profile_does_not_fallback_to_basic_fixture",
+    "test_a20_current_grant_revocation_stops_real_scoped_worker",
+    "test_a20_publisher_revocation_stops_without_scope_escape",
+    "test_a20_scope_expires_on_independent_lease_without_renew",
+    "test_a20_tamper_a14_archive_denies_scope_lease",
+    "test_a20_broken_kernel_report_quarantines_active_signed_renew",
+    "test_a20_real_manager_sigkill_scope_lease_expiry_and_manual_recovery",
+})
+
 @pytest.fixture
 def signed_fixture(tmp_path):
     p = FakeProvisioner()
