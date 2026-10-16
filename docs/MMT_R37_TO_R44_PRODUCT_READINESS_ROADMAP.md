@@ -1,7 +1,7 @@
 # Multi-Market-Trading: bounded roadmap R37–R44 (2026-10-16)
 
 **Status: proposed 8 engineering milestones from the current R36 supply-chain
-evidence; R37 DRAFT/SYNTHETIC-TESTED; R38 DRAFT IMPLEMENTED/NOT ACCEPTED; R39 DRAFT IMPLEMENTED/NOT ACCEPTED; R40–R44 NOT STARTED.** This is an planning
+evidence; R37 DRAFT/SYNTHETIC-TESTED; R38 DRAFT IMPLEMENTED/NOT ACCEPTED; R39 DRAFT/NOT ACCEPTED; R40 DRAFT/NOT ACCEPTED; R41–R44 NOT STARTED.** This is an planning
 structure, not an assurance that eight phases suffice to certify
 broker-connected/live operation. Keep all PRs Draft/unmerged until their
 acceptance and the separate integration policy is resolved.
@@ -28,7 +28,7 @@ acceptance and the separate integration policy is resolved.
 | **R37** | Define canonical signed preview manifest, independent pinned trust anchor and fail-closed Ed25519 verification; no real private key in repo | External key custody/revocation policy, authenticated key fingerprint and Python 3.12 negative tests; signed *preview* only | **DRAFT IMPLEMENTED: 23 assistant-local synthetic tests PASS; real publisher key and Python 3.12 acceptance PENDING** |
 | **R38** | Separate signed-only *preview* wrapper with externally pinned trust policy; no change to unsigned R35 alternate preview path | 20 authored synthetic denial cases; requires actual Python 3.12 test, real publisher trust, nonroot installation evidence and signed-path migration review | **IMPLEMENTED DRAFT #331; TEST EXECUTION/REAL SIGNER PENDING** |
 | **R39** | Add dedicated nonroot, one-fixture synthetic PAPER authority journal ahead of existing Stage20 and Stage10 read-only reopen; no general runtime yet | 20 authored test cases include real two-binding synthetic integration, PENDING/QUARANTINED/no-auto-retry, drift and read-only receipt checks; genuine Python3.12 acceptance pending | **DRAFT CODE AUTHORED — NOT ACCEPTED, STAGE15 P0 STILL OPEN** |
-| **R40** | Clean installed end-to-end PAPER journey plus deferred frozen R27 Brooks full-core evidence; avoid waivers | Fresh disposable install, reset/restart/reconciliation, no connected order or signal, exact Brooks worker acceptance | PENDING |
+| **R40** | Read-only installed R39 synthetic PAPER acceptance inspector, module/source pin and six local SQLite content fingerprints; R27 Brooks explicitly DEFERRED | Authored 24 test functions with negative scenarios. Genuine newly built wheel, nonroot Python3.12 host, interrupted-job proof and Brooks full-core independent evidence all PENDING | **DRAFT CODE AUTHORED; NOT ACCEPTED; BROOKS DEFERRED** |
 | **R41** | Disposable independent Linux host hostile plugin tests, real least-privilege containment, secrets/operator identity | Rootless Docker + gVisor adversarial evidence, exfiltration/escape/cleanup and revocation review | PENDING; requires isolated host |
 | **R42** | Provider provenance, policy-based eligibility, authentic market feed quality and account reconciliation | Explicit venue/region eligibility, contract ID/data freshness, safe external account/equity/position reconcile without orders | PENDING |
 | **R43** | Authoritative Telegram receipt/UNKNOWN reconciliation and durable recovery/rollback/incident rehearsal | Private sandbox delivery acknowledgements and backoff, replay-proof outbox; restore, multi-worker soak, migration dry-run | PENDING |
@@ -36,7 +36,7 @@ acceptance and the separate integration policy is resolved.
 
 ## Counting rules
 
-- **8 named phases R37–R44 inclusive**. R37 is drafted, and R38 is drafted but **not accepted**; **5 later named phases R40–R44** remain in this proposed roadmap, plus R37/R38 outstanding trust and acceptance gates.
+- **8 named phases R37–R44 inclusive**. R37 is drafted, and R38 is drafted but **not accepted**; **4 later named phases R41–R44** remain in this proposed roadmap, plus R37/R38 outstanding trust and acceptance gates.
 - This is an **estimate of engineering bundles**, not the exact number
   of approvals, tests, PRs or calendar days required. Failed gates may
   add phases and independent-host validation cannot be performed on
