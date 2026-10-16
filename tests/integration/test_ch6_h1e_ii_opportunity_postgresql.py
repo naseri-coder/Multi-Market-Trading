@@ -22,6 +22,16 @@ from app.modules.signal_automation.models import SignalAutomationMetadata
 from app.modules.signal_automation.service import BrooksSignalIntegrationService
 from app.modules.signals.models import Signal
 
+# The disposable Chapter-6 database is provisioned only by the dedicated
+# PostgreSQL workflows.  Without it the module used to fail during fixture
+# setup with a bare KeyError; it now skips with an explicit capability reason.
+pytestmark = pytest.mark.skipif(
+    not (os.getenv("CH6_DISPOSABLE_DATABASE_URL")
+         and os.getenv("CH6_ISOLATED_SOURCE")),
+    reason="isolated disposable Chapter-6 PostgreSQL required "
+           "(CH6_DISPOSABLE_DATABASE_URL and CH6_ISOLATED_SOURCE)",
+)
+
 FIRST = datetime(2026, 9, 28, 0, 0, tzinfo=UTC)
 SECOND = FIRST + timedelta(minutes=15)
 

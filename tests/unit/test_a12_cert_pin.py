@@ -48,6 +48,31 @@ def _certificate(key, subject, issuer, signer, *,
         )
         .add_extension(x509.BasicConstraints(ca=ca, path_length=None), True)
     )
+    # RFC 5280 sections 4.2.1.1/4.2.1.2: an OpenSSL 3.5+ verification chain
+    # requires the SubjectKeyIdentifier / AuthorityKeyIdentifier id-pair and an
+    # explicit CA key usage.  Real certificate authorities always emit these
+    # extensions, so the ephemeral fixture emits them too - verification itself
+    # is not relaxed.  Without them the handshake aborts with
+    # "Missing Authority Key Identifier" / "CA cert does not include key usage"
+    # before any pinning behaviour can be observed.
+    builder = builder.add_extension(
+        x509.SubjectKeyIdentifier.from_public_key(key.public_key()), False,
+    )
+    if ca:
+        builder = builder.add_extension(
+            x509.KeyUsage(
+                digital_signature=True, content_commitment=False,
+                key_encipherment=False, data_encipherment=False,
+                key_agreement=False, key_cert_sign=True, crl_sign=True,
+                encipher_only=False, decipher_only=False,
+            ), True,
+        )
+    else:
+        builder = builder.add_extension(
+            x509.AuthorityKeyIdentifier.from_issuer_public_key(
+                signer.public_key()),
+            False,
+        )
     if dns:
         builder = builder.add_extension(
             x509.SubjectAlternativeName([x509.DNSName(dns)]), False,

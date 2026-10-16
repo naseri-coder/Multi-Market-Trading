@@ -22,10 +22,17 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "build==1.6.1",
+    # Test-only dependencies.  The public corpus imports them through
+    # ``pytest.importorskip`` in 36 modules, so leaving them out of the declared
+    # development environment turned hundreds of security/crypto and
+    # four-language worker tests into silent skips instead of executed checks.
+    "cryptography==46.0.3",
+    "pyarrow==26.0.0",
     "pyproject-hooks==1.3.3",
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
     "ruff==0.16.9",
+    "wasmtime==49.0.0",
 ]
 
 [project.scripts]
@@ -39,6 +46,10 @@ include = ["app*"]
 addopts = "-ra --strict-config --strict-markers"
 asyncio_mode = "auto"
 testpaths = ["tests"]
+# The corpus imports both the frozen product package (``app``) and the preview
+# platform package (``naseri_markets``) from the repository root; keep the root
+# importable for a plain ``pytest`` invocation, not only for ``python -m pytest``.
+pythonpath = ["."]
 
 [tool.ruff]
 line-length = 100
