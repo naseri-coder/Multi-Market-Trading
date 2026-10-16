@@ -9,7 +9,7 @@ description = "Public v0.3.2 crypto runtime preserved while NASERI MARKETS platf
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "alembic==1.20.0",
-    "asyncpg==0.31.0",
+    "asyncpg==0.32.0",
     "httpx==0.28.1",
     "matplotlib==3.11.2",
     "numpy==2.5.3",
