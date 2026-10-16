@@ -216,8 +216,13 @@ class R31PrivateTelegramAdminPanel:
         message = getattr(update, "effective_message", None)
         if message is None:
             return
+        # Never respond or expose admin UI in group/supergroup/channel contexts.
+        # Only a trusted PTB private Update may reach the command interpreter.
         try:
             actor = TelegramControlPreviewPanel._actor(update)
+        except ControlRefused:
+            return
+        try:
             text = getattr(message, "text", None)
             if type(text) is not str or len(text.encode("utf-8")) > 256:
                 raise R31AdminRefused("R31_COMMAND_BOUNDS")
