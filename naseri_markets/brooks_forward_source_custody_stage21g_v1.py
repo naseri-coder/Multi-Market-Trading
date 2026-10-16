@@ -172,6 +172,7 @@ def _date(text: str) -> datetime:
 def _prepare_admission(
     observation: Stage21GTransportObservation, *,
     requested_url: str, last_close: datetime, witness: dict[str, bytes],
+    previous_stage21c_receipt_bytes: bytes | None = None,
 ) -> tuple[dict, bytes, dict]:
     if (type(observation) is not Stage21GTransportObservation
             or observation.request_url != requested_url
@@ -204,7 +205,7 @@ def _prepare_admission(
         declared_http_status=observation.status,
         declared_tls_verified=True,
         operator_received_at_utc=observation.response_complete_utc,
-        previous_stage21c_receipt_bytes=None,
+        previous_stage21c_receipt_bytes=previous_stage21c_receipt_bytes,
         operator_ack=True,
     )
     trace = {
