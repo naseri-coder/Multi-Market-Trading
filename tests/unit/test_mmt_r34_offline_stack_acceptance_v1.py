@@ -614,3 +614,50 @@ def test_r34_git_checks_ignore_ambient_git_dir_and_config_injection(
         assert key not in kw["env"]
     assert kw["env"]["GIT_CONFIG_NOSYSTEM"] == "1"
     assert kw["env"]["GIT_OPTIONAL_LOCKS"] == "0"
+
+
+def test_r34_private_report_is_anchored_to_open_directory_fd(
+    monkeypatch, tmp_path,
+):
+    """Switch the pathname to a symlink AFTER opening the directory.
+
+    The receipt must stay inside the already-opened 0700 directory rather
+    than following the new alias into a world-readable destination.
+    """
+    parent = tmp_path / "private"
+    parent.mkdir(mode=0o700)
+    public = tmp_path / "public"
+    public.mkdir(mode=0o755)
+    moved = tmp_path / "original-private"
+    real_open = runner.os.open
+    switched = []
+
+    def swapped_open(path, flags, *args, **kwargs):
+        if path == parent and flags & runner.os.O_DIRECTORY and not switched:
+            directory_fd = real_open(path, flags, *args, **kwargs)
+            parent.rename(moved)
+            parent.symlink_to(public, target_is_directory=True)
+            switched.append(True)
+            return directory_fd
+        return real_open(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(runner.os, "open", swapped_open)
+    runner._private_new_report(parent / "receipt.json", b"private")
+    assert switched
+    assert (moved / "receipt.json").read_bytes() == b"private"
+    assert not (public / "receipt.json").exists()
+    assert (moved / "receipt.json").stat().st_mode & 0o077 == 0
+
+
+def test_r34_private_report_rejects_symlink_target_even_inside_private_dir(
+    tmp_path,
+):
+    parent = tmp_path / "private"
+    parent.mkdir(mode=0o700)
+    target = parent / "existing"
+    target.write_bytes(b"preserve")
+    link = parent / "receipt.json"
+    link.symlink_to(target)
+    with pytest.raises(a34.R34AcceptanceRefused, match="PRIVATE_NEW_REPORT"):
+        runner._private_new_report(link, b"forged")
+    assert target.read_bytes() == b"preserve"
