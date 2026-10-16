@@ -415,3 +415,46 @@ def test_r42c_mismatched_captures_cannot_claim_any_release(e):
         "--as-of-utc", kwargs["as_of_utc"],
         "--ack-synthetic-offline",
     ]) == 2
+
+
+@pytest.mark.parametrize("nesting", [12000, 16000])
+def test_r42vh_pathological_json_nesting_is_structured_refusal(e, nesting, capsys):
+    """Bounded-size adversarial JSON must not escape as RecursionError."""
+    _, kwargs, _ = e
+    payload = b'{"nested":' + b'[' * nesting + b'0' + b']' * nesting + b'}\n'
+    assert len(payload) < r._MAX_FILE
+    kwargs["policy_path"].write_bytes(payload)
+    kwargs["policy_sha256"] = hashlib.sha256(payload).hexdigest()
+    with pytest.raises(r.R42Refused, match="R42_EVIDENCE_INVALID_JSON"):
+        r.audit(**kwargs)
+    assert r.main([
+        "--policy", str(kwargs["policy_path"]),
+        "--policy-sha256", kwargs["policy_sha256"],
+        "--market", str(kwargs["market_path"]),
+        "--market-sha256", kwargs["market_sha256"],
+        "--account", str(kwargs["account_path"]),
+        "--account-sha256", kwargs["account_sha256"],
+        "--ledger", str(kwargs["ledger_path"]),
+        "--ledger-sha256", kwargs["ledger_sha256"],
+        "--region", kwargs["region"],
+        "--as-of-utc", kwargs["as_of_utc"],
+        "--ack-synthetic-offline",
+    ]) == 2
+    assert '"verdict": "R42_EVIDENCE_REFUSED"' in capsys.readouterr().out
+
+
+def test_r42vh_encoder_recursion_is_structured_refusal(e, monkeypatch):
+    """Even if JSON decoding succeeds, canonicalization must fail closed."""
+    _, kwargs, _ = e
+    original_json = r.json
+
+    class BrokenCanonicalEncoder:
+        loads = staticmethod(original_json.loads)
+
+        @staticmethod
+        def dumps(*args, **kwargs):
+            raise RecursionError("synthetic depth rejection")
+
+    monkeypatch.setattr(r, "json", BrokenCanonicalEncoder)
+    with pytest.raises(r.R42Refused, match="R42_EVIDENCE_INVALID_JSON"):
+        r._read(kwargs["policy_path"], kwargs["policy_sha256"])
