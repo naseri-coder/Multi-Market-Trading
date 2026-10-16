@@ -326,3 +326,63 @@ def test_cli_success(e, capsys):
     assert r.main(args) == 0
     obj = json.loads(capsys.readouterr().out)
     assert obj["remote_account_reconciled"] is False
+
+
+@pytest.mark.parametrize("field", ["market", "account", "ledger"])
+def test_schema_version_spoof(e, field):
+    o, k, ch = e
+    o[field]["schema"] = True
+    ch(field)
+    with pytest.raises(r.R42Refused, match="SCHEMA_VERSION_INVALID"):
+        r.audit(**k)
+
+
+def test_empty_exposure_not_proof_of_remote_truth(e):
+    o, k, ch = e
+    for field in ("account", "ledger"):
+        o[field]["positions"] = []
+        o[field]["open_orders"] = []
+        ch(field)
+    v = r.audit(**k)
+    assert v["positions_compared"] == v["orders_compared"] == 0
+    assert v["remote_account_reconciled"] is False
+
+
+def test_unapproved_feed_scope(e):
+    o, k, ch = e
+    o["policy"]["scope"] = "approved-live"
+    ch("policy")
+    with pytest.raises(r.R42Refused, match="REVIEW_POLICY_INVALID"):
+        r.audit(**k)
+
+
+def test_market_nan_volume(e):
+    o, k, ch = e
+    o["market"]["bars"][0]["volume"] = "NaN"
+    ch("market")
+    with pytest.raises(r.R42Refused, match="DECIMAL_STRING"):
+        r.audit(**k)
+
+
+def test_account_unknown_side(e):
+    o, k, ch = e
+    o["account"]["open_orders"][0]["side"] = "HOLD"
+    ch("account")
+    with pytest.raises(r.R42Refused, match="UNKNOWN_CONTRACT"):
+        r.audit(**k)
+
+
+def test_account_stale(e):
+    o, k, ch = e
+    o["account"]["observed_at"] = "2026-10-16T11:57:00Z"
+    ch("account")
+    with pytest.raises(r.R42Refused, match="ACCOUNT_STALE_OR_FUTURE"):
+        r.audit(**k)
+
+
+def test_distinct_pin_inputs_required(e):
+    _, k, _ = e
+    k["ledger_path"] = k["account_path"]
+    k["ledger_sha256"] = k["account_sha256"]
+    with pytest.raises(r.R42Refused, match="DISTINCT_EVIDENCE"):
+        r.audit(**k)
