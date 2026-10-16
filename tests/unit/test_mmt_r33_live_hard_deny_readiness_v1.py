@@ -240,3 +240,18 @@ def test_no_live_trade_api_is_exported():
     for name in ("create_live_order", "send_order", "submit_order",
                  "connect_exchange", "retry_unknown"):
         assert not hasattr(r33, name)
+
+
+def test_r33_public_baseline_claims_match_real_observed_sha_and_hard_deny():
+    from pathlib import Path
+
+    source = (Path(__file__).resolve().parents[2]
+              / "docs/evidence/MMT_R33_OPERATOR_CLAIMS_BASELINE_20261016.json")
+    read = cli.decode_offline_operator_claims(source.read_bytes())
+    assert tuple(p.head_sha for p in read.prs) == BASELINE_SHAS
+    assert all(p.draft and not p.merged and p.state == "open"
+               for p in read.prs)
+    assert not any(getattr(read, key) for key in r33._EVIDENCE_FLAG_FIELDS)
+    result = r33.review_r33_live_readiness(read, operator_ack=True)
+    assert result["decision"] == "LIVE_HARD_DENY"
+    assert result["can_route_order"] is False
