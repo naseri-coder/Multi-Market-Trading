@@ -184,6 +184,38 @@ def stage24_replay_all_previous_batches(
                     if index == 0 else ("MMT_R24_MANUAL_NEXT_FORWARD_BATCH_V1",)
                 )):
             raise Stage24CustodyRefused("R24_ATTEMPT_PARAMETERS_OR_PROTOCOL_DRIFT")
+        common_attempt_keys = {
+            "protocol", "canonical_plan_sha256", "requested_url",
+            "requested_closed_bars", "claimed_attempt_started_utc",
+        }
+        first_attempt_fields = {
+            "operator_ack", "no_live_or_connected_paper",
+            "provider_outage_unproven", "outcome",
+        }
+        continued_attempt_fields = {
+            "expected_first_open_utc", "expected_last_closed_utc",
+            "previous_batch_digest", "previous_inner_receipt_sha256",
+            "no_orders_no_connected_paper",
+        }
+        expected_attempt_keys = common_attempt_keys | (
+            first_attempt_fields if index == 0 else continued_attempt_fields
+        )
+        if frozenset(attempt) != expected_attempt_keys:
+            raise Stage24CustodyRefused("R24_ATTEMPT_EXACT_SCHEMA_REQUIRED")
+        attempt_time = _utc_iso(attempt["claimed_attempt_started_utc"])
+        if not next_close + timedelta(seconds=5) <= attempt_time <= (
+            next_close + _MAX_WAIT_AFTER_CLOSE
+        ):
+            raise Stage24CustodyRefused("R24_ATTEMPT_DATE_OUTSIDE_CLOSED_WINDOW")
+        if index == 0 and (
+            attempt["operator_ack"] is not True
+            or attempt["no_live_or_connected_paper"] is not True
+            or attempt["provider_outage_unproven"] is not True
+            or attempt["outcome"] != "CAPTURE_ATTEMPT_NOT_YET_RESOLVED"
+        ):
+            raise Stage24CustodyRefused("R24_INITIAL_SOURCE_ATTEMPT_FIELDS_DRIFT")
+        if index and attempt["no_orders_no_connected_paper"] is not True:
+            raise Stage24CustodyRefused("R24_RESUMED_SOURCE_ATTEMPT_SCOPE_DRIFT")
         if index:
             prior_link = _strict_json(files[_CONTINUATION_NAME])
             expected_link = _link(Stage24ReplayState(
