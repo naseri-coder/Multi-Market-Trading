@@ -354,3 +354,54 @@ byte-identical pair would demonstrate **same-host local reproducible
 builds with fixed timestamp**, *not* make the older unstabilized R34
 archive retrospectively identical, create independent publisher
 authenticity, or close any production/LIVE Stage15 blockers.
+
+## 2026-10-16 operator fixed-epoch *same-host* byte-for-byte reproduction — PASS
+
+After the exact build-toolchain pins `setuptools==80.9.0` and
+`wheel==0.45.1` were acquired and SHA-verified, the operator ran
+**two newly staged offline builds** in separate private directories,
+using a distinct pinned Python 3.12 build venv and the controlled
+environment `SOURCE_DATE_EPOCH=1704067200` and `PYTHONHASHSEED=0`.
+The source checkout used the verified previous document commit
+`cf0b2e86aa7b1223e3180449a0eada164d3ee088`.
+The original R34 Wheel and the earlier unequal R36 rebuild were
+not overwritten. The operator reported:
+
+```text
+TEST_AREA=/root/mmt-r36-deterministic.HMdBVILp
+R36_DETERMINISTIC_BUILD_CHECK_COMPLETED
+R36_TEST_EXIT=0
+```
+
+A **separate read-only byte-level verification** then compared the
+two third/fourth-build artifacts directly:
+
+```text
+=== TWO BUILD SHA256 ===
+37c18d73978ecc48febc3a56e79b8ac65da6d77bce7b18ea68db44212c2c5ee4  /root/mmt-r36-deterministic.HMdBVILp/wheels1/multi_market_trading-0.4.0rc1-py3-none-any.whl
+37c18d73978ecc48febc3a56e79b8ac65da6d77bce7b18ea68db44212c2c5ee4  /root/mmt-r36-deterministic.HMdBVILp/wheels2/multi_market_trading-0.4.0rc1-py3-none-any.whl
+=== EXACT BYTE COMPARISON ===
+R36_FIXED_EPOCH_BYTES_IDENTICAL
+=== SOURCE STATUS ===
+[empty git status --short]
+R36_BYTE_CHECK_COMPLETED
+```
+
+**Accepted narrowly:** `R36_SAME_HOST_FIXED_EPOCH_BYTE_REPRODUCIBILITY_PASS`.
+The two new artifacts are identical byte-for-byte, as established
+by both SHA256 and `cmp -s`, not merely logical payload equality.
+This closes the bounded local fixed-timestamp reproduction experiment,
+**but does not make the older R34 original Wheel hash match these
+new artifacts**. The earlier
+`R36_SECOND_WHEEL_PAYLOAD_EQUAL_BYTES_DIFFER_RELEASE_DENIED`
+remains a true observation about the unfixed-timestamp pair, whose
+ZIP metadata `date_time` differed on all 226 entries.
+
+Limits: same Android/Termux PRoot host, same build venv and Python
+toolchain, fixed `SOURCE_DATE_EPOCH`; **no trusted independent
+builder, signed build manifest, upstream signature verification, real
+host isolation, supply-chain attestation or public-production
+authorization**. The GitHub PRs remain Draft and unmerged; R27
+frozen Brooks smoke and Stage15 nine P0 plus one P1 remain blocked.
+Continue to deny broker orders, connected PAPER, Telegram delivery,
+private NYFR distribution and LIVE.
