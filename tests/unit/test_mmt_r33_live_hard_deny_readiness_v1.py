@@ -258,6 +258,8 @@ def test_r33_public_baseline_claims_match_real_observed_sha_and_hard_deny():
 
 
 def test_cli_private_path_requires_real_path_and_owned_0700_parent(tmp_path):
+    from pathlib import Path
+
     folder = tmp_path / "private"
     folder.mkdir(mode=0o700)
     file = folder / "claims.json"
