@@ -49,13 +49,34 @@ def _gate(ack: bool) -> None:
 
 
 def _git(root: Path, *args: str) -> str:
+    # Git is read-only here, but ambient GIT_DIR/GIT_WORK_TREE,
+    # GIT_CONFIG_PARAMETERS and repo-local core.fsmonitor hooks can divert
+    # checkout verification or run arbitrary helper processes.
+    env = {
+        key: os.environ[key]
+        for key in ("PATH", "HOME", "TMPDIR", "LANG", "LC_ALL")
+        if key in os.environ
+    }
+    env.update({
+        "GIT_TERMINAL_PROMPT": "0",
+        "GIT_OPTIONAL_LOCKS": "0",
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_GLOBAL": "/dev/null",
+        "GIT_CONFIG_SYSTEM": "/dev/null",
+        "GIT_LFS_SKIP_SMUDGE": "1",
+    })
     try:
         proc = subprocess.run(
-            ["git", "-C", str(root), *args],
+            [
+                "git", "-C", str(root),
+                "-c", "core.fsmonitor=false",
+                "-c", "core.hooksPath=/dev/null",
+                "-c", "submodule.recurse=false",
+                *args,
+            ],
             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
             check=False, text=True, timeout=12,
-            env={**os.environ, "GIT_TERMINAL_PROMPT": "0",
-                 "GIT_OPTIONAL_LOCKS": "0"},
+            env=env,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise R34AcceptanceRefused("R34_GIT_CHECK_FAILED") from exc
