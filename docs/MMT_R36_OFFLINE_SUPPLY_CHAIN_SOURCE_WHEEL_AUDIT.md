@@ -305,3 +305,52 @@ without rebuilding or modifying either artifact. Keep Draft/unmerged;
 publisher authenticity, independently isolated trusted builder,
 Stage15 P0/P1, deferred R27 Brooks and production/LIVE deny gates
 unchanged.
+
+## 2026-10-16 actual operator ZIP metadata differential — only DOS date/time fields differ
+
+Using Python 3.12.3 standard-library `zipfile` with **no writes**,
+the operator compared exact original R34 Wheel
+`a99553947fba0e6a848e1c9b5cdb144408b70f380c8f713f43a14b393c15bc8f`
+and R36 rebuilt Wheel
+`79c22e89bf04c10e30029af0d2d84ddd23674a5d9514b77e2e196b92d3f01526`.
+The actual output was:
+
+```json
+{
+  "verdict": "R36_READONLY_ZIP_DIFF_DIAGNOSTIC",
+  "members": 226,
+  "content_differences": 0,
+  "member_order_identical": true,
+  "metadata_differences": {
+    "date_time": 226
+  },
+  "first_affected_member_by_field": {
+    "date_time": "multi_market_trading-0.4.0rc1.dist-info/METADATA"
+  },
+  "archive_comment_identical": true,
+  "files_written": false
+}
+```
+
+The audited per-member metadata fields were `date_time`,
+`compress_type`, `compress_size`, `CRC`, `external_attr`,
+`internal_attr`, `flag_bits`, `header_offset`, `create_system`,
+`extra`, and `comment`. Only `date_time` differed, for **all 226
+members**. This strongly isolates the differing ZIP timestamp metadata
+as the archive byte-mismatch cause within the examined fields; no
+claim is made that every raw header byte has been exhaustively diffed.
+Source module equality, member order, metadata checks, RECORD integrity,
+and 13 R36 unit tests remain successful.
+
+**Next bounded reproducibility experiment (PENDING):** create **two
+fresh separate A6 public-source staging folders**, keep the exact
+verified offline build toolchain `setuptools==80.9.0` /
+`wheel==0.45.1`, set a fixed `SOURCE_DATE_EPOCH=1704067200`,
+and build each with explicit offline pip flags into private separate
+Wheel directories. Compare third versus fourth Wheel SHA256/cmp and
+run the R36 verifier against the verified Git commit. Never overwrite
+the R34 reference or the already-tested R36 second archive. A
+byte-identical pair would demonstrate **same-host local reproducible
+builds with fixed timestamp**, *not* make the older unstabilized R34
+archive retrospectively identical, create independent publisher
+authenticity, or close any production/LIVE Stage15 blockers.
