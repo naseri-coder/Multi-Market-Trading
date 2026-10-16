@@ -77,7 +77,7 @@ def _canon(value: object) -> bytes:
 
 
 def _read_original_evidence(folder: Path) -> dict[str, bytes]:
-    if (type(folder) is not Path or not folder.is_absolute()
+    if (not isinstance(folder, Path) or not folder.is_absolute()
             or folder.is_symlink() or not folder.is_dir()):
         raise Stage21GRefused("ST21G_ABSOLUTE_UNLINKED_EVIDENCE_DIRECTORY_REQUIRED")
     result = {}
@@ -262,7 +262,7 @@ def run_stage21g_manual_first_window(
         raise Stage21GRefused("ST21G_EXPLICIT_MANUAL_CAPTURE_APPROVAL_REQUIRED")
     if type(number_of_closed_bars) is not int or not 1 <= number_of_closed_bars <= 96:
         raise Stage21GRefused("ST21G_FIRST_CAPTURE_1_TO_96_CLOSED_BARS_REQUIRED")
-    if (type(destination) is not Path or not destination.is_absolute()
+    if (not isinstance(destination, Path) or not destination.is_absolute()
             or destination.is_symlink() or destination.exists()):
         raise Stage21GRefused("ST21G_FRESH_ABSOLUTE_QUARANTINE_REQUIRED")
     witness = _read_original_evidence(witness_directory)
