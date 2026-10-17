@@ -54,7 +54,7 @@ def _scope(root: Path, *, new: bool) -> Path:
 
 
 def _require_nonproduction() -> None:
-    if os.environ.get("MMT_NONPRODUCTION") != "1" or os.environ.get("MMT_PRODUCTION") == "1":
+    if os.environ.get("MMT_NONPRODUCTION") != "1" or "MMT_PRODUCTION" in os.environ:
         raise PaperDemoRefused("EXPLICIT_NONPRODUCTION_ENV_REQUIRED")
     # The bundled trusted worker inherits OS privileges; never execute as root.
     if os.geteuid() == 0:
