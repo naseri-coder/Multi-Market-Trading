@@ -155,7 +155,7 @@ def run_manual_disposable_host_canary(
     """
     if (operator_ack is not True
             or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"
+            or "MMT_PRODUCTION" in os.environ
             or os.environ.get("MMT_DISPOSABLE_SANDBOX_HOST") != "1"):
         raise HostCanaryRefused("EXPLICIT_DISPOSABLE_NONPRODUCTION_HOST_REQUIRED")
     if type(policy) is not SecurePluginPolicy or not policy.enabled:
