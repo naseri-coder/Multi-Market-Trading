@@ -46,6 +46,16 @@ These are **distinct build operations on one disposable environment, not indepen
 | `scripts/mmt_v040_dual_wheel_repro_audit_v1.py` | `ba5857622c97254883b97fbbdce5d75d8831dd17` | `9a83effc073af522a508c705de0da83eb60868237b53147c3966ddbd063827a8` |
 | `tests/unit/test_mmt_v040_dual_wheel_repro_audit_v1.py` | `253c8b4c3822d4d454aa7bb618db6f8c8b7ad43e` | `1a605d6590b14cc9f466f24980ed57f3c94605edfad96f0a1414eba029d2a3ee` |
 
+## Addendum: independently invoked Wheel builders plus full signed custody (2026-10-17)
+
+**New executable regression:** `tests/unit/test_mmt_v040_dual_real_setuptools_build_rehearsal_v1.py` builds **twice** from two separate clean, freshly staged stable test-copy directories using two independent `python -m pip wheel --no-index --no-deps --no-build-isolation` process invocations. The source is deliberately a **226-synthetic-module** clean local RC Git fixture. The test requires exact equality of both real Wheel byte streams and RECORD contents, individually verifies 231 ZIP entries and the stable metadata, signs the **first built** Wheel with a generated temporary Ed25519 key and independent policy hashes, and passes both actual builder outputs through the **full Stage2J dual-Wheel auditor plus Stage2I signed RC-overlay source custody**. It then corrupts the second actual builder output, recomputes the independent expected digest and confirms fail-closed refusal `V040_DUAL_WHEELS_NOT_BYTE_IDENTICAL`.
+
+**Verified run:** the new integration test **1/1 PASS**, then the complete combined seven-suite verification **97/97 PASS in 28.63 seconds**, executed on isolated **CPython 3.13.5**. GitHub re-read of the test source gives Git blob SHA-1 `cc7f025d424631b719f79317d44476c48bf029f1`, matching the **exact bytes** that passed the final test run.
+
+The test's isolated compatibility flag `--ignore-requires-python` is injected **only if** the sandbox interpreter is not 3.12. When a genuine Python3.12 environment runs the test, this bypass is **omitted** and Python compatibility is enforced normally. The pinned release scripts/installers have **no such compatibility bypass**.
+
+**Interpretation boundary:** this improves reproducible build *process* evidence over copied-file comparisons; it still does **not** prove two independent machines/builders, actual GitHub module bodies, a Python3.12 build, accepted release publisher credentials or an installable final user artifact. `independent_build_proven=false` and `fresh_build_on_python312_proven=false` remain correctly set, and the official release is still blocked.
+
 ## Mandatory release gates still open
 
 1. Obtain a **full real-source clean Git checkout** pinned to the final reviewed SHA, in a disposable nonproduction **CPython 3.12** nonroot host. Run syntax/Ruff/all repository tests, old A6/R35–R38/R42V and the new signed stable gates.
