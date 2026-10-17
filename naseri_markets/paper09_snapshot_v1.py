@@ -28,7 +28,7 @@ class Paper09SnapshotRefused(ValueError):
 
 def _consent() -> None:
     if (os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"
+            or "MMT_PRODUCTION" in os.environ
             or os.geteuid() == 0):
         raise Paper09SnapshotRefused("P09_NONROOT_NONPRODUCTION_ACK_REQUIRED")
 
