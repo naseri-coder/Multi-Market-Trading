@@ -113,7 +113,7 @@ def run_stage20_preholdout(
     prospective OOS or historically witnessed genuine market truth.
     """
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise Stage20Refused("ST20_NONPRODUCTION_EXPLICIT_APPROVAL_REQUIRED")
     plan_bytes, plan_sha = freeze_stage20_plan(frozen_plan)
     if (type(independently_approved_plan_sha256) is not str
