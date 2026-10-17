@@ -51,6 +51,8 @@
 
 
 
+**Packaging Stage 2b update (2026-10-17):** [`MMT_V0_4_0_STAGE2B_PACKAGING_AND_R38_REPAIR.md`](MMT_V0_4_0_STAGE2B_PACKAGING_AND_R38_REPAIR.md) records the real R38 syntax repair, metadata-bound A6/staging/development installer patch and 11 additional committed negative/compatibility cases. Direct GitHub source consistency checks 14/14 passed, **not full executed tests**. R35–R38 remain intentionally RC-only signed-artifact controls. Stable signed-wheel verification, Python3.12/Ruff, new test execution and final merge remain blocked.
+
 On the **exact candidate commit**, in an isolated approved nonroot Linux environment with real CPython 3.12 and Ruff:
 
 - Full static/lint/type/import checks, test discovery and full unit + integration test suite, including PostgreSQL when required; record total passes/skips/fails and investigate critical skips.
