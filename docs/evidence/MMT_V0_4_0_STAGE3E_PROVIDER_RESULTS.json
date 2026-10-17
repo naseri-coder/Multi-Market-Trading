@@ -1,0 +1,12 @@
+{
+  "assurance": "EXTERNAL_PROVIDER_LIVE_SMOKE_NOT_VERIFIED",
+  "binance_futures_http_status": 451,
+  "bybit_spot_http_status": 403,
+  "candidate_source_sha": "77a0b19f89485d1e8b7a4cb43caa01eed123af47",
+  "consumer_permissions": "PUBLIC_GET_READ_ONLY_NO_CREDENTIALS_NO_ORDERS",
+  "evidence_job_id": 117482570405,
+  "evidence_run_id": 39062296330,
+  "failed_count": 2,
+  "passed_count": 0,
+  "schema": 1
+}

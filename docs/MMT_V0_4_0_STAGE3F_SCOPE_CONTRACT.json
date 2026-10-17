@@ -1,0 +1,22 @@
+{
+  "base_distribution": "multi-market-trading",
+  "candidate_version": "0.4.0rc1",
+  "commercial_live_claim": "NOT_VERIFIED_NOT_IN_RELEASE_SCOPE",
+  "deployment_status": "DENIED",
+  "eligible_cli": [
+    "naseri-brooks-replay",
+    "naseri-paper-demo"
+  ],
+  "evidence_record": "docs/evidence/MMT_V0_4_0_STAGE3E_PROVIDER_RESULTS.json",
+  "human_scope_review": "PENDING",
+  "live_order_execution": "DENIED",
+  "market_data_network_claim": "UNVERIFIED",
+  "operator_identity": "PENDING",
+  "private_ny_engine": "EXCLUDED",
+  "publisher_identity": "PENDING",
+  "release_authorized": false,
+  "release_lane": "OFFLINE_REPLAY_AND_DISPOSABLE_PAPER_ONLY",
+  "schema": 1,
+  "stable_target_version": "0.4.0",
+  "status": "DRAFT_SCOPE_CONTRACT_NOT_A_WAIVER"
+}
