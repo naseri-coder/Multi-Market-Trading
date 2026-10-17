@@ -59,6 +59,8 @@
 
 **Stage 2E real-wheel metadata defect (2026-10-17):** [`MMT_V0_4_0_STAGE2E_REAL_WHEEL_METADATA_INTEROPERABILITY.md`](MMT_V0_4_0_STAGE2E_REAL_WHEEL_METADATA_INTEROPERABILITY.md) records the `setuptools`-generated Python-range order mismatch, a tested exact-equivalence fix and **38/38 real CPython3.13.5 unit tests** on exact GitHub-blob-matched files. A *partial synthetic module wheel* made by real `pip wheel` passed standalone ZIP/RECORD validation and test-only Ed25519 verification; forged signature was rejected. The genuine project Wheel, Python3.12 installation, full-suite checks, source provenance and signer key approval are **still outstanding**. Do not merge or tag.
 
+**Stage 2F signed Git-source↔Wheel custody (2026-10-17):** [`MMT_V0_4_0_STAGE2F_SIGNED_SOURCE_WHEEL_CUSTODY.md`](MMT_V0_4_0_STAGE2F_SIGNED_SOURCE_WHEEL_CUSTODY.md) records a new read-only clean-Git-commit + exact-public-module-byte-to-signed-wheel verifier. Executed **47/47** tests on the exact GitHub-byte-matched Stage2D/E signed-artifact verifier (38) and new source-custody suite (9) using CPython3.13.5, plus genuine setuptools 3-module partial-fixture Wheel/signed-test-key evidence and a dirty-checkout refusal. **This does NOT attest the actual 226-module project Wheel, and Python3.12/Ruff remain unavailable**. The candidate's production-released root stays 0.3.2, platform package stays 0.4.0rc1, and final merge/tag blockers remain.
+
 On the **exact candidate commit**, in an isolated approved nonroot Linux environment with real CPython 3.12 and Ruff:
 
 - Full static/lint/type/import checks, test discovery and full unit + integration test suite, including PostgreSQL when required; record total passes/skips/fails and investigate critical skips.
