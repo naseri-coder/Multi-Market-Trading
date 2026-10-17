@@ -151,7 +151,7 @@ def review_r34_local_stack_evidence(
 ) -> dict:
     if (operator_ack is not True
             or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"
+            or "MMT_PRODUCTION" in os.environ
             or type(evidence) is not R34OfflineEvidence):
         raise R34AcceptanceRefused("R34_EXPLICIT_NONPRODUCTION_LOCAL_REVIEW")
     blocks = []
