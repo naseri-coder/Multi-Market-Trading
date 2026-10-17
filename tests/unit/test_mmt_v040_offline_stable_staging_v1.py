@@ -113,7 +113,6 @@ def test_staged_python_syntax_errors_fail_closed(fixture):
  assert not dest.exists()
 
 
-
 def test_clean_git_and_matching_snapshot_still_cannot_stage_value_only_production_guard(fixture):
  repo,dest,kw=fixture
  module=repo/'naseri_markets/synthetic_010.py'
