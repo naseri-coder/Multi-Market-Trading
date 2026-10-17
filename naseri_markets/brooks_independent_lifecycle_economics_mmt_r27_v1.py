@@ -246,7 +246,7 @@ def review_r27_independent_geometry_cost_parity(
 ) -> dict:
     """Rerun genuine frozen worker and independently verify hypothetical model."""
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise R27IndependentParityRefused("R27_NONPRODUCTION_OPERATOR_APPROVAL_REQUIRED")
     if (type(original_stage21a_report_bytes) is not bytes
             or not 2 <= len(original_stage21a_report_bytes) <= _MAX_REPORT):
@@ -379,7 +379,7 @@ def run_r27_brooks_two_pass_model_crosscheck(
 ) -> dict:
     """Execute original Stage21A then a separate original-worker shadow audit."""
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise R27IndependentParityRefused("R27_NONPRODUCTION_OPERATOR_APPROVAL_REQUIRED")
     params = dict(
         original_replay_bytes=original_closed_bar_replay_bytes,
