@@ -4,10 +4,10 @@
   "release_candidate": "v0.4.0",
   "provenance": "GITHUB_TREE_SNAPSHOT__NOT_RELEASE_APPROVAL",
   "github_repository": "naseri-coder/Multi-Market-Trading",
-  "snapshot_commit": "fb7d5e0c9b4a856dc62bb8b446cba277cd7d32f0",
-  "public_subtree_sha1": "85b561e65ac59eaeeda02560af3d671a71524e8d",
+  "snapshot_commit": "3c5b1b2f68638039617cb521d65a379e4276ae1f",
+  "public_subtree_sha1": "499e278950abfc67a44ab284d2edb276f33ab6ee",
   "expected_module_count": 226,
-  "source_bytes": 2501292,
+  "source_bytes": 2501220,
   "modules": [
     {
       "path": "naseri_markets/__init__.py",
@@ -176,8 +176,8 @@
     },
     {
       "path": "naseri_markets/brooks_future_shadow_paper_mmt_r29_v1.py",
-      "git_blob_sha1": "779fd892534f019e905523c98717ba0cf3a47823",
-      "size": 13010
+      "git_blob_sha1": "c4ad8ca4e42bd558ad41c886e1c0f93cf25664a8",
+      "size": 13001
     },
     {
       "path": "naseri_markets/brooks_independent_lifecycle_economics_mmt_r27_v1.py",
@@ -576,8 +576,8 @@
     },
     {
       "path": "naseri_markets/mmt_r28_unified_offline_runtime_v1.py",
-      "git_blob_sha1": "77f82973ce7720e32948bec119ae0b9cffd355b3",
-      "size": 7846
+      "git_blob_sha1": "2dbdd54af64bb317c88547dba7f2cb9533eccde4",
+      "size": 7837
     },
     {
       "path": "naseri_markets/mmt_r29_shadow_session_audit_v1.py",
@@ -586,8 +586,8 @@
     },
     {
       "path": "naseri_markets/mmt_r30_offline_risk_order_preflight_v1.py",
-      "git_blob_sha1": "4b01841692e7b3e3fa4ab8108d5051f3115e433c",
-      "size": 15079
+      "git_blob_sha1": "71f22a2c155307490b7357e9fdaae20b22586897",
+      "size": 15070
     },
     {
       "path": "naseri_markets/mmt_r31_private_admin_console_v1.py",
@@ -746,8 +746,8 @@
     },
     {
       "path": "naseri_markets/offline_runtime_supervisor_v1.py",
-      "git_blob_sha1": "b1637e6cccca0252f1a16c255c68150d88990894",
-      "size": 17102
+      "git_blob_sha1": "b7e57c150d204b41be895cd0979727d60343024a",
+      "size": 17093
     },
     {
       "path": "naseri_markets/offline_signal_lifecycle_v1.py",
@@ -771,8 +771,8 @@
     },
     {
       "path": "naseri_markets/paper09_snapshot_v1.py",
-      "git_blob_sha1": "295429effa49775afac17fe6ac00079faa9959c1",
-      "size": 10974
+      "git_blob_sha1": "7dc0314657fc0fbdc542a2b3851db7ad8f45526d",
+      "size": 10965
     },
     {
       "path": "naseri_markets/paper_contract_audit_stage21d_v1.py",
@@ -781,8 +781,8 @@
     },
     {
       "path": "naseri_markets/paper_contract_economics_stage21d_v1.py",
-      "git_blob_sha1": "da67ecb7cee12c90a2a0f84bb5ebd6b0c0dff7c8",
-      "size": 7321
+      "git_blob_sha1": "f545f1485684cc713c4c127e150cfc4da606c56b",
+      "size": 7312
     },
     {
       "path": "naseri_markets/paper_core_risk_bridge_v1.py",
@@ -1056,8 +1056,8 @@
     },
     {
       "path": "naseri_markets/runtime_supervisor_health_v1.py",
-      "git_blob_sha1": "1633f5d2e17b6c19de5ce7698ee79f74f373d163",
-      "size": 2714
+      "git_blob_sha1": "2db6fd9b72dd4c4b1190bf0e8c41f836b8e3c5f3",
+      "size": 2705
     },
     {
       "path": "naseri_markets/secure_plugin_runtime_v1.py",
@@ -1081,8 +1081,8 @@
     },
     {
       "path": "naseri_markets/signed_public_intake_stage27_v1.py",
-      "git_blob_sha1": "d1709fe64eea2b3b3a727ae9daccced8b27248c5",
-      "size": 7041
+      "git_blob_sha1": "13ed9388ad390ff69d9406a5761f849b7ecae501",
+      "size": 7032
     },
     {
       "path": "naseri_markets/stage17_official_archive_capture_v1.py",
