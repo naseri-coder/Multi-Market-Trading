@@ -4,10 +4,10 @@
   "release_candidate": "v0.4.0",
   "provenance": "GITHUB_TREE_SNAPSHOT__NOT_RELEASE_APPROVAL",
   "github_repository": "naseri-coder/Multi-Market-Trading",
-  "snapshot_commit": "c709db14408d133478fa74e905e43ef946085f92",
-  "public_subtree_sha1": "75bfd7de73b184d0da2a83dcf0909d2550d0d8a7",
+  "snapshot_commit": "82cf544a2e714bc67afa03ee6fb91b03a99a07cc",
+  "public_subtree_sha1": "46bf28c689a886e02b149dd31e86ad2daa25234e",
   "expected_module_count": 226,
-  "source_bytes": 2501524,
+  "source_bytes": 2501470,
   "modules": [
     {
       "path": "naseri_markets/__init__.py",
@@ -141,8 +141,8 @@
     },
     {
       "path": "naseri_markets/bot_admin_app.py",
-      "git_blob_sha1": "9cd7007436a635090c4a928d5bdbd962235b243c",
-      "size": 4535
+      "git_blob_sha1": "c8553cbc62d42d98088dabc6f7a4ce8498579008",
+      "size": 4526
     },
     {
       "path": "naseri_markets/brooks_causal_backtest_preflight_stage19_v1.py",
@@ -201,8 +201,8 @@
     },
     {
       "path": "naseri_markets/brooks_paper_service.py",
-      "git_blob_sha1": "d0863d192709bec4cfd10bd29c40625b295b0b1a",
-      "size": 11430
+      "git_blob_sha1": "8d8c7574c854308e4dd33325d610379cdc449d38",
+      "size": 11421
     },
     {
       "path": "naseri_markets/brooks_primary_source_funding_join_stage21b_v1.py",
@@ -516,13 +516,13 @@
     },
     {
       "path": "naseri_markets/installed_paper_pilot_stage10_v1.py",
-      "git_blob_sha1": "62f43fd1144eb907e1688f2ba69f830cc22c7001",
-      "size": 9297
+      "git_blob_sha1": "77c8751801ea2fdccdbc4061ac41b1952279a209",
+      "size": 9288
     },
     {
       "path": "naseri_markets/installed_preview_smoke_v1.py",
-      "git_blob_sha1": "96371b0fa7894d2f91d5ee6871825e397c91227c",
-      "size": 4479
+      "git_blob_sha1": "9ec54aa8db2dc499907d2ae043ce6f08d28584c2",
+      "size": 4470
     },
     {
       "path": "naseri_markets/instrument_registry_v1.py",
@@ -791,8 +791,8 @@
     },
     {
       "path": "naseri_markets/paper_demo_cli_v1.py",
-      "git_blob_sha1": "7724d7999ea97a113b696379917198ac493eed21",
-      "size": 7915
+      "git_blob_sha1": "9d5ae338b92445d42c59985273a787143f61cdb9",
+      "size": 7906
     },
     {
       "path": "naseri_markets/paper_funding_scenario_stage21e_v1.py",
@@ -1131,8 +1131,8 @@
     },
     {
       "path": "naseri_markets/unified_paper_pilot_stage20_v1.py",
-      "git_blob_sha1": "ff3318276010831d3e13494ed434684c779ca2bb",
-      "size": 14209
+      "git_blob_sha1": "8f96911ca0632d4fe5c7a5348b5290b9453c02da",
+      "size": 14200
     },
     {
       "path": "naseri_markets/universal_artifact_intake_v1.py",
