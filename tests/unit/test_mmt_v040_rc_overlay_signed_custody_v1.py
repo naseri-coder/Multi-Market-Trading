@@ -7,6 +7,7 @@ import hashlib
 import io
 import json
 import subprocess
+import tomllib
 import zipfile
 from pathlib import Path
 
@@ -33,14 +34,20 @@ def git(root: Path, *args: str) -> str:
     return output.stdout.strip()
 
 
-def make_wheel(modules: dict[str, bytes]) -> tuple[bytes, bytes]:
+def make_wheel(modules: dict[str, bytes], *, metadata_override: bytes | None = None) -> tuple[bytes, bytes]:
+    project = tomllib.loads(META.read_text(encoding="utf-8"))["project"]
     info = ("Metadata-Version: 2.4\nName: multi-market-trading\n"
-            "Version: 0.4.0\nRequires-Python: <3.13,>=3.12\n"
+            "Version: 0.4.0\n"
+            f"Summary: {project['description']}\n"
+            "Description-Content-Type: text/markdown\n"
+            "Requires-Python: <3.13,>=3.12\n"
             + "".join(
                 f'Requires-Dist: {req}; extra == "{extra}"\n'
                 for extra, deps in stable._ALLOWED_REQUIREMENTS.items()
                 for req in sorted(deps)
-            )).encode()
+            ) + "\nSynthetic, not published\n").encode()
+    if metadata_override is not None:
+        info = metadata_override
     cli = ("[console_scripts]\n" + "".join(
         f"{name} = {entry}\n" for name, entry in stable._ALLOWED_COMMANDS.items()
     )).encode()
@@ -134,13 +141,14 @@ def example(tmp_path, monkeypatch):
         "wheel_sha256": "", "wheel_size": 0, "wheel_record_sha256": "",
     }
 
-    def sign(*, mutate=None, omit=None, domain=stable.DOMAIN):
+    def sign(*, mutate=None, omit=None, domain=stable.DOMAIN,
+             metadata_override: bytes | None = None):
         sources = dict(modules)
         if omit is not None:
             del sources[omit]
         if mutate is not None:
             sources.update(mutate)
-        raw, rec = make_wheel(sources)
+        raw, rec = make_wheel(sources, metadata_override=metadata_override)
         (safe / stable.WHEEL_NAME).write_bytes(raw)
         manifest.update(wheel_sha256=hashlib.sha256(raw).hexdigest(),
                         wheel_size=len(raw),
@@ -266,3 +274,48 @@ def test_installed_parser_never_offers_publish_or_install_flags():
     assert "--install" not in source
     assert "--publish" not in source
     assert '"rc_git_commit_is_a_stable_release_commit": False' in source
+
+
+def _wheel_metadata(raw: bytes) -> bytes:
+    with zipfile.ZipFile(io.BytesIO(raw)) as wheel:
+        return wheel.read(stable.DIST + "METADATA")
+
+
+def test_even_validly_resigned_changed_summary_fails_source_attestation(example):
+    root, modules, sign, _ = example
+    normal = _wheel_metadata(make_wheel(modules)[0])
+    source_summary = tomllib.loads(META.read_text())["project"]["description"]
+    assert normal.count(f"Summary: {source_summary}".encode()) == 1
+    spoofed = normal.replace(f"Summary: {source_summary}".encode(),
+                             b"Summary: Inaccurate externally signed market promise")
+    params = sign(metadata_override=spoofed)  # genuine fixture signer signs malicious metadata
+    assert stable.verify(**{k: params[k] for k in (
+        "manifest", "signature", "wheel", "trusted_public_key",
+        "trusted_public_key_spki_sha256", "policy", "expected_policy_sha256",
+        "expected_manifest_sha256", "expected_source_commit",
+    )})["record_verified"] is True
+    with pytest.raises(custody.OverlayCustodyRefused,
+                       match="V040_WHEEL_SUMMARY_SOURCE_MISMATCH"):
+        custody.audit(**params)
+
+
+def test_even_validly_resigned_changed_readme_fails_source_attestation(example):
+    _, modules, sign, _ = example
+    normal = _wheel_metadata(make_wheel(modules)[0])
+    assert normal.endswith(b"Synthetic, not published\n")
+    forged = normal[:-len(b"Synthetic, not published\n")] + b"Misleading published README\n"
+    params = sign(metadata_override=forged)
+    with pytest.raises(custody.OverlayCustodyRefused,
+                       match="V040_WHEEL_README_SOURCE_MISMATCH"):
+        custody.audit(**params)
+
+
+def test_even_validly_resigned_duplicate_summary_fails_source_attestation(example):
+    _, modules, sign, _ = example
+    normal = _wheel_metadata(make_wheel(modules)[0])
+    forged = normal.replace(b"Description-Content-Type: text/markdown\n",
+                            b"Summary: Hidden second summary\nDescription-Content-Type: text/markdown\n")
+    params = sign(metadata_override=forged)
+    with pytest.raises(custody.OverlayCustodyRefused,
+                       match="V040_WHEEL_SUMMARY_SOURCE_MISMATCH"):
+        custody.audit(**params)
