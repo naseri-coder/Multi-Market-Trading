@@ -10,6 +10,7 @@ import ast
 import hashlib
 import json
 import sys
+import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -64,8 +65,12 @@ def prepare(destination: Path) -> dict:
         data = path.read_bytes()
         (destination / rel).write_bytes(data)
         digests[str(rel)] = hashlib.sha256(data).hexdigest()
+    metadata = tomllib.loads((ROOT / "platform_release/pyproject.toml").read_text())
+    release = metadata["project"]["version"]
+    if metadata["project"]["name"] != "multi-market-trading" or release not in ("0.4.0rc1", "0.4.0"):
+        raise ValueError("A6_UNEXPECTED_PLATFORM_METADATA")
     return {
-        "version": "0.4.0rc1",
+        "version": release,
         "module_count": len(modules),
         "sha256": digests,
         "source_was_mutated": False,
