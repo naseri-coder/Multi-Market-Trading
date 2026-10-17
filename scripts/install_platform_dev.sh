@@ -13,7 +13,7 @@ while (($#)); do
     *) echo "MMT_DEV_INSTALL_REFUSED:UNKNOWN_ARGUMENT" >&2; exit 2 ;;
   esac
 done
-if [[ "${MMT_NONPRODUCTION:-}" != 1 || "${MMT_PRODUCTION:-}" == 1 || "$ACK" != 1 || -z "$DEST" ]]; then
+if [[ "${MMT_NONPRODUCTION:-}" != 1 || -v MMT_PRODUCTION || "$ACK" != 1 || -z "$DEST" ]]; then
   echo "MMT_DEV_INSTALL_REFUSED:NONPRODUCTION_ACK_REQUIRED" >&2; exit 2
 fi
 if [[ "$(id -u)" == 0 ]]; then
