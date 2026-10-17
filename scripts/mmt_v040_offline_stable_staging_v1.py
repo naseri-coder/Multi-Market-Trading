@@ -11,12 +11,11 @@ import hashlib
 import json
 import os
 import stat
-import sys
 import tomllib
 from pathlib import Path
 
-from scripts import mmt_v040_public_source_snapshot_audit_v1 as snap
 from scripts import mmt_v040_production_guard_ast_audit_v1 as production_guard
+from scripts import mmt_v040_public_source_snapshot_audit_v1 as snap
 from scripts import mmt_v040_signed_artifact_preflight_v1 as stable
 
 _RC_VERSION = 'version = "0.4.0rc1"'
@@ -165,7 +164,8 @@ def main(argv: list[str] | None = None) -> int:
         output = stage(**vars(parser.parse_args(argv)))
     except (StableStageRefused, snap.PublicSnapshotRefused,
             production_guard.ProductionGuardRefused, OSError) as exc:
-        code = str(exc) if isinstance(exc, (StableStageRefused, snap.PublicSnapshotRefused)) else "V040_STAGING_IO_DENIED"
+        code = (str(exc) if isinstance(exc, (StableStageRefused, snap.PublicSnapshotRefused))
+                else "V040_STAGING_IO_DENIED")
         print(json.dumps({"verdict": "V040_STAGING_REFUSED", "reason": code,
                           "public_release_authorized": False,
                           "live_trading_authorized": False}, sort_keys=True))

@@ -29,7 +29,8 @@ def _is_production_get(node: ast.AST) -> bool:
 
 
 def _is_single_value(node: ast.AST) -> bool:
-    return isinstance(node, ast.Constant) and node.value in ("0", "1", "false", "False", "true", "True")
+    return (isinstance(node, ast.Constant)
+            and node.value in ("0", "1", "false", "False", "true", "True"))
 
 
 def scan(source: bytes) -> tuple[int, ...]:

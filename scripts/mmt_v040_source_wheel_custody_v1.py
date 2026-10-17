@@ -12,7 +12,6 @@ import json
 import os
 import re
 import subprocess
-import sys
 import tomllib
 import zipfile
 from pathlib import Path
@@ -42,13 +41,16 @@ def _git(root: Path, *args: str) -> bytes:
     return proc.stdout
 
 
-def _source_inventory(repository: Path, expected_source_commit: str) -> tuple[dict[str, bytes], dict]:
+def _source_inventory(
+    repository: Path, expected_source_commit: str,
+) -> tuple[dict[str, bytes], dict]:
     if (not isinstance(repository, Path) or not repository.is_absolute()
             or repository.is_symlink() or not repository.is_dir()
             or type(expected_source_commit) is not str
             or not COMMIT.fullmatch(expected_source_commit)):
         raise SourceCustodyRefused("V040_SOURCE_AND_EXTERNAL_PIN_REQUIRED")
-    if _git(repository, "rev-parse", "--verify", "HEAD").strip().decode("ascii") != expected_source_commit:
+    if (_git(repository, "rev-parse", "--verify", "HEAD").strip().decode("ascii")
+            != expected_source_commit):
         raise SourceCustodyRefused("V040_SOURCE_COMMIT_PIN_MISMATCH")
     if _git(repository, "status", "--porcelain=v1", "--untracked-files=all"):
         raise SourceCustodyRefused("V040_SOURCE_CHECKOUT_NOT_CLEAN")
@@ -166,7 +168,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         result = audit(**opts)
     except (SourceCustodyRefused, stable.StableArtifactRefused, OSError) as exc:
-        code = str(exc) if isinstance(exc, (SourceCustodyRefused, stable.StableArtifactRefused)) else "V040_SOURCE_AUDIT_IO_REFUSED"
+        code = (str(exc) if isinstance(exc, (SourceCustodyRefused, stable.StableArtifactRefused))
+                else "V040_SOURCE_AUDIT_IO_REFUSED")
         print(json.dumps({"verdict": "V040_SOURCE_CUSTODY_REFUSED", "reason": code,
                           "install_authorized": False,
                           "public_release_authorized": False,

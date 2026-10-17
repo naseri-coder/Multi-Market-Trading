@@ -12,7 +12,6 @@ import json
 import os
 import re
 import stat
-import sys
 from pathlib import Path
 
 _MAX_SOURCE = 131_072
@@ -146,7 +145,7 @@ def check_source(*, source: Path, expected_source_sha256: str,
     if not {"_assert_rootless_socket", "_ensure_rootless_daemon", "_invoke"} <= called:
         raise R41Refused("R41_ROOTLESS_EVALUATION_CHAIN_MISSING")
     command, references = _command_literals(_function(parsed, "build_run_command"))
-    if not _REQUIRED <= command or "--name={}" not in command:
+    if not command >= _REQUIRED or "--name={}" not in command:
         raise R41Refused("R41_REQUIRED_GVISOR_ISOLATION_FLAGS_MISSING")
     if not {"policy.docker_binary", "policy.docker_socket",
             "policy.image", "_BOOTSTRAP"} <= references:

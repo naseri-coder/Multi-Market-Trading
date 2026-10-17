@@ -12,8 +12,8 @@ import io
 import json
 import os
 import re
-import zipfile
 import tomllib
+import zipfile
 from email.parser import BytesParser
 from pathlib import Path
 

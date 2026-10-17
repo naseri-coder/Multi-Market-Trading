@@ -8,7 +8,8 @@ import stat
 from pathlib import Path
 
 from naseri_markets.brooks_future_shadow_paper_mmt_r29_v1 import (
-    R29ShadowRefused, review_r29_one_closed_bar_shadow,
+    R29ShadowRefused,
+    review_r29_one_closed_bar_shadow,
     save_r29_receipt_exclusive,
 )
 

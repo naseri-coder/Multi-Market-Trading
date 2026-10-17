@@ -12,7 +12,6 @@ import os
 import re
 import stat
 import subprocess
-import sys
 from pathlib import Path
 
 SNAPSHOT_PATH = Path("docs/MMT_V0_4_0_PUBLIC_MODULE_SNAPSHOT.json")
@@ -92,7 +91,8 @@ def audit(*, repository: Path, expected_source_commit: str,
             or type(expected_public_tree_sha1) is not str
             or not HEX40.fullmatch(expected_public_tree_sha1)):
         raise PublicSnapshotRefused("V040_INDEPENDENT_GIT_PINS_REQUIRED")
-    if _git(repository, "rev-parse", "--verify", "HEAD").strip().decode("ascii") != expected_source_commit:
+    if (_git(repository, "rev-parse", "--verify", "HEAD").strip().decode("ascii")
+            != expected_source_commit):
         raise PublicSnapshotRefused("V040_GIT_COMMIT_PIN_MISMATCH")
     if _git(repository, "status", "--porcelain=v1", "--untracked-files=all"):
         raise PublicSnapshotRefused("V040_GIT_NOT_CLEAN")
@@ -152,7 +152,9 @@ def audit(*, repository: Path, expected_source_commit: str,
         expected = by_path[name]
         if len(raw) != expected["size"] or len(raw) != metadata.st_size:
             raise PublicSnapshotRefused("V040_SNAPSHOT_MODULE_SIZE_MISMATCH")
-        calculated = hashlib.sha1(b"blob " + str(len(raw)).encode("ascii") + b"\0" + raw).hexdigest()
+        calculated = hashlib.sha1(
+            b"blob " + str(len(raw)).encode("ascii") + b"\0" + raw
+        ).hexdigest()
         if calculated != expected["git_blob_sha1"]:
             raise PublicSnapshotRefused("V040_SNAPSHOT_MODULE_BLOB_MISMATCH")
         total += len(raw)
@@ -182,7 +184,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         result = audit(**vars(parser.parse_args(argv)))
     except (PublicSnapshotRefused, OSError, UnicodeError) as exc:
-        reason = str(exc) if isinstance(exc, PublicSnapshotRefused) else "V040_SNAPSHOT_AUDIT_IO_REFUSED"
+        reason = (str(exc) if isinstance(exc, PublicSnapshotRefused)
+                  else "V040_SNAPSHOT_AUDIT_IO_REFUSED")
         print(json.dumps({"verdict": "V040_PUBLIC_SNAPSHOT_REFUSED", "reason": reason,
                           "public_release_authorized": False,
                           "live_trading_authorized": False}, sort_keys=True))

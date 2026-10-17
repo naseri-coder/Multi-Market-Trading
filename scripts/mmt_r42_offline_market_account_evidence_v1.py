@@ -11,7 +11,7 @@ import json
 import os
 import re
 import stat
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
@@ -31,7 +31,10 @@ _POLICY_FIELDS = frozenset({"schema", "scope", "provider_id", "market", "symbol"
 _MARKET_FIELDS = frozenset({"schema", "provider_id", "market", "symbol", "contract_id",
                             "price_basis", "volume_semantics", "timeframe_seconds",
                             "received_at", "bars"})
-_BAR_FIELDS = frozenset({"sequence", "open_at", "close_at", "open", "high", "low", "close", "volume"})
+_BAR_FIELDS = frozenset({
+    "sequence", "open_at", "close_at", "open", "high",
+    "low", "close", "volume",
+})
 _ACCOUNT_FIELDS = frozenset({"schema", "provider_id", "account_alias", "currency", "observed_at",
                              "equity", "available", "margin_used", "positions", "open_orders"})
 _LEDGER_FIELDS = frozenset({"schema", "account_alias", "currency", "observed_at", "equity",
@@ -53,7 +56,8 @@ def _pairs(pairs: list[tuple[str, object]]) -> dict:
 def _read(path: Path, expected_sha256: str) -> dict:
     if type(expected_sha256) is not str or not _SHA.fullmatch(expected_sha256):
         raise R42Refused("R42_INDEPENDENT_HASH_PIN_REQUIRED")
-    if not isinstance(path, Path) or not path.is_absolute() or any(p.is_symlink() for p in (path, *path.parents)):
+    if (not isinstance(path, Path) or not path.is_absolute()
+            or any(p.is_symlink() for p in (path, *path.parents))):
         raise R42Refused("R42_ABSOLUTE_NON_SYMLINK_PATH_REQUIRED")
     try:
         fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
@@ -61,7 +65,8 @@ def _read(path: Path, expected_sha256: str) -> dict:
         raise R42Refused("R42_EVIDENCE_UNREADABLE") from exc
     try:
         before = os.fstat(fd)
-        if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1 or not 2 <= before.st_size <= _MAX_FILE:
+        if (not stat.S_ISREG(before.st_mode) or before.st_nlink != 1
+                or not 2 <= before.st_size <= _MAX_FILE):
             raise R42Refused("R42_BOUNDED_REGULAR_EVIDENCE_REQUIRED")
         data = bytearray()
         while len(data) < before.st_size:
@@ -122,7 +127,7 @@ def _time(v: object) -> datetime:
     if type(v) is not str or not _TIME.fullmatch(v):
         raise R42Refused("R42_CANONICAL_UTC_TIME_REQUIRED")
     try:
-        return datetime.strptime(v, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        return datetime.strptime(v, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
     except ValueError as exc:
         raise R42Refused("R42_INVALID_UTC_TIME") from exc
 
@@ -153,7 +158,8 @@ def _account(obj: dict, *, provider: str | None, policy: dict, as_of: datetime) 
     _fields(obj, _ACCOUNT_FIELDS if provider is not None else _LEDGER_FIELDS)
     if type(obj["schema"]) is not int or obj["schema"] != 1:
         raise R42Refused("R42_EVIDENCE_SCHEMA_VERSION_INVALID")
-    if (obj.get("provider_id", provider) != provider or obj["account_alias"] != policy["account_alias"]
+    if (obj.get("provider_id", provider) != provider
+            or obj["account_alias"] != policy["account_alias"]
             or obj["currency"] != policy["currency"]):
         raise R42Refused("R42_ACCOUNT_IDENTITY_MISMATCH")
     stamp = _time(obj["observed_at"])
@@ -165,7 +171,10 @@ def _account(obj: dict, *, provider: str | None, policy: dict, as_of: datetime) 
         raise R42Refused("R42_ACCOUNT_BALANCE_INCONSISTENT")
     positions = _entities(obj["positions"], positions=True, contract_id=policy["contract_id"])
     orders = _entities(obj["open_orders"], positions=False, contract_id=policy["contract_id"])
-    return {"balances": amounts, "positions": positions, "open_orders": orders, "observed_at": stamp}
+    return {
+        "balances": amounts, "positions": positions,
+        "open_orders": orders, "observed_at": stamp,
+    }
 
 
 def _market(obj: dict, *, policy: dict, as_of: datetime) -> int:
@@ -187,7 +196,8 @@ def _market(obj: dict, *, policy: dict, as_of: datetime) -> int:
     for bar in bars:
         _fields(bar, _BAR_FIELDS)
         seq = bar["sequence"]
-        if type(seq) is not int or seq <= 0 or (prev_sequence is not None and seq != prev_sequence + 1):
+        if (type(seq) is not int or seq <= 0
+                or (prev_sequence is not None and seq != prev_sequence + 1)):
             raise R42Refused("R42_MARKET_SEQUENCE_GAP_OR_REPLAY")
         opened, closed = _time(bar["open_at"]), _time(bar["close_at"])
         if (closed - opened != timedelta(seconds=policy["timeframe_seconds"])
@@ -207,7 +217,9 @@ def _market(obj: dict, *, policy: dict, as_of: datetime) -> int:
 def audit(*, policy_path: Path, market_path: Path, account_path: Path, ledger_path: Path,
           policy_sha256: str, market_sha256: str, account_sha256: str, ledger_sha256: str,
           region: str, as_of_utc: str, operator_ack: bool = False) -> dict:
-    if operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1" or "MMT_PRODUCTION" in os.environ:
+    if (operator_ack is not True
+            or os.environ.get("MMT_NONPRODUCTION") != "1"
+            or "MMT_PRODUCTION" in os.environ):
         raise R42Refused("R42_NONPRODUCTION_ACK_REQUIRED")
     if not all(isinstance(x, Path) for x in (policy_path, market_path, account_path, ledger_path)):
         raise R42Refused("R42_PATH_TYPES_REQUIRED")
@@ -215,7 +227,10 @@ def audit(*, policy_path: Path, market_path: Path, account_path: Path, ledger_pa
         raise R42Refused("R42_DISTINCT_EVIDENCE_FILES_REQUIRED")
     as_of = _time(as_of_utc)
     policy = _fields(_read(policy_path, policy_sha256), _POLICY_FIELDS)
-    for name in ("provider_id", "market", "symbol", "contract_id", "region", "account_alias", "currency"):
+    for name in (
+        "provider_id", "market", "symbol", "contract_id",
+        "region", "account_alias", "currency",
+    ):
         _id(policy[name])
     if (policy["schema"] != 1 or type(policy["schema"]) is not int
             or policy["scope"] != "offline-synthetic-review-only"
@@ -233,7 +248,8 @@ def audit(*, policy_path: Path, market_path: Path, account_path: Path, ledger_pa
             or type(policy["max_account_lag_seconds"]) is not int
             or not 0 <= policy["max_account_lag_seconds"] <= 86400):
         raise R42Refused("R42_REVIEW_POLICY_INVALID")
-    if type(region) is not str or region != policy["region"] or region not in policy["eligible_regions"]:
+    if (type(region) is not str or region != policy["region"]
+            or region not in policy["eligible_regions"]):
         raise R42Refused("R42_REGION_POLICY_REJECTED")
     bars = _market(_read(market_path, market_sha256), policy=policy, as_of=as_of)
     source = _account(_read(account_path, account_sha256), provider=policy["provider_id"],

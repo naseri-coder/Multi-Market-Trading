@@ -17,7 +17,6 @@ import json
 import os
 import re
 import stat
-import sys
 import zipfile
 from email.parser import Parser
 from pathlib import Path, PurePosixPath
@@ -269,7 +268,8 @@ def _wheel(raw: bytes, record_pin: str) -> dict:
                 raise StableArtifactRefused("V040_WHEEL_TAG_INVALID")
             ini = configparser.ConfigParser(interpolation=None)
             ini.read_string(members[DIST + "entry_points.txt"].decode("utf-8"))
-            if not ini.has_section("console_scripts") or dict(ini.items("console_scripts")) != _ALLOWED_COMMANDS:
+            if (not ini.has_section("console_scripts")
+                    or dict(ini.items("console_scripts")) != _ALLOWED_COMMANDS):
                 raise StableArtifactRefused("V040_ENTRYPOINT_SET_INVALID")
             if members[DIST + "top_level.txt"].strip() != b"naseri_markets":
                 raise StableArtifactRefused("V040_TOP_LEVEL_PACKAGE_INVALID")
