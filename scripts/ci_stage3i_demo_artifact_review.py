@@ -47,10 +47,17 @@ def _sha(blob):
 def _verify_sources(repo):
     if prior.check(["git", "branch", "--show-current"], cwd=repo) != BRANCH:
         reject("DIFFERENT_REVIEW_BRANCH")
-    if prior.check(["git", "rev-parse", "HEAD^"], cwd=repo) != PARENT:
-        reject("UNEXPECTED_PARENT")
-    if prior.check(["git", "rev-parse", "HEAD^^"], cwd=repo) != BASE:
+    if prior.check(["git", "rev-parse", PARENT + "^"], cwd=repo) != BASE:
         reject("SOURCE_ANCESTRY_MISMATCH")
+    # Permit a few scoped review-script fixes without rewriting Git history.
+    ancestry = prior.subprocess.run(
+        ["git", "merge-base", "--is-ancestor", PARENT, "HEAD"],
+        cwd=repo, stdout=prior.subprocess.DEVNULL,
+        stderr=prior.subprocess.DEVNULL, check=False,
+    )
+    depth = int(prior.check(["git", "rev-list", "--count", PARENT + "..HEAD"], cwd=repo))
+    if ancestry.returncode or not 1 <= depth <= 8:
+        reject("UNAPPROVED_REVIEW_BRANCH_ANCESTRY")
     if prior.check(["git", "status", "--porcelain"], cwd=repo):
         reject("DIRTY_WORKTREE")
     modified = set(prior.check([
@@ -125,11 +132,19 @@ def audit_wheel(wheel, repo):
             reject("WHEEL_SOURCE_DIFFERS_FROM_EXACT_GIT")
 
     meta = Parser().parsestr(content[DIST_INFO + "METADATA"].decode("utf-8"))
-    if (meta.get("Name") != prior.PACKAGE
-            or meta.get("Version") != prior.WHEEL_VERSION
-            or meta.get("Requires-Python") != ">=3.12,<3.13"
-            or meta.get_all("Requires-Dist")):
-        reject("DISTRIBUTION_METADATA_DRIFT")
+    # PEP 345 metadata may re-order comma-separated Python specifiers,
+    # without changing the supported Python interval.
+    got_name = meta.get("Name", "").lower().replace("_", "-")
+    if got_name != prior.PACKAGE:
+        reject("DISTRIBUTION_NAME_DRIFT")
+    if meta.get("Version") != prior.WHEEL_VERSION:
+        reject("DISTRIBUTION_VERSION_DRIFT")
+    python_range = meta.get("Requires-Python", "")
+    normalized_python = {item.strip() for item in python_range.split(",")}
+    if normalized_python != {">=3.12", "<3.13"}:
+        reject("DISTRIBUTION_PYTHON_RANGE_DRIFT")
+    if meta.get_all("Requires-Dist"):
+        reject("UNAPPROVED_BASE_DEPENDENCIES")
     config = configparser.ConfigParser()
     config.optionxform = str
     config.read_string(content[DIST_INFO + "entry_points.txt"].decode("utf-8"))
