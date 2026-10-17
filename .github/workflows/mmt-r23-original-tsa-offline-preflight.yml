@@ -36,7 +36,6 @@ jobs:
           PYTHONDONTWRITEBYTECODE: "1"
           PYTHONPATH: "."
           MMT_NONPRODUCTION: "1"
-          MMT_PRODUCTION: "0"
           R23_ORIGINAL_WITNESS_FOLDER: ${{ runner.temp }}/r23-original-witness
         run: |
           python3 - <<'PY'

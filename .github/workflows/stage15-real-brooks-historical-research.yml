@@ -18,7 +18,6 @@ jobs:
     timeout-minutes: 20
     env:
       MMT_NONPRODUCTION: "1"
-      MMT_PRODUCTION: "0"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -34,7 +33,7 @@ jobs:
       - name: Run real frozen V5 worker plus independent provenance regressions
         run: |
           set -Eeuo pipefail
-          python -m pip install -e '.[dev]' 'pyarrow==21.0.0'
+          python -m pip install -e '.[dev]'
           python -m ruff check --select E4,F \
             naseri_markets/real_brooks_historical_stage15_v1.py \
             tests/unit/test_real_brooks_historical_stage15_v1.py

@@ -19,7 +19,6 @@ jobs:
     timeout-minutes: 15
     env:
       MMT_NONPRODUCTION: "1"
-      MMT_PRODUCTION: "0"
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
       - name: Checkout exact candidate
