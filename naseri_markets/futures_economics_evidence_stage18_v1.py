@@ -191,7 +191,7 @@ def audit_futures_economic_evidence(
     does not authenticate venue funding history or funding completeness.
     """
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise Stage18Refused("ST18_NONPRODUCTION_ACK_REQUIRED")
     start, end, stage17_sha = _reconcile_capture(capture, stage17_quality_report_bytes)
     _sha(contract_metadata_bytes, contract_metadata_sha256, maximum=4096)
