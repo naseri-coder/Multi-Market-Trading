@@ -62,7 +62,7 @@ def audit_original_stage21a_receipt(
 ) -> dict:
     """Only original hash-consistent Stage21A evidence, not arbitrary PnL."""
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise R26ParityRefused("R26_EXPLICIT_NONPRODUCTION_RESEARCH_REQUIRED")
     if type(original_report_bytes) is not bytes or not 2 <= len(original_report_bytes) <= _MAX_REPORT:
         raise R26ParityRefused("R26_BOUNDED_ORIGINAL_RECEIPT_REQUIRED")
@@ -173,7 +173,7 @@ def audit_original_stage21a_receipt(
 def run_r26_genuine_brooks_model_and_audit(*, operator_ack: bool = False, **kwargs) -> dict:
     """Execute original frozen Stage21A worker FIRST; audit its exact receipt."""
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise R26ParityRefused("R26_EXPLICIT_NONPRODUCTION_RESEARCH_REQUIRED")
     try:
         original = run_stage21_brooks_lifecycle_preflight(
