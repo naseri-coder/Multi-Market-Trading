@@ -91,7 +91,7 @@ def main() -> int:
     try:
         print(json.dumps(check(), sort_keys=True))
         return 0
-    except (OSError, KeyError, ValueError, tomllib.TOMLDecodeError) as exc:
+    except (OSError, KeyError, ValueError, SyntaxError, tomllib.TOMLDecodeError) as exc:
         print(f"A6_PREFLIGHT_REFUSED:{type(exc).__name__}", file=sys.stderr)
         return 1
 
