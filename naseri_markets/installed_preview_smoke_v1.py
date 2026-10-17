@@ -13,6 +13,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from importlib.metadata import PackageNotFoundError, version
 
+from ._release_identity_v1 import exact_platform_version
 from .contracts import Instrument, Market
 from .core_api_v1 import ClosedCandle, CoreBinding, CoreEventType, DataOrigin, OfflineCoreHarness
 from ._contract_acceptance_fixture_v1 import OfflineContractFixture
@@ -34,7 +35,7 @@ def run_offline_preview() -> dict:
         release = version("multi-market-trading")
     except PackageNotFoundError as exc:
         raise PreviewSmokeRefused("INSTALLED_WHEEL_REQUIRED") from exc
-    if release != "0.4.0rc1":
+    if not exact_platform_version(release):
         raise PreviewSmokeRefused("RELEASE_VERSION_DRIFT")
     core = OfflineContractFixture()
     instrument = Instrument(Market.CRYPTO, "offline_fixture", "ABCUSD", "UTC", "USD")
