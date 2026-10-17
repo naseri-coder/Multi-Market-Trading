@@ -8,7 +8,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from .engine_plan import plan
-from ._release_identity_v1 import PLATFORM_VERSION, exact_platform_version
+from ._release_identity_v1 import exact_platform_version
 
 
 def _installed_version() -> str:
