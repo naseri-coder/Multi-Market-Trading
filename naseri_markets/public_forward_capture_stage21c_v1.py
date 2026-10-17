@@ -46,7 +46,7 @@ def _utc(value: datetime) -> datetime:
 
 def _gate(ack: bool) -> None:
     if (ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise ForwardCaptureRefused("EXPLICIT_NONPRODUCTION_PUBLIC_RESEARCH_REQUIRED")
 
 
