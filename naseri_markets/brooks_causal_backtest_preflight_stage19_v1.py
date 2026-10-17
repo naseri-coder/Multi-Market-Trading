@@ -113,7 +113,7 @@ def review_stage19_brooks_causal_preflight(
     promote its hypothetical scenario PnL into actual Brooks trade PnL.
     """
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise Stage19Refused("ST19_EXPLICIT_NONPRODUCTION_ACK_REQUIRED")
     if (type(capture) is not Stage17Capture
             or type(window) is not VisionBrooksWindow
