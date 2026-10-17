@@ -42,7 +42,20 @@ trap cleanup EXIT
 python3 scripts/a6_prepare_package.py --destination "$BUILD_DIR/package" >/dev/null
 python3 -m pip wheel --disable-pip-version-check --no-deps \
   --wheel-dir "$BUILD_DIR/wheels" "$BUILD_DIR/package" >/dev/null
-WHEEL="$BUILD_DIR/wheels/multi_market_trading-0.4.0rc1-py3-none-any.whl"
+# Read the version from the already source-verified platform metadata.
+# Never guess the wheel name from the frozen legacy root package.
+PLATFORM_VERSION="$(python3 - "$ROOT/platform_release/pyproject.toml" <<'PYVERSION'
+import sys
+import tomllib
+from pathlib import Path
+meta = tomllib.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))["project"]
+value = meta["version"]
+if meta["name"] != "multi-market-trading" or value not in ("0.4.0rc1", "0.4.0"):
+    raise SystemExit("MMT_DEV_INSTALL_REFUSED:VERSION_IDENTITY")
+print(value)
+PYVERSION
+)"
+WHEEL="$BUILD_DIR/wheels/multi_market_trading-${PLATFORM_VERSION}-py3-none-any.whl"
 test -f "$WHEEL"
 mkdir -m 700 -- "$DEST"
 python3 -m venv "$DEST/venv"
@@ -52,10 +65,11 @@ python3 -m venv "$DEST/venv"
   "$WHEEL[telegram-admin]" >/dev/null
 "$DEST/venv/bin/python" -m pip check >/dev/null
 "$DEST/venv/bin/naseri-markets" --check >/dev/null
-"$DEST/venv/bin/python" - <<'PY'
+"$DEST/venv/bin/python" - "$PLATFORM_VERSION" <<'PY'
 import importlib.metadata as md
+import sys
 from telegram.ext import Application
-assert md.version("multi-market-trading") == "0.4.0rc1"
+assert md.version("multi-market-trading") == sys.argv[1]
 assert Application is not None
 PY
 mkdir -m 700 -- "$DEST/state"
