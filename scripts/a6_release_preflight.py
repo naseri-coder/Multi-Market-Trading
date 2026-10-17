@@ -17,9 +17,11 @@ def check() -> dict:
         or historical["project"]["version"] != "0.3.2"
     ):
         raise ValueError("HISTORICAL_PACKAGE_CHANGED")
+    release = newer["project"]["version"]
     if (
         newer["project"]["name"] != "multi-market-trading"
-        or newer["project"]["version"] != "0.4.0rc1"
+        or type(release) is not str
+        or release not in ("0.4.0rc1", "0.4.0")
     ):
         raise ValueError("A6_VERSION_OR_NAME_MISMATCH")
     if newer["project"]["dependencies"]:
@@ -44,6 +46,8 @@ def check() -> dict:
     preview = (ROOT / "compose.platform.yaml").read_text()
     if "name: multi-market-trading" not in preview or 'profiles: ["validation"]' not in preview:
         raise ValueError("PREVIEW_NOT_ISOLATED")
+    if f"image: multi-market-trading:{release}" not in preview:
+        raise ValueError("A6_COMPOSE_VERSION_MISMATCH")
     if "network_mode: none" not in preview or "read_only: true" not in preview:
         raise ValueError("PREVIEW_NETWORK_OR_FILESYSTEM_UNSAFE")
     for unsafe in ("postgres_data", "DATABASE_URL", "ports:", "privileged: true", "telegram"):
@@ -52,13 +56,16 @@ def check() -> dict:
     docker = (ROOT / "Dockerfile.platform").read_text()
     if "COPY production_source" in docker or "COPY . ." in docker:
         raise ValueError("A6_IMAGE_IMPORTS_HISTORICAL_SOURCE")
+    if (f'org.opencontainers.image.version="{release}"' not in docker
+            or f"multi_market_trading-{release}-py3-none-any.whl" not in docker):
+        raise ValueError("A6_DOCKER_VERSION_MISMATCH")
     if "USER 10001:10001" not in docker:
         raise ValueError("A6_IMAGE_MUST_BE_NONROOT")
     if not (ROOT / "production_source/SHA256SUMS").is_file():
         raise ValueError("FROZEN_MANIFEST_NOT_PRESENT")
     return {
         "verdict": "A6_SEPARATE_RELEASE_PREVIEW_PASS",
-        "preview_version": "0.4.0rc1",
+        "preview_version": release,
         "legacy_version": "0.3.2",
         "legacy_database_attached": False,
         "database_migration_executed": False,
