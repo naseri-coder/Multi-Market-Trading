@@ -92,7 +92,7 @@ def invoke(ready, **overrides):
     )
     defaults.update(overrides)
     return run_once(argparse.Namespace(**defaults), environment={
-        "MMT_NONPRODUCTION": "1", "MMT_PRODUCTION": "0",
+        "MMT_NONPRODUCTION": "1",
     })
 
 
