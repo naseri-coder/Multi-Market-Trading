@@ -71,7 +71,7 @@ def _manifest(raw: bytes) -> dict:
     try:
         value = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique_pairs,
                            parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
-    except (UnicodeError, ValueError, TypeError) as exc:
+    except (UnicodeError, ValueError, TypeError, RecursionError) as exc:
         if isinstance(exc, R37Refused):
             raise
         raise R37Refused("R37_INVALID_MANIFEST_JSON") from exc
