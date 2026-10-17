@@ -69,7 +69,7 @@ A direct code search on `main` returned **78 files** referring to `0.4.0rc1`; br
 - **Builder/install scripts:** `scripts/a6_release_preflight.py`, `scripts/a6_prepare_package.py`, `scripts/install_platform_dev.sh`.
 - **Distribution/build descriptors:** `platform_release/pyproject.toml`, `Dockerfile.platform`, `compose.platform.yaml`.
 - **Direct unit contracts:** `tests/unit/test_a6_preview.py`, `tests/unit/test_release_readiness_v1.py`, `tests/unit/test_stage10_installed_paper_pilot_v1.py`.
-- **39 workflow references** and historical documentation; historical evidence documents must retain truthful old results rather than blindly search/replace every version string.
+- **38 workflow references** and historical documentation; historical evidence documents must retain truthful old results rather than blindly search/replace every version string.
 
 **P0 release engineering issue:** simply changing `platform_release/pyproject.toml` to `0.4.0` will cause explicit exact-version refusals in multiple CLI/install/test paths. Before a stable tag, create a reviewed version-transition patch which updates **only the current release executable contracts, installers, build image, relevant tests/workflows and current-facing docs**, preserving historical RC test evidence. The new build/installer must be independently tested in nonroot Python3.12.
 
