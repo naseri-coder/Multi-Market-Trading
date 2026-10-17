@@ -1,0 +1,87 @@
+name: Stage 3I - unsigned offline demo review artifact, nonrelease
+
+on:
+  push:
+    branches:
+      - ci/stage3i-demo-artifact-review-20261017
+    paths:
+      - .github/workflows/stage3i-demo-artifact-review.yml
+      - scripts/ci_stage3i_demo_artifact_review.py
+      - docs/MMT_V0_4_0_STAGE3I_DEMO_REVIEW_ARTIFACT.md
+
+permissions:
+  contents: read
+
+jobs:
+  review-only-wheel:
+    name: 19 real modules, RECORD/source bytes, tamper refusal, no-network PAPER
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      MMT_NONPRODUCTION: "1"
+      APP_ENV: test
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+      TELEGRAM_RUNTIME_ENABLED: "false"
+      BROOKS_RUNTIME_ENABLED: "false"
+      PAPER_RUNTIME_ENABLED: "false"
+      MMT_LIVE_ENABLED: "false"
+      PIP_NO_INPUT: "1"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+    steps:
+      - name: Checkout exact experimental branch without saved credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ci/stage3i-demo-artifact-review-20261017
+          fetch-depth: 3
+          persist-credentials: false
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Pinned test-only builders
+        run: |
+          set -Eeuo pipefail
+          test -z "${MMT_PRODUCTION+x}"
+          python -m pip install "setuptools==80.9.0" "wheel==0.45.1" "ruff==0.16.9"
+          python - <<'PY'
+          import importlib.metadata as md
+          for name, ver in (("setuptools", "80.9.0"), ("wheel", "0.45.1"),
+                            ("ruff", "0.16.9")):
+              assert md.version(name) == ver
+          print("STAGE3I_TEST_BUILDER_PINS_PASS")
+          PY
+
+      - name: Lint both build reviewers without touching source or secrets
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check --no-cache scripts/ci_stage3h_isolated_demo_wheel.py scripts/ci_stage3i_demo_artifact_review.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          for p in ("scripts/ci_stage3h_isolated_demo_wheel.py",
+                    "scripts/ci_stage3i_demo_artifact_review.py"):
+              ast.parse(Path(p).read_bytes(), filename=p)
+          print("STAGE3I_BOTH_SCRIPT_PYTHON_AST_PASS")
+          PY
+
+      - name: Build, inspect, attack, install and run an isolated PAPER demo
+        run: |
+          set -Eeuo pipefail
+          python -m scripts.ci_stage3i_demo_artifact_review
+
+      - name: Save clearly labeled unsigned experimental review output, not a release
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: STAGE3I-UNSIGNED-NONRELEASE-OFFLINE-DEMO-REVIEW-ONLY
+          path: ${{ runner.temp }}/mmt-stage3i-review/
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Publication and operator authorization remain denied
+        if: always()
+        run: |
+          echo "STAGE3I_WHEEL_TEST_ONLY_NO_SIGNER_NO_TAG_NO_MAIN_MERGE_NO_PRODUCTION"
