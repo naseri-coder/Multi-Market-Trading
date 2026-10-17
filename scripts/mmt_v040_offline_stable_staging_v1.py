@@ -16,6 +16,7 @@ import tomllib
 from pathlib import Path
 
 from scripts import mmt_v040_public_source_snapshot_audit_v1 as snap
+from scripts import mmt_v040_production_guard_ast_audit_v1 as production_guard
 from scripts import mmt_v040_signed_artifact_preflight_v1 as stable
 
 _RC_VERSION = 'version = "0.4.0rc1"'
@@ -114,6 +115,9 @@ def stage(*, repository: Path, destination: Path, expected_source_commit: str,
         blobs[name] = raw
     if set(blobs) != {m["path"] for m in lock["modules"]}:
         raise StableStageRefused("V040_SOURCE_FILE_SET_CHANGED")
+    # A signed wheel must not be staged while *any* public module still
+    # allows an explicitly defined production flag to bypass its gate.
+    production_guard.require_no_value_only_guards(blobs)
     if snap._git(repository, "status", "--porcelain=v1", "--untracked-files=all"):
         raise StableStageRefused("V040_SOURCE_CHANGED_AFTER_SCAN")
     # Exclusive-new directory, without a copy into / from historical source.
@@ -159,7 +163,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--expected-lock-sha256", required=True)
     try:
         output = stage(**vars(parser.parse_args(argv)))
-    except (StableStageRefused, snap.PublicSnapshotRefused, OSError) as exc:
+    except (StableStageRefused, snap.PublicSnapshotRefused,
+            production_guard.ProductionGuardRefused, OSError) as exc:
         code = str(exc) if isinstance(exc, (StableStageRefused, snap.PublicSnapshotRefused)) else "V040_STAGING_IO_DENIED"
         print(json.dumps({"verdict": "V040_STAGING_REFUSED", "reason": code,
                           "public_release_authorized": False,
