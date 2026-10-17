@@ -45,7 +45,7 @@ class Stage24Refused(ValueError):
 
 def _guard(ack: bool) -> None:
     if (ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise Stage24Refused("EXPLICIT_NONPRODUCTION_REVIEW_REQUIRED")
 
 
