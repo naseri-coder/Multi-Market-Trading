@@ -253,7 +253,7 @@ def run_stage21_brooks_lifecycle_preflight(
 ) -> dict:
     """Run genuine engine before exposing later candles, then model one trade."""
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise Stage21StudyRefused("ST21_EXPLICIT_OFFLINE_RESEARCH_ONLY")
     sealed = _source(original_replay_bytes, legacy_source)
     future = _validated_continuation(
