@@ -25,6 +25,17 @@ from test_a24_publisher_admission import (
 from test_a22_custom_bridge import sample
 from test_a7_replay_pipeline import quote
 
+# These tests spawn the real scoped worker through ``systemd-run`` with
+# passwordless sudo and therefore require an ephemeral GitHub-hosted runner
+# (see ``ephemeral_runner_gap`` in tests/conftest.py).  On any other host they
+# are skipped with an explicit capability reason; ``MMT_REQUIRE_EPHEMERAL_RUNNER=1``
+# turns the gap back into a hard failure so the real runner cannot hide a
+# regression behind the skip.  Every other test in this module keeps running.
+EPHEMERAL_RUNNER_TESTS = frozenset({
+    "test_a25_real_A23_fixed_paper_relay_requires_both_signatures_and_bundle",
+    "test_a25_revocation_inflight_fixed_relay_fails_closed_before_journal",
+})
+
 
 def pack(contract, *, manifest_changes=None, payload_changes=None,
          members=None, compression=zipfile.ZIP_STORED, mode=None,

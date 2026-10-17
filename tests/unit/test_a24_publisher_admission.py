@@ -23,6 +23,17 @@ from naseri_markets.paper_journal import PaperJournal
 from test_a22_custom_bridge import metadata, pinned, sample
 from test_a7_replay_pipeline import INST, quote, session
 
+# These tests spawn the real scoped worker through ``systemd-run`` with
+# passwordless sudo and therefore require an ephemeral GitHub-hosted runner
+# (see ``ephemeral_runner_gap`` in tests/conftest.py).  On any other host they
+# are skipped with an explicit capability reason; ``MMT_REQUIRE_EPHEMERAL_RUNNER=1``
+# turns the gap back into a hard failure so the real runner cannot hide a
+# regression behind the skip.  Every other test in this module keeps running.
+EPHEMERAL_RUNNER_TESTS = frozenset({
+    "test_a24_real_linux_a23_signed_admission_start_paper_dispatch_and_revocation",
+    "test_a24_revocation_while_relay_awaited_blocks_paper_journal",
+})
+
 NOW = 1000
 INSTALL = "public_ci_fixture_one"
 PUBLISHER_KEY_ID = "community_publisher_one"

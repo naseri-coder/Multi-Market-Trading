@@ -7,6 +7,7 @@ import math
 import subprocess
 import sys
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
 
@@ -363,6 +364,7 @@ def test_cli_requires_explicit_ack_and_never_leaks_json_on_stdout():
         [sys.executable, "-m", "scripts.mmt_offline_mcp_v1"],
         input=(json.dumps(modern("tools/list")) + "\n").encode(),
         capture_output=True, timeout=10, check=False,
+        cwd=Path(__file__).resolve().parents[2],
     )
     assert result.returncode == 2
     assert result.stdout == b""
@@ -375,6 +377,7 @@ def test_cli_explicit_ack_responds_with_only_json_lines():
          "--ack-offline-research"],
         input=(json.dumps(modern("server/discover")) + "\n").encode(),
         capture_output=True, timeout=10, check=False,
+        cwd=Path(__file__).resolve().parents[2],
     )
     assert result.returncode == 0
     assert not result.stderr

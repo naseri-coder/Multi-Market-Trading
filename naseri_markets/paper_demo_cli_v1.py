@@ -11,7 +11,9 @@ import argparse
 import hashlib
 import json
 import os
+import shutil
 import sqlite3
+import stat
 import sys
 from pathlib import Path
 
@@ -36,15 +38,27 @@ def _scope(root: Path, *, new: bool) -> Path:
         raise PaperDemoRefused("ABSOLUTE_SAFE_STATE_DIRECTORY_REQUIRED")
     if root.parent.is_symlink() or (new and root.exists()):
         raise PaperDemoRefused("NEW_PRIVATE_STATE_DIRECTORY_REQUIRED")
-    if not new and (not root.is_dir() or not (root / "custom_paper.db").is_file()
-                    or (root / "custom_paper.db").is_symlink()):
-        raise PaperDemoRefused("INITIALIZED_PAPER_STATE_REQUIRED")
+    if not new:
+        ledger = root / "custom_paper.db"
+        if not root.is_dir() or not ledger.is_file() or ledger.is_symlink():
+            raise PaperDemoRefused("INITIALIZED_PAPER_STATE_REQUIRED")
+        directory_info = root.stat()
+        ledger_info = ledger.stat()
+        if (directory_info.st_uid != os.geteuid()
+                or stat.S_IMODE(directory_info.st_mode) != 0o700
+                or ledger_info.st_uid != os.geteuid()
+                or ledger_info.st_nlink != 1
+                or stat.S_IMODE(ledger_info.st_mode) & 0o077):
+            raise PaperDemoRefused("PRIVATE_UNSHARED_PAPER_LEDGER_REQUIRED")
     return root
 
 
 def _require_nonproduction() -> None:
     if os.environ.get("MMT_NONPRODUCTION") != "1" or os.environ.get("MMT_PRODUCTION") == "1":
         raise PaperDemoRefused("EXPLICIT_NONPRODUCTION_ENV_REQUIRED")
+    # The bundled trusted worker inherits OS privileges; never execute as root.
+    if os.geteuid() == 0:
+        raise PaperDemoRefused("UNPRIVILEGED_PAPER_DEMO_USER_REQUIRED")
 
 
 def _safe_state(host: TrustedLocalCustomHost):
@@ -100,18 +114,24 @@ def main(argv: list[str] | None = None) -> int:
                 raise PaperDemoRefused("EXPLICIT_REVIEW_OF_BUNDLED_TOY_REQUIRED")
             root = _scope(args.state_dir, new=True)
             root.mkdir(mode=0o700)
-            with TrustedLocalCustomHost(root) as host:
-                fixture = _export_demo(root / "sample")
-                created = host.register(
-                    root / "sample" / "descriptor.json",
-                    root / "sample" / "public_toy_demo.py",
-                    descriptor_sha256=fixture["descriptor_sha256"],
-                    code_sha256=fixture["code_sha256"], trust_ack=TRUST_ACK,
-                )
-                if created.enabled or created.revision != 1:
-                    raise PaperDemoRefused("DEMO_MUST_START_DISABLED")
-                result = _inspect(host)
-                result["action"] = "INITIALIZED_DISABLED"
+            try:
+                with TrustedLocalCustomHost(root) as host:
+                    fixture = _export_demo(root / "sample")
+                    created = host.register(
+                        root / "sample" / "descriptor.json",
+                        root / "sample" / "public_toy_demo.py",
+                        descriptor_sha256=fixture["descriptor_sha256"],
+                        code_sha256=fixture["code_sha256"], trust_ack=TRUST_ACK,
+                    )
+                    if created.enabled or created.revision != 1:
+                        raise PaperDemoRefused("DEMO_MUST_START_DISABLED")
+                    result = _inspect(host)
+                    result["action"] = "INITIALIZED_DISABLED"
+            except BaseException:
+                # The new private scope is not a valid installed state until
+                # registration finishes; never strand a partial worker/ledger.
+                shutil.rmtree(root)
+                raise
         else:
             root = _scope(args.state_dir, new=False)
             with TrustedLocalCustomHost(root) as host:

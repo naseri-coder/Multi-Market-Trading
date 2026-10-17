@@ -5,6 +5,7 @@ cd "$ROOT"
 
 test "$(wc -l < production_source/SHA256SUMS)" -eq 359
 ( cd production_source && sha256sum --status -c SHA256SUMS )
+python3 scripts/verify_runtime_integrity.py
 
 python3 - <<'PY'
 from pathlib import Path

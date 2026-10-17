@@ -47,6 +47,25 @@ def tls_material(tmp_path):
             .not_valid_after(datetime.now(timezone.utc)+timedelta(days=2))
             .add_extension(x509.SubjectAlternativeName([x509.DNSName(HOSTNAME)]),
                            critical=False)
+            # RFC 5280 section 4.2.1: this ephemeral certificate is its own
+            # trust anchor, so it must carry the SubjectKeyIdentifier /
+            # AuthorityKeyIdentifier id-pair and an explicit CA key usage for
+            # OpenSSL 3.5+ to build the verification chain.  The strictness of
+            # the client context stays untouched.
+            .add_extension(
+                x509.SubjectKeyIdentifier.from_public_key(private.public_key()),
+                critical=False)
+            .add_extension(
+                x509.AuthorityKeyIdentifier.from_issuer_public_key(
+                    private.public_key()),
+                critical=False)
+            .add_extension(
+                x509.KeyUsage(
+                    digital_signature=True, content_commitment=False,
+                    key_encipherment=True, data_encipherment=False,
+                    key_agreement=False, key_cert_sign=True, crl_sign=True,
+                    encipher_only=False, decipher_only=False,
+                ), critical=True)
             .sign(private, hashes.SHA256()))
     cert_pem = cert.public_bytes(serialization.Encoding.PEM)
     cert_der = cert.public_bytes(serialization.Encoding.DER)

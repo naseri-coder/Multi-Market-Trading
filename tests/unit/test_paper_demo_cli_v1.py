@@ -108,3 +108,47 @@ def test_tampered_pinned_worker_is_rejected(monkeypatch, capsys, tmp_path):
     snapshot.write_text("print('compromised')\n")
     assert _do(monkeypatch, capsys, root, "replay", "--ack-offline-replay")[0] == 2
     assert _do(monkeypatch, capsys, root, "inspect")[1]["paper_signal_count"] == 0
+
+
+def test_fix05_partial_init_failure_removes_new_state(monkeypatch, capsys, tmp_path):
+    from naseri_markets import paper_demo_cli_v1 as cli
+
+    root = tmp_path / "aborted"
+    def abort_export(sample_dir):
+        sample_dir.mkdir(mode=0o700)
+        (sample_dir / "partial").write_text("uncommitted")
+        raise OSError("SIMULATED_DISK_WRITE_FAILURE")
+
+    monkeypatch.setattr(cli, "_export_demo", abort_export)
+    monkeypatch.setenv("MMT_NONPRODUCTION", "1")
+    code = cli.main(["--state-dir", str(root), "init", "--ack-reviewed-public-toy"])
+    assert code == 2
+    assert not root.exists()
+
+
+def test_fix05_root_execution_refused_without_creating_state(
+    monkeypatch, capsys, tmp_path,
+):
+    from naseri_markets import paper_demo_cli_v1 as cli
+
+    monkeypatch.setenv("MMT_NONPRODUCTION", "1")
+    monkeypatch.setattr(cli.os, "geteuid", lambda: 0)
+    root = tmp_path / "root-denied"
+    code = cli.main(["--state-dir", str(root), "init", "--ack-reviewed-public-toy"])
+    assert code == 2
+    assert not root.exists()
+
+
+def test_fix05_hardlinked_state_ledger_refused_on_restart(
+    monkeypatch, capsys, tmp_path,
+):
+    import os
+
+    root, _ = _init(monkeypatch, capsys, tmp_path)
+    db = root / "custom_paper.db"
+    elsewhere = tmp_path / "other.db"
+    os.link(db, elsewhere)
+    before = db.read_bytes()
+    assert _do(monkeypatch, capsys, root, "inspect")[0] == 2
+    assert _do(monkeypatch, capsys, root, "replay", "--ack-offline-replay")[0] == 2
+    assert db.read_bytes() == before

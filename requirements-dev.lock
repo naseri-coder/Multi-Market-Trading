@@ -1,6 +1,14 @@
 # Reproducible Python 3.12 development/RC environment.
 # Runtime pins are inherited from requirements.lock; development tools are exact pins.
 -r requirements.lock
+# Test-only dependencies pinned in pyproject.toml [project.optional-dependencies].dev.
+# ``cryptography`` gates ~700 security tests, ``pyarrow`` and ``wasmtime`` gate the
+# four-language worker and historical-data fixtures: without them those modules are
+# skipped silently instead of executed.  The TypeScript leg of
+# tests/unit/test_runtime_a2_worker.py additionally needs Node.js 22 with the
+# ``typescript@5.9.3`` package available through NODE_PATH (see
+# .github/workflows/runtime-a2-worker-smoke.yml).
+cryptography==46.0.3
 build==1.6.1
 iniconfig==2.3.0
 pluggy==1.6.0
@@ -9,3 +17,5 @@ pyproject-hooks==1.3.3
 pytest==9.1.1
 pytest-asyncio==1.4.0
 ruff==0.16.9
+pyarrow==26.0.0
+wasmtime==49.0.0

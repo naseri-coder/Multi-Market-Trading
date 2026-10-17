@@ -71,13 +71,26 @@ def test_actual_tls_handshake_over_private_socketpair_not_host_endpoint(
     server_ctx.minimum_version = ssl.TLSVersion.TLSv1_3
     server_ctx.maximum_version = ssl.TLSVersion.TLSv1_3
     server_ctx.load_cert_chain(str(cert_path), str(key_path))
+    handshakes: list[tuple[str, str]] = []
     errors = []
 
     def server():
         try:
             with server_ctx.wrap_socket(server_socket, server_side=True) as tls:
+                negotiated = tls.cipher()
+                handshakes.append(
+                    (tls.version() or "", negotiated[0] if negotiated else ""))
                 tls.settimeout(3)
-                tls.recv(1)
+                try:
+                    tls.recv(1)
+                except (BrokenPipeError, ConnectionResetError):
+                    # `_real_local_tls` sends no application data and closes the
+                    # verified socket abruptly (no close_notify), so the peer RST
+                    # surfaces on the next server-side read as EPIPE/ECONNRESET.
+                    # That is a transport teardown of the fixture, not a TLS
+                    # protocol failure: every alert or handshake error still
+                    # reaches the `errors` list below and fails the test.
+                    pass
         except (OSError, ssl.SSLError) as exc:
             errors.append(type(exc).__name__)
 
@@ -92,6 +105,9 @@ def test_actual_tls_handshake_over_private_socketpair_not_host_endpoint(
     assert digest == pinned
     thread.join(timeout=4)
     assert not thread.is_alive()
+    # The handshake really completed on the server side with the same suite the
+    # pinned client observed, over a private socketpair and not a host endpoint.
+    assert handshakes == [("TLSv1.3", cipher)]
     assert not errors
 
 

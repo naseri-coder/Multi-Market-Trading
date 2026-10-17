@@ -7,6 +7,17 @@ on:
       - "naseri_markets/brooks_stage10_cli.py"
       - "naseri_markets/integrated_engine_panel.py"
       - "tests/unit/test_brooks_stage10_paper_bridge.py"
+      - "tests/unit/test_brooks_paper07_real_replay_link.py"
+      - "tests/unit/test_brooks_paper08_recovery.py"
+      - "naseri_markets/brooks_stage10_recovery_v1.py"
+      - "docs/MMT_PAPER_08_RECOVERY_ACCEPTANCE.md"
+      - "docs/MMT_PAPER_09_OFFLINE_RELEASE_ACCEPTANCE.md"
+      - "tests/unit/test_paper09_snapshot_v1.py"
+      - "naseri_markets/paper09_snapshot_v1.py"
+      - "scripts/accept_paper09_installed.py"
+      - "docs/MMT_PAPER_07_PINNED_BROOKS_RISK_ROUTE.md"
+      - "scripts/accept_paper07_installed.py"
+      - "platform_release/pyproject.toml"
       - "tests/unit/test_stage10_telegram_paper_view.py"
       - "docs/STAGE10_BROOKS_PAPER_BRIDGE_V1.md"
       - ".github/workflows/stage10-brooks-paper-bridge.yml"
@@ -37,12 +48,26 @@ jobs:
             naseri_markets/brooks_stage10_cli.py \
             naseri_markets/integrated_engine_panel.py \
             tests/unit/test_brooks_stage10_paper_bridge.py \
+            tests/unit/test_brooks_paper07_real_replay_link.py \
+            tests/unit/test_brooks_paper08_recovery.py \
+            naseri_markets/brooks_stage10_recovery_v1.py \
+            scripts/accept_paper07_installed.py \
+            scripts/accept_paper09_installed.py \
+            naseri_markets/paper09_snapshot_v1.py \
+            tests/unit/test_paper09_snapshot_v1.py \
             tests/unit/test_stage10_telegram_paper_view.py
           python -m ruff check --select E4,F \
             naseri_markets/brooks_stage10_paper_bridge.py \
             naseri_markets/brooks_stage10_cli.py \
+            naseri_markets/brooks_stage10_recovery_v1.py \
+            tests/unit/test_brooks_paper08_recovery.py \
+            scripts/accept_paper07_installed.py \
+            scripts/accept_paper09_installed.py \
+            naseri_markets/paper09_snapshot_v1.py \
+            tests/unit/test_paper09_snapshot_v1.py \
             naseri_markets/integrated_engine_panel.py \
             tests/unit/test_brooks_stage10_paper_bridge.py \
+            tests/unit/test_brooks_paper07_real_replay_link.py \
             tests/unit/test_stage10_telegram_paper_view.py
       - name: Actual Stage10 source-to-Stage3 PAPER and private Telegram tests
         env:
@@ -51,6 +76,9 @@ jobs:
         run: |
           python -m pytest -q --confcutdir=tests/unit \
             tests/unit/test_brooks_stage10_paper_bridge.py \
+            tests/unit/test_brooks_paper07_real_replay_link.py \
+            tests/unit/test_brooks_paper08_recovery.py \
+            tests/unit/test_paper09_snapshot_v1.py \
             tests/unit/test_stage10_telegram_paper_view.py \
             tests/unit/test_execution_position_core_v1.py \
             tests/unit/test_risk_portfolio_manager_v1.py \
@@ -69,10 +97,12 @@ jobs:
           paths=[
               Path("naseri_markets/brooks_stage10_paper_bridge.py"),
               Path("naseri_markets/brooks_stage10_cli.py"),
+              Path("naseri_markets/brooks_stage10_recovery_v1.py"),
+              Path("naseri_markets/paper09_snapshot_v1.py"),
           ]
           forbidden={
               "order_send", "order_check", "login", "send_message",
-              "publish", "poll_once", "replay_once", "initialize",
+              "publish", "poll_once", "initialize",
               "run_polling", "configure_account", "configure_portfolio",
               "register_instrument", "ack", "fill",
           }
@@ -90,15 +120,31 @@ jobs:
                   )
                   for n in ast.walk(tree)
               ),p
-          print("PASS: Stage10 strict local PAPER-only, no trade/feed/Telegram operations")
+          # The explicitly gated local Brooks engine replay is now allowed,
+          # but the venue poller, fills, trading and publication stay denied.
+          cli=ast.parse(Path("naseri_markets/brooks_stage10_cli.py").read_text())
+          functions={n.name:n for n in cli.body if isinstance(n,ast.FunctionDef)}
+          local_calls={
+              n.func.id for n in ast.walk(functions["_replay_and_link"])
+              if isinstance(n,ast.Call) and isinstance(n.func,ast.Name)
+          }
+          assert "replay_once" in local_calls
+          assert "BrooksStage10PaperBridge" in local_calls
+          print("PASS: frozen V5 local replay only; no trade/feed/Telegram calls")
           PY
       - name: Installed-wheel Stage10 user-facing CLI availability
         run: |
           python scripts/a6_prepare_package.py --destination "$RUNNER_TEMP/stage10-wheel"
           python -m venv "$RUNNER_TEMP/stage10-clean"
           "$RUNNER_TEMP/stage10-clean/bin/python" -m pip install \
-            "$RUNNER_TEMP/stage10-wheel[telegram-admin]" >/dev/null
-          "$RUNNER_TEMP/stage10-clean/bin/python" - <<'PY'
+            "$RUNNER_TEMP/stage10-wheel[telegram-admin,brooks-offline]" >/dev/null
+          cd "$RUNNER_TEMP"
+          PYTHONPATH= "$RUNNER_TEMP/stage10-clean/bin/python" - <<'PY'
+          import sys
+          from pathlib import Path
+          import naseri_markets
+          installed = Path(naseri_markets.__file__).resolve()
+          assert Path(sys.prefix).resolve() in installed.parents
           from naseri_markets.brooks_stage10_paper_bridge import (
               BrooksStage10PaperBridge, panel_stage10_overview,
           )
@@ -108,9 +154,11 @@ jobs:
           print("PASS: Stage10 installed in clean public product wheel")
           PY
           mkdir -m 700 "$RUNNER_TEMP/stage10-view"
-          "$RUNNER_TEMP/stage10-clean/bin/python" -m naseri_markets.brooks_stage10_cli \
+          PYTHONPATH= "$RUNNER_TEMP/stage10-clean/bin/python" -m naseri_markets.brooks_stage10_cli \
             --status --state-dir "$RUNNER_TEMP/stage10-view" \
             > "$RUNNER_TEMP/stage10-result.json"
+          PYTHONPATH= "$RUNNER_TEMP/stage10-clean/bin/python" -m naseri_markets.brooks_stage10_cli \
+            --help | grep -q -- '--replay-and-link'
           "$RUNNER_TEMP/stage10-clean/bin/python" - <<'PY'
           import json
           import os
@@ -121,4 +169,55 @@ jobs:
           assert raw["status"]=="NOT_CONFIGURED"
           assert raw["broker_execution"] is False
           print("PASS: Stage10 clean-wheel status never enables any trade")
+          PY
+          # Genuine frozen V5 child, two external clean-wheel processes,
+          # and a Stage10 risk reservation on synthetic finalized bars.
+          mkdir -m 700 "$RUNNER_TEMP/p07-owner"
+          MMT_NONPRODUCTION=1 PYTHONPATH= "$RUNNER_TEMP/stage10-clean/bin/python" -I \
+            "$GITHUB_WORKSPACE/scripts/accept_paper07_installed.py" \
+            --state-parent "$RUNNER_TEMP/p07-owner" \
+            --legacy-source "$GITHUB_WORKSPACE/production_source" \
+            > "$RUNNER_TEMP/p07-installed-acceptance.json"
+          "$RUNNER_TEMP/stage10-clean/bin/python" - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          report=json.loads((Path(os.environ["RUNNER_TEMP"])/
+              "p07-installed-acceptance.json").read_text())
+          assert report["verdict"] == "PINNED_BROOKS_INSTALLED_OFFLINE_PAPER_PASS"
+          assert report["two_process_replay"] is True
+          assert report["broker_orders_sent"] is False
+          assert report["telegram_sent"] is False
+          assert report["stage20_integrated"] is False
+          assert report["recovery_status"] in (
+              "MATCHED_PAPER_ORDER", "CLEAN_NO_SIGNALS",
+          )
+          assert report["automatic_recovery_authorized"] is False
+          print("PINNED_BROOKS_INSTALLED_TWO_PROCESS_PAPER_CI_PASS")
+          PY
+          # MMT-PAPER-09: genuine wheel + pinned V5, stopped-writer two-DB
+          # archive and separate restore; candidate rollback and 32
+          # independent read-only restart checks. Never Production.
+          mkdir -m 700 "$RUNNER_TEMP/p09-owner"
+          MMT_NONPRODUCTION=1 PYTHONPATH= "$RUNNER_TEMP/stage10-clean/bin/python" -I \
+            "$GITHUB_WORKSPACE/scripts/accept_paper09_installed.py" \
+            --state-parent "$RUNNER_TEMP/p09-owner" \
+            --legacy-source "$GITHUB_WORKSPACE/production_source" \
+            > "$RUNNER_TEMP/p09-installed-release.json"
+          "$RUNNER_TEMP/stage10-clean/bin/python" - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          verdict=json.loads((Path(os.environ["RUNNER_TEMP"])/
+              "p09-installed-release.json").read_text())
+          assert verdict["verdict"] == "MMT_PAPER09_CLEAN_WHEEL_OFFLINE_RC_ACCEPTED"
+          assert verdict["backup_verified"] and verdict["isolated_restore_verified"]
+          assert verdict["injected_candidate_rollback_verified"]
+          assert verdict["corrupt_archive_refused"]
+          assert verdict["soak_processes"] == 32
+          assert verdict["live_orders_authorized"] is False
+          assert verdict["automatic_recovery_authorized"] is False
+          assert verdict["telegram_sent"] is False
+          assert verdict["broker_orders_sent"] is False
+          print("P09_CLEAN_WHEEL_BACKUP_RESTORE_ROLLBACK_SOAK_PASS")
           PY

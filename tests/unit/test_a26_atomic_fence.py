@@ -24,6 +24,23 @@ from test_a24_publisher_admission import INSTALL, NOW, ctx as a24_ctx, service
 from test_a25_bundle_admission import case as a25_case, args, release
 from test_a7_replay_pipeline import INST, quote, session
 
+# These tests spawn the real scoped worker through ``systemd-run`` with
+# passwordless sudo and therefore require an ephemeral GitHub-hosted runner
+# (see ``ephemeral_runner_gap`` in tests/conftest.py).  On any other host they
+# are skipped with an explicit capability reason; ``MMT_REQUIRE_EPHEMERAL_RUNNER=1``
+# turns the gap back into a hard failure so the real runner cannot hide a
+# regression behind the skip.  Every other test in this module keeps running.
+EPHEMERAL_RUNNER_TESTS = frozenset({
+    "test_a26_auth_db_revoker_waits_for_locked_commit_linearization",
+    "test_a26_bundle_db_revoker_waits_for_locked_commit_linearization",
+    "test_a26_bundle_supersession_blocks_old_release",
+    "test_a26_expiration_blocks_commit_even_if_worker_was_running",
+    "test_a26_full_dual_signed_inert_fixture_atomic_paper_commit_and_duplicate",
+    "test_a26_hard_fence_cannot_use_previous_ungated_a22_record_batch",
+    "test_a26_revocation_after_a25_preflight_but_before_sqlite_begin",
+    "test_a26_revoked_before_commit_no_paper_records",
+})
+
 
 @pytest.fixture
 def rig(request, tmp_path):
