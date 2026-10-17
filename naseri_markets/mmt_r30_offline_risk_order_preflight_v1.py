@@ -125,7 +125,7 @@ def evaluate_r30_offline_preorder_risk(
     """
     _fail(operator_ack is not True
           or os.environ.get("MMT_NONPRODUCTION") != "1"
-          or os.environ.get("MMT_PRODUCTION") == "1",
+          or "MMT_PRODUCTION" in os.environ,
           "R30_NONPRODUCTION_EXPLICIT_OPERATOR_ACK_REQUIRED")
     _fail(not isinstance(proposal, OrderSpec)
           or proposal.mode is not EvidenceMode.PAPER
