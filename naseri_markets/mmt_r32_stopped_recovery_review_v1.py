@@ -27,7 +27,7 @@ def review_r32_stopped_snapshots(
 ) -> dict:
     if (operator_ack is not True or all_writers_stopped is not True
             or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise R32RecoveryRefused("R32_STOP_WRITERS_AND_APPROVE_NONPRODUCTION")
     if type(paths) is not RecoveryPaths:
         raise R32RecoveryRefused("R32_EXACT_STAGE18_FOUR_ROLES_REQUIRED")
