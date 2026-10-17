@@ -278,7 +278,7 @@ jobs:
           test -s "$RUNNER_TEMP/cert-a13-evidence.json"
           echo "CERT_A13_REPORT_ONLY_ROOTFUL_CI_NO_RELEASE_PERMISSION"
       - name: Upload transient CERT-A13 SBOM, scan and non-authorizing summary
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: cert-a13-fixed-worker-sbom-vulnerability-evidence
           path: |
@@ -329,7 +329,7 @@ jobs:
           test -s "$RUNNER_TEMP/cert-a15-comparison.json"
           echo "CERT_A15_INVENTORY_COMPARISON_DONE__NOT_A_SECURITY_REMEDIATION"
       - name: Upload expiring A15 lean SBOM, Grype scan and comparison
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: cert-a15-lean-worker-research-only
           path: |
@@ -357,7 +357,7 @@ jobs:
           test -s "$RUNNER_TEMP/cert-a16-payload-audit.json"
           echo "CERT_A16_FILES_COPIED_FROM_STOPPED_CONTAINERS_ONLY_NO_CODE_EXECUTION"
       - name: Upload expiring A16 file SHA mapping with all review-open findings
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: cert-a16-actual-payload-sha-review-only
           path: ${{ runner.temp }}/cert-a16-payload-audit.json
@@ -469,7 +469,7 @@ jobs:
           print("CERT_A18_SAME_DB_MATCH_COUNTS_EQUAL_NO_CVE_FIX_CLAIM")
           PY
       - name: Upload CERT-A18 exact dpkg ownership proof and current scan for review
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: cert-a18-fixed-build-only-owner-path-review
           path: |
