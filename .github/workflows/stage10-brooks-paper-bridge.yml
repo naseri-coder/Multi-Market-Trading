@@ -11,6 +11,10 @@ on:
       - "tests/unit/test_brooks_paper08_recovery.py"
       - "naseri_markets/brooks_stage10_recovery_v1.py"
       - "docs/MMT_PAPER_08_RECOVERY_ACCEPTANCE.md"
+      - "docs/MMT_PAPER_09_OFFLINE_RELEASE_ACCEPTANCE.md"
+      - "tests/unit/test_paper09_snapshot_v1.py"
+      - "naseri_markets/paper09_snapshot_v1.py"
+      - "scripts/accept_paper09_installed.py"
       - "docs/MMT_PAPER_07_PINNED_BROOKS_RISK_ROUTE.md"
       - "scripts/accept_paper07_installed.py"
       - "platform_release/pyproject.toml"
@@ -48,6 +52,9 @@ jobs:
             tests/unit/test_brooks_paper08_recovery.py \
             naseri_markets/brooks_stage10_recovery_v1.py \
             scripts/accept_paper07_installed.py \
+            scripts/accept_paper09_installed.py \
+            naseri_markets/paper09_snapshot_v1.py \
+            tests/unit/test_paper09_snapshot_v1.py \
             tests/unit/test_stage10_telegram_paper_view.py
           python -m ruff check --select E4,F \
             naseri_markets/brooks_stage10_paper_bridge.py \
@@ -55,6 +62,9 @@ jobs:
             naseri_markets/brooks_stage10_recovery_v1.py \
             tests/unit/test_brooks_paper08_recovery.py \
             scripts/accept_paper07_installed.py \
+            scripts/accept_paper09_installed.py \
+            naseri_markets/paper09_snapshot_v1.py \
+            tests/unit/test_paper09_snapshot_v1.py \
             naseri_markets/integrated_engine_panel.py \
             tests/unit/test_brooks_stage10_paper_bridge.py \
             tests/unit/test_brooks_paper07_real_replay_link.py \
@@ -68,6 +78,7 @@ jobs:
             tests/unit/test_brooks_stage10_paper_bridge.py \
             tests/unit/test_brooks_paper07_real_replay_link.py \
             tests/unit/test_brooks_paper08_recovery.py \
+            tests/unit/test_paper09_snapshot_v1.py \
             tests/unit/test_stage10_telegram_paper_view.py \
             tests/unit/test_execution_position_core_v1.py \
             tests/unit/test_risk_portfolio_manager_v1.py \
@@ -87,6 +98,7 @@ jobs:
               Path("naseri_markets/brooks_stage10_paper_bridge.py"),
               Path("naseri_markets/brooks_stage10_cli.py"),
               Path("naseri_markets/brooks_stage10_recovery_v1.py"),
+              Path("naseri_markets/paper09_snapshot_v1.py"),
           ]
           forbidden={
               "order_send", "order_check", "login", "send_message",
@@ -182,4 +194,30 @@ jobs:
           )
           assert report["automatic_recovery_authorized"] is False
           print("PINNED_BROOKS_INSTALLED_TWO_PROCESS_PAPER_CI_PASS")
+          PY
+          # MMT-PAPER-09: genuine wheel + pinned V5, stopped-writer two-DB
+          # archive and separate restore; candidate rollback and 32
+          # independent read-only restart checks. Never Production.
+          mkdir -m 700 "$RUNNER_TEMP/p09-owner"
+          MMT_NONPRODUCTION=1 PYTHONPATH= "$RUNNER_TEMP/stage10-clean/bin/python" -I \
+            "$GITHUB_WORKSPACE/scripts/accept_paper09_installed.py" \
+            --state-parent "$RUNNER_TEMP/p09-owner" \
+            --legacy-source "$GITHUB_WORKSPACE/production_source" \
+            > "$RUNNER_TEMP/p09-installed-release.json"
+          "$RUNNER_TEMP/stage10-clean/bin/python" - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          verdict=json.loads((Path(os.environ["RUNNER_TEMP"])/
+              "p09-installed-release.json").read_text())
+          assert verdict["verdict"] == "MMT_PAPER09_CLEAN_WHEEL_OFFLINE_RC_ACCEPTED"
+          assert verdict["backup_verified"] and verdict["isolated_restore_verified"]
+          assert verdict["injected_candidate_rollback_verified"]
+          assert verdict["corrupt_archive_refused"]
+          assert verdict["soak_processes"] == 32
+          assert verdict["live_orders_authorized"] is False
+          assert verdict["automatic_recovery_authorized"] is False
+          assert verdict["telegram_sent"] is False
+          assert verdict["broker_orders_sent"] is False
+          print("P09_CLEAN_WHEEL_BACKUP_RESTORE_ROLLBACK_SOAK_PASS")
           PY
