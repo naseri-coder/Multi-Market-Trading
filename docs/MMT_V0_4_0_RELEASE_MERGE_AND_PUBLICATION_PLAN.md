@@ -45,7 +45,11 @@
 
 **Stage 1 evidence (2026-10-17):** See [`MMT_V0_4_0_STAGE1_COMPATIBILITY_AND_BRANCH_DISPOSITION.md`](MMT_V0_4_0_STAGE1_COMPATIBILITY_AND_BRANCH_DISPOSITION.md). This is a reviewed *source-scope freeze*: all 19 independent branch heads are classified; none was blindly merged. Critical findings are the 78 preview-version references across default-branch search results, 348-entry published-v0.3.2 versus 359-entry current legacy manifest, and the lack of operational rootless host accreditation. All runtime acceptance remains open; no release tag is authorized.
 
-### 2 — Correctness, safety and test closure (pending; blocking)
+### 2 — Correctness, safety and test closure (partially implemented; acceptance still blocking)
+
+**Current Stage 2 evidence (2026-10-17):** See [`MMT_V0_4_0_STAGE2_VERSION_IDENTITY_TEST_EVIDENCE.md`](MMT_V0_4_0_STAGE2_VERSION_IDENTITY_TEST_EVIDENCE.md). A strict exact-version helper now supports the `0.4.0rc1` → `0.4.0` offline runtime transition in three caller modules. The exact helper was verified against its Git blob, with 20 local Python 3.13.5 focused/AST checks passed; the **28 committed full-repo integration cases and real Python 3.12/Ruff suites were NOT run**. The installers and signed provenance still intentionally pin `0.4.0rc1`. **Neither stable-tag nor main-merge readiness is granted.**
+
+
 
 On the **exact candidate commit**, in an isolated approved nonroot Linux environment with real CPython 3.12 and Ruff:
 
