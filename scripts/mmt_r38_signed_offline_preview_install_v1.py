@@ -40,8 +40,12 @@ def _policy(path: Path, expected_hash: str, key_fingerprint: str) -> dict:
         raise R38Refused("R38_POLICY_JSON_INVALID") from exc
     if type(data) is not dict or set(data) != POLICY_FIELDS:
         raise R38Refused("R38_POLICY_SCHEMA_INVALID")
-    if (json.dumps(data, sort_keys=True, separators=(",", ":"),
-                   ensure_ascii=True).encode("utf-8") + b"\n" != raw):
+    try:
+        canonical = (json.dumps(data, sort_keys=True, separators=(",", ":"),
+                                ensure_ascii=True).encode("utf-8") + b"\n")
+    except (RecursionError, ValueError, TypeError) as exc:
+        raise R38Refused("R38_POLICY_JSON_INVALID") from exc
+    if canonical != raw:
         raise R38Refused("R38_POLICY_NONCANONICAL")
     active = data["active_keys"]
     revoked = data["revoked_keys"]
