@@ -43,7 +43,7 @@ def scan(source: bytes) -> tuple[int, ...]:
         if not isinstance(n, ast.Compare):
             continue
         operands = [n.left, *n.comparators]
-        for a, b in zip(operands, operands[1:]):
+        for a, b in zip(operands, operands[1:], strict=False):
             if (_is_production_get(a) and _is_single_value(b)
                     or _is_production_get(b) and _is_single_value(a)):
                 violations.add(n.lineno)
