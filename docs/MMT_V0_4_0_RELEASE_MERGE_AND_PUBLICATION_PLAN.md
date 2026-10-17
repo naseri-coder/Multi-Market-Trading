@@ -55,6 +55,8 @@
 
 **Stage 2C fail-closed security update (2026-10-17):** [`MMT_V0_4_0_STAGE2C_SIGNED_RELEASE_FAILCLOSED_HARDENING.md`](MMT_V0_4_0_STAGE2C_SIGNED_RELEASE_FAILCLOSED_HARDENING.md) documents the R35/R36/development-installer correction for any explicitly defined `MMT_PRODUCTION`, R37/R38 bounded JSON parser/encoder recursion refusal and **18 new committed but not yet executed pytest cases**. A standalone five-decision Bash guard check passed; Python3.13's deep JSON parser behavior was assessed. No full Python3.12/Ruff, real signed-wheel installation, R42V, PostgreSQL or final release acceptance was run. This is **not an authorization to merge or tag**.
 
+**Stage 2D signed stable preflight (2026-10-17):** [`MMT_V0_4_0_STAGE2D_STABLE_ARTIFACT_SIGNATURE_PREFLIGHT.md`](MMT_V0_4_0_STAGE2D_STABLE_ARTIFACT_SIGNATURE_PREFLIGHT.md) records the newly committed, separately domain-separated and fail-closed `v0.4.0` *read-only stable Wheel signature/RECORD checker*. Its exact GitHub source and 32-case synthetic unit suite were byte-matched to an actual `32 passed` Python3.13.5 test run. This is **not** Python3.12, full-project installed-wheel, independent source-custody or authorized signer acceptance. RC metadata, protected `main` and stable-tag blockers remain unchanged.
+
 On the **exact candidate commit**, in an isolated approved nonroot Linux environment with real CPython 3.12 and Ruff:
 
 - Full static/lint/type/import checks, test discovery and full unit + integration test suite, including PostgreSQL when required; record total passes/skips/fails and investigate critical skips.
