@@ -24,8 +24,8 @@ from .reliability_acceptance_v1 import (
     evaluate_offline_reliability,
 )
 from .unified_paper_pilot_stage20_v1 import run_paper_pilot
+from .platform_version_policy_v1 import require_offline_platform_version
 
-_RELEASE = "0.4.0rc1"
 _SQLITE_FILES = (
     "control.sqlite", "paper.sqlite", "signals.sqlite",
     "runtime.sqlite", "effects.sqlite",
@@ -47,8 +47,10 @@ def _gate(*, ack: bool, installed: bool = True) -> None:
             dist = version("multi-market-trading")
         except PackageNotFoundError as exc:
             raise InstalledPilotRefused("INSTALLED_PREVIEW_WHEEL_REQUIRED") from exc
-        if dist != _RELEASE:
-            raise InstalledPilotRefused("PREVIEW_VERSION_MISMATCH")
+        try:
+            require_offline_platform_version(dist)
+        except ValueError as exc:
+            raise InstalledPilotRefused("PREVIEW_VERSION_MISMATCH") from exc
 
 
 def _existing_state(directory: Path) -> dict[str, Path]:
