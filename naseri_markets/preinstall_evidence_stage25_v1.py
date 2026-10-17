@@ -66,7 +66,7 @@ def review_preinstall_evidence(
     statement only reports a self-asserted canary; cannot prove runtime safety.
     """
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise PreinstallReviewRefused("EXPLICIT_NONPRODUCTION_OPERATOR_REVIEW_REQUIRED")
     if (type(stage22) is not DurableIsolatedCoreGate
             or type(stage23) is not SignedCandidateWitness
