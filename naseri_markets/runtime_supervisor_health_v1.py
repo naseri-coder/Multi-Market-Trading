@@ -16,7 +16,7 @@ class HealthRefused(ValueError):
 
 
 def inspect_queue(path: Path) -> dict:
-    if os.environ.get("MMT_NONPRODUCTION") != "1" or os.environ.get("MMT_PRODUCTION") == "1":
+    if os.environ.get("MMT_NONPRODUCTION") != "1" or "MMT_PRODUCTION" in os.environ:
         raise HealthRefused("NONPRODUCTION_REQUIRED")
     path = Path(path)
     if (not path.is_absolute() or path.is_symlink() or not path.is_file()
