@@ -53,7 +53,13 @@ jobs:
           set -Eeuo pipefail
           test -z "${MMT_PRODUCTION+x}"
           python -m ruff check scripts/mmt_v040_operator_two_role_admission_v1.py tests/unit/test_mmt_v040_operator_two_role_admission_v1.py
-          python -m pytest -q tests/unit/test_mmt_v040_operator_two_role_admission_v1.py
+          # This focused crypto suite must not load the product's unrelated
+          # tests/conftest.py, which requires frozen runtime dependencies.
+          isolated="$(mktemp -d /tmp/mmt-stage3b-tests-XXXXXXXX)"
+          trap 'rm -rf -- "$isolated"' EXIT
+          cp tests/unit/test_mmt_v040_operator_two_role_admission_v1.py "$isolated/test_stage3b.py"
+          cmp tests/unit/test_mmt_v040_operator_two_role_admission_v1.py "$isolated/test_stage3b.py"
+          PYTHONPATH="$GITHUB_WORKSPACE" python -m pytest -q -c /dev/null -p no:cacheprovider "$isolated/test_stage3b.py"
           echo "STAGE3B_SYNTHETIC_TWO_ROLE_REGRESSION_PASS"
 
       - name: Deny automatic release approval
