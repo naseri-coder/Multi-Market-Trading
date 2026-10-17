@@ -1,0 +1,132 @@
+name: Stage 3E - consented Binance Bybit PUBLIC GET smoke only
+
+on:
+  push:
+    branches:
+      - ci/stage3e-public-market-smoke-20261017
+    paths:
+      - .github/workflows/stage3e-public-market-smoke.yml
+
+permissions:
+  contents: read
+
+jobs:
+  public-market-data-only:
+    name: Real Binance Futures and Bybit Spot closed candle public GET only
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      APP_ENV: test
+      MMT_NONPRODUCTION: "1"
+      RUN_PUBLIC_MARKET_DATA_SMOKE: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+      TELEGRAM_RUNTIME_ENABLED: "false"
+      BROOKS_RUNTIME_ENABLED: "false"
+      PAPER_RUNTIME_ENABLED: "false"
+      MMT_LIVE_ENABLED: "false"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      PIP_NO_INPUT: "1"
+
+    steps:
+      - name: Checkout EXACT previously green PR source without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 77a0b19f89485d1e8b7a4cb43caa01eed123af47
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Require exact reviewed SHA, absent production and credential variables
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "77a0b19f89485d1e8b7a4cb43caa01eed123af47"
+          test -z "${MMT_PRODUCTION+x}"
+          for var in BINANCE_API_KEY BINANCE_API_SECRET BYBIT_API_KEY BYBIT_API_SECRET TELEGRAM_BOT_TOKEN DATABASE_URL; do
+            test -z "${!var+x}" || { echo "STAGE3E_CREDENTIAL_VAR_PRESENT_REFUSED"; exit 91; }
+          done
+          echo "STAGE3E_EXACT_SHA_AND_NO_CREDENTIALS_PASS"
+
+      - name: Install supported Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Install only public HTTP and test dependencies
+        run: |
+          set -Eeuo pipefail
+          python -m pip install "httpx==0.28.1" "pytest==9.1.1" "pytest-asyncio==1.4.0"
+          python - <<'PY'
+          import importlib.metadata as m
+          for name, expected in {
+              "httpx": "0.28.1", "pytest": "9.1.1", "pytest-asyncio": "1.4.0",
+          }.items():
+              assert m.version(name) == expected
+          print("STAGE3E_MINIMAL_PINNED_DEPS_PASS")
+          PY
+
+      - name: Isolate ORIGINAL two opt-in integration tests with GET-only egress guard
+        run: |
+          set -Eeuo pipefail
+          scratch="$(mktemp -d /tmp/mmt-stage3e-public-get-XXXXXXXX)"
+          chmod 0700 "$scratch"
+          echo "STAGE3E_SCRATCH=$scratch" >> "$GITHUB_ENV"
+          cp tests/integration/test_phase5_public_market_data_smoke.py "$scratch/test_public_market_data_smoke.py"
+          cmp tests/integration/test_phase5_public_market_data_smoke.py "$scratch/test_public_market_data_smoke.py"
+          cat > "$scratch/conftest.py" <<'PY'
+          import pytest
+          import httpx
+
+          @pytest.fixture(autouse=True)
+          def _allow_exact_two_readonly_public_market_endpoints(monkeypatch):
+              original = httpx.AsyncClient.request
+              allowed = {
+                  ("fapi.binance.com", "/fapi/v1/klines"),
+                  ("api.bybit.com", "/v5/market/kline"),
+              }
+
+              async def guard(self, method, url, *args, **kwargs):
+                  host = self.base_url.host
+                  path = httpx.URL(url).path
+                  if (str(method).upper() != "GET" or self.base_url.scheme != "https"
+                          or (host, path) not in allowed):
+                      raise AssertionError("STAGE3E_NON_PUBLIC_GET_OR_ORDER_REFUSED")
+                  params = kwargs.get("params") or {}
+                  expected = (
+                      {"symbol": "BTCUSDT", "interval": "15m", "limit": 21}
+                      if host == "fapi.binance.com"
+                      else {"category": "spot", "symbol": "BTCUSDT",
+                            "interval": "15", "limit": 21}
+                  )
+                  if any(params.get(k) != v for k, v in expected.items()):
+                      raise AssertionError("STAGE3E_UNEXPECTED_PUBLIC_QUERY_REFUSED")
+                  if host == "fapi.binance.com" and set(params) != set(expected) | {"endTime"}:
+                      raise AssertionError("STAGE3E_UNEXPECTED_BINANCE_PARAMS_REFUSED")
+                  if host == "api.bybit.com" and set(params) != set(expected) | {"end"}:
+                      raise AssertionError("STAGE3E_UNEXPECTED_BYBIT_PARAMS_REFUSED")
+                  return await original(self, method, url, *args, **kwargs)
+
+              monkeypatch.setattr(httpx.AsyncClient, "request", guard)
+          PY
+          echo "STAGE3E_ORIGINAL_TEST_BYTES_AND_PUBLIC_GET_GUARD_READY"
+
+      - name: ACTUAL Binance and Bybit public HTTPS requests (2 cases; not mocks)
+        env:
+          PYTHONPATH: ${{ github.workspace }}/production_source
+        run: |
+          set -Eeuo pipefail
+          test -n "${STAGE3E_SCRATCH:-}" && test -d "$STAGE3E_SCRATCH"
+          test "$RUN_PUBLIC_MARKET_DATA_SMOKE" = "1"
+          python -m pytest -q -ra -c /dev/null -o asyncio_mode=auto -p no:cacheprovider \
+            "$STAGE3E_SCRATCH/test_public_market_data_smoke.py" \
+            | tee "$STAGE3E_SCRATCH/results.log"
+          grep -Eq '(^|[[:space:]])2 passed' "$STAGE3E_SCRATCH/results.log"
+          echo "STAGE3E_TWO_REAL_PUBLIC_MARKET_READS_PASS"
+
+      - name: Purge disposable files and deny any release escalation
+        if: always()
+        run: |
+          set -Eeuo pipefail
+          if [[ -n "${STAGE3E_SCRATCH:-}" && "$STAGE3E_SCRATCH" == /tmp/mmt-stage3e-public-get-* ]]; then
+            rm -rf -- "$STAGE3E_SCRATCH"
+          fi
+          echo "STAGE3E_PUBLIC_READ_ONLY__NO_ORDERS_NO_TOKENS_NO_RELEASE_AUTHORITY"
