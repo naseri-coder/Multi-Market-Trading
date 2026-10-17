@@ -53,6 +53,8 @@
 
 **Packaging Stage 2b update (2026-10-17):** [`MMT_V0_4_0_STAGE2B_PACKAGING_AND_R38_REPAIR.md`](MMT_V0_4_0_STAGE2B_PACKAGING_AND_R38_REPAIR.md) records the real R38 syntax repair, metadata-bound A6/staging/development installer patch and 11 additional committed negative/compatibility cases. Direct GitHub source consistency checks 14/14 passed, **not full executed tests**. R35–R38 remain intentionally RC-only signed-artifact controls. Stable signed-wheel verification, Python3.12/Ruff, new test execution and final merge remain blocked.
 
+**Stage 2C fail-closed security update (2026-10-17):** [`MMT_V0_4_0_STAGE2C_SIGNED_RELEASE_FAILCLOSED_HARDENING.md`](MMT_V0_4_0_STAGE2C_SIGNED_RELEASE_FAILCLOSED_HARDENING.md) documents the R35/R36/development-installer correction for any explicitly defined `MMT_PRODUCTION`, R37/R38 bounded JSON parser/encoder recursion refusal and **18 new committed but not yet executed pytest cases**. A standalone five-decision Bash guard check passed; Python3.13's deep JSON parser behavior was assessed. No full Python3.12/Ruff, real signed-wheel installation, R42V, PostgreSQL or final release acceptance was run. This is **not an authorization to merge or tag**.
+
 On the **exact candidate commit**, in an isolated approved nonroot Linux environment with real CPython 3.12 and Ruff:
 
 - Full static/lint/type/import checks, test discovery and full unit + integration test suite, including PostgreSQL when required; record total passes/skips/fails and investigate critical skips.
