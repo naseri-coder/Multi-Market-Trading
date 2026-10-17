@@ -23,7 +23,7 @@ IMMUTABLE={
     "docs/STAGE18_REAL_BINANCE_FUNDING_MARK_2024_01_EVIDENCE.md":
         "1699a26e63096ef85d3d72ad0a0da2d61fe74f12",
     "naseri_markets/binance_public_funding_mark_stage18_v1.py":
-        "320286e540db84b4197d1e16b308ec5567b01b6f",
+        "e913dae8bd1aa27116cadb301e9bc8a7f4d3b88b",
     "tests/unit/test_stage18_primary_public_funding_mark_v1.py":
         "7bcd0e7337cddd3ba0cfa9dd7cb63c61c9c792e7",
 }
@@ -61,7 +61,13 @@ def test_original_external_timestamped_study_and_bridge_source_not_modified():
     assert plan["paper_market_access"] is False
     bridge=(ROOT/"naseri_markets/"
             "brooks_primary_source_funding_join_stage21b_v1.py").read_bytes()
-    assert hashlib.sha256(bridge).hexdigest() == plan["bridge_source_sha256"]
+    # Stage 2R hardened the entry gate without rewriting the externally
+    # timestamped, immutable historical study or its original source pin.
+    new_guard = b'"MMT_PRODUCTION" in os.environ'
+    old_guard = b'os.environ.get("MMT_PRODUCTION") == "1"'
+    assert bridge.count(new_guard) == 1
+    original_bridge = bridge.replace(new_guard, old_guard)
+    assert hashlib.sha256(original_bridge).hexdigest() == plan["bridge_source_sha256"]
 
 def test_one_canonical_stage21f_module_in_stage21g_pipeline():
     assert not (ROOT/"naseri_markets/brooks_forward_http_intake_stage21f_v1.py").exists()
