@@ -8,7 +8,6 @@ from decimal import Decimal as D
 from pathlib import Path
 
 from app.modules.market_data.entities import Candle
-
 from research_layer.phase_4_2_41_88e.contract import (
     ARTIFACT_SCHEMA_VERSION,
     CONFIGURATION,

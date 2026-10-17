@@ -21,10 +21,10 @@ from pathlib import Path
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+
 from app.modules.brooks_core_v3.knowledge import BrooksKnowledgeEngine
 from app.modules.brooks_core_v3.knowledge.coverage import all_concepts
 from app.modules.market_data.entities import TIMEFRAME_SECONDS, Candle, MarketSnapshot
-
 from research_layer.statistics import (
     bayesian_win_interval,
     binomial_two_sided_p,

@@ -13,7 +13,6 @@ from app.modules.brooks_core.books_full_policy import BrooksFullCorePolicy
 from app.modules.market_data.entities import Candle, MarketSnapshot
 from app.modules.paper_runtime.entities import PaperSignalCandidate
 from app.modules.risk_engine.service import RiskEngineService
-
 from research_layer.current_risk_contract import read_current_risk
 
 ROOT = Path(__file__).resolve().parents[1]

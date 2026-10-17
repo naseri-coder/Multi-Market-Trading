@@ -10,6 +10,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import numpy as np
+
 from app.modules.brooks_core.advanced_context import assess_advanced_context
 from app.modules.brooks_core.books_full_engine import BrooksTrilogyFullCoreEngine
 from app.modules.brooks_core.books_full_patterns import scan_full_brooks_patterns
