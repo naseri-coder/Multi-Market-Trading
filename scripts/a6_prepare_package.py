@@ -56,6 +56,11 @@ def prepare(destination: Path) -> dict:
     ]
     if any(not path.is_file() or path.is_symlink() for path in static):
         raise ValueError("PACKAGE_METADATA_UNSAFE")
+    metadata = tomllib.loads((ROOT / "platform_release/pyproject.toml").read_text())
+    release = metadata["project"]["version"]
+    if (metadata["project"]["name"] != "multi-market-trading"
+            or release not in ("0.4.0rc1", "0.4.0")):
+        raise ValueError("A6_UNEXPECTED_PLATFORM_METADATA")
     destination.mkdir(mode=0o700)
     pkg = destination / "naseri_markets"
     pkg.mkdir()
@@ -65,10 +70,6 @@ def prepare(destination: Path) -> dict:
         data = path.read_bytes()
         (destination / rel).write_bytes(data)
         digests[str(rel)] = hashlib.sha256(data).hexdigest()
-    metadata = tomllib.loads((ROOT / "platform_release/pyproject.toml").read_text())
-    release = metadata["project"]["version"]
-    if metadata["project"]["name"] != "multi-market-trading" or release not in ("0.4.0rc1", "0.4.0"):
-        raise ValueError("A6_UNEXPECTED_PLATFORM_METADATA")
     return {
         "version": release,
         "module_count": len(modules),
