@@ -40,8 +40,8 @@ The 9 new cases: valid signed source↔Wheel matching, altered signed Wheel modu
 
 | File | Git blob SHA-1 | Local tested SHA-256 |
 |---|---|---|
-| `scripts/mmt_v040_source_wheel_custody_v1.py` | `461d6021c7e76be0deb31a3cdb4f28f65f876209` | `RECHECK_ON_FINAL_COMMIT` |
-| `tests/unit/test_mmt_v040_source_wheel_custody_v1.py` | `cf777998c4711f0ce342c3bc967438620919ff14` | `RECHECK_ON_FINAL_COMMIT` |
+| `scripts/mmt_v040_source_wheel_custody_v1.py` | `461d6021c7e76be0deb31a3cdb4f28f65f876209` | `4eca4b1fa43d439a429879dcbdb7e76a680b5b7c18be2e5e5468c62629332034` |
+| `tests/unit/test_mmt_v040_source_wheel_custody_v1.py` | `cf777998c4711f0ce342c3bc967438620919ff14` | `d6586e82c3c4d7ef3dc3f6bedda5882b1742bac28e88658781ccc463d71326eb` |
 
 The existing stable validator and its 38 tests in this run matched GitHub blobs `5d23421222aa586bbc4c2fc480aaf89f2be6d7ba` and `7593369d9c53436c57c8ec73d5a2b8c2b467a4c7` respectively. All four byte-identical module/test pairs were verified via Git Blob SHA-1, not by simply trusting filenames.
 
