@@ -4,10 +4,10 @@
   "release_candidate": "v0.4.0",
   "provenance": "GITHUB_TREE_SNAPSHOT__NOT_RELEASE_APPROVAL",
   "github_repository": "naseri-coder/Multi-Market-Trading",
-  "snapshot_commit": "82cf544a2e714bc67afa03ee6fb91b03a99a07cc",
-  "public_subtree_sha1": "46bf28c689a886e02b149dd31e86ad2daa25234e",
+  "snapshot_commit": "657d9a66e93f749900d748b0444ab2a82c90437d",
+  "public_subtree_sha1": "f21c9db96388765dd5f3829653cef8b5b9a60e19",
   "expected_module_count": 226,
-  "source_bytes": 2501470,
+  "source_bytes": 2501373,
   "modules": [
     {
       "path": "naseri_markets/__init__.py",
@@ -231,8 +231,8 @@
     },
     {
       "path": "naseri_markets/brooks_stage10_cli.py",
-      "git_blob_sha1": "0df700950fa28eff0f221f343bc79ab9f0ecf76f",
-      "size": 6232
+      "git_blob_sha1": "a871a6cb0a35f40c5d6d6f950f2a7340d546f858",
+      "size": 6223
     },
     {
       "path": "naseri_markets/brooks_stage10_paper_bridge.py",
@@ -251,13 +251,13 @@
     },
     {
       "path": "naseri_markets/brooks_stage11_cli.py",
-      "git_blob_sha1": "6b4faaca42eb1671c91d79d3a81dd1499ea0fefd",
-      "size": 2218
+      "git_blob_sha1": "5c4b05d29b910e0836639dd4e2a26c9dbcebad68",
+      "size": 2209
     },
     {
       "path": "naseri_markets/brooks_stage12_cli.py",
-      "git_blob_sha1": "0592d7d4ed2d454317f6431b02700f5c23f6c97c",
-      "size": 1655
+      "git_blob_sha1": "1f27d2fcf5e2b52d342449913197710c3271f838",
+      "size": 1646
     },
     {
       "path": "naseri_markets/brooks_stage12_research_audit.py",
@@ -266,8 +266,8 @@
     },
     {
       "path": "naseri_markets/brooks_termux_readiness_mmt_r23_v1.py",
-      "git_blob_sha1": "83e70071753f7c352c2a181408d13029f8483e05",
-      "size": 10560
+      "git_blob_sha1": "81c3d3436b40b0d3de0f9595c21c7c4d8fc17740",
+      "size": 10551
     },
     {
       "path": "naseri_markets/brooks_walk_forward_preholdout_stage20_v1.py",
@@ -501,8 +501,8 @@
     },
     {
       "path": "naseri_markets/historical_pit_quality_stage12_v1.py",
-      "git_blob_sha1": "5a44cb9a411614943b8236ebb2976433432cd313",
-      "size": 11158
+      "git_blob_sha1": "a7e5b41dcaf96c0417933ddeca56a38cb9980b54",
+      "size": 11149
     },
     {
       "path": "naseri_markets/host_observation_custody_stage24_v1.py",
@@ -946,8 +946,8 @@
     },
     {
       "path": "naseri_markets/real_brooks_historical_stage15_v1.py",
-      "git_blob_sha1": "2b238382bd6899c82d41d8421f5954ee9e7d165a",
-      "size": 12140
+      "git_blob_sha1": "89a3b461fe2e38ecff2b1b9a45f71b56a5c1156d",
+      "size": 12088
     },
     {
       "path": "naseri_markets/registry.py",
