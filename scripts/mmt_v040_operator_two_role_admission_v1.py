@@ -212,7 +212,8 @@ def verify_full_custody(
     if result["signed_stable_wheel_sha256"] != expected_wheel_sha256:
         raise OperatorReviewRefused("V040_OPERATOR_WHEEL_MISMATCH_AFTER_CUSTODY")
     return {
-        **review, "verdict": "V040_DUAL_ROLE_SIGNED_CUSTODY_PASS_RELEASE_STILL_REQUIRES_HUMAN_APPROVAL",
+        **review,
+        "verdict": "V040_DUAL_ROLE_SIGNED_CUSTODY_PASS_RELEASE_STILL_REQUIRES_HUMAN_APPROVAL",
         "public_modules_verified": result["public_modules_verified"],
         "source_to_wheel_verified": True,
         "human_identity_independently_established": False,
@@ -242,7 +243,10 @@ def main(argv: list[str] | None = None) -> int:
         outcome = verify_full_custody(**args)
     except (OperatorReviewRefused, stable.StableArtifactRefused,
             custody.OverlayCustodyRefused, OSError) as exc:
-        reason = str(exc) if isinstance(exc, OperatorReviewRefused) else "V040_OPERATOR_OR_SOURCE_CUSTODY_REFUSED"
+        reason = (
+            str(exc) if isinstance(exc, OperatorReviewRefused)
+            else "V040_OPERATOR_OR_SOURCE_CUSTODY_REFUSED"
+        )
         print(json.dumps({"verdict": "V040_OPERATOR_ADMISSION_REFUSED",
                           "reason": reason, "public_release_authorized": False,
                           "merge_authorized": False}, sort_keys=True))
