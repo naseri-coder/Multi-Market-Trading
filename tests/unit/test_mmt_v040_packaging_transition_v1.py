@@ -112,7 +112,7 @@ def test_r38_signed_preview_installer_is_parseable():
 def test_development_installer_remains_explicitly_nonproduction_only():
     script = (REPO / "scripts/install_platform_dev.sh").read_text()
     assert 'MMT_NONPRODUCTION:-' in script
-    assert 'MMT_PRODUCTION:-' in script
+    assert "-v MMT_PRODUCTION" in script
     assert 'id -u' in script
     assert 'RELEASE_VERSION="$(python3 -' in script
     assert 'multi_market_trading-${RELEASE_VERSION}-py3-none-any.whl' in script
