@@ -59,7 +59,7 @@ def _canonical(data: dict) -> bytes:
 
 def _research_only_ack(operator_ack: bool) -> None:
     _gate(operator_ack)
-    if os.environ.get("MMT_PRODUCTION") == "1":
+    if "MMT_PRODUCTION" in os.environ:
         raise R23ReadinessRefused("R23_PRODUCTION_ENVIRONMENT_REFUSED")
 
 
