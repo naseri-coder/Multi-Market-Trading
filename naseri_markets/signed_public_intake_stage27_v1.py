@@ -84,7 +84,7 @@ def register_signed_public_candidate(
     as a permission. This does not call the Stage4 isolated worker.
     """
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise PublicIntakeRefused("EXPLICIT_NONPRODUCTION_PUBLIC_INTAKE_REQUIRED")
     if (type(stage22) is not DurableIsolatedCoreGate
             or type(stage23) is not SignedCandidateWitness
