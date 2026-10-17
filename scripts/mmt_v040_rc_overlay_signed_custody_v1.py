@@ -13,6 +13,8 @@ import json
 import os
 import re
 import zipfile
+import tomllib
+from email.parser import BytesParser
 from pathlib import Path
 
 from scripts import mmt_v040_offline_stable_staging_v1 as staging
@@ -55,7 +57,7 @@ def audit(*, repository: Path, manifest: Path, signature: Path, wheel: Path,
         expected_public_tree_sha1=expected_public_tree_sha1,
         expected_lock_sha256=expected_lock_sha256,
     )
-    metadata, _ = staging._metadata(repository)
+    metadata, source_readme = staging._metadata(repository)
     overlay_hash = hashlib.sha256(metadata).hexdigest()
     if overlay_hash != expected_overlay_sha256:
         raise OverlayCustodyRefused("V040_OVERLAY_METADATA_PIN_MISMATCH")
@@ -66,6 +68,19 @@ def audit(*, repository: Path, manifest: Path, signature: Path, wheel: Path,
         raise OverlayCustodyRefused("V040_SIGNED_WHEEL_CHANGED")
     try:
         with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+            # A correct signature alone does not bind dist-info Summary and
+            # long README to the clean, externally pinned Git source.
+            wheel_metadata = archive.read(stable.DIST + "METADATA")
+            header, separator, wheel_readme = wheel_metadata.partition(b"\n\n")
+            if not separator:
+                raise OverlayCustodyRefused("V040_WHEEL_SOURCE_DESCRIPTION_MISSING")
+            parsed = BytesParser().parsebytes(header + b"\n\n", headersonly=True)
+            expected_summary = tomllib.loads(metadata.decode("utf-8"))["project"]["description"]
+            if (parsed.get_all("Summary", []) != [expected_summary]
+                    or parsed.get_all("Description-Content-Type", []) != ["text/markdown"]):
+                raise OverlayCustodyRefused("V040_WHEEL_SUMMARY_SOURCE_MISMATCH")
+            if wheel_readme != source_readme:
+                raise OverlayCustodyRefused("V040_WHEEL_README_SOURCE_MISMATCH")
             module_names = {name for name in archive.namelist()
                             if name.startswith("naseri_markets/")}
             expected_names = {m["path"] for m in lock["modules"]}
@@ -87,7 +102,8 @@ def audit(*, repository: Path, manifest: Path, signature: Path, wheel: Path,
                     raise OverlayCustodyRefused("V040_OVERLAY_MODULE_BYTES_MISMATCH")
     except OverlayCustodyRefused:
         raise
-    except (OSError, KeyError, RuntimeError, ValueError, zipfile.BadZipFile) as exc:
+    except (OSError, KeyError, RuntimeError, ValueError, UnicodeError,
+            zipfile.BadZipFile, tomllib.TOMLDecodeError) as exc:
         raise OverlayCustodyRefused("V040_OVERLAY_WHEEL_READ_REFUSED") from exc
     if snapshot._git(repository, "status", "--porcelain=v1",
                      "--untracked-files=all"):
@@ -101,6 +117,8 @@ def audit(*, repository: Path, manifest: Path, signature: Path, wheel: Path,
         "signed_stable_wheel_sha256": signature_evidence["wheel_sha256"],
         "public_modules_verified": source_evidence["public_modules_verified"],
         "signed_wheel_record_verified": signature_evidence["record_verified"],
+        "wheel_summary_matches_reviewed_source": True,
+        "wheel_readme_matches_reviewed_source": True,
         "signer_spki_sha256": signature_evidence["signer_spki_sha256"],
         "rc_git_commit_is_a_stable_release_commit": False,
         "writes_performed": False,
