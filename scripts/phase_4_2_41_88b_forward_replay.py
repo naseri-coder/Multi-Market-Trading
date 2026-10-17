@@ -24,7 +24,6 @@ from app.modules.operations.trade_management import weighted_close_return
 from app.modules.paper_runtime.entities import PaperSignalCandidate
 from app.modules.risk_engine.service import RiskEngineService
 from app.modules.signal_automation.entities import BrooksRuleEvidence
-
 from research_layer.current_risk_contract import read_current_risk
 
 ROOT = Path(__file__).resolve().parents[1]

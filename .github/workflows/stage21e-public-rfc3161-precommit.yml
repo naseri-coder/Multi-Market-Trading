@@ -1,0 +1,41 @@
+name: Stage21E one-time independently signed future Brooks preregistration
+
+on:
+  workflow_dispatch:
+    inputs:
+      exact_explicit_approval:
+        description: "Explicitly authorize ONE fresh external public timestamp request"
+        required: true
+        type: choice
+        options:
+          - "NO_REQUEST"
+          - "I_APPROVE_ONE_PUBLIC_RFC3161_TIMESTAMP"
+
+permissions:
+  contents: read
+
+jobs:
+  single-external-public-rfc3161-stamp:
+    if: ${{ inputs.exact_explicit_approval == 'I_APPROVE_ONE_PUBLIC_RFC3161_TIMESTAMP' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout reviewed exact Brooks research source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Execute single real remote RFC3161 timestamp with frozen reviewed plan and chain verification
+        env:
+          MMT_NONPRODUCTION: "1"
+          MMT_PRODUCTION: "0"
+          ST21E_EXPLICIT_ONE_SHOT_APPROVAL: "1"
+          PYTHONDONTWRITEBYTECODE: "1"
+          PYTHONPATH: "."
+        run: python3 scripts/stage21e_public_tsa_precommit_v1.py
+      - name: Retain original public signed evidence in private workflow artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
+        with:
+          name: stage21e-external-rfc3161-brooks-preregistration
+          path: ${{ runner.temp }}/stage21e-brooks-future-research-precommit/
+          if-no-files-found: error
+          retention-days: 30

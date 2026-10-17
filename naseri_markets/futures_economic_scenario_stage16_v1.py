@@ -86,7 +86,7 @@ def model_linear_usdm_research_scenario(
     are not independently attested. The future event inventory is unverified.
     """
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise FuturesScenarioRefused("ST16_EXPLICIT_RESEARCH_ACK_REQUIRED")
     if (type(metadata_bytes) is not bytes
             or not 1 <= len(metadata_bytes) <= 4096

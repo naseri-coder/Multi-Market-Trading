@@ -33,7 +33,7 @@ class Stage22Refused(ValueError):
 
 def _gate(operator_ack: bool) -> None:
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise Stage22Refused("EXPLICIT_NONPRODUCTION_REVIEW_REQUIRED")
 
 

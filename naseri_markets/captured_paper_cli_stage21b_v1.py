@@ -74,7 +74,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if (not opts.ack_offline_captured_paper
                 or os.environ.get("MMT_NONPRODUCTION") != "1"
-                or os.environ.get("MMT_PRODUCTION") == "1"):
+                or "MMT_PRODUCTION" in os.environ):
             raise CapturedPaperRefused("EXPLICIT_NONPRODUCTION_ACK_REQUIRED")
         metadata = futures_snapshot(
             "kucoin", _private_data(opts.metadata_json, limit=MAX_METADATA_BYTES),

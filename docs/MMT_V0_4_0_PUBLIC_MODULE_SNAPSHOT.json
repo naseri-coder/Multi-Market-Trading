@@ -1,0 +1,1143 @@
+{
+  "schema_version": 1,
+  "distribution": "multi-market-trading",
+  "release_candidate": "v0.4.0",
+  "provenance": "GITHUB_TREE_SNAPSHOT__NOT_RELEASE_APPROVAL",
+  "github_repository": "naseri-coder/Multi-Market-Trading",
+  "snapshot_commit": "b0fd1ba71b77602f117161012c09f5a1547f55bb",
+  "public_subtree_sha1": "511e9346d88280f3be7c80367f8822a8eaa24dd7",
+  "expected_module_count": 226,
+  "source_bytes": 2501079,
+  "modules": [
+    {
+      "path": "naseri_markets/__init__.py",
+      "git_blob_sha1": "ab0bc6f15e0deabb83354197938df5ebf3929850",
+      "size": 493
+    },
+    {
+      "path": "naseri_markets/__main__.py",
+      "git_blob_sha1": "6f8c484fdfde26f39952b2450def55ed0ef21007",
+      "size": 170
+    },
+    {
+      "path": "naseri_markets/_contract_acceptance_fixture_v1.py",
+      "git_blob_sha1": "2589120befc3a7b0fcd2207455a009d60b4d178f",
+      "size": 4316
+    },
+    {
+      "path": "naseri_markets/a11_mtls.py",
+      "git_blob_sha1": "66059cec6789a1775bd3bce5627a558f2b09a058",
+      "size": 7275
+    },
+    {
+      "path": "naseri_markets/a12_trust.py",
+      "git_blob_sha1": "ba031dbf2035efca75259495b651e1011a5b62f8",
+      "size": 15228
+    },
+    {
+      "path": "naseri_markets/a13_provisioning.py",
+      "git_blob_sha1": "8d3ee48c31dc9fc5835971f93a9eab5f331b0a7b",
+      "size": 15987
+    },
+    {
+      "path": "naseri_markets/a14_packages.py",
+      "git_blob_sha1": "6c9431bf7fa9a28c8a0080dfd9a09d7026143464",
+      "size": 17714
+    },
+    {
+      "path": "naseri_markets/a15_releases.py",
+      "git_blob_sha1": "1d2bdc6b25ccc12842f26c1129fe8ee66fcf72d3",
+      "size": 20435
+    },
+    {
+      "path": "naseri_markets/a16_supervisor.py",
+      "git_blob_sha1": "a966da436e147e6702325b8dd58aefb5210306d2",
+      "size": 20383
+    },
+    {
+      "path": "naseri_markets/a17_watchdog.py",
+      "git_blob_sha1": "ddd262e3913df087d0aa3ed1a28c2683298c7ca3",
+      "size": 12087
+    },
+    {
+      "path": "naseri_markets/a18_controller.py",
+      "git_blob_sha1": "dc67b52918b4cf8683695172f642297cf8bf1abd",
+      "size": 18390
+    },
+    {
+      "path": "naseri_markets/a18_guardian.py",
+      "git_blob_sha1": "a99b2fdb9b79c12e38e7b4bbfea6fb86ad26209d",
+      "size": 16773
+    },
+    {
+      "path": "naseri_markets/a19_hardening.py",
+      "git_blob_sha1": "9ad1b6ed251c82bc0d62bbbfb3d3552965f11360",
+      "size": 10774
+    },
+    {
+      "path": "naseri_markets/a20_hardening.py",
+      "git_blob_sha1": "7535ac27514a13909a4a9e6a5132790f324cf275",
+      "size": 7601
+    },
+    {
+      "path": "naseri_markets/a21_custom_contract.py",
+      "git_blob_sha1": "556994b601172b098e3cea2197eba9226bf529dd",
+      "size": 9358
+    },
+    {
+      "path": "naseri_markets/a22_custom_bridge.py",
+      "git_blob_sha1": "94c15ae865fc1b77d4f91fc93a3373c0d59f7c59",
+      "size": 13280
+    },
+    {
+      "path": "naseri_markets/a23_sandbox_adapter.py",
+      "git_blob_sha1": "076c4fe32e817c3ecbec5e52d3711267f1417a80",
+      "size": 19038
+    },
+    {
+      "path": "naseri_markets/a24_publisher_admission.py",
+      "git_blob_sha1": "e8519256ba821d5e1e54059fd52e3182e505644b",
+      "size": 19394
+    },
+    {
+      "path": "naseri_markets/a25_bundle_admission.py",
+      "git_blob_sha1": "a85b5abf0ff1b80eff75a80369a30074db17ad68",
+      "size": 19942
+    },
+    {
+      "path": "naseri_markets/a26_atomic_fence.py",
+      "git_blob_sha1": "c9579af880a8ea8e99e7eab42fbe47faed95f2c8",
+      "size": 13713
+    },
+    {
+      "path": "naseri_markets/a27_unified_ledger.py",
+      "git_blob_sha1": "ca99dadcdc832c59a56bb3f0f36c8fbf3431c28f",
+      "size": 18932
+    },
+    {
+      "path": "naseri_markets/adapter_free_paper_runtime_v1.py",
+      "git_blob_sha1": "9dc53dd7157665329e595d0182acfa95919c24a9",
+      "size": 8820
+    },
+    {
+      "path": "naseri_markets/adapters.py",
+      "git_blob_sha1": "cec9e52d8adfc36a721c49feee8e725269e7178d",
+      "size": 2974
+    },
+    {
+      "path": "naseri_markets/authenticated_developer_intake_stage29_v1.py",
+      "git_blob_sha1": "dfc772c2296cc082ff3f57d5c6bce01599163b92",
+      "size": 13791
+    },
+    {
+      "path": "naseri_markets/binance_public_funding_mark_stage18_v1.py",
+      "git_blob_sha1": "b9d71deb464469728e3f0f3fa679a8fed58e05e0",
+      "size": 9140
+    },
+    {
+      "path": "naseri_markets/binance_vision_archive_stage16_v1.py",
+      "git_blob_sha1": "511ccc73be23fb51ef14e5f06177ae8620265572",
+      "size": 14491
+    },
+    {
+      "path": "naseri_markets/bot_admin_app.py",
+      "git_blob_sha1": "c8553cbc62d42d98088dabc6f7a4ce8498579008",
+      "size": 4526
+    },
+    {
+      "path": "naseri_markets/brooks_causal_backtest_preflight_stage19_v1.py",
+      "git_blob_sha1": "333f3ff714caa263c780dffea801c9a01b3e3ceb",
+      "size": 12270
+    },
+    {
+      "path": "naseri_markets/brooks_causal_execution_parity_audit_mmt_r26_v1.py",
+      "git_blob_sha1": "6eba20575aaaad29517a85a0859028aed6a234f6",
+      "size": 8943
+    },
+    {
+      "path": "naseri_markets/brooks_causal_lifecycle_stage21_preflight_v1.py",
+      "git_blob_sha1": "379566212ffb9b6419a9105374138838431ceb48",
+      "size": 13104
+    },
+    {
+      "path": "naseri_markets/brooks_forward_source_custody_stage21g_v1.py",
+      "git_blob_sha1": "d7b42bb794cb619bdb49ba198e906ed4ff976f9d",
+      "size": 15612
+    },
+    {
+      "path": "naseri_markets/brooks_forward_source_governance_mmt_r25_v1.py",
+      "git_blob_sha1": "c084faeae1003f8914a2d8700219ac866b328b39",
+      "size": 15403
+    },
+    {
+      "path": "naseri_markets/brooks_future_kline_admission_stage21f_v1.py",
+      "git_blob_sha1": "4ea2d20996271fc217692692dd83328612e71cfc",
+      "size": 11057
+    },
+    {
+      "path": "naseri_markets/brooks_future_shadow_paper_mmt_r29_v1.py",
+      "git_blob_sha1": "2cd80a6792d41bb3b7e3dbc5b94bef627497f1ea",
+      "size": 13011
+    },
+    {
+      "path": "naseri_markets/brooks_independent_lifecycle_economics_mmt_r27_v1.py",
+      "git_blob_sha1": "c2eb43d059fe723f1c62177e94cc596072c457ad",
+      "size": 18912
+    },
+    {
+      "path": "naseri_markets/brooks_kraken_feed.py",
+      "git_blob_sha1": "8169ff4517aa7e003f3869f975ece098f803c478",
+      "size": 14834
+    },
+    {
+      "path": "naseri_markets/brooks_market_feed.py",
+      "git_blob_sha1": "1deb64d2e9fc3fa6bad09b2a0d273af7515b1986",
+      "size": 12671
+    },
+    {
+      "path": "naseri_markets/brooks_paper_receipts.py",
+      "git_blob_sha1": "7dd5c8cbcfdb4fa698a59ca64b264b3fd6b9bbb9",
+      "size": 4229
+    },
+    {
+      "path": "naseri_markets/brooks_paper_service.py",
+      "git_blob_sha1": "8d8c7574c854308e4dd33325d610379cdc449d38",
+      "size": 11421
+    },
+    {
+      "path": "naseri_markets/brooks_primary_source_funding_join_stage21b_v1.py",
+      "git_blob_sha1": "d59bc2dec5900402360bab597ef240fdb6239c1c",
+      "size": 11593
+    },
+    {
+      "path": "naseri_markets/brooks_prospective_forward_custody_stage21c_v1.py",
+      "git_blob_sha1": "82f617fac0ecb2305eecf552042c6e5497289d99",
+      "size": 12065
+    },
+    {
+      "path": "naseri_markets/brooks_replay.py",
+      "git_blob_sha1": "0503c21fa507b093c43b660d1ee9c334ace1e75b",
+      "size": 25136
+    },
+    {
+      "path": "naseri_markets/brooks_rfc3161_precommitment_stage21d_v1.py",
+      "git_blob_sha1": "27eef8de75484f653c684e0f191c247535846a8c",
+      "size": 7230
+    },
+    {
+      "path": "naseri_markets/brooks_sequential_forward_custody_mmt_r24_v1.py",
+      "git_blob_sha1": "595e7b474b9d5b572244f65ab74e517385b734f3",
+      "size": 19849
+    },
+    {
+      "path": "naseri_markets/brooks_stage10_cli.py",
+      "git_blob_sha1": "a871a6cb0a35f40c5d6d6f950f2a7340d546f858",
+      "size": 6223
+    },
+    {
+      "path": "naseri_markets/brooks_stage10_paper_bridge.py",
+      "git_blob_sha1": "257289d894e472853556612119d8b55b0d516be6",
+      "size": 14588
+    },
+    {
+      "path": "naseri_markets/brooks_stage10_recovery_v1.py",
+      "git_blob_sha1": "9cc214e45ddd81306bffc8fef76393c166304598",
+      "size": 11762
+    },
+    {
+      "path": "naseri_markets/brooks_stage11_candle_replay.py",
+      "git_blob_sha1": "6dd9be03add7357f87956ab2f0ff68baa06d91a6",
+      "size": 22155
+    },
+    {
+      "path": "naseri_markets/brooks_stage11_cli.py",
+      "git_blob_sha1": "5c4b05d29b910e0836639dd4e2a26c9dbcebad68",
+      "size": 2209
+    },
+    {
+      "path": "naseri_markets/brooks_stage12_cli.py",
+      "git_blob_sha1": "1f27d2fcf5e2b52d342449913197710c3271f838",
+      "size": 1646
+    },
+    {
+      "path": "naseri_markets/brooks_stage12_research_audit.py",
+      "git_blob_sha1": "f8cc2191ef4e115ac182d9ee9c2020ddab4e0e38",
+      "size": 23875
+    },
+    {
+      "path": "naseri_markets/brooks_termux_readiness_mmt_r23_v1.py",
+      "git_blob_sha1": "81c3d3436b40b0d3de0f9595c21c7c4d8fc17740",
+      "size": 10551
+    },
+    {
+      "path": "naseri_markets/brooks_walk_forward_preholdout_stage20_v1.py",
+      "git_blob_sha1": "2fe1f3d8c1ae451892c8a4da1b139a9a58de07a7",
+      "size": 11422
+    },
+    {
+      "path": "naseri_markets/captured_paper_cli_stage21b_v1.py",
+      "git_blob_sha1": "06ad8efc3762d06468b47f515d8dd2323b19dd14",
+      "size": 4545
+    },
+    {
+      "path": "naseri_markets/captured_paper_pilot_stage21b_v1.py",
+      "git_blob_sha1": "50b30e2943866f3abafedb573fad5bb58f214a03",
+      "size": 21688
+    },
+    {
+      "path": "naseri_markets/cert_a10_immutable_package_pins.py",
+      "git_blob_sha1": "979413922c33084ca9b306406057a8965b89e374",
+      "size": 6270
+    },
+    {
+      "path": "naseri_markets/cert_a17_remediation_review.py",
+      "git_blob_sha1": "dc8ad483aa0b8abb190d1b557a7f74959dbc9076",
+      "size": 10984
+    },
+    {
+      "path": "naseri_markets/cert_a1_offline_candidate_review.py",
+      "git_blob_sha1": "ed9eeeaeb0791cddd48b0800f9b8ab3f8dfa2251",
+      "size": 12566
+    },
+    {
+      "path": "naseri_markets/cert_a1_paper_format_inventory.py",
+      "git_blob_sha1": "55e89cebf2c0f00744d2da6135e74f74b19269aa",
+      "size": 8442
+    },
+    {
+      "path": "naseri_markets/cert_a2_direct_paper_replay.py",
+      "git_blob_sha1": "f34b69f040fadf45ca8f9df68f0362027f58dead",
+      "size": 8853
+    },
+    {
+      "path": "naseri_markets/cert_a3_four_language_wire_replay.py",
+      "git_blob_sha1": "a7b56d75bb36c2781be184df87f8a5bef2be8e4b",
+      "size": 10502
+    },
+    {
+      "path": "naseri_markets/cert_a4_synthetic_result_contract.py",
+      "git_blob_sha1": "df9a0b05ef60e9c3f2ea7575b8048e6c4a478df1",
+      "size": 11276
+    },
+    {
+      "path": "naseri_markets/cert_a6_disposable_containment.py",
+      "git_blob_sha1": "11a66d1ab123acd0bfaf4de5d993b9ce45d8a42c",
+      "size": 9133
+    },
+    {
+      "path": "naseri_markets/contracts.py",
+      "git_blob_sha1": "108cbcab371d94076b3ad5f1f59ba0b9374b13c4",
+      "size": 3792
+    },
+    {
+      "path": "naseri_markets/core_api_v1.py",
+      "git_blob_sha1": "23c3c07a8c05f0e70d56c59bf431f858dbd7e267",
+      "size": 23904
+    },
+    {
+      "path": "naseri_markets/core_certification_v1.py",
+      "git_blob_sha1": "6c4f6dd0d2020cbed0a13de589a55faaab607606",
+      "size": 6932
+    },
+    {
+      "path": "naseri_markets/core_developer_sdk_v1.py",
+      "git_blob_sha1": "472802ea96d8b6fb31541517eef0720b2046f6f5",
+      "size": 10529
+    },
+    {
+      "path": "naseri_markets/core_parameter_guard_v1.py",
+      "git_blob_sha1": "a414398c2e5088b96abeea3d5646b40b64971758",
+      "size": 11014
+    },
+    {
+      "path": "naseri_markets/custom_admin_panel.py",
+      "git_blob_sha1": "66356f49f41f84b92aa18c09415cea447b3b4ba5",
+      "size": 14897
+    },
+    {
+      "path": "naseri_markets/custom_cli.py",
+      "git_blob_sha1": "88d0934c812e84b53e7a7e9d6981fb29d540326e",
+      "size": 6151
+    },
+    {
+      "path": "naseri_markets/data_a1_file_intake.py",
+      "git_blob_sha1": "4f467fa8f83f5df328e328157b245c363bdcacd3",
+      "size": 8995
+    },
+    {
+      "path": "naseri_markets/data_a1_intake_cli.py",
+      "git_blob_sha1": "4d43f1cea83d2b9dff3df804616ec2696081e2ce",
+      "size": 3162
+    },
+    {
+      "path": "naseri_markets/data_runtime_paper_wire_a1.py",
+      "git_blob_sha1": "e16f414b9d31f65521b3ac44204e8ddcdcfcff3b",
+      "size": 8106
+    },
+    {
+      "path": "naseri_markets/delivery_ledger.py",
+      "git_blob_sha1": "478e015e72f5e6fe34b6e8558f5bad0c692d43b9",
+      "size": 10380
+    },
+    {
+      "path": "naseri_markets/designated_host_readonly_probe_cli_stage34_v1.py",
+      "git_blob_sha1": "788afac77a4aea9bf8bcbc1a236f86ca89283aef",
+      "size": 1617
+    },
+    {
+      "path": "naseri_markets/designated_host_readonly_probe_stage34_v1.py",
+      "git_blob_sha1": "fff39f3992c5fa2448e399f55d74c67b816c6518",
+      "size": 10011
+    },
+    {
+      "path": "naseri_markets/dev_operator.py",
+      "git_blob_sha1": "db28af6610ae56346eb5238727692cfbc2a08e39",
+      "size": 12323
+    },
+    {
+      "path": "naseri_markets/disconnected_host_evidence_stage33_v1.py",
+      "git_blob_sha1": "b82a9f2650ecf81c2386dc87a3f72f9fd7cd616b",
+      "size": 15256
+    },
+    {
+      "path": "naseri_markets/disposable_gvisor_canary_cli_stage23_v1.py",
+      "git_blob_sha1": "0a0cbb95dbc630ca00c05d4c068a381272df505c",
+      "size": 1946
+    },
+    {
+      "path": "naseri_markets/disposable_gvisor_canary_stage23_v1.py",
+      "git_blob_sha1": "62ecb1da2cfb55824f4a30459403ed939d827d0f",
+      "size": 7600
+    },
+    {
+      "path": "naseri_markets/disposable_host_preflight_stage32_v1.py",
+      "git_blob_sha1": "83b77e05c136e124f0f966f5a705d3c46da19b12",
+      "size": 19366
+    },
+    {
+      "path": "naseri_markets/durable_isolated_core_gate_stage22_v1.py",
+      "git_blob_sha1": "fea0def9901adfd349d42eb79b75ed506fad35e6",
+      "size": 21973
+    },
+    {
+      "path": "naseri_markets/durable_runtime_a3.py",
+      "git_blob_sha1": "e08019c8f50044f6e3a2836b4fd283c4029508c8",
+      "size": 16873
+    },
+    {
+      "path": "naseri_markets/engine_control_store.py",
+      "git_blob_sha1": "764d0a8a7573f5c5bdac9ec7cab4adc955802f9b",
+      "size": 28338
+    },
+    {
+      "path": "naseri_markets/engine_plan.py",
+      "git_blob_sha1": "e08bb917b92f665c09133d12bda0a7876be814bf",
+      "size": 3112
+    },
+    {
+      "path": "naseri_markets/exchange_failure_diagnostics_v1.py",
+      "git_blob_sha1": "554dcd29b340addb3b742779fb80e06dd53e215a",
+      "size": 7223
+    },
+    {
+      "path": "naseri_markets/executable_walk_forward_stage13_v1.py",
+      "git_blob_sha1": "04e9dc97bbd60c7c169659e3e0a9c7d9ab626732",
+      "size": 15082
+    },
+    {
+      "path": "naseri_markets/execution_contract_v1.py",
+      "git_blob_sha1": "1b5d3432fa40a6a1a1965b8a575a0b1ffcd6889c",
+      "size": 6664
+    },
+    {
+      "path": "naseri_markets/execution_position_core_v1.py",
+      "git_blob_sha1": "ee5eeecb36aa79a77d2c9eae3f0793046057b6d8",
+      "size": 13301
+    },
+    {
+      "path": "naseri_markets/external_abi.py",
+      "git_blob_sha1": "804e9f56cfbbb989c7b09aac0aa0d06e43cda117",
+      "size": 4329
+    },
+    {
+      "path": "naseri_markets/forward_metrics.py",
+      "git_blob_sha1": "e47595e71ccffa54335dc23722d9469ca0db86b5",
+      "size": 9760
+    },
+    {
+      "path": "naseri_markets/futures_economic_scenario_stage16_v1.py",
+      "git_blob_sha1": "e5ecbf8491e67af93325bffa80720e28eb818e28",
+      "size": 8520
+    },
+    {
+      "path": "naseri_markets/futures_economics_evidence_stage18_v1.py",
+      "git_blob_sha1": "f7030471ac2684a2ca4271c28a8dffdbf83e20f0",
+      "size": 15946
+    },
+    {
+      "path": "naseri_markets/futures_pairs.py",
+      "git_blob_sha1": "091e8258733c4f38c4dc670c84ae1086b281efdc",
+      "size": 1453
+    },
+    {
+      "path": "naseri_markets/futures_probe_stage21_v1.py",
+      "git_blob_sha1": "c05038ba9e2aa3ebe0f48aae77c1f0d89b43a54b",
+      "size": 2071
+    },
+    {
+      "path": "naseri_markets/futures_research_priority.py",
+      "git_blob_sha1": "d10356caaa19754c588cf5beed8f4f788d77dbaa",
+      "size": 3245
+    },
+    {
+      "path": "naseri_markets/futures_venues.py",
+      "git_blob_sha1": "6108be7d91b0cffb74f91c6764afb8008e155c0e",
+      "size": 4427
+    },
+    {
+      "path": "naseri_markets/historical_data_loader_a1.py",
+      "git_blob_sha1": "f3a80480737b95871b704de4d06161a111dfc9ec",
+      "size": 15864
+    },
+    {
+      "path": "naseri_markets/historical_pit_quality_stage12_v1.py",
+      "git_blob_sha1": "a7e5b41dcaf96c0417933ddeca56a38cb9980b54",
+      "size": 11149
+    },
+    {
+      "path": "naseri_markets/host_observation_custody_stage24_v1.py",
+      "git_blob_sha1": "04433bb94dbc60d16a07ab726806bc5651333670",
+      "size": 15542
+    },
+    {
+      "path": "naseri_markets/installed_paper_acceptance_r40_v1.py",
+      "git_blob_sha1": "46e3d2bb4323e6ca0987b11a0a1a7eda90ff95a8",
+      "size": 9515
+    },
+    {
+      "path": "naseri_markets/installed_paper_pilot_stage10_v1.py",
+      "git_blob_sha1": "95fa9fdc39c52b8fda20281dcd041cfcb36c505d",
+      "size": 9288
+    },
+    {
+      "path": "naseri_markets/installed_preview_smoke_v1.py",
+      "git_blob_sha1": "9ec54aa8db2dc499907d2ae043ce6f08d28584c2",
+      "size": 4470
+    },
+    {
+      "path": "naseri_markets/instrument_registry_v1.py",
+      "git_blob_sha1": "13b0c3e49f60bdaab07f128b4cb6deedf0a875d5",
+      "size": 7939
+    },
+    {
+      "path": "naseri_markets/integrated_engine_panel.py",
+      "git_blob_sha1": "dc4670afaaad08d3620bfe53d907cf1c49d7dbdc",
+      "size": 38512
+    },
+    {
+      "path": "naseri_markets/iran_futures_eligibility.py",
+      "git_blob_sha1": "658ea928d540dbef2fe9d661cc276b8b67eaccd0",
+      "size": 5351
+    },
+    {
+      "path": "naseri_markets/job_effect_intent_v1.py",
+      "git_blob_sha1": "6c46e5e9f95fc0f7263ce9b8b46cde595dfce450",
+      "size": 17385
+    },
+    {
+      "path": "naseri_markets/job_effect_reconciliation_v1.py",
+      "git_blob_sha1": "a70b42d19f829e99e834716b450f5c69b60c9abc",
+      "size": 16910
+    },
+    {
+      "path": "naseri_markets/kucoin_futures_replay_stage21_v1.py",
+      "git_blob_sha1": "0d536627e457ddd80df71b0e495d2a2f849ec18d",
+      "size": 11771
+    },
+    {
+      "path": "naseri_markets/market_data_engine_v1.py",
+      "git_blob_sha1": "c67f2d00dabeb6394ebdc5a273614312b38e6129",
+      "size": 13383
+    },
+    {
+      "path": "naseri_markets/market_data_normalizers_v1.py",
+      "git_blob_sha1": "381b32faac1263aa0ed595d1104755af5621d8be",
+      "size": 3883
+    },
+    {
+      "path": "naseri_markets/market_evidence_gate_cli_stage21f_v1.py",
+      "git_blob_sha1": "a3e134a6540c08df6d308852390d59ee3529ff6b",
+      "size": 1809
+    },
+    {
+      "path": "naseri_markets/market_evidence_gate_stage21f_v1.py",
+      "git_blob_sha1": "515b70a24004be9c6da83ed5f831e6169f087a1e",
+      "size": 12417
+    },
+    {
+      "path": "naseri_markets/mmt_r28_unified_offline_runtime_v1.py",
+      "git_blob_sha1": "2dbdd54af64bb317c88547dba7f2cb9533eccde4",
+      "size": 7837
+    },
+    {
+      "path": "naseri_markets/mmt_r29_shadow_session_audit_v1.py",
+      "git_blob_sha1": "72e441983a41555b6cf04b5248400ef5bf01effd",
+      "size": 8377
+    },
+    {
+      "path": "naseri_markets/mmt_r30_offline_risk_order_preflight_v1.py",
+      "git_blob_sha1": "87a2f1c0193ab7a2843c15562585c18ed749efb8",
+      "size": 15079
+    },
+    {
+      "path": "naseri_markets/mmt_r31_private_admin_console_v1.py",
+      "git_blob_sha1": "1d8be9c44a0da19c820e27b02853ab9452bdbf7b",
+      "size": 14103
+    },
+    {
+      "path": "naseri_markets/mmt_r32_stopped_recovery_review_v1.py",
+      "git_blob_sha1": "f743433c0ace82d6876b68ba8446d3acab0fb1f7",
+      "size": 3263
+    },
+    {
+      "path": "naseri_markets/mmt_r33_live_hard_deny_readiness_v1.py",
+      "git_blob_sha1": "047dba63883c1ecebf9dab475e352476c170f433",
+      "size": 11878
+    },
+    {
+      "path": "naseri_markets/mmt_r34_offline_stack_acceptance_v1.py",
+      "git_blob_sha1": "ae22f7899e45a200690d9e83eb7dcdeffb82277d",
+      "size": 9879
+    },
+    {
+      "path": "naseri_markets/mt5_demo_custody_probe.py",
+      "git_blob_sha1": "3e755637bf1c6af44167d10babf78e62abb4d91a",
+      "size": 3442
+    },
+    {
+      "path": "naseri_markets/mt5_demo_evidence_custody_v1.py",
+      "git_blob_sha1": "79c674396d8acb29780a6547c9db3861277431f9",
+      "size": 20941
+    },
+    {
+      "path": "naseri_markets/mt5_demo_exposure_audit_v1.py",
+      "git_blob_sha1": "38ccaecde7f3b1508943800a73414f6a12769dd6",
+      "size": 8217
+    },
+    {
+      "path": "naseri_markets/mt5_demo_history_audit_v1.py",
+      "git_blob_sha1": "3afe347ae33ea1986137f5ca22386cc6fe69c3ea",
+      "size": 9746
+    },
+    {
+      "path": "naseri_markets/mt5_demo_history_probe.py",
+      "git_blob_sha1": "939a878069a3908afa4277e30839076922893865",
+      "size": 3199
+    },
+    {
+      "path": "naseri_markets/mt5_demo_history_readonly_v1.py",
+      "git_blob_sha1": "5ec5a5d1ea00fb54c6e41c3969087cf3c4b71174",
+      "size": 11612
+    },
+    {
+      "path": "naseri_markets/mt5_demo_independent_reverify_v1.py",
+      "git_blob_sha1": "e65ceee4122ad06aae8bde58155c15b53f5bc3e0",
+      "size": 11304
+    },
+    {
+      "path": "naseri_markets/mt5_demo_operator_smoke_cli.py",
+      "git_blob_sha1": "eff6ab46141743c07f9fbd2cd8e3f085144ad833",
+      "size": 3854
+    },
+    {
+      "path": "naseri_markets/mt5_demo_operator_smoke_v1.py",
+      "git_blob_sha1": "8a3586a764c2947cde7e414ec111ef340c095701",
+      "size": 6644
+    },
+    {
+      "path": "naseri_markets/mt5_demo_position_accounting_v1.py",
+      "git_blob_sha1": "994670fb9fd8c1d50f8088042b802b03a33ea521",
+      "size": 6353
+    },
+    {
+      "path": "naseri_markets/mt5_demo_readonly_adapter_v1.py",
+      "git_blob_sha1": "f3bffcdfdd0c7608c8caf93d03e86925941e37c0",
+      "size": 8673
+    },
+    {
+      "path": "naseri_markets/mt5_demo_readonly_probe.py",
+      "git_blob_sha1": "f7f863790a3401bb14285ca7e36591d67a475e0e",
+      "size": 2697
+    },
+    {
+      "path": "naseri_markets/mt5_demo_reverify_probe.py",
+      "git_blob_sha1": "f0857ad763656f8d7f173713ea92d3a10172039f",
+      "size": 2493
+    },
+    {
+      "path": "naseri_markets/mt5_readonly_bridge.py",
+      "git_blob_sha1": "dc10cde1d8a1a1d35af21c0e5f699a412979d5fe",
+      "size": 3432
+    },
+    {
+      "path": "naseri_markets/mt_a1_offline_artifact_preflight.py",
+      "git_blob_sha1": "abdc77be8bb122571b2d88cd1825f76138a7c8bc",
+      "size": 8667
+    },
+    {
+      "path": "naseri_markets/multilang_runtime_a1.py",
+      "git_blob_sha1": "02478c2786488b1e28eaa2e113636dbf3c9b5a7e",
+      "size": 14226
+    },
+    {
+      "path": "naseri_markets/native_a1_inert_binary_preflight.py",
+      "git_blob_sha1": "4b979e28a3dc25ae35be7daec3eebf8bb9af53b2",
+      "size": 11804
+    },
+    {
+      "path": "naseri_markets/offline_authoritative_paper_journey_r39_v1.py",
+      "git_blob_sha1": "a0e1e82dbeda3d52efc1cc4d053d7e7ebbfdd3d8",
+      "size": 14377
+    },
+    {
+      "path": "naseri_markets/offline_broker_fixture_v1.py",
+      "git_blob_sha1": "d5fec4e5dcf14b25853828b22a16e8c09297aa1c",
+      "size": 12709
+    },
+    {
+      "path": "naseri_markets/offline_developer_api_stage30_v1.py",
+      "git_blob_sha1": "1b5497a43c2aead78d7ca8f887c660247e0bd20f",
+      "size": 16423
+    },
+    {
+      "path": "naseri_markets/offline_fill_evidence_stage3_v1.py",
+      "git_blob_sha1": "dd1fe40f97dace288a0263eec8b68a364b7f966a",
+      "size": 15396
+    },
+    {
+      "path": "naseri_markets/offline_host_controls_stage37_v1.py",
+      "git_blob_sha1": "176649dd5647bcb385f1f95bff5e53abc8f21669",
+      "size": 13392
+    },
+    {
+      "path": "naseri_markets/offline_host_readiness_stage40_v1.py",
+      "git_blob_sha1": "65ed1fd8d4b7eb3867fffb63007a4ff1b81c3c66",
+      "size": 7263
+    },
+    {
+      "path": "naseri_markets/offline_panel_paper_integration_v1.py",
+      "git_blob_sha1": "a8c127627c0b20d3e11d557edcce12ef08fd113b",
+      "size": 13908
+    },
+    {
+      "path": "naseri_markets/offline_recovery_review_v1.py",
+      "git_blob_sha1": "b93de06b0a20303f5d0412a64bf696795419da46",
+      "size": 4613
+    },
+    {
+      "path": "naseri_markets/offline_research_mcp_v1.py",
+      "git_blob_sha1": "7d70ab204ca529f5f681a308b47b6a934d8291b7",
+      "size": 17154
+    },
+    {
+      "path": "naseri_markets/offline_runtime_alignment_stage39_v1.py",
+      "git_blob_sha1": "879c31c6940e1d5add67a445f55312c3fa9d0a8b",
+      "size": 11223
+    },
+    {
+      "path": "naseri_markets/offline_runtime_supervisor_v1.py",
+      "git_blob_sha1": "b7e57c150d204b41be895cd0979727d60343024a",
+      "size": 17093
+    },
+    {
+      "path": "naseri_markets/offline_signal_lifecycle_v1.py",
+      "git_blob_sha1": "2335292d8dd198e4e6626624a80f17732a99c3dd",
+      "size": 27669
+    },
+    {
+      "path": "naseri_markets/operational_reconciliation_v1.py",
+      "git_blob_sha1": "260da695fda61a2c6131027628c90841a10a69bb",
+      "size": 10826
+    },
+    {
+      "path": "naseri_markets/order_observation_normalizer_v1.py",
+      "git_blob_sha1": "11724d10562e5e0e3c37f4fb71ca52ad4823368e",
+      "size": 10439
+    },
+    {
+      "path": "naseri_markets/panel_paper_synthetic_demo_v1.py",
+      "git_blob_sha1": "0d4c2232753e9efbf57f15578763aca8da55bbe9",
+      "size": 9211
+    },
+    {
+      "path": "naseri_markets/paper09_snapshot_v1.py",
+      "git_blob_sha1": "7dc0314657fc0fbdc542a2b3851db7ad8f45526d",
+      "size": 10965
+    },
+    {
+      "path": "naseri_markets/paper_contract_audit_stage21d_v1.py",
+      "git_blob_sha1": "325e4f7ad800a9edf621f086613036679d015be5",
+      "size": 5415
+    },
+    {
+      "path": "naseri_markets/paper_contract_economics_stage21d_v1.py",
+      "git_blob_sha1": "f545f1485684cc713c4c127e150cfc4da606c56b",
+      "size": 7312
+    },
+    {
+      "path": "naseri_markets/paper_core_risk_bridge_v1.py",
+      "git_blob_sha1": "03c36175c0c2d7ceae5e0987c78208a6c5904c65",
+      "size": 20356
+    },
+    {
+      "path": "naseri_markets/paper_demo_cli_v1.py",
+      "git_blob_sha1": "9d5ae338b92445d42c59985273a787143f61cdb9",
+      "size": 7906
+    },
+    {
+      "path": "naseri_markets/paper_funding_scenario_stage21e_v1.py",
+      "git_blob_sha1": "d0b2d3d31614f79c8aad7f90234ac0b21571e3e4",
+      "size": 6888
+    },
+    {
+      "path": "naseri_markets/paper_journal.py",
+      "git_blob_sha1": "ef7cb1ba9d87a1621f0fe36c9e59930d2a7e3dd5",
+      "size": 2977
+    },
+    {
+      "path": "naseri_markets/paper_order_lifecycle_v1.py",
+      "git_blob_sha1": "2050acc0d2cb560bc50c2e6a26137df5f2477020",
+      "size": 36598
+    },
+    {
+      "path": "naseri_markets/paper_position_reconciler_v1.py",
+      "git_blob_sha1": "466a6d7361cc5270d5ed9ad1f5309ba86c813f84",
+      "size": 17997
+    },
+    {
+      "path": "naseri_markets/passive_kernel_posture_cli_stage38_v1.py",
+      "git_blob_sha1": "90bcc70fe91f07bf4b677fc2df2c64388b16b98d",
+      "size": 1394
+    },
+    {
+      "path": "naseri_markets/passive_kernel_posture_stage38_v1.py",
+      "git_blob_sha1": "5dbdead8f217ec5362ad5e40fd3c30732281eb51",
+      "size": 8975
+    },
+    {
+      "path": "naseri_markets/pine_a1_sma_cross_parity.py",
+      "git_blob_sha1": "887576d2dde349b2c37041f670877db30488024e",
+      "size": 12987
+    },
+    {
+      "path": "naseri_markets/platform_cli.py",
+      "git_blob_sha1": "b65aa222c6ce58a17460deac1f97ef98aaba6fe8",
+      "size": 2350
+    },
+    {
+      "path": "naseri_markets/platform_version_policy_v1.py",
+      "git_blob_sha1": "cf7baad5f0b58ff4fc381af9b926d3f69ce9f73e",
+      "size": 611
+    },
+    {
+      "path": "naseri_markets/plugin_admin.py",
+      "git_blob_sha1": "ef5e64091ac52ec13b1e016bae44b225ada1696c",
+      "size": 3992
+    },
+    {
+      "path": "naseri_markets/plugin_descriptor.py",
+      "git_blob_sha1": "62183aba881816b8b1dbb8575969097634ff5b25",
+      "size": 4380
+    },
+    {
+      "path": "naseri_markets/plugin_manager.py",
+      "git_blob_sha1": "557738477a5b057ceb0c1f57d35617ae4bcde7c3",
+      "size": 12824
+    },
+    {
+      "path": "naseri_markets/plugin_runtime.py",
+      "git_blob_sha1": "086410624c9c104e76b9986bd04ec5cdfe478e43",
+      "size": 5106
+    },
+    {
+      "path": "naseri_markets/plugin_settings.py",
+      "git_blob_sha1": "ac09f8cad1990ae85bbdeed4e7de961f76da37b0",
+      "size": 4738
+    },
+    {
+      "path": "naseri_markets/portable_evidence_verifier_stage36_v1.py",
+      "git_blob_sha1": "abcc9f54bbef3ed4c284c76235fce9dbe9b7226d",
+      "size": 14602
+    },
+    {
+      "path": "naseri_markets/position_lifecycle_simulator.py",
+      "git_blob_sha1": "09d58b766e7fa2f9d2d83c4aaee57faea026d69f",
+      "size": 15232
+    },
+    {
+      "path": "naseri_markets/preinstall_evidence_stage25_v1.py",
+      "git_blob_sha1": "6617431d91a3fbaa2c3f4878b50400ed1a26076c",
+      "size": 6874
+    },
+    {
+      "path": "naseri_markets/private_connector.py",
+      "git_blob_sha1": "31e8412a2cfbf74a24b0fe8e1d08bf2add039639",
+      "size": 8245
+    },
+    {
+      "path": "naseri_markets/private_protocol.py",
+      "git_blob_sha1": "9440328f0b51d751af49035fdb9f0e7619c7b51e",
+      "size": 8211
+    },
+    {
+      "path": "naseri_markets/public_candidate_lock_stage26_v1.py",
+      "git_blob_sha1": "3983a284ab8de1622ca9686ab667b2b588ffddc4",
+      "size": 8673
+    },
+    {
+      "path": "naseri_markets/public_demo_custom_worker.py",
+      "git_blob_sha1": "b287564739abf8e272171060ee07941a43a89eb0",
+      "size": 1932
+    },
+    {
+      "path": "naseri_markets/public_forward_capture_cli_stage21c_v1.py",
+      "git_blob_sha1": "8ff74cca151a00094df85523fc2d215eb1e3deab",
+      "size": 3805
+    },
+    {
+      "path": "naseri_markets/public_forward_capture_stage21c_v1.py",
+      "git_blob_sha1": "c0fc6b21fff98be2f3d1efcfbf272b8aa366db38",
+      "size": 19636
+    },
+    {
+      "path": "naseri_markets/public_funding_mark_cli_stage21e_v1.py",
+      "git_blob_sha1": "754c16e8f62391da2f636f65492209294dac3a38",
+      "size": 2311
+    },
+    {
+      "path": "naseri_markets/public_funding_mark_stage21e_v1.py",
+      "git_blob_sha1": "6ac5837b995b0c54eabb43a8a86155665532be8c",
+      "size": 15637
+    },
+    {
+      "path": "naseri_markets/public_futures_contracts.py",
+      "git_blob_sha1": "ee2c2d5fe2b8bb019066ed9378471f773e1eed93",
+      "size": 10223
+    },
+    {
+      "path": "naseri_markets/public_signal_bot.py",
+      "git_blob_sha1": "81092fd105d5670a086311d57bd419ef20dc2d0a",
+      "size": 8212
+    },
+    {
+      "path": "naseri_markets/publisher_package_registry_stage28_v1.py",
+      "git_blob_sha1": "4ab8cf30173de8b56981ba9d4d4d7045ce39994a",
+      "size": 28376
+    },
+    {
+      "path": "naseri_markets/quotes.py",
+      "git_blob_sha1": "204bd302f885c8419c31e4eae72bf8156160920e",
+      "size": 4406
+    },
+    {
+      "path": "naseri_markets/read_only_provider_adapters_v1.py",
+      "git_blob_sha1": "86789933be20a97635ed368a6ab0d967e0c3fe41",
+      "size": 7939
+    },
+    {
+      "path": "naseri_markets/real_brooks_historical_stage15_v1.py",
+      "git_blob_sha1": "89a3b461fe2e38ecff2b1b9a45f71b56a5c1156d",
+      "size": 12088
+    },
+    {
+      "path": "naseri_markets/registry.py",
+      "git_blob_sha1": "5ac85681254285a88b9d31f843f10c77fd12e258",
+      "size": 1310
+    },
+    {
+      "path": "naseri_markets/release_readiness_v1.py",
+      "git_blob_sha1": "aeb6644081beae9c4c645de09fa3eee8b914fe56",
+      "size": 8894
+    },
+    {
+      "path": "naseri_markets/reliability_acceptance_v1.py",
+      "git_blob_sha1": "f257c30f4a9b88d7b1c24fadd5c32f2466fb0803",
+      "size": 18050
+    },
+    {
+      "path": "naseri_markets/replay_pipeline.py",
+      "git_blob_sha1": "bffb22d214ac62c4914bf8704a332288d43d7fe6",
+      "size": 1784
+    },
+    {
+      "path": "naseri_markets/research_overfit_diagnostics_v1.py",
+      "git_blob_sha1": "26a245da8ea6ec613de2f8473e9f3fd3a1cb2567",
+      "size": 12208
+    },
+    {
+      "path": "naseri_markets/research_robustness_stage14_v1.py",
+      "git_blob_sha1": "5101f57542c4543b2f2c8c4c48f0018eb5c21c7a",
+      "size": 12571
+    },
+    {
+      "path": "naseri_markets/research_walk_forward_v1.py",
+      "git_blob_sha1": "f9416538d4b82b714bba12dc816f01fbb72ca500",
+      "size": 10208
+    },
+    {
+      "path": "naseri_markets/risk_portfolio_contract_v1.py",
+      "git_blob_sha1": "c368deaafe7d36826d6b39e13458f4fd671517c2",
+      "size": 3274
+    },
+    {
+      "path": "naseri_markets/risk_portfolio_manager_v1.py",
+      "git_blob_sha1": "ce1940b95e74ee06c0ca02cc5dfc640509c94b00",
+      "size": 32668
+    },
+    {
+      "path": "naseri_markets/routing.py",
+      "git_blob_sha1": "5bf7128f7056c171f5cb3fd2ceb9985112f455ef",
+      "size": 1765
+    },
+    {
+      "path": "naseri_markets/runtime.py",
+      "git_blob_sha1": "99201e9ff427453f100f63f04c026233b6006b7f",
+      "size": 6031
+    },
+    {
+      "path": "naseri_markets/runtime_a10_evidence_anchor.py",
+      "git_blob_sha1": "0e5380ffc6e72553eb23021e87e7da453baf7b8a",
+      "size": 14172
+    },
+    {
+      "path": "naseri_markets/runtime_a11_offline_witness.py",
+      "git_blob_sha1": "66870d55e8123f87bd5646965618bac29af5a423",
+      "size": 15343
+    },
+    {
+      "path": "naseri_markets/runtime_a12_offline_recovery.py",
+      "git_blob_sha1": "74f159da0d80335c11b022dd06588d0f64b55a0e",
+      "size": 13162
+    },
+    {
+      "path": "naseri_markets/runtime_a13_security_contract_audit.py",
+      "git_blob_sha1": "76fb41d88515e83eea0f1a4fd7c0ee1bcbe04853",
+      "size": 9200
+    },
+    {
+      "path": "naseri_markets/runtime_a4_security_evidence.py",
+      "git_blob_sha1": "7134f73ee133125091bf5154ee8fa2bba94b9348",
+      "size": 7976
+    },
+    {
+      "path": "naseri_markets/runtime_a5_nonce_custody.py",
+      "git_blob_sha1": "20f16f887e736fbae992502f80fef7d197b9a7c8",
+      "size": 11358
+    },
+    {
+      "path": "naseri_markets/runtime_a6_dispatch_fence.py",
+      "git_blob_sha1": "eb7b0ab7c38821fe8b8ba8bca6f25356c05d5afb",
+      "size": 3989
+    },
+    {
+      "path": "naseri_markets/runtime_a7_disposable_host_preflight.py",
+      "git_blob_sha1": "7a780d08ecfa63cc8c2ecefec6b26b68380ee860",
+      "size": 7114
+    },
+    {
+      "path": "naseri_markets/runtime_a8_supply_chain.py",
+      "git_blob_sha1": "ba44b3b085cdb36634e06a149d4685b19b4ca62d",
+      "size": 10234
+    },
+    {
+      "path": "naseri_markets/runtime_a9_offline_intent.py",
+      "git_blob_sha1": "c2581127700aade8b05da45d495f2942d1309953",
+      "size": 15406
+    },
+    {
+      "path": "naseri_markets/runtime_supervisor_health_v1.py",
+      "git_blob_sha1": "2db6fd9b72dd4c4b1190bf0e8c41f836b8e3c5f3",
+      "size": 2705
+    },
+    {
+      "path": "naseri_markets/secure_plugin_runtime_v1.py",
+      "git_blob_sha1": "8d8c4b98023ce77d0ade78e1b2fc45f316d0bc75",
+      "size": 17222
+    },
+    {
+      "path": "naseri_markets/self_observation_evidence_chain_stage35_v1.py",
+      "git_blob_sha1": "371297f7eca01e63effce3442fed3a6e8adbcb8d",
+      "size": 15030
+    },
+    {
+      "path": "naseri_markets/sessions.py",
+      "git_blob_sha1": "25385e25c81b553329e74de8712b893da4357d4e",
+      "size": 2467
+    },
+    {
+      "path": "naseri_markets/signed_core_candidate_stage23_v1.py",
+      "git_blob_sha1": "f3b7775a92e9c88af4957ec3b7d68c57034a6c6a",
+      "size": 15178
+    },
+    {
+      "path": "naseri_markets/signed_public_intake_stage27_v1.py",
+      "git_blob_sha1": "13ed9388ad390ff69d9406a5761f849b7ecae501",
+      "size": 7032
+    },
+    {
+      "path": "naseri_markets/stage17_official_archive_capture_v1.py",
+      "git_blob_sha1": "87863276a58e2beccb23253db682b00c8d072eb2",
+      "size": 16353
+    },
+    {
+      "path": "naseri_markets/strategy_orchestrator_v1.py",
+      "git_blob_sha1": "2064049f31b50117a58a5ea2240c57964ffe70bc",
+      "size": 13082
+    },
+    {
+      "path": "naseri_markets/strategy_research_lab_v1.py",
+      "git_blob_sha1": "aa0b5b89923ed9410011b19198a3b5808c66ac0c",
+      "size": 24942
+    },
+    {
+      "path": "naseri_markets/supervisor_synthetic_smoke_v1.py",
+      "git_blob_sha1": "5bc2b06268ec5b0e696d1b9ea653453898249e11",
+      "size": 6357
+    },
+    {
+      "path": "naseri_markets/tls_boundary_stage31_v1.py",
+      "git_blob_sha1": "54ddb63a57efe1055de6b5dfd8b5857ba30bb26c",
+      "size": 7748
+    },
+    {
+      "path": "naseri_markets/trading_control_center_v1.py",
+      "git_blob_sha1": "d9c447a91f8572a72c380296e3a570b3895c1e43",
+      "size": 28395
+    },
+    {
+      "path": "naseri_markets/trading_control_dev_mount_v1.py",
+      "git_blob_sha1": "84db60feb16198cb5381eff1cfe3c91e93587e4f",
+      "size": 2550
+    },
+    {
+      "path": "naseri_markets/trading_control_telegram_v1.py",
+      "git_blob_sha1": "a6e3ab403cad10a6436be92df27ed75e8c6f1116",
+      "size": 12627
+    },
+    {
+      "path": "naseri_markets/trusted_custom.py",
+      "git_blob_sha1": "43cc8b9d91361dda6abbf941ef4026bb93a4221a",
+      "size": 24978
+    },
+    {
+      "path": "naseri_markets/unified_paper_pilot_stage20_v1.py",
+      "git_blob_sha1": "8f96911ca0632d4fe5c7a5348b5290b9453c02da",
+      "size": 14200
+    },
+    {
+      "path": "naseri_markets/universal_artifact_intake_v1.py",
+      "git_blob_sha1": "c6396231dcd44a34a36a505a838201beae4354c2",
+      "size": 9366
+    }
+  ]
+}

@@ -38,7 +38,7 @@ class HostObservation:
 
 def scope(host: str, image: str, runsc: Path, digest: str, ack: bool) -> int:
     if (os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise A7Refused("A7_NONPRODUCTION_ONLY")
     uid = os.geteuid()
     if uid == 0 or ack is not True:

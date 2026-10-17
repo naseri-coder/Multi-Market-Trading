@@ -38,7 +38,7 @@ def _approved_host(host_alias: str, expected_nodename: str, *,
                    operator_ack: bool) -> None:
     if (operator_ack is not True
             or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"
+            or "MMT_PRODUCTION" in os.environ
             or os.environ.get("MMT_DISPOSABLE_SANDBOX_HOST") != "1"
             or type(host_alias) is not str or not _HOST.fullmatch(host_alias)
             or type(expected_nodename) is not str

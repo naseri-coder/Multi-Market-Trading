@@ -19,7 +19,6 @@ from app.modules.operations.trade_management import POLICY_VERSION as MANAGEMENT
 from app.modules.paper_runtime.entities import PaperSignalCandidate
 from app.modules.risk_engine.service import RiskEngineService
 from app.modules.signal_intelligence.probability import HistoricalProbabilityEngine
-
 from research_layer.current_risk_contract import read_current_risk
 
 ROOT = Path(__file__).resolve().parents[1]

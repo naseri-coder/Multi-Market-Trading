@@ -53,7 +53,7 @@ def review_worker_launch(
     from .runtime_a5_nonce_custody import ConsumedReview
 
     if (os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise RuntimeA6Denied("A6_NONPRODUCTION_ONLY")
     if not isinstance(profile, RuntimeProfile) or not profile.policy.enabled:
         raise RuntimeA6Denied("A6_REVIEWED_PROFILE_REQUIRED")

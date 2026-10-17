@@ -13,7 +13,7 @@ while (($#)); do
     *) echo "MMT_DEV_INSTALL_REFUSED:UNKNOWN_ARGUMENT" >&2; exit 2 ;;
   esac
 done
-if [[ "${MMT_NONPRODUCTION:-}" != 1 || "${MMT_PRODUCTION:-}" == 1 || "$ACK" != 1 || -z "$DEST" ]]; then
+if [[ "${MMT_NONPRODUCTION:-}" != 1 || -v MMT_PRODUCTION || "$ACK" != 1 || -z "$DEST" ]]; then
   echo "MMT_DEV_INSTALL_REFUSED:NONPRODUCTION_ACK_REQUIRED" >&2; exit 2
 fi
 if [[ "$(id -u)" == 0 ]]; then
@@ -34,6 +34,17 @@ if (not target.is_absolute() or target.exists() or target.is_symlink()
 PY
 cd "$ROOT"
 python3 scripts/a6_release_preflight.py >/dev/null
+# The expected wheel identity is taken from A6-validated source metadata.
+RELEASE_VERSION="$(python3 - <<'PYVERSION'
+import tomllib
+from pathlib import Path
+p = tomllib.loads(Path("platform_release/pyproject.toml").read_text())
+value = p["project"]["version"]
+if type(value) is not str or value not in ("0.4.0rc1", "0.4.0"):
+    raise SystemExit("MMT_DEV_INSTALL_REFUSED:UNREVIEWED_PACKAGE_VERSION")
+print(value)
+PYVERSION
+)"
 # Frozen Brooks sources are verified, never copied into the preview wheel.
 (cd production_source && sha256sum -c SHA256SUMS --status)
 BUILD_DIR="$(mktemp -d "${TMPDIR:-/tmp}/mmt-preview-build.XXXXXXXX")"
@@ -42,7 +53,7 @@ trap cleanup EXIT
 python3 scripts/a6_prepare_package.py --destination "$BUILD_DIR/package" >/dev/null
 python3 -m pip wheel --disable-pip-version-check --no-deps \
   --wheel-dir "$BUILD_DIR/wheels" "$BUILD_DIR/package" >/dev/null
-WHEEL="$BUILD_DIR/wheels/multi_market_trading-0.4.0rc1-py3-none-any.whl"
+WHEEL="$BUILD_DIR/wheels/multi_market_trading-${RELEASE_VERSION}-py3-none-any.whl"
 test -f "$WHEEL"
 mkdir -m 700 -- "$DEST"
 python3 -m venv "$DEST/venv"
@@ -52,10 +63,11 @@ python3 -m venv "$DEST/venv"
   "$WHEEL[telegram-admin]" >/dev/null
 "$DEST/venv/bin/python" -m pip check >/dev/null
 "$DEST/venv/bin/naseri-markets" --check >/dev/null
-"$DEST/venv/bin/python" - <<'PY'
+EXPECTED_PLATFORM_VERSION="$RELEASE_VERSION" "$DEST/venv/bin/python" - <<'PY'
 import importlib.metadata as md
+import os
 from telegram.ext import Application
-assert md.version("multi-market-trading") == "0.4.0rc1"
+assert md.version("multi-market-trading") == os.environ["EXPECTED_PLATFORM_VERSION"]
 assert Application is not None
 PY
 mkdir -m 700 -- "$DEST/state"

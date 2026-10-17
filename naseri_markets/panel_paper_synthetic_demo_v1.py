@@ -35,7 +35,7 @@ class SyntheticDemoRefused(ValueError):
 
 def run_synthetic_demo(destination: Path, *, symbol: str = "ABCUSD",
                        timeframe: str = "15m") -> dict:
-    if os.environ.get("MMT_NONPRODUCTION") != "1" or os.environ.get("MMT_PRODUCTION") == "1":
+    if os.environ.get("MMT_NONPRODUCTION") != "1" or "MMT_PRODUCTION" in os.environ:
         raise SyntheticDemoRefused("NONPRODUCTION_ENV_REQUIRED")
     if (type(symbol) is not str or re.fullmatch(r"[A-Z0-9]{3,20}", symbol) is None
             or timeframe not in ("5m", "15m", "1h")):

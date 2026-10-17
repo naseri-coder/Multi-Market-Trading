@@ -20,7 +20,7 @@ pytest_plugins = ["test_brooks_paper07_real_replay_link"]
 
 def _env(monkeypatch):
     monkeypatch.setenv("MMT_NONPRODUCTION", "1")
-    monkeypatch.setenv("MMT_PRODUCTION", "0")
+    monkeypatch.delenv("MMT_PRODUCTION", raising=False)
 
 
 def _parent(tmp_path, name):

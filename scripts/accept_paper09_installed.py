@@ -35,7 +35,7 @@ def _sha(path: Path) -> str:
 
 def accept(parent: Path, frozen: Path) -> dict:
     if (os.geteuid() == 0 or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise ValueError("P09_DISPOSABLE_NONROOT_ONLY")
     module = Path(naseri_markets.__file__).resolve()
     if Path(sys.prefix).resolve() not in module.parents:

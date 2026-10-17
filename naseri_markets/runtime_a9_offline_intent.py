@@ -60,7 +60,7 @@ class SpentReview:
 
 def _nonproduction() -> None:
     if (os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise A9Refused("A9_NONPRODUCTION_ONLY")
 
 

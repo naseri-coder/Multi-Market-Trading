@@ -148,7 +148,7 @@ def verify_security_evidence(
     by the operator; neither appears in the repository or worker artifact.
     """
     if (os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise RuntimeEvidenceRefused("NONPRODUCTION_ONLY")
     if (type(review_key) is not bytes or len(review_key) < 32
             or type(trusted_issuer_id) is not str

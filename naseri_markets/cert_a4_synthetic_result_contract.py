@@ -89,7 +89,7 @@ class CertA4ResultReview:
 
 def _gate(operator_ack: bool) -> None:
     if (os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"
+            or "MMT_PRODUCTION" in os.environ
             or operator_ack is not True):
         raise CertA4Refused("CERT_A4_EXPLICIT_NONPRODUCTION_ACK_REQUIRED")
 

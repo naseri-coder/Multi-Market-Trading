@@ -1,0 +1,282 @@
+name: Stage17 one-shot official public archive acquisition
+
+on:
+  workflow_dispatch:
+    inputs:
+      explicit_historical_source_research_approval:
+        description: "Allow ONE read-only public archive acquisition; never production"
+        type: choice
+        required: true
+        options:
+          - "NO_PUBLIC_DOWNLOAD"
+          - "I_APPROVE_ONE_READONLY_HISTORICAL_DOWNLOAD"
+
+permissions:
+  contents: read
+
+jobs:
+  official-market-archive-readonly:
+    if: ${{ inputs.explicit_historical_source_research_approval == 'I_APPROVE_ONE_READONLY_HISTORICAL_DOWNLOAD' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Fetch exact public archive with strict TLS and content checks
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          python3 - <<'PY'
+          import calendar
+          import csv
+          import hashlib
+          import io
+          import json
+          import os
+          import pathlib
+          import re
+          import urllib.request
+          import zipfile
+          from datetime import UTC, datetime
+
+          name = "BTCUSDT-15m-2024-01.zip"
+          root = "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/"
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  raise RuntimeError("ST17_REMOTE_REDIRECT_REFUSED")
+          agent = urllib.request.build_opener(NoRedirect())
+          def fetch(url, limit):
+              if url not in (root + name, root + name + ".CHECKSUM"):
+                  raise RuntimeError("ST17_UNEXPECTED_ENDPOINT")
+              request = urllib.request.Request(url, headers={"Accept-Encoding": "identity"})
+              with agent.open(request, timeout=20) as response:
+                  if response.status != 200 or response.geturl() != url:
+                      raise RuntimeError("ST17_NON_200_OR_UNREVIEWED_REDIRECT")
+                  if response.headers.get("Content-Encoding", "identity").lower() != "identity":
+                      raise RuntimeError("ST17_COMPRESSED_HTTP_TRANSFER_REFUSED")
+                  raw = response.read(limit + 1)
+                  if not 0 < len(raw) <= limit:
+                      raise RuntimeError("ST17_OVERSIZE_ARCHIVE")
+                  return raw
+          original = fetch(root + name, 8 * 1024 * 1024)
+          checksum = fetch(root + name + ".CHECKSUM", 256)
+          zip_sha = hashlib.sha256(original).hexdigest()
+          checksum_sha = hashlib.sha256(checksum).hexdigest()
+          wanted = (zip_sha + "  " + name).encode()
+          if checksum.strip(b"\r\n") != wanted:
+              raise RuntimeError("ST17_OFFICIAL_CHECKSUM_MISMATCH")
+          with zipfile.ZipFile(io.BytesIO(original)) as z:
+              manifest = z.infolist()
+              if len(manifest) != 1 or manifest[0].filename != name.replace(".zip", ".csv"):
+                  raise RuntimeError("ST17_WRONG_CSV_ARCHIVE")
+              if manifest[0].file_size > 24 * 1024 * 1024:
+                  raise RuntimeError("ST17_OVERSIZE_DECOMPRESSED")
+              payload = z.read(manifest[0])
+          bars = list(csv.reader(io.StringIO(payload.decode("utf-8"))))
+          if len(bars) not in (31*96,31*96+1):
+              raise RuntimeError("ST17_MONTH_GRID_ROW_COUNT_FAILED")
+          if len(bars) == 31*96+1:
+              if bars[0][0].strip().lower() not in ("open time","open_time","opentime"):
+                  raise RuntimeError("ST17_INVALID_HEADER")
+              bars=bars[1:]
+          first = int(datetime(2024,1,1,tzinfo=UTC).timestamp())*1000
+          for i,b in enumerate(bars):
+              if len(b)!=12 or int(b[0])!=first+i*900_000 or int(b[6])!=first+(i+1)*900_000-1:
+                  raise RuntimeError("ST17_MONTH_GRID_INVALID")
+          dest=pathlib.Path(os.environ["RUNNER_TEMP"])/"isolated-stage17-public"
+          dest.mkdir(mode=0o700)
+          (dest/name).write_bytes(original)
+          (dest/(name+".CHECKSUM")).write_bytes(checksum)
+          report={
+              "scope":"nonproduction-official-https-acquisition-only",
+              "source_url":root+name,
+              "checksum_url":root+name+".CHECKSUM",
+              "zip_sha256":zip_sha,"checksum_sha256":checksum_sha,
+              "row_count":len(bars),
+              "local_runner_capture_utc":datetime.now(UTC).isoformat(),
+              "independent_publisher_signature_verified":False,
+              "independently_attested_capture_clock":False,
+              "historical_revision_absence_proven":False,
+              "stage12_local_pit_verified":False,
+              "stage18_funding_and_mark_verified":False,
+              "strategy_backtest_run":False,
+              "live_authorized":False,
+          }
+          (dest/"download-evidence.json").write_text(json.dumps(report,sort_keys=True,indent=2)+"\n")
+          print("ST17_BOUNDED_PUBLIC_ARCHIVE_RECEIVED")
+          print("ZIP_SHA256="+zip_sha)
+          print("CHECKSUM_SHA256="+checksum_sha)
+          print("ROWS="+str(len(bars)))
+          PY
+      - name: Checkout exact candidate for native validators
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Select isolated reproducible Python for frozen Brooks subprocess
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install reviewed project dependencies for exact Stage16 and Stage12
+        run: python3 -m pip install -e ".[dev]"
+      - name: Execute true Stage16 converter and actual file-backed Stage12 PIT quality
+        env:
+          MMT_NONPRODUCTION: "1"
+          MMT_PRODUCTION: "0"
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from naseri_markets.stage17_official_archive_capture_v1 import (
+              import_stage17_vision_month_offline, persist_research_capture,
+          )
+          from naseri_markets.binance_vision_archive_stage16_v1 import (
+              select_reviewed_brooks_window,
+          )
+          root = Path(os.environ["RUNNER_TEMP"]) / "isolated-stage17-public"
+          name = "BTCUSDT-15m-2024-01.zip"
+          imported = import_stage17_vision_month_offline(
+              root / name, root / (name + ".CHECKSUM"),
+              year=2024, month=1, operator_ack=True,
+          )
+          quality = persist_research_capture(
+              imported, destination=root / "independent-stage12-reviewed",
+          )
+          assert quality["rows"] == 2976
+          assert quality["source_independently_authenticated"] is False
+          assert quality["stage12_evidence_sha256"]
+          window = select_reviewed_brooks_window(
+              imported.archive, start_bar_index=0, count=72,
+              operator_ack=True,
+          )
+          (root / "real-reviewed-first72-bars.csv").write_bytes(
+              window.canonical_csv_bytes
+          )
+          (root / "real-reviewed-first72-stage12-receipt.json").write_bytes(
+              window.stage12_receipt_bytes
+          )
+          evidence = {
+              "exact_stage16_converter_success": True,
+              "exact_stage12_file_backed_quality_success": True,
+              "zip_sha256": imported.archive.zip_sha256,
+              "full_month_canonical_sha256": imported.archive.csv_sha256,
+              "stage12_evidence_sha256": quality["stage12_evidence_sha256"],
+              "derived_72bar_sha256": window.csv_sha256,
+              "operator_preapproved_hashes": False,
+              "independently_authenticated_publisher": False,
+              "independent_archive_revision_attestation": False,
+              "funding_mark_and_margin_verified": False,
+              "brooks_strategy_backtest_executed": False,
+              "live_authorized": False,
+          }
+          (root / "original-source-project-validator.json").write_text(
+              json.dumps(evidence, indent=2, sort_keys=True) + "\n"
+          )
+          print("ST17_REAL_ORIGINAL_ARCHIVE_STAGE16_STAGE12_PASS")
+          print(json.dumps(evidence, sort_keys=True))
+          PY
+      - name: Genuine frozen Brooks V5 read-only decision trace on genuine candles
+        env:
+          MMT_NONPRODUCTION: "1"
+          MMT_PRODUCTION: "0"
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from datetime import UTC, datetime
+          from pathlib import Path
+          from naseri_markets.stage17_official_archive_capture_v1 import (
+              _make_stage12_spec,
+          )
+          from naseri_markets.real_brooks_historical_stage15_v1 import (
+              review_real_brooks_history,
+          )
+          archive = Path(os.environ["RUNNER_TEMP"]) / "isolated-stage17-public"
+          candle_csv = archive / "real-reviewed-first72-bars.csv"
+          receipt = (archive / "real-reviewed-first72-stage12-receipt.json").read_bytes()
+          from hashlib import sha256
+          data_sha = sha256(candle_csv.read_bytes()).hexdigest()
+          result = review_real_brooks_history(
+              candle_csv, _make_stage12_spec(data_sha),
+              receipt_bytes=receipt,
+              trusted_receipt_sha256=sha256(receipt).hexdigest(),
+              archive_as_of_utc=datetime.now(UTC),
+              legacy_source=Path(os.environ["GITHUB_WORKSPACE"]) / "production_source",
+              evaluation_cutoffs_utc=(
+                  datetime(2024, 1, 1, 15, 0, tzinfo=UTC),
+                  datetime(2024, 1, 1, 18, 0, tzinfo=UTC),
+              ),
+              operator_ack=True,
+          )
+          assert result["actual_brooks_engine_evaluated"] is True
+          assert result["evaluation_count"] == 2
+          assert result["economic_pnl_calculated"] is False
+          assert result["trading_edge_proven"] is False
+          assert result["broker_orders_authorized"] is False
+          assert result["telegram_sent"] is False
+          (archive / "genuine-brooks-v5-on-real-market-decision-trace.json").write_text(
+              json.dumps(result, sort_keys=True, indent=2) + "\n"
+          )
+          print("ST19_ACTUAL_FROZEN_BROOKS_ON_REAL_EXCHANGE_CANDLES_PASS")
+          print("BROOKS_DECISIONS=" +
+                ",".join(item["decision"] for item in result["evaluations"]))
+          print("REAL_DATA_DECISION_TRACE_SHA256=" + result["report_sha256"])
+          PY
+      - name: Diagnose genuine Brooks rejection safely without altering engine
+        if: failure()
+        env:
+          MMT_NONPRODUCTION: "1"
+          MMT_PRODUCTION: "0"
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import re
+          from datetime import UTC, datetime
+          from pathlib import Path
+          import naseri_markets.real_brooks_historical_stage15_v1 as stage15
+          from naseri_markets.brooks_replay import _evaluate_legacy
+          from naseri_markets.stage17_official_archive_capture_v1 import _make_stage12_spec
+          source = Path(os.environ["GITHUB_WORKSPACE"]) / "production_source"
+          root = Path(os.environ["RUNNER_TEMP"]) / "isolated-stage17-public"
+          raw = root / "real-reviewed-first72-bars.csv"
+          evidence = (root / "real-reviewed-first72-stage12-receipt.json").read_bytes()
+          categories = []
+          def safe_inspect(original_source, payload, _timeout):
+              try:
+                  return _evaluate_legacy(original_source, payload)
+              except Exception as exc:
+                  # Only record class and a sanitized, bounded diagnostic category.
+                  kind = type(exc).__name__
+                  category = re.sub(r"[^a-zA-Z_ -]", "_", str(exc))[:120]
+                  categories.append((kind, category))
+                  raise
+          stage15._worker = safe_inspect
+          try:
+              stage15.review_real_brooks_history(
+                  raw, _make_stage12_spec(hashlib.sha256(raw.read_bytes()).hexdigest()),
+                  receipt_bytes=evidence,
+                  trusted_receipt_sha256=hashlib.sha256(evidence).hexdigest(),
+                  archive_as_of_utc=datetime.now(UTC),
+                  legacy_source=source,
+                  evaluation_cutoffs_utc=(
+                      datetime(2024, 1, 1, 15, tzinfo=UTC),
+                      datetime(2024, 1, 1, 18, tzinfo=UTC),
+                  ),
+                  operator_ack=True,
+              )
+          except Exception as exc:
+              print("ST19_OFFLINE_FROZEN_WORKER_DEBUG_CLASS=" + type(exc).__name__)
+          for kind, reason in categories:
+              print("ST19_DIAGNOSTIC=" + kind + ":" + reason)
+          (root / "stage19-genuine-worker-diagnostic.json").write_text(
+              json.dumps({"classes": categories, "real_execution_pass": False,
+                          "actual_trading_pnl": False, "production_changed": False})
+          )
+          PY
+      - name: Retain only original public bytes and audit claim in short-lived artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
+        with:
+          name: stage17-original-binance-public-2024-01
+          path: ${{ runner.temp }}/isolated-stage17-public/
+          if-no-files-found: error
+          retention-days: 1

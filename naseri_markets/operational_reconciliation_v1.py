@@ -121,7 +121,7 @@ def _query(db: sqlite3.Connection, sql: str) -> list[sqlite3.Row]:
 
 def evaluate_operational_recovery(paths: RecoveryPaths) -> RecoveryReport:
     """Inspect *existing* independent snapshots. Never change their state."""
-    if os.environ.get("MMT_NONPRODUCTION") != "1" or os.environ.get("MMT_PRODUCTION") == "1":
+    if os.environ.get("MMT_NONPRODUCTION") != "1" or "MMT_PRODUCTION" in os.environ:
         raise RecoveryRefused("NONPRODUCTION_ONLY")
     if not isinstance(paths, RecoveryPaths):
         raise RecoveryRefused("FOUR_PATHS_REQUIRED")

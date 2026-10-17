@@ -173,7 +173,7 @@ def _elf(raw: bytes) -> tuple[str, int, int]:
 
 def _gate(operator_ack: bool) -> None:
     if (os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"
+            or "MMT_PRODUCTION" in os.environ
             or operator_ack is not True):
         raise NativeA1Refused("NATIVE_A1_NONPRODUCTION_OPERATOR_ACK_REQUIRED")
 

@@ -19,7 +19,6 @@ from app.modules.operations.approval_evidence import open_position_fraction, ope
 from app.modules.operations.lifecycle import LiveSignalLifecycleService
 from app.modules.operations.trade_management import weighted_close_return
 from app.modules.paper_runtime.entities import PaperSignalCandidate
-
 from research_layer.current_risk_contract import read_current_risk
 
 ROOT = Path(__file__).resolve().parents[1]

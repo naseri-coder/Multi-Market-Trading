@@ -20,7 +20,7 @@ def run_once(args: argparse.Namespace, *, environment: dict[str, str]) -> dict:
     if (
         not args.ack_offline_paper_only
         or environment.get("MMT_NONPRODUCTION") != "1"
-        or environment.get("MMT_PRODUCTION") == "1"
+        or "MMT_PRODUCTION" in environment
         or args.account_id is None or args.signal_id is None
         or args.candles_file is None
     ):

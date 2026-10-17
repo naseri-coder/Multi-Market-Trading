@@ -20,7 +20,6 @@ jobs:
     timeout-minutes: 18
     env:
       MMT_NONPRODUCTION: "1"
-      MMT_PRODUCTION: "0"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -65,7 +64,8 @@ jobs:
           import subprocess
           from pathlib import Path
 
-          env = dict(os.environ, PYTHONPATH="", MMT_NONPRODUCTION="1", MMT_PRODUCTION="0")
+          env = dict(os.environ, PYTHONPATH="", MMT_NONPRODUCTION="1")
+          assert "MMT_PRODUCTION" not in env
           root = Path(env["RUNNER_TEMP"])
           app = root / "stage10-venv/bin/naseri-paper-pilot"
           state = root / "stage10-first-state"

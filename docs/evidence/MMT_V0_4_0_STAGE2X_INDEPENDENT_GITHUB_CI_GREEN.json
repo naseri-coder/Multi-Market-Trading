@@ -1,0 +1,85 @@
+{
+  "date_utc": "2026-10-17",
+  "stage": "MMT-v0.4.0-Stage2X",
+  "source_sha": "f8d3883c86b17b707d97fdd07253c645f4eb9886",
+  "fix1_sha": "f909c1e6635bee6558eab727505c456332f2d930",
+  "source_tree_sha1": "511e9346d88280f3be7c80367f8822a8eaa24dd7",
+  "github_runs": [
+    {
+      "run_id": 39049609548,
+      "job_id": 117445334973,
+      "name": "Full Corpus - Disposable PostgreSQL",
+      "conclusion": "success",
+      "corpus": {
+        "passed": 7658,
+        "failed": 0,
+        "skipped": 6,
+        "warnings": 38,
+        "subtests_passed": 2
+      },
+      "postgresql_migrations": {
+        "databases": 2,
+        "target_revision": "20261013_0023",
+        "passed": true
+      },
+      "disposable_cleanup_success": true,
+      "build_backend_preflight": "PASS"
+    },
+    {
+      "run_id": 39049609341,
+      "job_id": 117445333689,
+      "name": "Native PostgreSQL 16 - no Docker Hub",
+      "conclusion": "success",
+      "corpus": {
+        "passed": 7658,
+        "failed": 0,
+        "skipped": 6,
+        "warnings": 38,
+        "subtests_passed": 2
+      },
+      "postgresql_migrations": {
+        "databases": 2,
+        "target_revision": "20261013_0023",
+        "passed": true
+      },
+      "disposable_cleanup_success": true,
+      "build_backend_preflight": "PASS"
+    },
+    {
+      "run_id": 39049609549,
+      "job_id": 117445334716,
+      "name": "CERT-A5 fixed benign four-language replay (nonproduction)",
+      "conclusion": "success",
+      "benign_fixture_replay_passed": 16
+    }
+  ],
+  "remaining_failing_workflows_at_fix1": 8,
+  "failed_public_corpus_job": {
+    "run_id": 39049609401,
+    "job_id": 117445333997,
+    "reason": "17 Ruff I001 imports caused by running lint before materializing frozen app path",
+    "reproduced_on_clean_checkout_before_copy": {
+      "baseline_findings": 1345,
+      "head_findings": 1362,
+      "new_findings": 17
+    },
+    "after_copy_app": {
+      "baseline_findings": 1345,
+      "head_findings": 1344,
+      "new_findings": 0,
+      "gate": "PASS"
+    },
+    "repair": "move existing frozen release layout materialization step ahead of Ruff gate, preserve all scripts",
+    "regression_tests": "5/5 PASS nonroot Python3.12 network disabled",
+    "yaml_parsed": "PASS PyYAML6.0.1",
+    "fresh_gitHub_ci_rerun_for_second_repair": "NOT_YET_VERIFIED"
+  },
+  "release_blockers": {
+    "true_publisher_signer": "PENDING",
+    "migration_rollback": "NOT_PROVEN",
+    "installed_paper_restarts": "NOT_PROVEN",
+    "public_market_data_smoke": "2 cases opt-in skipped",
+    "other_workflows": "still failing",
+    "official_release_authorized": false
+  }
+}

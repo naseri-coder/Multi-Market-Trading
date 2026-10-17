@@ -8,6 +8,8 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from urllib.parse import urlsplit
 
+from sqlalchemy import select
+
 from app.core.config import Settings
 from app.db.session import DatabaseManager
 from app.modules.market_data.entities import Candle
@@ -17,7 +19,6 @@ from app.modules.signals.errors import SignalStateError
 from app.modules.signals.models import Signal, SignalEvent, SignalTarget
 from app.modules.signals.repository import SQLAlchemySignalRepository
 from app.modules.signals.service import SignalService
-from sqlalchemy import select
 
 BASE = datetime(2026, 1, 2, tzinfo=UTC)
 _ALLOWED_HOSTS = {"localhost", "127.0.0.1", "::1", "postgres", "db"}

@@ -1,0 +1,59 @@
+name: Stage21E read-only public TSA trust-anchor discovery
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  discover-public-tsa-certificate-sha:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Inspect exact original HTTPS TSA public certificates without requesting timestamps
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import os
+          import pathlib
+          import subprocess
+          import urllib.request
+          work=pathlib.Path(os.environ["RUNNER_TEMP"])/"public-tsa-certificates"
+          work.mkdir(mode=0o700)
+          names={"ca":"https://freetsa.org/files/cacert.pem",
+                 "tsa":"https://freetsa.org/files/tsa.crt"}
+          class NeverRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,*args,**kwargs):
+                  raise ValueError("ST21E_TLS_REDIRECT_NOT_APPROVED")
+          transport=urllib.request.build_opener(NeverRedirect())
+          for name,url in names.items():
+              with transport.open(urllib.request.Request(
+                  url,headers={"Accept-Encoding":"identity"}),timeout=20) as response:
+                  assert response.status==200 and response.geturl()==url
+                  data=response.read(16385)
+              if not 100<len(data)<=16384:
+                  raise ValueError("ST21E_CERTIFICATE_SIZE_INVALID")
+              path=work/(name+"-original")
+              path.write_bytes(data)
+              # Export canonical PEM without trusting unreviewed CA.
+              cert=work/(name+"-canonical.pem")
+              options=("-inform","PEM") if b"-----BEGIN CERTIFICATE-----" in data else ("-inform","DER")
+              p=subprocess.run(["openssl","x509",*options,"-in",str(path),"-out",str(cert)],
+                               capture_output=True,check=False,timeout=15)
+              if p.returncode!=0 or b"-----BEGIN CERTIFICATE-----" not in cert.read_bytes():
+                  raise ValueError("ST21E_INVALID_X509_CERTIFICATE")
+              print(f"ST21E_{name.upper()}_ORIGINAL_SHA256={hashlib.sha256(data).hexdigest()}")
+              print(f"ST21E_{name.upper()}_PEM_SHA256={hashlib.sha256(cert.read_bytes()).hexdigest()}")
+              show=subprocess.run(["openssl","x509","-in",str(cert),"-noout","-subject","-issuer",
+                                   "-dates","-ext","extendedKeyUsage"],capture_output=True,
+                                  text=True,check=False,timeout=10)
+              print(f"ST21E_{name.upper()}_METADATA="+show.stdout.strip().replace("\n"," | "))
+          PY
+      - name: Retain only publicly available original certificates
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
+        with:
+          name: stage21e-provider-public-cert-discovery
+          path: ${{ runner.temp }}/public-tsa-certificates/
+          if-no-files-found: error
+          retention-days: 7

@@ -76,7 +76,6 @@ def _worker(root: Path, payload: bytes, timeout_seconds: int) -> dict:
                 env={
                     "HOME": home, "PYTHONDONTWRITEBYTECODE": "1",
                     "PYTHONNOUSERSITE": "1", "MMT_NONPRODUCTION": "1",
-                    "MMT_PRODUCTION": "0",
                 },
             )
         except (subprocess.TimeoutExpired, OSError) as exc:
@@ -163,7 +162,7 @@ def review_real_brooks_history(
 ) -> dict:
     """Explicit finite close-time snapshots; no PAPER journal or PnL booking."""
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise Stage15Refused("EXPLICIT_NONPRODUCTION_OPERATOR_APPROVAL_REQUIRED")
     if (type(spec) is not HistoricalFileSpec
             or not isinstance(archive, Path) or not archive.is_absolute()

@@ -85,7 +85,7 @@ class OfflineRuntimeSupervisor:
     def __init__(self, db_path: str | Path, *, panel: OfflineTradingControlCenter,
                  actor_id: int, enabled: bool = False):
         if (enabled is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-                or os.environ.get("MMT_PRODUCTION") == "1"
+                or "MMT_PRODUCTION" in os.environ
                 or not isinstance(panel, OfflineTradingControlCenter)
                 or type(actor_id) is not int or actor_id <= 0):
             raise SupervisorRefused("NONPRODUCTION_OPERATOR_REQUIRED")
@@ -194,7 +194,8 @@ class OfflineRuntimeSupervisor:
                 SELECT j.* FROM runtime17_jobs j
                 WHERE j.status='PENDING' AND j.due_at<=?
                   AND NOT EXISTS (SELECT 1 FROM runtime17_jobs earlier
-                      WHERE earlier.binding_id=j.binding_id AND earlier.status='CLAIMED')
+                      WHERE earlier.binding_id=j.binding_id
+                        AND earlier.status IN ('CLAIMED','QUARANTINED'))
                 ORDER BY j.due_at,j.job_id LIMIT 1
             """, (_utc(now).isoformat(),)).fetchone()
             if row is None:

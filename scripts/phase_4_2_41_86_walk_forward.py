@@ -27,7 +27,6 @@ from app.modules.signal_intelligence.probability import (
     HistoricalCase,
     HistoricalProbabilityEngine,
 )
-
 from research_layer.current_risk_contract import read_current_risk
 
 

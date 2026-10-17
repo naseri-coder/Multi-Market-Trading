@@ -349,7 +349,7 @@ class DurableOfflineRuntime:
         operator_ack: bool = False,
     ) -> RuntimeResult:
         if (os.environ.get("MMT_NONPRODUCTION") != "1"
-                or os.environ.get("MMT_PRODUCTION") == "1"):
+                or "MMT_PRODUCTION" in os.environ):
             raise DurableRuntimeRefused("NONPRODUCTION_ONLY")
         if operator_ack is not True:
             raise DurableRuntimeRefused("OPERATOR_APPROVAL_REQUIRED")

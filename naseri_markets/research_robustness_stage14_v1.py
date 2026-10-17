@@ -190,7 +190,7 @@ def run_stage14_robustness(
     cannot be synthesized from Stage-13 trades or its mean R statistics.
     """
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise Stage14Refused("NONPRODUCTION_OPERATOR_ACK_REQUIRED")
     if type(plan) is not FrozenExecutionPlan or type(spec) is not HistoricalFileSpec:
         raise Stage14Refused("EXACT_STAGE13_PLAN_AND_DATA_SPEC_REQUIRED")

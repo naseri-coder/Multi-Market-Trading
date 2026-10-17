@@ -19,7 +19,6 @@ jobs:
     timeout-minutes: 20
     env:
       MMT_NONPRODUCTION: "1"
-      MMT_PRODUCTION: "0"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -35,7 +34,7 @@ jobs:
       - name: Test complete offline archive/checksum and modeled economic math
         run: |
           set -Eeuo pipefail
-          python -m pip install -e '.[dev]' 'pyarrow==21.0.0'
+          python -m pip install -e '.[dev]'
           python -m ruff check --select E4,F \
             naseri_markets/binance_vision_archive_stage16_v1.py \
             naseri_markets/futures_economic_scenario_stage16_v1.py \

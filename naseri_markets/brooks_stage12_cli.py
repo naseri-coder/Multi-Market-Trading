@@ -16,7 +16,7 @@ from .brooks_stage12_research_audit import (
 def run_once(args: argparse.Namespace, *, environment: dict[str, str]) -> dict:
     if (
         environment.get("MMT_NONPRODUCTION") != "1"
-        or environment.get("MMT_PRODUCTION") == "1"
+        or "MMT_PRODUCTION" in environment
         or args.ack_offline_research_only is not True
     ):
         raise Stage12ResearchRefused("STAGE12_NONPRODUCTION_OPTIN_REQUIRED")

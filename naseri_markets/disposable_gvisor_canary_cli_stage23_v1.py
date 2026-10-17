@@ -29,7 +29,7 @@ def main(argv: list[str] | None = None) -> int:
         if (opts.ack_disposable_host_canary is not True
                 or os.environ.get("MMT_NONPRODUCTION") != "1"
                 or os.environ.get("MMT_DISPOSABLE_SANDBOX_HOST") != "1"
-                or os.environ.get("MMT_PRODUCTION") == "1"
+                or "MMT_PRODUCTION" in os.environ
                 or os.geteuid() == 0):
             raise HostCanaryRefused("EXPLICIT_DISPOSABLE_NONPRODUCTION_HOST_REQUIRED")
         host = SecurePluginPolicy(

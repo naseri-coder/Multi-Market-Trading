@@ -152,7 +152,7 @@ def inspect_historical_pit_archive(
     remain separately blocked until verified evidence is available.
     """
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise HistoricalPitRefused("PIT_EXPLICIT_NONPRODUCTION_ACK_REQUIRED")
     if not isinstance(path, Path) or not path.is_absolute() or path.is_symlink():
         raise HistoricalPitRefused("PIT_ABSOLUTE_NON_SYMLINK_FILE_REQUIRED")

@@ -84,7 +84,7 @@ def reverify_paper_evidence(
     dataclass is still an unauthenticated claim; it is NOT a signed receipt.
     """
     if (os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"
+            or "MMT_PRODUCTION" in os.environ
             or operator_ack is not True):
         raise CertA2Refused("CERT_A2_EXPLICIT_NONPRODUCTION_ACK_REQUIRED")
     if (type(spec) is not HistoricalFileSpec or type(spec.max_rows) is not int

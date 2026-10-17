@@ -132,7 +132,7 @@ def review_paper_format_inventory(
     even an exact match is only a claim of PAPER inputs/wire frames.
     """
     if (os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"
+            or "MMT_PRODUCTION" in os.environ
             or operator_ack is not True):
         raise CertA1InventoryRefused("CERT_A1_INVENTORY_NONPRODUCTION_ACK_REQUIRED")
     recognized = supported_extensions()

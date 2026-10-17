@@ -1,0 +1,94 @@
+{
+  "date_utc": "2026-10-17",
+  "pr": 352,
+  "repository": "naseri-coder/Multi-Market-Trading",
+  "observed_commit_sha": "d4713b58977cbb0dd47eff55a9447c566ff0d5f5",
+  "previous_code_sha": "f8d3883c86b17b707d97fdd07253c645f4eb9886",
+  "public_source_tree_sha1": "511e9346d88280f3be7c80367f8822a8eaa24dd7",
+  "official_target": "v0.4.0",
+  "official_tag_created": false,
+  "main_merged": false,
+  "pr_draft": true,
+  "github_actions": {
+    "total": 76,
+    "success": 76,
+    "failure": 0,
+    "runs_verified_on_exact_sha": true
+  },
+  "full_corpus": [
+    {
+      "run_id": 39054048151,
+      "job_id": 117458272921,
+      "workflow": "Full Corpus - Disposable PostgreSQL",
+      "conclusion": "success",
+      "passed": 7682,
+      "failed": 0,
+      "skipped": 6,
+      "warnings": 38,
+      "subtests_passed": 2,
+      "migrated_disposable_postgres_count": 2,
+      "alembic_head": "20261013_0023",
+      "elapsed_seconds": 250.69
+    },
+    {
+      "run_id": 39054048264,
+      "job_id": 117458273113,
+      "workflow": "Native PostgreSQL 16 - no Docker Hub",
+      "conclusion": "success",
+      "passed": 7682,
+      "failed": 0,
+      "skipped": 6,
+      "warnings": 38,
+      "subtests_passed": 2,
+      "migrated_disposable_postgres_count": 2,
+      "alembic_head": "20261013_0023",
+      "elapsed_seconds": 249.22
+    }
+  ],
+  "other_verified": [
+    {
+      "run_id": 39054048044,
+      "job_id": 117458272563,
+      "workflow": "Stage 10 installed two-binding PAPER restart audit (nonproduction)",
+      "conclusion": "success",
+      "log_marker": "STAGE10_CLEAN_WHEEL_TWO_BINDING_REOPEN_PASS_RELEASE_BLOCKED"
+    },
+    {
+      "run_id": 39054048164,
+      "job_id": 117458272835,
+      "workflow": "Stage 10 Brooks verified PAPER signal to independent risk-reserved order",
+      "conclusion": "success",
+      "log_markers": [
+        "PINNED_BROOKS_INSTALLED_TWO_PROCESS_PAPER_CI_PASS",
+        "P09_CLEAN_WHEEL_BACKUP_RESTORE_ROLLBACK_SOAK_PASS"
+      ]
+    },
+    {
+      "run_id": 39054048388,
+      "job_id": 117458273575,
+      "workflow": "Public Test Corpus",
+      "conclusion": "success",
+      "lint_gate": "PASS"
+    }
+  ],
+  "unexecuted_opt_in": [
+    "two public market-data smoke tests; no exchange private keys"
+  ],
+  "gates": {
+    "independent_pg_upgrade": "PASS",
+    "full_utc_github_ci": "PASS_76_OF_76",
+    "installed_paper_restart_and_isolated_sqlite_backup_restore": "PASS",
+    "migration_downgrade": "NOT_VERIFIED",
+    "nonempty_retired_archive_safe_downgrade_refusal": "SOURCE_GUARD_PRESENT_NOT_REAL_EXECUTED",
+    "real_trusted_software_publisher_signature": "NOT_VERIFIED",
+    "production_deployment": "FORBIDDEN",
+    "live_trading": "FORBIDDEN",
+    "publication": "BLOCKED_PENDING_REMAINING_ACCEPTANCE"
+  },
+  "security_safety": {
+    "telmivo_host_db_migration_block_not_bypassed": true,
+    "github_nonproduction_ephemeral_runs": "SUCCESS",
+    "no_main_merge": true,
+    "no_release_tag": true
+  }
+}

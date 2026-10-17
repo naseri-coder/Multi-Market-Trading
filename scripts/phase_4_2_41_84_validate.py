@@ -21,7 +21,6 @@ from app.modules.signal_intelligence.cold_start_integration import (
 )
 from app.modules.signal_intelligence.probability import HistoricalProbabilityEngine
 from app.modules.signal_intelligence.service import SignalIntelligenceService
-
 from research_layer.current_risk_contract import read_current_risk
 
 ROOT = Path(__file__).resolve().parents[1]

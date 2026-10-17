@@ -36,17 +36,28 @@ jobs:
           NODE_PATH="$(npm root -g)" node -e 'if (require("typescript").version !== "5.9.3") process.exit(1)'
       - name: Install public snapshot and test dependencies
         run: python -m pip install -e ".[dev]"
+      - name: Install exact no-build-isolation Wheel backend for the full corpus
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --disable-pip-version-check --no-deps "setuptools==80.9.0" "wheel==0.45.1"
+          python - <<'PY'
+          import importlib.metadata as metadata
+          from setuptools import build_meta  # noqa: F401
+          assert metadata.version("setuptools") == "80.9.0"
+          assert metadata.version("wheel") == "0.45.1"
+          print("PUBLIC_CORPUS_PINNED_WHEEL_BACKEND_READY")
+          PY
       - name: Verify v0.3.0 static release contract
         run: bash scripts/verify.sh
+      - name: Materialize frozen release layout for path-contract tests
+        run: |
+          cp -a production_source/app ./app
+          cp -a production_source/migrations ./migrations
       - name: Reject new Ruff findings
         if: github.event_name == 'pull_request' || github.event_name == 'push'
         env:
           RUFF_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: python scripts/ci_ruff_no_new_debt.py --base-sha "$RUFF_BASE_SHA"
-      - name: Materialize frozen release layout for path-contract tests
-        run: |
-          cp -a production_source/app ./app
-          cp -a production_source/migrations ./migrations
       - name: Run reviewed public unit corpus
         env:
           PYTHONPATH: ${{ github.workspace }}

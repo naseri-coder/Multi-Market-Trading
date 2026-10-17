@@ -19,13 +19,13 @@ from .job_effect_reconciliation_v1 import (
     EffectEvidencePaths,
     evaluate_recovery_decisions,
 )
+from .platform_version_policy_v1 import require_offline_platform_version
 from .reliability_acceptance_v1 import (
     LedgerPaths,
     evaluate_offline_reliability,
 )
 from .unified_paper_pilot_stage20_v1 import run_paper_pilot
 
-_RELEASE = "0.4.0rc1"
 _SQLITE_FILES = (
     "control.sqlite", "paper.sqlite", "signals.sqlite",
     "runtime.sqlite", "effects.sqlite",
@@ -40,15 +40,17 @@ class InstalledPilotRefused(ValueError):
 
 def _gate(*, ack: bool, installed: bool = True) -> None:
     if (ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise InstalledPilotRefused("EXPLICIT_NONPRODUCTION_ACK_REQUIRED")
     if installed:
         try:
             dist = version("multi-market-trading")
         except PackageNotFoundError as exc:
             raise InstalledPilotRefused("INSTALLED_PREVIEW_WHEEL_REQUIRED") from exc
-        if dist != _RELEASE:
-            raise InstalledPilotRefused("PREVIEW_VERSION_MISMATCH")
+        try:
+            require_offline_platform_version(dist)
+        except ValueError as exc:
+            raise InstalledPilotRefused("PREVIEW_VERSION_MISMATCH") from exc
 
 
 def _existing_state(directory: Path) -> dict[str, Path]:

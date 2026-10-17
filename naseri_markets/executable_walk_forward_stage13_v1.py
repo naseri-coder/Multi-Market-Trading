@@ -227,7 +227,7 @@ def execute_frozen_walk_forward(
 ) -> dict:
     """Actual fixed Core.evaluate calls in each fold; retrospective source unverified."""
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise ExecutableWalkForwardRefused("STAGE13_EXPLICIT_NONPRODUCTION_ACK_REQUIRED")
     if type(plan) is not FrozenExecutionPlan or type(spec) is not HistoricalFileSpec:
         raise ExecutableWalkForwardRefused("STAGE13_FROZEN_PLAN_AND_SPEC_REQUIRED")

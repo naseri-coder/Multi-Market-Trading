@@ -237,7 +237,7 @@ def compare_pine_trace(
     No trading/core evaluation is performed and no orders are emitted.
     """
     if (os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"
+            or "MMT_PRODUCTION" in os.environ
             or operator_ack is not True):
         raise PineA1Refused("PINE_A1_NONPRODUCTION_OPERATOR_ACK_REQUIRED")
     if (not isinstance(path, Path) or not path.is_absolute()

@@ -29,7 +29,7 @@ class SmokeRefused(ValueError):
 
 
 def run_offline_smoke(folder: Path) -> dict:
-    if os.environ.get('MMT_NONPRODUCTION') != '1' or os.environ.get('MMT_PRODUCTION') == '1':
+    if os.environ.get('MMT_NONPRODUCTION') != '1' or 'MMT_PRODUCTION' in os.environ:
         raise SmokeRefused('NONPRODUCTION_REQUIRED')
     folder = Path(folder)
     if (not folder.is_absolute() or folder.exists() or folder.is_symlink()

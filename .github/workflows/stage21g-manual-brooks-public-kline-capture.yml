@@ -1,0 +1,73 @@
+name: Stage21G explicit one-shot Brooks future market evidence
+
+on:
+  workflow_dispatch:
+    inputs:
+      manual_readonly_authorization:
+        description: "An explicit separate approval for ONE read-only public HTTPS GET"
+        required: true
+        type: choice
+        options:
+          - "NO_CAPTURE"
+          - "I_APPROVE_ONE_READONLY_PUBLIC_HTTPS_CAPTURE"
+      first_closed_candle_count:
+        description: "From 2026-10-20 00:00 UTC, capture exactly N consecutive closed BTCUSDT 15m bars"
+        required: true
+        type: choice
+        options:
+          - "1"
+          - "4"
+          - "16"
+          - "32"
+          - "96"
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: stage21g-brooks-first-window-manual-only
+  cancel-in-progress: false
+
+jobs:
+  first-batch-research-capture:
+    if: ${{ inputs.manual_readonly_authorization == 'I_APPROVE_ONE_READONLY_PUBLIC_HTTPS_CAPTURE' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact research source without persist credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Retrieve only the approved original, already time-stamped 2026-10-16 FreeTSA artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: stage21e-external-rfc3161-brooks-preregistration
+          repository: naseri-coder/Multi-Market-Trading
+          run-id: 38835965013
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/stage21g-original-signed-evidence/
+      - name: Make exactly one public GET only inside signed future study window
+        env:
+          MMT_NONPRODUCTION: "1"
+          MMT_PRODUCTION: "0"
+          ST21G_EXPLICIT_MANUAL_CAPTURE: "1"
+          PYTHONPATH: "."
+          PYTHONDONTWRITEBYTECODE: "1"
+          REQUESTED_CLOSED_BARS: ${{ inputs.first_closed_candle_count }}
+          WITNESS_DIRECTORY: ${{ runner.temp }}/stage21g-original-signed-evidence
+          PRIVATE_RESEARCH_OUTPUT: ${{ runner.temp }}/stage21g-first-window-outcome
+        run: |
+          python3 scripts/stage21g_manual_initial_brooks_capture_v1.py \
+            --evidence-dir "$WITNESS_DIRECTORY" \
+            --output-dir "$PRIVATE_RESEARCH_OUTPUT" \
+            --bars "$REQUESTED_CLOSED_BARS" \
+            --ack-research-only
+      - name: Preserve source originals and even failed attempt receipts; never replace first evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
+        with:
+          name: stage21g-one-shot-first-window-source-attempt-${{ github.run_id }}
+          path: ${{ runner.temp }}/stage21g-first-window-outcome/
+          if-no-files-found: warn
+          retention-days: 30

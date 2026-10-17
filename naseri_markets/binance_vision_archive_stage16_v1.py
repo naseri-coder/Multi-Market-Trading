@@ -104,7 +104,7 @@ def prepare_vision_monthly_um_15m(
     import os
 
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise VisionArchiveRefused("ST16_EXPLICIT_NONPRODUCTION_ACK_REQUIRED")
     if (type(year) is not int or not 2020 <= year <= 2030
             or type(month) is not int or not 1 <= month <= 12):
@@ -274,7 +274,7 @@ def select_reviewed_brooks_window(
     import os
 
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise VisionArchiveRefused("ST16_EXPLICIT_NONPRODUCTION_ACK_REQUIRED")
     if (type(prepared) is not VisionPreparedArchive
             or type(start_bar_index) is not int or type(count) is not int

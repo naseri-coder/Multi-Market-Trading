@@ -156,7 +156,7 @@ def _verify_chain(intents: list[sqlite3.Row], events: list[sqlite3.Row]) -> None
 def evaluate_effect_evidence(paths: EffectEvidencePaths) -> EffectEvidenceReport:
     """No writes, retries, dispatches, private code imports or live services."""
     if (os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"
+            or "MMT_PRODUCTION" in os.environ
             or not isinstance(paths, EffectEvidencePaths)):
         raise IntentRefused("EXPLICIT_READONLY_NONPRODUCTION_REQUIRED")
     inputs = tuple(_safe_file(getattr(paths, name), exists=True)

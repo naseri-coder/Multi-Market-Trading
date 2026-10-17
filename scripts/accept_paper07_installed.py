@@ -26,7 +26,7 @@ from naseri_markets.risk_portfolio_contract_v1 import AccountRiskPolicy, Portfol
 
 def accept(parent: Path, source: Path) -> dict:
     if (os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"
+            or "MMT_PRODUCTION" in os.environ
             or os.geteuid() == 0):
         raise ValueError("EXPLICIT_NONROOT_NONPRODUCTION_REQUIRED")
     wheel = Path(naseri_markets.__file__).resolve()
@@ -93,7 +93,7 @@ def accept(parent: Path, source: Path) -> dict:
              "--account-id", "p07-account", "--quantity", "1.00",
              "--ack-real-brooks-offline", "--ack-nonproduction-stage10-paper"],
             cwd=parent, env={
-                "MMT_NONPRODUCTION": "1", "MMT_PRODUCTION": "0",
+                "MMT_NONPRODUCTION": "1",
                 "HOME": str(parent), "PYTHONDONTWRITEBYTECODE": "1",
             },
             capture_output=True, text=True, timeout=60, check=False,

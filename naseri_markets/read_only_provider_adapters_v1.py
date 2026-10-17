@@ -68,7 +68,7 @@ def discover_public_futures(
 ) -> ProviderSnapshot:
     """Opt-in PUBLIC read-only research via existing fixed official GET URLs."""
     if (acknowledge_research is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise CatalogRefused("EXPLICIT_NONPRODUCTION_RESEARCH_REQUIRED")
     if type(venue) is not str or venue not in VENUES:
         raise CatalogRefused("UNSUPPORTED_FUTURES_PROVIDER")
@@ -103,7 +103,7 @@ def mt5_demo_observation(
 ) -> DemoMarketObservation:
     """Read-only calls on preconnected DEMO MT5; never initialize or order."""
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise CatalogRefused("EXPLICIT_NONPRODUCTION_DEMO_REQUIRED")
     if type(broker) is not str or type(symbol) is not str:
         raise CatalogRefused("INVALID_BROKER_OR_SYMBOL")

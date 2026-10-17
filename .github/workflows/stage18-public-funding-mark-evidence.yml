@@ -1,0 +1,145 @@
+name: Stage18 official funding and mark provenance probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      explicit_historical_source_research_approval:
+        description: "Allow ONE read-only public archive acquisition; never production"
+        type: choice
+        required: true
+        options:
+          - "NO_PUBLIC_DOWNLOAD"
+          - "I_APPROVE_ONE_READONLY_HISTORICAL_DOWNLOAD"
+
+permissions:
+  contents: read
+
+jobs:
+  official-public-funding-mark:
+    if: ${{ inputs.explicit_historical_source_research_approval == 'I_APPROVE_ONE_READONLY_HISTORICAL_DOWNLOAD' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - name: Fetch and inspect only official archival market data
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          python3 - <<'PY'
+          import csv
+          import hashlib
+          import io
+          import json
+          import os
+          import pathlib
+          import urllib.request
+          import zipfile
+          from datetime import UTC,datetime
+
+          sources = (
+              ("funding", "https://data.binance.vision/data/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2024-01.zip"),
+              ("mark", "https://data.binance.vision/data/futures/um/monthly/markPriceKlines/BTCUSDT/15m/BTCUSDT-15m-2024-01.zip"),
+          )
+          class NeverRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,*args):
+                  raise ValueError("ST18_REDIRECT_NOT_APPROVED")
+          opener=urllib.request.build_opener(NeverRedirect())
+          target=pathlib.Path(os.environ["RUNNER_TEMP"])/"stage18-source-evidence"
+          target.mkdir(mode=0o700)
+          reports={}
+          for label,zip_url in sources:
+              filename=zip_url.rsplit("/",1)[-1]
+              def fetch(url,lim):
+                  if url not in (zip_url,zip_url+".CHECKSUM"):
+                      raise ValueError("ST18_OUT_OF_SCOPE_URL")
+                  request=urllib.request.Request(url,headers={"Accept-Encoding":"identity"})
+                  with opener.open(request,timeout=25) as response:
+                      if (response.status!=200 or response.geturl()!=url
+                          or response.headers.get("Content-Encoding","identity").lower()!="identity"):
+                          raise ValueError("ST18_UNEXPECTED_ORIGIN_RESPONSE")
+                      content=response.read(lim+1)
+                  if not 0<len(content)<=lim:
+                      raise ValueError("ST18_OVERSIZE_OR_EMPTY_INPUT")
+                  return content
+              zipped=fetch(zip_url,8*1024*1024)
+              chk=fetch(zip_url+".CHECKSUM",256)
+              digest=hashlib.sha256(zipped).hexdigest()
+              if chk.strip(b"\r\n")!=(digest+"  "+filename).encode():
+                  raise ValueError("ST18_UNMATCHED_SIBLING_CHECKSUM")
+              with zipfile.ZipFile(io.BytesIO(zipped)) as archive:
+                  members=archive.infolist()
+                  if len(members)!=1 or members[0].filename!=filename.replace(".zip",".csv"):
+                      raise ValueError("ST18_UNEXPECTED_ZIP_MEMBER")
+                  if members[0].file_size>24*1024*1024:
+                      raise ValueError("ST18_DECOMPRESSION_LIMIT")
+                  rows=list(csv.reader(io.StringIO(archive.read(members[0]).decode("utf-8-sig"))))
+              if not rows or len(rows)>3200:
+                  raise ValueError("ST18_ROWS_OUT_OF_BOUNDS")
+              (target/(label+"-"+filename)).write_bytes(zipped)
+              (target/(label+"-"+filename+".CHECKSUM")).write_bytes(chk)
+              report=dict(
+                  source_url=zip_url,
+                  zip_sha256=digest,
+                  checksum_sha256=hashlib.sha256(chk).hexdigest(),
+                  rows=len(rows),
+                  first_row=rows[0][:12],
+                  last_row=rows[-1][:12],
+                  inspected_utc=datetime.now(UTC).isoformat(),
+                  provider_signature_verified=False,
+                  independent_historical_revision_witness=False,
+                  mark_funding_schedule_completeness_not_yet_established=True,
+                  live_trading_authorized=False,
+              )
+              reports[label]=report
+              print("ST18_PUBLIC_SOURCE="+label+" SHA256="+digest+" ROWS="+str(len(rows)))
+              print("ST18_FIRST_CSV_ROW_"+label.upper()+"="+json.dumps(rows[0][:12]))
+              print("ST18_SECOND_CSV_ROW_"+label.upper()+"="+json.dumps(rows[1][:12]))
+          (target/"stage18-raw-source-probe.json").write_text(
+              json.dumps(reports,sort_keys=True,indent=2)+"\n")
+          PY
+      - name: Checkout exact reviewed source for native funding/mark audit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run native Stage18 public source validator on authentic original ZIPs
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+          MMT_NONPRODUCTION: "1"
+          MMT_PRODUCTION: "0"
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from naseri_markets.binance_public_funding_mark_stage18_v1 import (
+              reconcile_stage18_primary_public_sources,
+          )
+          directory = Path(os.environ["RUNNER_TEMP"]) / "stage18-source-evidence"
+          f = "BTCUSDT-fundingRate-2024-01.zip"
+          m = "BTCUSDT-15m-2024-01.zip"
+          report, schedule, events = reconcile_stage18_primary_public_sources(
+              funding_zip=(directory / ("funding-"+f)).read_bytes(),
+              funding_checksum=(directory / ("funding-"+f+".CHECKSUM")).read_bytes(),
+              mark_zip=(directory / ("mark-"+m)).read_bytes(),
+              mark_checksum=(directory / ("mark-"+m+".CHECKSUM")).read_bytes(),
+              operator_ack=True,
+          )
+          assert report["observed_funding_events"] == 93
+          assert report["source_derived_reconciled_funding_events"] == 92
+          assert report["mark_candle_rows"] == 2976
+          assert report["historical_mark_at_exact_settlement_proven"] is False
+          assert report["paper_trading_authorized"] is False
+          (directory/"normalized-funding-schedule-stage18.csv").write_bytes(schedule)
+          (directory/"normalized-funding-rate-mark-proxy-stage18.csv").write_bytes(events)
+          (directory/"original-binance-funding-mark-quality-evidence.json").write_text(
+              json.dumps(report,sort_keys=True,indent=2)+"\n"
+          )
+          print("ST18_OFFICIAL_FUNDING_MARK_NATIVE_AUDIT_PASS")
+          print(json.dumps(report,sort_keys=True))
+          PY
+      - name: Store exact original public artifacts outside Git repository
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
+        with:
+          name: stage18-official-public-funding-mark-BTCUSDT-2024-01
+          path: ${{ runner.temp }}/stage18-source-evidence/
+          if-no-files-found: error
+          retention-days: 1

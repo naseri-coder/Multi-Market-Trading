@@ -79,7 +79,7 @@ def main(argv: list[str] | None = None) -> int:
             }, sort_keys=True))
             return 0
         if (os.environ.get("MMT_NONPRODUCTION") != "1"
-                or os.environ.get("MMT_PRODUCTION") == "1"
+                or "MMT_PRODUCTION" in os.environ
                 or not os.environ.get("MMT_DEV_BOT_TOKEN")):
             raise BotStartupRefused("BOT_NONPRODUCTION_ENV_FENCE")
         token = os.environ["MMT_DEV_BOT_TOKEN"]

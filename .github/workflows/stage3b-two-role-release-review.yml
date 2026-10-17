@@ -1,0 +1,68 @@
+name: Stage 3B - independent operator and publisher trust review
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dual-role-admission:
+    name: Two-role Ed25519 review negatives (synthetic only; release DENIED)
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      MMT_NONPRODUCTION: "1"
+      APP_ENV: test
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+      TELEGRAM_RUNTIME_ENABLED: "false"
+      BROOKS_RUNTIME_ENABLED: "false"
+      PAPER_RUNTIME_ENABLED: "false"
+
+    steps:
+      - name: Checkout exact GitHub candidate without credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install supported Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned test and cryptography tools
+        run: |
+          set -Eeuo pipefail
+          python -m pip install "pytest==9.1.1" "cryptography==46.0.3" "ruff==0.16.9"
+          python - <<'PY'
+          import importlib.metadata as m
+          assert m.version("pytest") == "9.1.1"
+          assert m.version("cryptography") == "46.0.3"
+          assert m.version("ruff") == "0.16.9"
+          print("STAGE3B_PINNED_TOOLS_PASS")
+          PY
+
+      - name: Test independent roles and no-production admission
+        run: |
+          set -Eeuo pipefail
+          test -z "${MMT_PRODUCTION+x}"
+          python -m ruff check scripts/mmt_v040_operator_two_role_admission_v1.py tests/unit/test_mmt_v040_operator_two_role_admission_v1.py
+          # This focused crypto suite must not load the product's unrelated
+          # tests/conftest.py, which requires frozen runtime dependencies.
+          isolated="$(mktemp -d /tmp/mmt-stage3b-tests-XXXXXXXX)"
+          trap 'rm -rf -- "$isolated"' EXIT
+          cp tests/unit/test_mmt_v040_operator_two_role_admission_v1.py "$isolated/test_stage3b.py"
+          cmp tests/unit/test_mmt_v040_operator_two_role_admission_v1.py "$isolated/test_stage3b.py"
+          PYTHONPATH="$GITHUB_WORKSPACE" python -m pytest -q -c /dev/null -p no:cacheprovider "$isolated/test_stage3b.py"
+          echo "STAGE3B_SYNTHETIC_TWO_ROLE_REGRESSION_PASS"
+
+      - name: Deny automatic release approval
+        run: |
+          set -Eeuo pipefail
+          echo "STAGE3B_NO_REAL_PUBLISHER_OR_OPERATOR_ATTESTATION__RELEASE_BLOCKED"
