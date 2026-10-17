@@ -70,7 +70,8 @@ def _source_inventory(repository: Path, expected_source_commit: str) -> tuple[di
                 or any(set(d.lower() for d in declaration["optional-dependencies"][extra]) != pins
                        or len(declaration["optional-dependencies"][extra]) != len(pins)
                        for extra, pins in stable._ALLOWED_REQUIREMENTS.items())
-                or config["build-system"]["requires"] != ["setuptools==80.9.0", "wheel==0.45.1"]):
+                or config["build-system"]["requires"] != ["setuptools==80.9.0", "wheel==0.45.1"]
+                or config["build-system"]["build-backend"] != "setuptools.build_meta"):
             raise SourceCustodyRefused("V040_SOURCE_METADATA_DRIFT")
     except (OSError, ValueError, TypeError, KeyError, UnicodeError, tomllib.TOMLDecodeError) as exc:
         if isinstance(exc, SourceCustodyRefused):
