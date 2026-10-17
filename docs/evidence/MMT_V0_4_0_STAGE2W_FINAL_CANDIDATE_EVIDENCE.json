@@ -1,0 +1,74 @@
+{
+  "phase": "2W-final-offline-and-ruff-acceptance",
+  "date_utc": "2026-10-17",
+  "repository": "naseri-coder/Multi-Market-Trading",
+  "pr_number": 352,
+  "tested_code_commit": "f8d3883c86b17b707d97fdd07253c645f4eb9886",
+  "base_main_commit": "51e0e4de04e184fe28b59b9db4b6a70fbd67dfe0",
+  "public_git_tree_sha1": "511e9346d88280f3be7c80367f8822a8eaa24dd7",
+  "public_module_count": 226,
+  "public_source_bytes": 2501079,
+  "source_lock_sha256": "c2554a8a1c3a46d1675e8e44429c017f6981758df012d5b5feecab353bcf9b9c",
+  "runtime": {
+    "python": "3.12.15",
+    "ruff": "0.16.9",
+    "uid": 1000,
+    "network": "none",
+    "read_only_rootfs": true,
+    "production_mounted": false
+  },
+  "ruff_ratchet": {
+    "baseline": 1345,
+    "head": 1344,
+    "new_findings": 0,
+    "result": "PASS"
+  },
+  "tests": {
+    "passed": 7584,
+    "failed": 0,
+    "skipped": 76,
+    "warnings": 6,
+    "subtests_passed": 2,
+    "elapsed_seconds": 273.57,
+    "result": "PASS_WITH_76_SKIPS"
+  },
+  "skips": {
+    "postgresql_isolated": 38,
+    "github_ephemeral_runner": 32,
+    "cert_a5_opt_in": 4,
+    "public_market_data_smoke_opt_in": 2
+  },
+  "r42v": {
+    "verdict": "R42V_BOUNDED_PY312_TEST_LINT_PASS_NOT_RELEASE",
+    "cases_passed": 59,
+    "historical_git_blob_sha1": "070c56bd8774372c40bb61f8316c92988e8c9b35"
+  },
+  "wheel": {
+    "filename": "multi_market_trading-0.4.0-py3-none-any.whl",
+    "sha256": "33316353c0dcf0c5c3cd5b8926d87b70cfdd589e1ea3d5061f8ee90e127825fc",
+    "size_bytes": 806419,
+    "identical_independent_builds": true,
+    "verified_module_count": 226,
+    "record_members": 231,
+    "installed_offline": true,
+    "cli_help_passed": 9,
+    "signer_approved": false,
+    "published": false
+  },
+  "gates": {
+    "source_226": "PASS",
+    "ast_production_guard": "PASS",
+    "ruff_no_new": "PASS",
+    "full_python312_without_failures": "PASS_WITH_SKIPS",
+    "real_postgresql": "NOT_RUN",
+    "ephemeral_runner": "NOT_RUN",
+    "cert_a5_opt_in": "NOT_RUN",
+    "public_market_smoke": "NOT_RUN",
+    "independent_publisher_signature": "NOT_VERIFIED",
+    "migration_and_rollback": "NOT_VERIFIED",
+    "real_paper_restarts": "NOT_VERIFIED",
+    "main_merge": "DENIED",
+    "official_tag": "DENIED",
+    "live_trading": "DENIED"
+  }
+}

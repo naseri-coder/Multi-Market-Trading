@@ -93,6 +93,10 @@
 
 **Stage 2V — nine release-script Ruff fixes (2026-10-17):** [`MMT_V0_4_0_STAGE2V_RELEASE_SCRIPT_RUFF_REMEDIATION.md`](MMT_V0_4_0_STAGE2V_RELEASE_SCRIPT_RUFF_REMEDIATION.md) documents one atomic GitHub commit `7f5aad3d8bf540b45b825435591d7fe3287a2e36` updating nine **release/audit scripts only**. Each is Ruff-clean; **1,101/1,101 relevant genuine CPython3.12 nonroot tests passed on that exact immutable commit**, and GitHub confirmed **9/9** tested blob IDs. The canonical **226 public source modules and snapshot lock are byte-identical** to Stage2T. The baseline-relative lint gate improves from **67 to 38 new warnings** (historical main=1,345, candidate=1,383); **the 38 remaining are in 20 source modules and Ruff gate still FAILS**. **Stage 2W:** resolve those with historical-pin/source-lock diligence, rerun complete tests and dual builds on the new final SHA; Postgres, missed skip coverage and trustworthy signer evidence remain outstanding. Keep PR Draft; no merge, tag or deploy.
 
+**Stage 2W — final code acceptance (2026-10-17):** [`MMT_V0_4_0_STAGE2W_FINAL_OFFLINE_ACCEPTANCE.md`](MMT_V0_4_0_STAGE2W_FINAL_OFFLINE_ACCEPTANCE.md) records **actual CPython3.12.15**, full-source admission and Ruff 0.16.9 ratchet **PASS (baseline 1,345 / candidate 1,344 / new 0)** on immutable code commit `f8d3883c86b17b707d97fdd07253c645f4eb9886`. The complete project suite returned **7,584 passed, 0 failed, 76 skipped**. R42V independently admitted its **59 pinned tests** while refusing any release grant; original R42 historical pins are retained with byte-exact reconstruction of its reviewed Ruff-only candidate. The exact 226-module source remains pinned; two final Wheel builds were identical (SHA-256 `33316353c0dcf0c5c3cd5b8926d87b70cfdd589e1ea3d5061f8ee90e127825fc`), RECORD **231/231** verified and **9/9** installed CLI help checks passed.
+
+**Do not interpret as permission to merge/release.** Of 76 skipped cases: **38** isolated PostgreSQL, **32** ephemeral GitHub runner, **4** CERT-A5 opt-in, **2** public-data smoke. Publisher signing, migration/rollback and independent runtime readiness are unverified. Next Stage 2X must close these blocked gates before a protected-branch review, merge or tag. Machine-readable evidence: [`STAGE2W_FINAL_CANDIDATE_EVIDENCE.json`](evidence/MMT_V0_4_0_STAGE2W_FINAL_CANDIDATE_EVIDENCE.json).
+
 On the **exact candidate commit**, in an isolated approved nonroot Linux environment with real CPython 3.12 and Ruff:
 
 - Full static/lint/type/import checks, test discovery and full unit + integration test suite, including PostgreSQL when required; record total passes/skips/fails and investigate critical skips.
@@ -155,8 +159,8 @@ On the **exact candidate commit**, in an isolated approved nonroot Linux environ
 | Branch lineage consolidated | **DONE** |
 | Main merged | **NO** |
 | Separate divergent heads accepted | **PENDING per-branch** |
-| CPython 3.12 + Ruff on combined head | **NOT RUN** |
-| Full integration, installer and crash/restart on combined head | **NOT RUN** |
+| CPython 3.12 + Ruff on combined head | **OFFLINE CHECKED: Python 3.12 full suite 7,584 pass / 76 skip; Ruff no new findings, exact code commit f8d3883c** |
+| Full integration, installer and crash/restart on combined head | **PARTIAL: offline Wheel/install/9 CLI pass; PostgreSQL integration and real restart/rollback not accepted** |
 | Signed provenance, security and rollback | **NOT VERIFIED** |
 | Official Git tag v0.4.0 | **NOT CREATED** |
 | LIVE and Production | **DENIED / OUT OF SCOPE** |
