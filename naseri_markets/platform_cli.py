@@ -8,6 +8,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from .engine_plan import plan
+from .platform_version_policy_v1 import require_offline_platform_version
 
 
 def _installed_version() -> str:
@@ -25,8 +26,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         release = _installed_version()
-        if release != "0.4.0rc1":
-            raise ValueError("UNEXPECTED_RELEASE_VERSION")
+        require_offline_platform_version(release)
         if args.engine_plan is not None:
             engines = plan(args.engine_plan)
             output = {
