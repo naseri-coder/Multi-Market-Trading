@@ -218,7 +218,7 @@ def observe_public_futures_klines(request: FuturesKlineRequest, *,
                                   ) -> FuturesKlineCapture:
     """One explicit public GET, no poller. Injected transports never claim network."""
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise VenueReplayRefused("EXPLICIT_NONPRODUCTION_RESEARCH_ACK_REQUIRED")
     if not isinstance(request, FuturesKlineRequest):
         raise VenueReplayRefused("EXPLICIT_FIXED_FUTURES_REQUEST_REQUIRED")
