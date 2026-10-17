@@ -4,10 +4,10 @@
   "release_candidate": "v0.4.0",
   "provenance": "GITHUB_TREE_SNAPSHOT__NOT_RELEASE_APPROVAL",
   "github_repository": "naseri-coder/Multi-Market-Trading",
-  "snapshot_commit": "6e204cc33208bec42c88d7b41054742b43eb0942",
-  "public_subtree_sha1": "4bb8186f40d70378741caf1b8a2d878aee3ae748",
+  "snapshot_commit": "3a886348fc14acbfde53455d3491e0827a13c124",
+  "public_subtree_sha1": "951d35d64fdf9ebdc72971e55197fc0a92454230",
   "expected_module_count": 226,
-  "source_bytes": 2501004,
+  "source_bytes": 2500860,
   "modules": [
     {
       "path": "naseri_markets/__init__.py",
@@ -391,8 +391,8 @@
     },
     {
       "path": "naseri_markets/dev_operator.py",
-      "git_blob_sha1": "dd43dd6b7597648300349cc5fdbbc67b785f0362",
-      "size": 12332
+      "git_blob_sha1": "db28af6610ae56346eb5238727692cfbc2a08e39",
+      "size": 12323
     },
     {
       "path": "naseri_markets/disconnected_host_evidence_stage33_v1.py",
@@ -401,13 +401,13 @@
     },
     {
       "path": "naseri_markets/disposable_gvisor_canary_cli_stage23_v1.py",
-      "git_blob_sha1": "3fd356f8499a77a4b0ea2e69d48b00f8df36e4a2",
-      "size": 1955
+      "git_blob_sha1": "0a0cbb95dbc630ca00c05d4c068a381272df505c",
+      "size": 1946
     },
     {
       "path": "naseri_markets/disposable_gvisor_canary_stage23_v1.py",
-      "git_blob_sha1": "24e11eb315c7cc52c1e253f0fdfb29ca41b22c5f",
-      "size": 7609
+      "git_blob_sha1": "62ecb1da2cfb55824f4a30459403ed939d827d0f",
+      "size": 7600
     },
     {
       "path": "naseri_markets/disposable_host_preflight_stage32_v1.py",
@@ -416,13 +416,13 @@
     },
     {
       "path": "naseri_markets/durable_isolated_core_gate_stage22_v1.py",
-      "git_blob_sha1": "586336cfd0e898b8a824f8ae93f25be75007dbd4",
-      "size": 21982
+      "git_blob_sha1": "fea0def9901adfd349d42eb79b75ed506fad35e6",
+      "size": 21973
     },
     {
       "path": "naseri_markets/durable_runtime_a3.py",
-      "git_blob_sha1": "5af2b5454f9f6bf8a14f13a9e53902f6cb63583e",
-      "size": 16882
+      "git_blob_sha1": "e08019c8f50044f6e3a2836b4fd283c4029508c8",
+      "size": 16873
     },
     {
       "path": "naseri_markets/engine_control_store.py",
@@ -441,8 +441,8 @@
     },
     {
       "path": "naseri_markets/executable_walk_forward_stage13_v1.py",
-      "git_blob_sha1": "dd9bb275bff2affa532cf9f420d6d1eccf455074",
-      "size": 15091
+      "git_blob_sha1": "04e9dc97bbd60c7c169659e3e0a9c7d9ab626732",
+      "size": 15082
     },
     {
       "path": "naseri_markets/execution_contract_v1.py",
@@ -541,18 +541,18 @@
     },
     {
       "path": "naseri_markets/job_effect_intent_v1.py",
-      "git_blob_sha1": "05fa8b5f0a494bdddbc2a85a53f4663e94085833",
-      "size": 17394
+      "git_blob_sha1": "6c46e5e9f95fc0f7263ce9b8b46cde595dfce450",
+      "size": 17385
     },
     {
       "path": "naseri_markets/job_effect_reconciliation_v1.py",
-      "git_blob_sha1": "c048cb9d368f53e8fc349dc77c39354151b1bde8",
-      "size": 16919
+      "git_blob_sha1": "a70b42d19f829e99e834716b450f5c69b60c9abc",
+      "size": 16910
     },
     {
       "path": "naseri_markets/kucoin_futures_replay_stage21_v1.py",
-      "git_blob_sha1": "bad9b5e51d0763c5ff23fb2026383dd4759bd832",
-      "size": 11780
+      "git_blob_sha1": "0d536627e457ddd80df71b0e495d2a2f849ec18d",
+      "size": 11771
     },
     {
       "path": "naseri_markets/market_data_engine_v1.py",
@@ -591,8 +591,8 @@
     },
     {
       "path": "naseri_markets/mmt_r31_private_admin_console_v1.py",
-      "git_blob_sha1": "7cfe5ffb9f73d3abd2393fa0ac5d1bf8dd0a7a76",
-      "size": 14108
+      "git_blob_sha1": "5eff39f77a5a4eddda471cdb4e135a08510731c3",
+      "size": 14099
     },
     {
       "path": "naseri_markets/mmt_r32_stopped_recovery_review_v1.py",
@@ -601,13 +601,13 @@
     },
     {
       "path": "naseri_markets/mmt_r33_live_hard_deny_readiness_v1.py",
-      "git_blob_sha1": "387b672213fd5e232c24e1efe1a4d74c75cd94df",
-      "size": 11889
+      "git_blob_sha1": "41136489098e8e98bfd8ad10a819fb00dc56c5d6",
+      "size": 11880
     },
     {
       "path": "naseri_markets/mmt_r34_offline_stack_acceptance_v1.py",
-      "git_blob_sha1": "8742a29fc1bde3dd0045ec8d345e1c21d81d56bb",
-      "size": 9888
+      "git_blob_sha1": "ae22f7899e45a200690d9e83eb7dcdeffb82277d",
+      "size": 9879
     },
     {
       "path": "naseri_markets/mt5_demo_custody_probe.py",
@@ -681,8 +681,8 @@
     },
     {
       "path": "naseri_markets/mt_a1_offline_artifact_preflight.py",
-      "git_blob_sha1": "3ccd8653326a0a8c0ee063b6f1223ce09bc616fe",
-      "size": 8676
+      "git_blob_sha1": "abdc77be8bb122571b2d88cd1825f76138a7c8bc",
+      "size": 8667
     },
     {
       "path": "naseri_markets/multilang_runtime_a1.py",
@@ -691,8 +691,8 @@
     },
     {
       "path": "naseri_markets/native_a1_inert_binary_preflight.py",
-      "git_blob_sha1": "7518702c7f2561c6e3df74f0b8d04af8fe35b1e9",
-      "size": 11813
+      "git_blob_sha1": "4b979e28a3dc25ae35be7daec3eebf8bb9af53b2",
+      "size": 11804
     },
     {
       "path": "naseri_markets/offline_authoritative_paper_journey_r39_v1.py",
@@ -756,8 +756,8 @@
     },
     {
       "path": "naseri_markets/operational_reconciliation_v1.py",
-      "git_blob_sha1": "cee2badf23e77173de6a1b5ad77e708d730e1b2c",
-      "size": 10835
+      "git_blob_sha1": "260da695fda61a2c6131027628c90841a10a69bb",
+      "size": 10826
     },
     {
       "path": "naseri_markets/order_observation_normalizer_v1.py",
@@ -766,8 +766,8 @@
     },
     {
       "path": "naseri_markets/panel_paper_synthetic_demo_v1.py",
-      "git_blob_sha1": "7d6bcebf3d35e5eac3ffffe881994e9573bc856f",
-      "size": 9220
+      "git_blob_sha1": "0d4c2232753e9efbf57f15578763aca8da55bbe9",
+      "size": 9211
     },
     {
       "path": "naseri_markets/paper09_snapshot_v1.py",
