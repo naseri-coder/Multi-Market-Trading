@@ -225,7 +225,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if (not args.ack_nonproduction_standalone_paper
             or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         print("BROOKS_SERVICE_REFUSED:NONPRODUCTION_OPERATOR_FENCE",
               file=sys.stderr)
         return 2
