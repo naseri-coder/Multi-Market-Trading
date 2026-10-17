@@ -21,9 +21,9 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from scripts import mmt_v040_offline_stable_staging_v1 as stage
+from scripts import mmt_v040_operator_two_role_admission_v1 as two_role
 from scripts import mmt_v040_public_source_snapshot_audit_v1 as snapshot
 from scripts import mmt_v040_rc_overlay_signed_custody_v1 as overlay
-from scripts import mmt_v040_operator_two_role_admission_v1 as two_role
 from scripts import mmt_v040_signed_artifact_preflight_v1 as stable
 
 PUBLIC_TREE_SHA1 = "511e9346d88280f3be7c80367f8822a8eaa24dd7"
