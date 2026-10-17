@@ -31,7 +31,7 @@ class Stage21ForwardRefused(ValueError):
 
 def _gate(operator_ack: bool) -> None:
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise Stage21ForwardRefused("ST21C_RESEARCH_NONPRODUCTION_APPROVAL_REQUIRED")
 
 
