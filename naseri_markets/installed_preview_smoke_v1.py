@@ -19,6 +19,7 @@ from ._contract_acceptance_fixture_v1 import OfflineContractFixture
 from .market_data_engine_v1 import (
     FeedDefinition, MarketPacket, OfflineMarketDataEngine, PriceBasis, VolumeSemantics,
 )
+from .platform_version_policy_v1 import require_offline_platform_version
 from .strategy_orchestrator_v1 import (
     EvaluationStatus, OfflineStrategyOrchestrator, TrustedCoreEvaluator,
 )
@@ -34,8 +35,10 @@ def run_offline_preview() -> dict:
         release = version("multi-market-trading")
     except PackageNotFoundError as exc:
         raise PreviewSmokeRefused("INSTALLED_WHEEL_REQUIRED") from exc
-    if release != "0.4.0rc1":
-        raise PreviewSmokeRefused("RELEASE_VERSION_DRIFT")
+    try:
+        require_offline_platform_version(release)
+    except ValueError as exc:
+        raise PreviewSmokeRefused("RELEASE_VERSION_DRIFT") from exc
     core = OfflineContractFixture()
     instrument = Instrument(Market.CRYPTO, "offline_fixture", "ABCUSD", "UTC", "USD")
     binding = CoreBinding("demo_instance", "demo_binding", instrument, "15m")
