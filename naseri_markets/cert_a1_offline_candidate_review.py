@@ -102,7 +102,7 @@ class CertA1Report:
 
 def _scope(ack: bool) -> None:
     if (os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"
+            or "MMT_PRODUCTION" in os.environ
             or ack is not True):
         raise CertA1Refused("CERT_A1_EXPLICIT_NONPRODUCTION_ACK_REQUIRED")
 
