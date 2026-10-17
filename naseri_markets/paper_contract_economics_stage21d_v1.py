@@ -147,7 +147,7 @@ class PaperContractEconomics:
 
 def require_contract_research_ack(operator_ack: bool) -> None:
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise ContractEconomicsRefused("EXPLICIT_NONPRODUCTION_ECONOMIC_RESEARCH_REQUIRED")
 
 
