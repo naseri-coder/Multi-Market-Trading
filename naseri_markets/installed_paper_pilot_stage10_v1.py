@@ -15,6 +15,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from urllib.parse import quote
 
+from ._release_identity_v1 import PLATFORM_VERSION, exact_platform_version
 from .job_effect_reconciliation_v1 import (
     EffectEvidencePaths,
     evaluate_recovery_decisions,
@@ -25,7 +26,7 @@ from .reliability_acceptance_v1 import (
 )
 from .unified_paper_pilot_stage20_v1 import run_paper_pilot
 
-_RELEASE = "0.4.0rc1"
+_RELEASE = PLATFORM_VERSION
 _SQLITE_FILES = (
     "control.sqlite", "paper.sqlite", "signals.sqlite",
     "runtime.sqlite", "effects.sqlite",
@@ -47,7 +48,7 @@ def _gate(*, ack: bool, installed: bool = True) -> None:
             dist = version("multi-market-trading")
         except PackageNotFoundError as exc:
             raise InstalledPilotRefused("INSTALLED_PREVIEW_WHEEL_REQUIRED") from exc
-        if dist != _RELEASE:
+        if not exact_platform_version(dist):
             raise InstalledPilotRefused("PREVIEW_VERSION_MISMATCH")
 
 
