@@ -1,6 +1,7 @@
 """Fail-closed A6 identity and preservation checks; no network or writes."""
 from __future__ import annotations
 
+import ast
 import json
 import sys
 import tomllib
@@ -9,7 +10,26 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def _platform_version() -> str:
+    """Read the inert version assignment; never import or execute source."""
+    path = ROOT / "naseri_markets/_release_identity_v1.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    values = [
+        node.value for node in tree.body if isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and node.targets[0].id == "PLATFORM_VERSION"
+    ]
+    if len(values) != 1 or not isinstance(values[0], ast.Constant):
+        raise ValueError("A6_RELEASE_IDENTITY_INVALID")
+    value = values[0].value
+    if type(value) is not str or value not in ("0.4.0rc1", "0.4.0"):
+        raise ValueError("A6_RELEASE_IDENTITY_INVALID")
+    return value
+
+
 def check() -> dict:
+    expected_platform_version = _platform_version()
     historical = tomllib.loads((ROOT / "pyproject.toml").read_text())
     newer = tomllib.loads((ROOT / "platform_release/pyproject.toml").read_text())
     if (
@@ -19,7 +39,7 @@ def check() -> dict:
         raise ValueError("HISTORICAL_PACKAGE_CHANGED")
     if (
         newer["project"]["name"] != "multi-market-trading"
-        or newer["project"]["version"] != "0.4.0rc1"
+        or newer["project"]["version"] != expected_platform_version
     ):
         raise ValueError("A6_VERSION_OR_NAME_MISMATCH")
     if newer["project"]["dependencies"]:
@@ -58,7 +78,7 @@ def check() -> dict:
         raise ValueError("FROZEN_MANIFEST_NOT_PRESENT")
     return {
         "verdict": "A6_SEPARATE_RELEASE_PREVIEW_PASS",
-        "preview_version": "0.4.0rc1",
+        "preview_version": expected_platform_version,
         "legacy_version": "0.3.2",
         "legacy_database_attached": False,
         "database_migration_executed": False,
