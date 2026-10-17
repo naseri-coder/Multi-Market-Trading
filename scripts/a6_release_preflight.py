@@ -19,7 +19,8 @@ def check() -> dict:
         raise ValueError("HISTORICAL_PACKAGE_CHANGED")
     if (
         newer["project"]["name"] != "multi-market-trading"
-        or newer["project"]["version"] != "0.4.0rc1"
+        or type(newer["project"]["version"]) is not str
+        or newer["project"]["version"] not in ("0.4.0rc1", "0.4.0")
     ):
         raise ValueError("A6_VERSION_OR_NAME_MISMATCH")
     if newer["project"]["dependencies"]:
@@ -58,7 +59,7 @@ def check() -> dict:
         raise ValueError("FROZEN_MANIFEST_NOT_PRESENT")
     return {
         "verdict": "A6_SEPARATE_RELEASE_PREVIEW_PASS",
-        "preview_version": "0.4.0rc1",
+        "preview_version": newer["project"]["version"],
         "legacy_version": "0.3.2",
         "legacy_database_attached": False,
         "database_migration_executed": False,
