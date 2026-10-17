@@ -45,9 +45,12 @@ def test_two_independent_setuptools_invocations_match_signed_rc_overlay(
         wheel_dir.mkdir(mode=0o700)
         command = [
             sys.executable, "-m", "pip", "wheel", "--no-index", "--no-deps",
-            "--no-build-isolation", "--ignore-requires-python",
-            "--wheel-dir", str(wheel_dir), str(staging_path),
+            "--no-build-isolation",
         ]
+        # Never bypass Python compatibility on an actual CPython 3.12 test host.
+        if sys.version_info[:2] != (3, 12):
+            command.append("--ignore-requires-python")
+        command.extend(["--wheel-dir", str(wheel_dir), str(staging_path)])
         process = subprocess.run(command, env=env, capture_output=True,
                                  text=True, timeout=90, check=False)
         assert process.returncode == 0, process.stderr[-1000:]
