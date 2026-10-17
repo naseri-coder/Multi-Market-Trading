@@ -12,18 +12,34 @@ import pytest
 
 pytest.importorskip("cryptography")
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-
-from naseri_markets.a25_bundle_admission import (
-    A25GuardedFixedFixture, BundleAdmissionRefused, InertBundleAdmissionGate,
-    OPERATOR_DOMAIN, PUBLISHER_DOMAIN, canonical, inspect_inert_bundle,
-)
-from naseri_markets.a24_publisher_admission import PublisherAdmissionRefused
-from test_a24_publisher_admission import (
-    INSTALL, NOW, PUBLISHER_KEY_ID, admit as admit_a24, ctx as a24_ctx,
-    service, signed as signed_a24,
-)
-from test_a22_custom_bridge import sample
 from test_a7_replay_pipeline import quote
+from test_a22_custom_bridge import sample
+from test_a24_publisher_admission import (
+    INSTALL,
+    NOW,
+    PUBLISHER_KEY_ID,
+    service,
+)
+from test_a24_publisher_admission import (
+    admit as admit_a24,
+)
+from test_a24_publisher_admission import (
+    ctx as a24_ctx,
+)
+from test_a24_publisher_admission import (
+    signed as signed_a24,
+)
+
+from naseri_markets.a24_publisher_admission import PublisherAdmissionRefused
+from naseri_markets.a25_bundle_admission import (
+    OPERATOR_DOMAIN,
+    PUBLISHER_DOMAIN,
+    A25GuardedFixedFixture,
+    BundleAdmissionRefused,
+    InertBundleAdmissionGate,
+    canonical,
+    inspect_inert_bundle,
+)
 
 # These tests spawn the real scoped worker through ``systemd-run`` with
 # passwordless sudo and therefore require an ephemeral GitHub-hosted runner
@@ -303,7 +319,7 @@ def test_a25_sha256_is_not_publisher_signature_or_operator_entitlement(case):
 
 def test_a25_tampered_release_and_bundle_rejected_even_when_metadata_signed(case):
     ctx, gate, package, _ = case
-    true_release = release(ctx)
+    true_release = release(ctx, package=package, a24=case[3])
     forged = json.loads(true_release)
     forged["claim"]["bundle_sequence"] = 999
     with pytest.raises(PublisherAdmissionRefused, match="INVALID_ED25519"):
@@ -395,10 +411,10 @@ def test_a25_executable_package_never_entered_in_temp_directory(case, tmp_path):
 
 @pytest.mark.asyncio
 async def test_a25_real_A23_fixed_paper_relay_requires_both_signatures_and_bundle(case):
-    ctx, gate, _, a24 = case
-    r = release(ctx)
+    ctx, gate, package, a24 = case
+    r = release(ctx, package=package, a24=a24)
     wrapper = A25GuardedFixedFixture(
-        service(ctx, a24), gate=gate, package=pack(ctx[1]),
+        service(ctx, a24), gate=gate, package=package,
         release=r, a24_envelope=a24)
     with pytest.raises(BundleAdmissionRefused, match="UNADMITTED"):
         wrapper.launch(now=NOW)
@@ -419,15 +435,44 @@ async def test_a25_real_A23_fixed_paper_relay_requires_both_signatures_and_bundl
     assert ctx[7].status().state == "STOPPED"
 
 
+def test_a25_same_semantic_zip_repack_cannot_bypass_independent_pin(case):
+    """ZIP timestamp metadata is signed too; never silently repack or re-pin."""
+    ctx, gate, package, a24 = case
+    signed = release(ctx, package=package, a24=a24)
+    stream = io.BytesIO()
+    with (
+        zipfile.ZipFile(io.BytesIO(package)) as original,
+        zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_STORED) as rebuilt,
+    ):
+        for info in original.infolist():
+            header = zipfile.ZipInfo(info.filename, date_time=(2010, 1, 1, 0, 0, 0))
+            header.compress_type = info.compress_type
+            rebuilt.writestr(header, original.read(info.filename))
+    alternative = stream.getvalue()
+    assert alternative != package
+    with (
+        zipfile.ZipFile(io.BytesIO(alternative)) as repacked,
+        zipfile.ZipFile(io.BytesIO(package)) as original,
+    ):
+        assert all(
+            repacked.read(name) == original.read(name)
+            for name in ("manifest.json", "payload.json")
+        )
+    with pytest.raises(BundleAdmissionRefused, match="A25_INDEPENDENT_BUNDLE_PIN_REQUIRED"):
+        gate.admit(**args(case, package=alternative, signed=signed))
+    result = gate.admit(**args(case, signed=signed))
+    assert result.state == "SIGNED_INERT_BUNDLE_ADMITTED_NO_INSTALL"
+
+
 @pytest.mark.asyncio
 async def test_a25_revocation_inflight_fixed_relay_fails_closed_before_journal(case):
     import asyncio
     import threading
-    ctx, gate, _, a24 = case
-    proof = release(ctx)
+    ctx, gate, package, a24 = case
+    proof = release(ctx, package=package, a24=a24)
     gate.admit(**args(case, signed=proof))
     wrapped = A25GuardedFixedFixture(
-        service(ctx, a24), gate=gate, package=pack(ctx[1]),
+        service(ctx, a24), gate=gate, package=package,
         release=proof, a24_envelope=a24)
     wrapped.launch(now=NOW)
     ctx[6].enable_paper(
