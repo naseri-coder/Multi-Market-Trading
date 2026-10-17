@@ -8,6 +8,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from .engine_plan import plan
+from ._release_identity_v1 import PLATFORM_VERSION, exact_platform_version
 
 
 def _installed_version() -> str:
@@ -25,7 +26,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         release = _installed_version()
-        if release != "0.4.0rc1":
+        if not exact_platform_version(release):
             raise ValueError("UNEXPECTED_RELEASE_VERSION")
         if args.engine_plan is not None:
             engines = plan(args.engine_plan)
