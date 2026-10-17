@@ -64,7 +64,7 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 def _assert_nonproduction() -> None:
-    if os.environ.get("MMT_NONPRODUCTION") != "1" or os.environ.get("MMT_PRODUCTION") == "1":
+    if os.environ.get("MMT_NONPRODUCTION") != "1" or "MMT_PRODUCTION" in os.environ:
         raise Stage17Refused("ST17_NONPRODUCTION_ONLY")
 
 
