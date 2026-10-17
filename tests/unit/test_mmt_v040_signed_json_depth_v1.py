@@ -48,13 +48,13 @@ def test_r37_decoder_recursion_normalized_without_propagation(monkeypatch) -> No
 
     monkeypatch.setattr(r37.json, "loads", nested_failure)
     with pytest.raises(r37.R37Refused, match="R37_INVALID_MANIFEST_JSON"):
-        r37._manifest(b"{}\\n")
+        r37._manifest(b"{}\n")
 
 
 def test_r38_decoder_recursion_normalized_without_propagation(
     tmp_path: Path, monkeypatch,
 ) -> None:
-    raw = b'{"active_keys":[],"min_source_date_epoch":1700000000,"revoked_keys":[],"revision":1,"schema":1}\\n'
+    raw = b'{"active_keys":[],"min_source_date_epoch":1700000000,"revoked_keys":[],"revision":1,"schema":1}\n'
     path = tmp_path / "policy.json"
     path.write_bytes(raw)
     def nested_failure(*_args, **_kwargs):
@@ -72,7 +72,7 @@ def test_r37_encoder_recursion_normalized(monkeypatch) -> None:
         b'"source_date_epoch":1700000000,"version":"0.4.0rc1",'
         b'"wheel_filename":"multi_market_trading-0.4.0rc1-py3-none-any.whl",'
         b'"wheel_sha256":"'
-        + b"0" * 64 + b'","wheel_size":512}\\n'
+        + b"0" * 64 + b'","wheel_size":512}\n'
     )
     def nested_failure(*_args, **_kwargs):
         raise RecursionError("artificial JSON encoder depth")
@@ -83,7 +83,7 @@ def test_r37_encoder_recursion_normalized(monkeypatch) -> None:
 
 
 def test_r38_encoder_recursion_normalized(tmp_path: Path, monkeypatch) -> None:
-    raw = b'{"active_keys":[],"min_source_date_epoch":1700000000,"revoked_keys":[],"revision":1,"schema":1}\\n'
+    raw = b'{"active_keys":[],"min_source_date_epoch":1700000000,"revoked_keys":[],"revision":1,"schema":1}\n'
     path = tmp_path / "policy.json"
     path.write_bytes(raw)
     def nested_failure(*_args, **_kwargs):
