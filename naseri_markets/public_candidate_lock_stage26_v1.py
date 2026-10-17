@@ -64,7 +64,7 @@ def seal_public_candidate(
     but not assumed to share one atomic revocation or trust database.
     """
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise PublicCandidateLockRefused(
             "EXPLICIT_NONPRODUCTION_PUBLIC_CANDIDATE_LOCK_REQUIRED")
     if (type(stage22) is not DurableIsolatedCoreGate
