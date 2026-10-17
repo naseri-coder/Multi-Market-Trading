@@ -8,7 +8,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import osfrom pathlib import Path
+import os
+from pathlib import Path
 
 from scripts import mmt_r35_offline_preview_install_v1 as r35
 from scripts import mmt_r37_offline_signed_manifest_verify_v1 as r37
