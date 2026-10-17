@@ -250,8 +250,13 @@ def evaluate(*, checkout: Path, ack: bool, source_check_only: bool = False) -> t
         raise AcceptanceBlocked("R42V_DIRTY_CHECKOUT")
     files = list(PINS)
     ruff_version = _command(["ruff", "--version"], checkout, env).strip()
-    _command(["ruff", "check", "--isolated", "--no-cache", "--select", "E4,E7,E9,F", *files,
-              "scripts/mmt_r42v_pinned_runtime_acceptance_v1.py"],
+    # The immutable, SHA-pinned 59-test historical file contains one unused
+    # Path import. Scope this benign F401 exception to that exact pinned file;
+    # all other selected lint codes and source-tamper denials remain active.
+    _command(["ruff", "check", "--isolated", "--no-cache", "--select", "E4,E7,E9,F",
+              "--per-file-ignores",
+              "tests/unit/test_mmt_r42_offline_market_account_evidence_v1.py:F401",
+              *files, "scripts/mmt_r42v_pinned_runtime_acceptance_v1.py"],
              checkout, env)
     output = _command([sys.executable, "-X", "dev", "-W", "error", "-m", "pytest",
                        "-q", "-c", "/dev/null", "-p", "no:cacheprovider", "--noconftest",
