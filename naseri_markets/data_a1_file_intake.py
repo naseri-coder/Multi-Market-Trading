@@ -86,7 +86,7 @@ def inspect_historical_for_paper(
     Output is returned only after complete replay / quality validation.
     """
     if (os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"
+            or "MMT_PRODUCTION" in os.environ
             or operator_ack is not True):
         raise HistoricalDataRefused("DATA_A1_EXPLICIT_OFFLINE_PAPER_ACK_REQUIRED")
     if not isinstance(path, Path) or not path.is_absolute():
