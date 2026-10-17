@@ -1,0 +1,71 @@
+name: Stage 3H - isolated demo-only wheel and network-denied PAPER acceptance
+
+on:
+  push:
+    branches:
+      - ci/stage3h-offline-demo-wheel-20261017
+    paths:
+      - .github/workflows/stage3h-isolated-demo-wheel.yml
+      - scripts/ci_stage3h_isolated_demo_wheel.py
+      - docs/MMT_V0_4_0_STAGE3H_OFFLINE_DEMO_WHEEL_EXPERIMENT.md
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-offline-demo:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      MMT_NONPRODUCTION: "1"
+      APP_ENV: test
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+      TELEGRAM_RUNTIME_ENABLED: "false"
+      BROOKS_RUNTIME_ENABLED: "false"
+      PAPER_RUNTIME_ENABLED: "false"
+      MMT_LIVE_ENABLED: "false"
+      PIP_NO_INPUT: "1"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+    steps:
+      - name: Checkout ONLY the experimental push branch and require pristine parent
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ci/stage3h-offline-demo-wheel-20261017
+          persist-credentials: false
+          fetch-depth: 2
+
+      - name: Supported Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Install isolated and pinned Wheel builders (no production runtime)
+        run: |
+          set -Eeuo pipefail
+          test -z "${MMT_PRODUCTION+x}"
+          python -m pip install "setuptools==80.9.0" "wheel==0.45.1" "ruff==0.16.9"
+          python - <<'PY'
+          import importlib.metadata as md
+          assert md.version("setuptools") == "80.9.0"
+          assert md.version("wheel") == "0.45.1"
+          assert md.version("ruff") == "0.16.9"
+          print("STAGE3H_PINNED_BUILDER_PASS")
+          PY
+
+      - name: Verify code style and syntax of experimental build auditor
+        run: |
+          set -Eeuo pipefail
+          python -m ruff check --no-cache scripts/ci_stage3h_isolated_demo_wheel.py
+          python -c "import ast,pathlib; ast.parse(pathlib.Path('scripts/ci_stage3h_isolated_demo_wheel.py').read_text())"
+
+      - name: Build TWICE from real 19-module source and run no-network installed demo
+        run: |
+          set -Eeuo pipefail
+          python -m scripts.ci_stage3h_isolated_demo_wheel
+
+      - name: Hard deny any automatic release or signing inference
+        if: always()
+        run: |
+          echo "STAGE3H_EXPERIMENT_ONLY__NO_MAIN_MERGE_NO_V0_4_0_TAG_NO_PRODUCTION"
