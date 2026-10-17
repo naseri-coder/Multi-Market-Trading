@@ -34,7 +34,7 @@ def _policy(path: Path, expected_hash: str, key_fingerprint: str) -> dict:
         raise R38Refused("R38_POLICY_HASH_MISMATCH")
     try:
         data = json.loads(raw.decode("utf-8"), object_pairs_hook=r37._unique_pairs)
-    except (UnicodeError, ValueError, TypeError) as exc:
+    except (UnicodeError, ValueError, TypeError, RecursionError) as exc:
         if isinstance(exc, r37.R37Refused):
             raise R38Refused("R38_POLICY_DUPLICATE_KEY") from exc
         raise R38Refused("R38_POLICY_JSON_INVALID") from exc
