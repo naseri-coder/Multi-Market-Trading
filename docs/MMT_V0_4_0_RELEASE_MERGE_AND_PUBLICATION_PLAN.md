@@ -157,6 +157,8 @@ On the **exact candidate commit**, in an isolated approved nonroot Linux environ
 - GitHub Actions quota is constrained; test in independently approved disposable environments rather than relying on failed/skipped checks or consuming costly Actions speculatively.
 - **No permanent server, Production migration, token handling, Telegram delivery or LIVE orders as part of this roadmap.**
 
+**Stage 2X latest verified GitHub CI (2026-10-17, exact code SHA `d4713b58977cbb0dd47eff55a9447c566ff0d5f5`):** [Evidence and scoped release denial](docs/MMT_V0_4_0_STAGE2X_76_OF_76_GITHUB_CI_GREEN_READINESS.md); [machine evidence](docs/evidence/MMT_V0_4_0_STAGE2X_76_OF_76_GITHUB_CI_GREEN_READINESS.json). **76/76 Github Actions workflows are SUCCESS.** Two independent real PostgreSQL 16 full-corpus jobs each show **7,682 passed / 0 failed / 6 skipped**, and both migrate two disposable databases to revision `20261013_0023`. Genuine installed PAPER restart, two-process Brooks→risk→PAPER and **P09 disposable SQLite backup/restore/rollback/soak** jobs are green. **PostgreSQL/Alembic downgrade**, approved publisher signature, two opt-in market-data smoke cases, and final protected-branch acceptance remain outstanding. Keep the PR Draft and block merge, stable tag and deployment.
+
 ## 5. Final decision matrix
 
 | Gate | Current |
@@ -165,9 +167,9 @@ On the **exact candidate commit**, in an isolated approved nonroot Linux environ
 | Branch lineage consolidated | **DONE** |
 | Main merged | **NO** |
 | Separate divergent heads accepted | **PENDING per-branch** |
-| CPython 3.12 + Ruff on combined head | **OFFLINE CHECKED: Python 3.12 full suite 7,584 pass / 76 skip; Ruff no new findings, exact code commit f8d3883c** |
-| Full integration, installer and crash/restart on combined head | **PARTIAL: offline Wheel/install/9 CLI; 1 real scratch PostgreSQL read-only connection PASS; 37 DB schema cases, real restart and rollback NOT RUN** |
-| Signed provenance, security and rollback | **NOT VERIFIED** |
+| CPython 3.12 + Ruff on combined head | **GITHUB CI 76/76 PASS on d4713b58; two independent PostgreSQL full-corpus jobs 7,682 pass / 0 fail / 6 skip each; Public Test Corpus Ruff PASS** |
+| Full integration, installer and crash/restart on combined head | **POSTGRESQL forward migrations + full corpus PASS on two independent GH runners; installed PAPER two-process restart and SQLite backup/restore/rollback/32-soak PASS; ALEMBIC schema downgrade NOT VERIFIED** |
+| Signed provenance, security and rollback | **PARTIAL: synthetic custody/PAPER rollback verified; trusted publisher signature and PostgreSQL schema downgrade NOT VERIFIED** |
 | Official Git tag v0.4.0 | **NOT CREATED** |
 | LIVE and Production | **DENIED / OUT OF SCOPE** |
 
