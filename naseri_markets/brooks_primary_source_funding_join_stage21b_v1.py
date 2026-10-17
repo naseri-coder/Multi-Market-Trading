@@ -139,7 +139,7 @@ def run_stage21b_source_joined_brooks_research(
     future candles are added solely to a conservative execution model.
     """
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise Stage21SourceRefused("ST21B_NONPRODUCTION_ACK_REQUIRED")
     if (type(capture) is not Stage17Capture
             or type(window_start_bar_index) is not int
