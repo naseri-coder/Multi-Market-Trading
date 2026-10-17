@@ -83,7 +83,7 @@ def _scope(
     operator_ack: bool,
 ) -> str:
     if (os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"
+            or "MMT_PRODUCTION" in os.environ
             or operator_ack is not True):
         raise MTArtifactRefused("MT_A1_EXPLICIT_NONPRODUCTION_ACK_REQUIRED")
     if (type(platform) is not MetaTraderPlatform or type(market) is not Market
