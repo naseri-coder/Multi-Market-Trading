@@ -134,7 +134,7 @@ def example(tmp_path, monkeypatch):
         "wheel_sha256": "", "wheel_size": 0, "wheel_record_sha256": "",
     }
 
-    def sign(*, mutate=None, omit=None):
+    def sign(*, mutate=None, omit=None, domain=stable.DOMAIN):
         sources = dict(modules)
         if omit is not None:
             del sources[omit]
@@ -147,7 +147,7 @@ def example(tmp_path, monkeypatch):
                         wheel_record_sha256=hashlib.sha256(rec).hexdigest())
         msg = canonical(manifest)
         (safe / "manifest.json").write_bytes(msg)
-        (safe / "sig.bin").write_bytes(key.sign(stable.DOMAIN + msg))
+        (safe / "sig.bin").write_bytes(key.sign(domain + msg))
         overlay_metadata, _ = staging._metadata(root)
         return {
             "repository": root, "manifest": safe / "manifest.json",
@@ -229,10 +229,17 @@ def test_wrong_external_tree_denied(example):
         custody.audit(**params)
 
 
-def test_old_rc_domain_signature_denied(example):
+def test_forged_signature_denied(example):
     _, _, sign, safe = example
     params = sign()
     (safe / "sig.bin").write_bytes(b"0" * 64)
+    with pytest.raises(stable.StableArtifactRefused, match="V040_SIGNATURE_VERIFICATION_FAILED"):
+        custody.audit(**params)
+
+
+def test_historical_rc_domain_signature_cannot_validate_stable_overlay(example):
+    _, _, sign, _ = example
+    params = sign(domain=b"MMT-R37-OFFLINE-PREVIEW-MANIFEST-V1\n")
     with pytest.raises(stable.StableArtifactRefused, match="V040_SIGNATURE_VERIFICATION_FAILED"):
         custody.audit(**params)
 
