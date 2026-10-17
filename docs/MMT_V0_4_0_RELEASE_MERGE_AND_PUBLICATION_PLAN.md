@@ -57,6 +57,8 @@
 
 **Stage 2D signed stable preflight (2026-10-17):** [`MMT_V0_4_0_STAGE2D_STABLE_ARTIFACT_SIGNATURE_PREFLIGHT.md`](MMT_V0_4_0_STAGE2D_STABLE_ARTIFACT_SIGNATURE_PREFLIGHT.md) records the newly committed, separately domain-separated and fail-closed `v0.4.0` *read-only stable Wheel signature/RECORD checker*. Its exact GitHub source and 32-case synthetic unit suite were byte-matched to an actual `32 passed` Python3.13.5 test run. This is **not** Python3.12, full-project installed-wheel, independent source-custody or authorized signer acceptance. RC metadata, protected `main` and stable-tag blockers remain unchanged.
 
+**Stage 2E real-wheel metadata defect (2026-10-17):** [`MMT_V0_4_0_STAGE2E_REAL_WHEEL_METADATA_INTEROPERABILITY.md`](MMT_V0_4_0_STAGE2E_REAL_WHEEL_METADATA_INTEROPERABILITY.md) records the `setuptools`-generated Python-range order mismatch, a tested exact-equivalence fix and **38/38 real CPython3.13.5 unit tests** on exact GitHub-blob-matched files. A *partial synthetic module wheel* made by real `pip wheel` passed standalone ZIP/RECORD validation and test-only Ed25519 verification; forged signature was rejected. The genuine project Wheel, Python3.12 installation, full-suite checks, source provenance and signer key approval are **still outstanding**. Do not merge or tag.
+
 On the **exact candidate commit**, in an isolated approved nonroot Linux environment with real CPython 3.12 and Ruff:
 
 - Full static/lint/type/import checks, test discovery and full unit + integration test suite, including PostgreSQL when required; record total passes/skips/fails and investigate critical skips.
