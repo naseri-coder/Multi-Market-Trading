@@ -1,0 +1,68 @@
+name: Stage 2Z - verified real-source test signer rehearsal
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publisher-custody-rehearsal:
+    name: Actual 226-source dual wheel and synthetic Ed25519 custody (NOT approval)
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      APP_ENV: test
+      MMT_NONPRODUCTION: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      PIP_NO_INPUT: "1"
+      TELEGRAM_RUNTIME_ENABLED: "false"
+      BROOKS_RUNTIME_ENABLED: "false"
+      PAPER_RUNTIME_ENABLED: "false"
+
+    steps:
+      - name: Check out immutable PR source without credential persistence
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Install actual supported Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install pinned offline-wheel and cryptographic verification tools
+        run: |
+          set -Eeuo pipefail
+          python -m pip install "setuptools==80.9.0" "wheel==0.45.1" "cryptography==46.0.3"
+          python - <<'PY'
+          import importlib.metadata as m
+          for name, value in {"setuptools": "80.9.0", "wheel": "0.45.1",
+                              "cryptography": "46.0.3"}.items():
+              assert m.version(name) == value
+          print("STAGE2Z_PINNED_TOOLS_PASS")
+          PY
+
+      - name: Dual-build exact real source and verify temporary-key custody
+        env:
+          EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -Eeuo pipefail
+          test -z "${MMT_PRODUCTION+x}"
+          python -m scripts.ci_stage2z_publisher_custody --repository "$GITHUB_WORKSPACE" --expected-source-commit "$EXPECTED_COMMIT"
+
+      - name: Assert no signer approval or publishing is inferred
+        run: |
+          set -Eeuo pipefail
+          test ! -e .github/APPROVED_PUBLISHER_PRIVATE_KEY
+          test ! -e publisher-private-key.pem
+          echo "STAGE2Z_PUBLISHER_APPROVAL_NOT_ESTABLISHED_RELEASE_BLOCKED"
