@@ -84,7 +84,8 @@ def main() -> int:
     args = p.parse_args()
     try:
         result = prepare(args.destination)
-    except (OSError, ValueError, SyntaxError) as exc:
+    except (OSError, ValueError, SyntaxError, KeyError, TypeError,
+            tomllib.TOMLDecodeError) as exc:
         print(f"A6_STAGE_REFUSED:{type(exc).__name__}", file=sys.stderr)
         return 2
     print(json.dumps(result, sort_keys=True))
