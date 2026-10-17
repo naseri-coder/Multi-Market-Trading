@@ -97,6 +97,8 @@
 
 **Do not interpret as permission to merge/release.** Of 76 skipped cases: **38** isolated PostgreSQL, **32** ephemeral GitHub runner, **4** CERT-A5 opt-in, **2** public-data smoke. Publisher signing, migration/rollback and independent runtime readiness are unverified. Next Stage 2X must close these blocked gates before a protected-branch review, merge or tag. Machine-readable evidence: [`STAGE2W_FINAL_CANDIDATE_EVIDENCE.json`](evidence/MMT_V0_4_0_STAGE2W_FINAL_CANDIDATE_EVIDENCE.json).
 
+**Stage 2X — PostgreSQL safety-limited execution (2026-10-17):** [Stage2X partial report](MMT_V0_4_0_STAGE2X_PARTIAL_ACCEPTANCE.md) records **1/1** successful genuine PostgreSQL 16 scratch-database read-only connectivity/health tests and static proof of one head across **23** Alembic revisions. Actual migration was **blocked by the host's safety control** and was not bypassed; the disposable DB and private network were removed. **42/42** offline recovery and **135/135** simulated signing/custody tests passed (overlapping Stage2W cases, not independent release-signer proof). **75 prior skips remain:** 37 schema-dependent PostgreSQL, 32 real ephemeral GitHub-runner, 4 CERT-A5 explicit nonproduction-only opt-in, 2 public market-data smoke. Telmivo-associated container tests are **not independent-host certification**. Stage2X remains **OPEN**; PR stays Draft with no publication grant. [Structured Stage2X evidence](evidence/MMT_V0_4_0_STAGE2X_PARTIAL_ACCEPTANCE.json).
+
 On the **exact candidate commit**, in an isolated approved nonroot Linux environment with real CPython 3.12 and Ruff:
 
 - Full static/lint/type/import checks, test discovery and full unit + integration test suite, including PostgreSQL when required; record total passes/skips/fails and investigate critical skips.
@@ -160,7 +162,7 @@ On the **exact candidate commit**, in an isolated approved nonroot Linux environ
 | Main merged | **NO** |
 | Separate divergent heads accepted | **PENDING per-branch** |
 | CPython 3.12 + Ruff on combined head | **OFFLINE CHECKED: Python 3.12 full suite 7,584 pass / 76 skip; Ruff no new findings, exact code commit f8d3883c** |
-| Full integration, installer and crash/restart on combined head | **PARTIAL: offline Wheel/install/9 CLI pass; PostgreSQL integration and real restart/rollback not accepted** |
+| Full integration, installer and crash/restart on combined head | **PARTIAL: offline Wheel/install/9 CLI; 1 real scratch PostgreSQL read-only connection PASS; 37 DB schema cases, real restart and rollback NOT RUN** |
 | Signed provenance, security and rollback | **NOT VERIFIED** |
 | Official Git tag v0.4.0 | **NOT CREATED** |
 | LIVE and Production | **DENIED / OUT OF SCOPE** |

@@ -1,0 +1,75 @@
+{
+  "stage": "MMT-v0.4.0-Stage2X",
+  "date_utc": "2026-10-17",
+  "verdict": "PARTIAL__NOT_RELEASE_READY",
+  "repository": "naseri-coder/Multi-Market-Trading",
+  "pr": 352,
+  "code_commit": "f8d3883c86b17b707d97fdd07253c645f4eb9886",
+  "baseline_main": "51e0e4de04e184fe28b59b9db4b6a70fbd67dfe0",
+  "source_tree_sha1": "511e9346d88280f3be7c80367f8822a8eaa24dd7",
+  "stage2w_full_test_baseline": {
+    "passed": 7584,
+    "failed": 0,
+    "skipped": 76,
+    "ruff_new_findings": 0
+  },
+  "postgresql": {
+    "version": "16.15",
+    "image": "postgres:16-alpine",
+    "deployment": "temporary Docker container on Telmivo-connected host, not independent attested runner",
+    "uid": 70,
+    "network": "internal-only",
+    "host_published_ports": 0,
+    "scratch_storage": "tmpfs",
+    "root_filesystem": "read-only",
+    "database": "mmt2x_only",
+    "role": "mmt2x_only",
+    "schema_tables_at_probe": 0,
+    "verified_database_identity": true,
+    "python312_readonly_health_test": "PASS 1/1, 0.51 seconds",
+    "migration_execution": "BLOCKED_BY_SAFETY_CONTROL",
+    "rollback": "NOT_RUN",
+    "remaining_schema_tests": 37,
+    "production_data_mounted": false,
+    "production_database_contacted": false,
+    "temporary_container_deleted": true,
+    "temporary_docker_network_deleted": true
+  },
+  "alembic_readonly": {
+    "revisions": 23,
+    "roots": [
+      "20260901_0001"
+    ],
+    "heads": [
+      "20261013_0023"
+    ],
+    "upgrade_and_downgrade_functions_present": true,
+    "migrations_executed": false
+  },
+  "additional_targeted_tests": {
+    "offline_recovery_passed": 42,
+    "synthetic_signer_supply_chain_passed": 135,
+    "failed": 0,
+    "note": "These test cases overlap Stage2W full suite. Do not add to distinct 7584 passed."
+  },
+  "remaining_prior_skips": {
+    "schema_postgres": 37,
+    "ephemeral_github_runner": 32,
+    "cert_a5_opt_in": 4,
+    "public_market_data_smoke": 2,
+    "total": 75
+  },
+  "blocked": {
+    "real_schema_migrations": true,
+    "postgreSQL_rollback": true,
+    "independent_runner": true,
+    "actual_ephemeral_github_actions": true,
+    "cert_a5_on_nonproduction_machine": true,
+    "real_trusted_publisher_signature": true,
+    "real_installed_paper_restart": true
+  },
+  "official_release_authorized": false,
+  "production_mutation_authorized": false,
+  "pr_must_stay_draft": true,
+  "main_merge_authorized": false
+}
