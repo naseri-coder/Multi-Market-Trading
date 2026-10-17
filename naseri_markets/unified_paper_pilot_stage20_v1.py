@@ -61,7 +61,7 @@ def run_paper_pilot(folder: Path, *, first_symbol: str = "ABCUSD",
                     dry_run_signals: bool = True) -> dict:
     """New private state only; rejected runs never auto-retry ambiguous effects."""
     if (os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise PilotRefused("NONPRODUCTION_REQUIRED")
     symbols = (first_symbol, second_symbol)
     periods = (first_timeframe, second_timeframe)
