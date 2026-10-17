@@ -1,0 +1,170 @@
+name: Official v0.4.0 Wheel installer with signed GitHub provenance
+
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/v040-publish.yml', 'scripts/ci_v040_installer_rehearsal.py', 'release_assets/v0.4.0/**', 'docs/MMT_V040_PUBLIC_INSTALLER_RELEASE.md']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/v040-publish.yml', 'scripts/ci_v040_installer_rehearsal.py', 'release_assets/v0.4.0/**', 'docs/MMT_V040_PUBLIC_INSTALLER_RELEASE.md']
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+  artifact-metadata: write
+
+concurrency:
+  group: official-v040-release
+  cancel-in-progress: false
+
+jobs:
+  build-attest-and-publish:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      APP_ENV: test
+      MMT_NONPRODUCTION: "1"
+      MMT_LIVE_ENABLED: "false"
+      TELEGRAM_RUNTIME_ENABLED: "false"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+      PIP_NO_INPUT: "1"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+    steps:
+      - name: Checkout reviewed branch or protected main, never retain credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || 'main' }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout immutable 226-source candidate into independent clean directory
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 7bbb3541fb6d63f960bee9f197fe026ed6d04608
+          path: canonical
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Supported pinned CPython3.12 builders
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Check pinned builders, static source syntax and shell syntax
+        run: |
+          set -Eeuo pipefail
+          test -z "${MMT_PRODUCTION+x}"
+          python -m pip install "setuptools==80.9.0" "wheel==0.45.1" "cryptography==46.0.3" "ruff==0.16.9"
+          python -m ruff check --select E4,F --no-cache scripts/ci_v040_installer_rehearsal.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          ast.parse(Path("scripts/ci_v040_installer_rehearsal.py").read_bytes())
+          PY
+          bash -n release_assets/v0.4.0/install.sh
+
+      - name: Immutable Git source and 226-module twice-built Wheel with real no-network installer
+        run: |
+          set -Eeuo pipefail
+          python -m scripts.ci_v040_installer_rehearsal \
+            --canonical "$GITHUB_WORKSPACE/canonical" --branch "$GITHUB_WORKSPACE"
+
+      - name: Require previously independently reproduced exact full Wheel checksum
+        run: |
+          set -Eeuo pipefail
+          B="$RUNNER_TEMP/v040-offline-installer-review-only"
+          printf '%s\n' "e752b9e4c08f159b5e4a162c5c6de35eb1631bb1bea8f012f05c93366433a2f8  multi_market_trading-0.4.0-py3-none-any.whl" \
+            | (cd "$B" && sha256sum --check --status)
+          python - <<'PY'
+          import json, os, pathlib
+          p = pathlib.Path(os.environ["RUNNER_TEMP"]) / "v040-offline-installer-review-only"
+          d = json.loads((p / "RELEASE_MANIFEST.json").read_text())
+          assert d["source_commit"] == "7bbb3541fb6d63f960bee9f197fe026ed6d04608"
+          assert d["version"] == "0.4.0" and d["module_count"] == 226
+          assert d["wheel_sha256"] == "e752b9e4c08f159b5e4a162c5c6de35eb1631bb1bea8f012f05c93366433a2f8"
+          print("V040_RELEASE_FIXED_WHEEL_PROVENANCE_ACCEPTANCE_PASS")
+          PY
+
+      - name: Preserve test-only bundle during PR; never publish from PR branch
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: V040-REVIEWED-FULL-INSTALLER-PR-TEST-ONLY
+          path: ${{ runner.temp }}/v040-offline-installer-review-only/
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Verify protected main and no previously existing official tag
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git branch --show-current)" = main
+          git merge-base --is-ancestor 7bbb3541fb6d63f960bee9f197fe026ed6d04608 "$GITHUB_SHA"
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v0.4.0" >/dev/null 2>&1; then
+            echo "V040_RELEASE_REF_ALREADY_EXISTS_STOP"; exit 2
+          fi
+          if gh release view v0.4.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "V040_RELEASE_ALREADY_EXISTS_STOP"; exit 2
+          fi
+          echo V040_PROTECTED_MAIN_TAG_ABSENT_PASS
+
+      - name: Prepare exact official asset set and compute all SHA256
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          set -Eeuo pipefail
+          B="$RUNNER_TEMP/v040-offline-installer-review-only"
+          rm "$B/NOT_A_RELEASE.txt" "$B/REHEARSAL_ONLY.json"
+          cp release_assets/v0.4.0/RELEASE_NOTES.md "$B/RELEASE_NOTES.md"
+          (cd "$B" && sha256sum \
+            multi_market_trading-0.4.0-py3-none-any.whl \
+            install.sh RELEASE_MANIFEST.json RELEASE_NOTES.md SHA256SUMS > ASSET_SHA256SUMS)
+          test "$(find "$B" -maxdepth 1 -type f | wc -l)" -eq 6
+          (cd "$B" && sha256sum -c ASSET_SHA256SUMS)
+          echo V040_REVIEWED_FINAL_ASSET_SET_PASS
+
+      - name: Sign and record real GitHub OIDC Sigstore build provenance
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        id: attest
+        uses: actions/attest@v4
+        with:
+          subject-path: ${{ runner.temp }}/v040-offline-installer-review-only/*
+
+      - name: Authenticate published Wheel using GitHub attestation verification
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          gh attestation verify "$RUNNER_TEMP/v040-offline-installer-review-only/multi_market_trading-0.4.0-py3-none-any.whl" \
+            --repo "$GITHUB_REPOSITORY" > "$RUNNER_TEMP/v040-attestation-verified.json"
+          test -s "$RUNNER_TEMP/v040-attestation-verified.json"
+          echo V040_GITHUB_SIGNED_BUILD_PROVENANCE_VERIFIED_PASS
+
+      - name: Tag protected main and publish official v0.4.0 assets only after every gate passes
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          B="$RUNNER_TEMP/v040-offline-installer-review-only"
+          TAGOBJECT="$(gh api -X POST "repos/$GITHUB_REPOSITORY/git/tags" \
+            -f tag=v0.4.0 -f message="v0.4.0 offline platform; GitHub OIDC attested Wheel and installer" \
+            -f object="$GITHUB_SHA" -f type=commit --jq .sha)"
+          test -n "$TAGOBJECT"
+          gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" \
+            -f ref=refs/tags/v0.4.0 -f sha="$TAGOBJECT" >/dev/null
+          gh release create v0.4.0 \
+            "$B/multi_market_trading-0.4.0-py3-none-any.whl" \
+            "$B/install.sh" "$B/SHA256SUMS" "$B/RELEASE_MANIFEST.json" "$B/ASSET_SHA256SUMS" \
+            --repo "$GITHUB_REPOSITORY" --verify-tag --latest \
+            --title "Multi-Market-Trading v0.4.0" --notes-file "$B/RELEASE_NOTES.md"
+          gh release view v0.4.0 --repo "$GITHUB_REPOSITORY" \
+            --json isDraft,isPrerelease,tagName,url
+          echo V040_OFFICIAL_GITHUB_RELEASE_WITH_INSTALLER_CREATED_PASS

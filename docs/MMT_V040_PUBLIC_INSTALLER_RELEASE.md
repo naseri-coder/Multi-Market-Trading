@@ -1,0 +1,9 @@
+# Official v0.4.0 release: installed full platform and verifiable GitHub attestation
+
+Owner approved official `v0.4.0` with a real installer. PR #352 was merged into protected main; further feature work is deferred to `developer`. Do not enable LIVE or assert genuine exchange data access.
+
+A review-only PR workflow performs the same real-source, 226 module, nine console-script double-Wheel reproducibility/complete RECORD and SHA-256 admission, stable `0.4.0rc1` → `0.4.0` strict metadata overlay, nonroot no-network Python3.12 `install.sh` end-to-end validation and negative production/tamper tests. Its PR run may NOT create tags or releases.
+
+After review and merge to protected main, the main-only publication step locks the actual source-Wheel SHA to **e752b9e4c08f159b5e4a162c5c6de35eb1631bb1bea8f012f05c93366433a2f8**, requires absent old tag/release, attests Wheel, installer and manifests via GitHub OIDC/Sigstore using `actions/attest@v4`, verifies the actual Wheel attestation, creates annotated `v0.4.0` tag on the protected main commit, and publishes actual Wheel plus installer and manifest in a GitHub Release. Failed attestation or installer refuses tag creation. The Git tag is *annotated* but not itself cryptographically signed; GitHub's signed build provenance authenticates the binaries. This is an explicit lighter alternative to the earlier draft proposal for two individually managed Ed25519 signing identities, **not a claim that two human keys exist or passed admission**.
+
+The stable package metadata overlay is intentional and bound to the original audited candidate commit and 226-module public source snapshot; the tracked candidate preview metadata stays at `0.4.0rc1` solely for immutable reproducible custody. No production migration, market-data-provider bypass, Telegram sends, live orders, provider tokens, license server, or Termux compatibility claims.
