@@ -1,0 +1,76 @@
+name: MMT CERT-A19 pinned undici archive custody (NONPRODUCTION ONLY)
+
+on:
+  pull_request:
+    paths:
+      - "scripts/ci_cert_a19_undici_byte_custody.py"
+      - "tests/unit/test_cert_a19_undici_byte_custody.py"
+      - ".github/workflows/cert-a19-undici-byte-custody.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-debian-undici-archive-only:
+    # The only approved branch is same-repository CERT-A19. No forked PR code.
+    if: (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/cert-a19-independent-security-research') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'cert-a19-independent-security-research')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      GITHUB_ACTIONS: "true"
+      RUNNER_ENVIRONMENT: github-hosted
+      MMT_NONPRODUCTION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run only nine offline negative/positive source-custody tests
+        run: |
+          set -Eeuo pipefail
+          python3 -m unittest discover -s tests/unit \
+            -p test_cert_a19_undici_byte_custody.py -v
+      - name: Download exactly two Debian source/binary identity files
+        run: |
+          set -Eeuo pipefail
+          work="$RUNNER_TEMP/cert-a19-undici"
+          mkdir -m 0700 -p "$work"
+          prefix='https://deb.debian.org/debian/pool/main/n/node-undici'
+          curl --fail --location --silent --show-error --retry 1 \
+            --connect-timeout 15 --max-time 75 \
+            "$prefix/node-undici_5.15.0+dfsg1+~cs20.10.9.3-1+deb12u4_all.deb" \
+            --output "$work/node-undici.deb"
+          curl --fail --location --silent --show-error --retry 1 \
+            --connect-timeout 15 --max-time 75 \
+            "$prefix/node-undici_5.15.0+dfsg1+~cs20.10.9.3-1+deb12u4.dsc" \
+            --output "$work/node-undici.dsc"
+          printf '%s  %s\n' \
+            78ec8918d63e365bbdec6edd35bebec9e20cc931f084f24e8673badf191d100c \
+            "$work/node-undici.deb" | sha256sum --check --status
+          printf '%s  %s\n' \
+            6befcb981dea58f2fdb9bc0d78624d829090105ab955d48e617a02ead37fd44c \
+            "$work/node-undici.dsc" | sha256sum --check --status
+          test "$(dpkg-deb --field "$work/node-undici.deb" Package)" = node-undici
+          test "$(dpkg-deb --field "$work/node-undici.deb" Version)" = \
+            '5.15.0+dfsg1+~cs20.10.9.3-1+deb12u4'
+          test "$(dpkg-deb --field "$work/node-undici.deb" Architecture)" = all
+          mkdir -m 0700 "$work/payload"
+          dpkg-deb --extract "$work/node-undici.deb" "$work/payload"
+          echo "CERT_A19_PINNED_ARCHIVE_ONLY__NO_PACKAGE_INSTALL"
+      - name: Audit extracted package bytes without starting Worker or Node
+        run: |
+          set -Eeuo pipefail
+          python3 -m scripts.ci_cert_a19_undici_byte_custody \
+            --root "$GITHUB_WORKSPACE" \
+            --deb "$RUNNER_TEMP/cert-a19-undici/node-undici.deb" \
+            --dsc "$RUNNER_TEMP/cert-a19-undici/node-undici.dsc" \
+            --payload "$RUNNER_TEMP/cert-a19-undici/payload" \
+            --output "$RUNNER_TEMP/cert-a19-undici-custody.json"
+          echo "CERT_A19_NO_A18_IMAGE_PRESENT_NO_CVE_CLOSURE"
+      - name: Upload small expiring research-only evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cert-a19-undici-pinned-deb-byte-evidence-only
+          path: ${{ runner.temp }}/cert-a19-undici-custody.json
+          if-no-files-found: error
+          retention-days: 2
