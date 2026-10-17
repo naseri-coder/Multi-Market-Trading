@@ -40,7 +40,7 @@ class InstalledPilotRefused(ValueError):
 
 def _gate(*, ack: bool, installed: bool = True) -> None:
     if (ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise InstalledPilotRefused("EXPLICIT_NONPRODUCTION_ACK_REQUIRED")
     if installed:
         try:
