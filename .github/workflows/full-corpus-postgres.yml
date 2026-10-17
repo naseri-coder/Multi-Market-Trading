@@ -84,6 +84,16 @@ jobs:
           set -Eeuo pipefail
           cd "${CH6_ISOLATED_SOURCE}"
           python -m pip install -e ".[dev]"
+          # The corpus calls pip wheel --no-index --no-build-isolation.
+          # Provision the exact offline build backend in THIS Python environment.
+          python -m pip install --disable-pip-version-check --no-deps "setuptools==80.9.0" "wheel==0.45.1"
+          python - <<'PY'
+          import importlib.metadata as metadata
+          from setuptools import build_meta  # noqa: F401
+          assert metadata.version("setuptools") == "80.9.0"
+          assert metadata.version("wheel") == "0.45.1"
+          print("PINNED_OFFLINE_BUILD_BACKEND_READY")
+          PY
           cp -a production_source/app ./app
           cp -a production_source/migrations ./migrations
           cp production_source/alembic.ini ./alembic.ini

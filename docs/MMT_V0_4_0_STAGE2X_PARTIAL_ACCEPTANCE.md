@@ -1,3 +1,5 @@
+> **2026-10-17 reconciliation:** This initial local-host report predates discovery of already-completed genuine GitHub-hosted PostgreSQL/CERT-A5 runs on the same immutable code SHA. See [independent CI audit and backend repair](docs/MMT_V0_4_0_STAGE2X_GITHUB_PG_CI_BACKEND_REPAIR.md) for those stronger results and the remaining failing CI test. Do not interpret the 37 local skipped schema tests as never having run anywhere.
+
 # MMT v0.4.0 — Stage 2X: read-only PostgreSQL admission and blocked-gate inventory
 
 **Date:** 2026-10-17  

@@ -1,0 +1,81 @@
+{
+  "report_date": "2026-10-17",
+  "phase": "Stage2X-IndependentRunner-Observed-and-BuildBackend-Repair",
+  "tested_source_sha": "f8d3883c86b17b707d97fdd07253c645f4eb9886",
+  "source_tree_sha1": "511e9346d88280f3be7c80367f8822a8eaa24dd7",
+  "previous_pr_head": "fc2e3814b28d891ea129c8c5c98992062f1c652f",
+  "origin": "authenticated GitHub Actions workflow jobs and decoded job logs; not newly run in this step",
+  "independent_ci": [
+    {
+      "workflow": "Full Corpus - Disposable PostgreSQL",
+      "run_id": 39046668509,
+      "job_id": 117436658576,
+      "migrations": {
+        "postgresql16_scratch_databases": 2,
+        "alembic_head": "20261013_0023",
+        "result": "PASS"
+      },
+      "full_suite": {
+        "passed": 7653,
+        "failed": 1,
+        "skipped": 6,
+        "result": "FAIL",
+        "failure": "test_mmt_v040_dual_real_setuptools_build_rehearsal_v1.py: pip BackendUnavailable Cannot import setuptools.build_meta"
+      }
+    },
+    {
+      "workflow": "Native PostgreSQL 16 - no Docker Hub",
+      "run_id": 39046668538,
+      "job_id": 117436658434,
+      "migrations": {
+        "postgresql16_scratch_databases": 2,
+        "alembic_head": "20261013_0023",
+        "result": "PASS"
+      },
+      "full_suite": {
+        "passed": 7653,
+        "failed": 1,
+        "skipped": 6,
+        "result": "FAIL",
+        "failure": "same missing setuptools.build_meta build backend"
+      }
+    },
+    {
+      "workflow": "MMT CERT-A5 fixed benign four-language replay (nonproduction)",
+      "run_id": 39046668493,
+      "job_id": 117436657880,
+      "cases_passed": 16,
+      "case_skipped": 0,
+      "result": "PASS"
+    }
+  ],
+  "actual_github_runner_attestation": "Actual GitHub-hosted CI jobs visible. This is not a simulated GITHUB_ACTIONS flag.",
+  "final_6_skips_in_pg_suite": {
+    "CERT_A5_separately_tested": 4,
+    "public_market_data_smoke_untested": 2
+  },
+  "remediation": {
+    "files": [
+      ".github/workflows/full-corpus-postgres.yml",
+      ".github/workflows/native-postgres16.yml",
+      "tests/unit/test_mmt_v040_ci_noisolation_backend_pins_v1.py"
+    ],
+    "package_build_backend": "setuptools==80.9.0",
+    "package_wheel": "wheel==0.45.1",
+    "process": "install exact packages in same Python environment after root editable development deps and verify setuptools.build_meta import and package versions before pytest",
+    "regression_tests_python312": "5 PASS (4 new static contract cases + existing real two-independent-setuptools-build test)",
+    "yaml_parsing": "2/2 PASS with PyYAML 6.0.1",
+    "ruff": "PASS on new regression source",
+    "modified_public_source_modules": 0
+  },
+  "limits": {
+    "workflows_have_not_been_reexecuted_for_remediation": true,
+    "original_two_full_corpus_jobs_red": true,
+    "independent_pub_signer_not_verified": true,
+    "rollbacks_not_verified": true,
+    "two_external_public_data_tests_unexecuted": true,
+    "official_tag_not_authorized": true,
+    "protected_main_merge_not_authorized": true
+  },
+  "decision": "CI_BACKEND_FIX_LOCALLY_TESTED__INDEPENDENT_DB_MIGRATIONS_VERIFIED__FULL_CI_GREEN_NOT_YET_PROVEN__RELEASE_DENIED"
+}
