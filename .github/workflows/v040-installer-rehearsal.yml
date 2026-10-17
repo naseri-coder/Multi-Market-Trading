@@ -1,0 +1,82 @@
+name: v0.4.0 - full-platform offline installer rehearsal (unsigned, never release)
+
+on:
+  push:
+    branches:
+      - ci/v040-offline-installer-rehearsal-20261018
+    paths:
+      - release_assets/v0.4.0/install.sh
+      - scripts/ci_v040_installer_rehearsal.py
+      - .github/workflows/v040-installer-rehearsal.yml
+      - docs/MMT_V040_OFFLINE_INSTALLER_REHEARSAL.md
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-only-installer:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      APP_ENV: test
+      MMT_NONPRODUCTION: "1"
+      MMT_LIVE_ENABLED: "false"
+      TELEGRAM_RUNTIME_ENABLED: "false"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+      PIP_NO_INPUT: "1"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+    steps:
+      - name: Review/test-only installer branch — no persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ci/v040-offline-installer-rehearsal-20261018
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Independently fetch untouched exact release candidate source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 7bbb3541fb6d63f960bee9f197fe026ed6d04608
+          path: canonical
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Pin reproducible build/test tooling and check both scripts
+        run: |
+          set -Eeuo pipefail
+          test -z "${MMT_PRODUCTION+x}"
+          python -m pip install "setuptools==80.9.0" "wheel==0.45.1" "cryptography==46.0.3" "ruff==0.16.9"
+          python -m ruff check --select E4,F --no-cache scripts/ci_v040_installer_rehearsal.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          ast.parse(Path("scripts/ci_v040_installer_rehearsal.py").read_bytes())
+          PY
+          bash -n release_assets/v0.4.0/install.sh
+
+      - name: Verify source, build twice, install actual 9-command v0.4.0 wheel without network
+        run: |
+          set -Eeuo pipefail
+          python -m scripts.ci_v040_installer_rehearsal \
+            --canonical "$GITHUB_WORKSPACE/canonical" \
+            --branch "$GITHUB_WORKSPACE"
+
+      - name: One-day UNSIGNED reviewer artifact; NOT a release or authenticated installer
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: V040-UNSIGNED-FULL-PLATFORM-INSTALLER-TEST-ONLY
+          path: ${{ runner.temp }}/v040-offline-installer-review-only/
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: No tag, no deployment, no real signature or LIVE authority
+        if: always()
+        run: |
+          echo "MMT_INSTALLER_REHEARSAL_ONLY__OFFICIAL_RELEASE_AND_REAL_SIGNER_STILL_BLOCKED"
