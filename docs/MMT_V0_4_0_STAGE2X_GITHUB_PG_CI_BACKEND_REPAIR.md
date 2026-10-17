@@ -1,3 +1,5 @@
+> **Follow-up evidence on 2026-10-17:** Both independent GitHub PostgreSQL workflows are now **SUCCESS (7,658 passed / 6 skipped each)**, and CERT-A5 separately passed **16** tests. The next Public Test Corpus issue was isolated to the order of its frozen `app` materialization and Ruff step. See [updated independent runner report](docs/MMT_V0_4_0_STAGE2X_INDEPENDENT_PG_GREEN_AND_PUBLIC_CI_ORDER.md).
+
 # MMT v0.4.0 — Stage 2X GitHub runner evidence and Wheel backend repair
 
 **Date:** 2026-10-17. **Base product SHA:** `f8d3883c86b17b707d97fdd07253c645f4eb9886`. **PR #352 remains Draft and unmerged.**
