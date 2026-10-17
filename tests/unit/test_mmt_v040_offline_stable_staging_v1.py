@@ -111,3 +111,31 @@ def test_staged_python_syntax_errors_fail_closed(fixture):
  with pytest.raises(stage.StableStageRefused,match='V040_SOURCE_PYTHON_PARSE_DENIED'):
   stage._check_source_module(m.read_bytes(),'naseri_markets/synthetic_010.py')
  assert not dest.exists()
+
+
+
+def test_clean_git_and_matching_snapshot_still_cannot_stage_value_only_production_guard(fixture):
+ repo,dest,kw=fixture
+ module=repo/'naseri_markets/synthetic_010.py'
+ module.write_text('import os\nif os.environ.get("MMT_PRODUCTION") == "1":\n    raise RuntimeError("denied")\n')
+ git(repo,'add','naseri_markets');commit(repo,'source with insecure production gate')
+ tree=git(repo,'rev-parse','HEAD:naseri_markets')
+ lockpath=repo/snap.SNAPSHOT_PATH
+ old=json.loads(lockpath.read_text())
+ by_path={m['path']:m for m in old['modules']}
+ name='naseri_markets/synthetic_010.py'
+ raw=module.read_bytes()
+ old['source_bytes']+=len(raw)-by_path[name]['size']
+ by_path[name]['size']=len(raw)
+ by_path[name]['git_blob_sha1']=hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()
+ old['public_subtree_sha1']=tree
+ old['snapshot_commit']=git(repo,'rev-parse','HEAD')
+ lockpath.write_text(json.dumps(old,indent=2)+'\n')
+ git(repo,'add','docs');commit(repo,'rebaseline insecure tree')
+ kw.update(expected_source_commit=git(repo,'rev-parse','HEAD'),
+           expected_public_tree_sha1=tree,
+           expected_lock_sha256=hashlib.sha256(lockpath.read_bytes()).hexdigest())
+ with pytest.raises(stage.production_guard.ProductionGuardRefused,
+                    match='V040_PRODUCTION_VALUE_ONLY_GUARDS_DENIED:1'):
+  stage.stage(**kw)
+ assert not dest.exists()
