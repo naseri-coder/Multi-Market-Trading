@@ -245,7 +245,8 @@ def _wheel(raw: bytes, record_pin: str) -> dict:
                     or len(metadata.get_all("Requires-Python", [])) != 1
                     or metadata.get("Name") != DIST_NAME
                     or metadata.get("Version") != VERSION
-                    or metadata.get("Requires-Python") != ">=3.12,<3.13"):
+                    or sorted(metadata.get("Requires-Python", "").split(","))
+                    != ["<3.13", ">=3.12"]):
                 raise StableArtifactRefused("V040_WHEEL_IDENTITY_INVALID")
             # Enforce the exact approved optional-dependency closure. Never
             # infer an allowed extra from an untrusted marker substring.
