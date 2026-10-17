@@ -107,7 +107,7 @@ def reconcile_stage18_primary_public_sources(
     share ONE provider source: no independent funding-time certification.
     """
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise Stage18MarketEvidenceRefused("ST18_RESEARCH_ONLY_ACK_REQUIRED")
     funding_rows = _archive_csv(kind="funding", zip_bytes=funding_zip,
                                 checksum_bytes=funding_checksum)
