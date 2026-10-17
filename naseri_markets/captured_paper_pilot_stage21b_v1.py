@@ -87,7 +87,7 @@ def run_captured_paper_pilot(
     local audit cannot attest KuCoin origin or correct contract economics.
     """
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         raise CapturedPaperRefused("EXPLICIT_NONPRODUCTION_PAPER_ACK_REQUIRED")
     if (type(datasets) is not tuple or len(datasets) != 2
             or any(type(x) is not tuple or len(x) != 2
