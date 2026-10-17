@@ -218,3 +218,18 @@ def test_any_production_environment_setting_denied(signed_checkout, monkeypatch)
     monkeypatch.setenv("MMT_PRODUCTION", "0")
     with pytest.raises(custody.SourceCustodyRefused, match="V040_NONPRODUCTION_REQUIRED"):
         custody.audit(**params)
+
+
+def test_changed_build_backend_even_clean_git_is_refused(signed_checkout):
+    checkout, _, _ = signed_checkout
+    p = checkout / "platform_release/pyproject.toml"
+    p.write_text(p.read_text().replace(
+        'build-backend = "setuptools.build_meta"',
+        'build-backend = "unreviewed.backend"',
+    ))
+    _git(checkout, "add", ".")
+    _git(checkout, "-c", "user.email=test@example.invalid",
+         "-c", "user.name=Audit Test", "commit", "-qm", "bad builder")
+    with pytest.raises(custody.SourceCustodyRefused,
+                       match="V040_SOURCE_METADATA_DRIFT"):
+        custody._source_inventory(checkout, _git(checkout, "rev-parse", "HEAD"))
