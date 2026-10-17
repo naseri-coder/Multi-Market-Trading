@@ -285,16 +285,6 @@
       "size": 21697
     },
     {
-      "path": "naseri_markets/cert_a1_offline_candidate_review.py",
-      "git_blob_sha1": "398c404747e1e389708a347e64a242e0bda8ec92",
-      "size": 12575
-    },
-    {
-      "path": "naseri_markets/cert_a1_paper_format_inventory.py",
-      "git_blob_sha1": "e9586ef32db4ee8facb0ecd53e225016a9318589",
-      "size": 8451
-    },
-    {
       "path": "naseri_markets/cert_a10_immutable_package_pins.py",
       "git_blob_sha1": "979413922c33084ca9b306406057a8965b89e374",
       "size": 6270
@@ -303,6 +293,16 @@
       "path": "naseri_markets/cert_a17_remediation_review.py",
       "git_blob_sha1": "dc8ad483aa0b8abb190d1b557a7f74959dbc9076",
       "size": 10984
+    },
+    {
+      "path": "naseri_markets/cert_a1_offline_candidate_review.py",
+      "git_blob_sha1": "398c404747e1e389708a347e64a242e0bda8ec92",
+      "size": 12575
+    },
+    {
+      "path": "naseri_markets/cert_a1_paper_format_inventory.py",
+      "git_blob_sha1": "e9586ef32db4ee8facb0ecd53e225016a9318589",
+      "size": 8451
     },
     {
       "path": "naseri_markets/cert_a2_direct_paper_replay.py",
@@ -610,11 +610,6 @@
       "size": 9888
     },
     {
-      "path": "naseri_markets/mt_a1_offline_artifact_preflight.py",
-      "git_blob_sha1": "3ccd8653326a0a8c0ee063b6f1223ce09bc616fe",
-      "size": 8676
-    },
-    {
       "path": "naseri_markets/mt5_demo_custody_probe.py",
       "git_blob_sha1": "3e755637bf1c6af44167d10babf78e62abb4d91a",
       "size": 3442
@@ -683,6 +678,11 @@
       "path": "naseri_markets/mt5_readonly_bridge.py",
       "git_blob_sha1": "dc10cde1d8a1a1d35af21c0e5f699a412979d5fe",
       "size": 3432
+    },
+    {
+      "path": "naseri_markets/mt_a1_offline_artifact_preflight.py",
+      "git_blob_sha1": "3ccd8653326a0a8c0ee063b6f1223ce09bc616fe",
+      "size": 8676
     },
     {
       "path": "naseri_markets/multilang_runtime_a1.py",
@@ -770,6 +770,11 @@
       "size": 9220
     },
     {
+      "path": "naseri_markets/paper09_snapshot_v1.py",
+      "git_blob_sha1": "295429effa49775afac17fe6ac00079faa9959c1",
+      "size": 10974
+    },
+    {
       "path": "naseri_markets/paper_contract_audit_stage21d_v1.py",
       "git_blob_sha1": "325e4f7ad800a9edf621f086613036679d015be5",
       "size": 5415
@@ -808,11 +813,6 @@
       "path": "naseri_markets/paper_position_reconciler_v1.py",
       "git_blob_sha1": "466a6d7361cc5270d5ed9ad1f5309ba86c813f84",
       "size": 17997
-    },
-    {
-      "path": "naseri_markets/paper09_snapshot_v1.py",
-      "git_blob_sha1": "295429effa49775afac17fe6ac00079faa9959c1",
-      "size": 10974
     },
     {
       "path": "naseri_markets/passive_kernel_posture_cli_stage38_v1.py",
@@ -1000,6 +1000,11 @@
       "size": 1765
     },
     {
+      "path": "naseri_markets/runtime.py",
+      "git_blob_sha1": "99201e9ff427453f100f63f04c026233b6006b7f",
+      "size": 6031
+    },
+    {
       "path": "naseri_markets/runtime_a10_evidence_anchor.py",
       "git_blob_sha1": "e69ac14c7d2215b47d7dfe4663ce39e85911380e",
       "size": 14181
@@ -1053,11 +1058,6 @@
       "path": "naseri_markets/runtime_supervisor_health_v1.py",
       "git_blob_sha1": "1633f5d2e17b6c19de5ce7698ee79f74f373d163",
       "size": 2714
-    },
-    {
-      "path": "naseri_markets/runtime.py",
-      "git_blob_sha1": "99201e9ff427453f100f63f04c026233b6006b7f",
-      "size": 6031
     },
     {
       "path": "naseri_markets/secure_plugin_runtime_v1.py",
