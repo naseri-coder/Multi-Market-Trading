@@ -13,7 +13,8 @@ import os
 from collections import Counter
 
 from .operational_reconciliation_v1 import (
-    RecoveryPaths, evaluate_operational_recovery,
+    RecoveryPaths,
+    evaluate_operational_recovery,
 )
 
 

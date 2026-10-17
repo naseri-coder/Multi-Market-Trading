@@ -124,7 +124,9 @@ def _json_report(raw: bytes) -> dict:
     return report
 
 
-def _reconcile_capture(capture: Stage17Capture, report_bytes: bytes) -> tuple[datetime, datetime, str]:
+def _reconcile_capture(
+    capture: Stage17Capture, report_bytes: bytes,
+) -> tuple[datetime, datetime, str]:
     if type(capture) is not Stage17Capture:
         raise Stage18Refused("ST18_EXACT_STAGE17_CAPTURE_REQUIRED")
     report = _json_report(report_bytes)
@@ -217,7 +219,8 @@ def audit_futures_economic_evidence(
     previous = start
     for expected, actual in zip(schedule, records, strict=True):
         instant = _time(expected["funding_time_utc"])
-        if actual["funding_time_utc"] != expected["funding_time_utc"] or not previous < instant < end:
+        if (actual["funding_time_utc"] != expected["funding_time_utc"]
+                or not previous < instant < end):
             raise Stage18Refused("ST18_UNORDERED_OR_MISSING_FUNDING_EVENT")
         rate = _amount(actual["funding_rate"], rate=True)
         mark = _amount(actual["mark_price"])
@@ -232,7 +235,8 @@ def audit_futures_economic_evidence(
     for trade in scenarios:
         if type(trade) is not Stage18ScenarioTrade:
             raise Stage18Refused("ST18_EXACT_HYPOTHETICAL_TRADE_REQUIRED")
-        if (type(trade.scenario_id) is not str or not re.fullmatch(r"[a-z][a-z0-9_]{2,39}", trade.scenario_id)
+        if (type(trade.scenario_id) is not str
+                or not re.fullmatch(r"[a-z][a-z0-9_]{2,39}", trade.scenario_id)
                 or trade.scenario_id in seen_ids):
             raise Stage18Refused("ST18_DUPLICATE_OR_INVALID_SCENARIO_ID")
         seen_ids.add(trade.scenario_id)

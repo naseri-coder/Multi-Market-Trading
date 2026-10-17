@@ -142,7 +142,9 @@ def freeze_brooks_prospective_plan(
     return raw, _hash(raw)
 
 
-def _load_plan(plan_bytes: bytes, plan_sha256: str) -> tuple[BrooksProspectivePlan, datetime, datetime]:
+def _load_plan(
+    plan_bytes: bytes, plan_sha256: str,
+) -> tuple[BrooksProspectivePlan, datetime, datetime]:
     if (type(plan_bytes) is not bytes or not 1 <= len(plan_bytes) <= 4096
             or type(plan_sha256) is not str or not _SHA.fullmatch(plan_sha256)
             or _hash(plan_bytes) != plan_sha256):

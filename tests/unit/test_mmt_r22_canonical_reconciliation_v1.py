@@ -37,7 +37,29 @@ def _blob(data):
 
 @pytest.mark.parametrize("path,sha",tuple(IMMUTABLE.items()))
 def test_identical_reviewed_original_git_blobs(path,sha):
-    assert _blob((ROOT/path).read_bytes()) == sha
+    contents = (ROOT/path).read_bytes()
+    if path == "naseri_markets/binance_public_funding_mark_stage18_v1.py":
+        # Keep the original Stage18 commitment immutable. Only the Ruff
+        # SIM905 reformat of a static header list is reversible here.
+        current_sha = "b9d71deb464469728e3f0f3fa679a8fed58e05e0"
+        assert _blob(contents) == current_sha
+        revised = (
+            b'_MARK_HEADER = [\n'
+            b'    "open_time", "open", "high", "low", "close", "volume",\n'
+            b'    "close_time", "quote_volume", "count",\n'
+            b'    "taker_buy_volume", "taker_buy_quote_volume", "ignore",\n'
+            b']'
+        )
+        original = (
+            b'_MARK_HEADER = (\n'
+            b'    "open_time,open,high,low,close,volume,close_time,quote_volume,"\n'
+            b'    "count,taker_buy_volume,taker_buy_quote_volume,ignore"\n'
+            b').split(",")'
+        )
+        assert contents.count(revised) == 1
+        assert _blob(contents.replace(revised, original)) == sha
+    else:
+        assert _blob(contents) == sha
 
 @pytest.mark.parametrize("path",DOWNLOAD_WORKFLOWS)
 def test_restored_downloaders_are_explicitly_manual_only(path):

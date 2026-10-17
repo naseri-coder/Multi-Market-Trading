@@ -135,7 +135,7 @@ def review_r33_live_readiness(
     blockers: list[str] = []
     for p in evidence.prs:
         if p.state != "closed" or p.draft or not p.merged:
-            blockers.append("PR_%d_NOT_MERGED_AND_ACCEPTED" % p.number)
+            blockers.append(f"PR_{p.number}_NOT_MERGED_AND_ACCEPTED")
     if evidence.review_time_utc < _STUDY_END:
         blockers.append("R29_PROSPECTIVE_WINDOW_NOT_ELAPSED")
     for field in _EVIDENCE_FLAG_FIELDS:

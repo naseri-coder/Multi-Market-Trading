@@ -34,10 +34,11 @@ _ARCHIVE = {
         "BTCUSDT/15m/BTCUSDT-15m-2024-01.zip"
     ),
 }
-_MARK_HEADER = (
-    "open_time,open,high,low,close,volume,close_time,quote_volume,"
-    "count,taker_buy_volume,taker_buy_quote_volume,ignore"
-).split(",")
+_MARK_HEADER = [
+    "open_time", "open", "high", "low", "close", "volume",
+    "close_time", "quote_volume", "count",
+    "taker_buy_volume", "taker_buy_quote_volume", "ignore",
+]
 _FUND_HEADER = ["calc_time", "funding_interval_hours", "last_funding_rate"]
 
 

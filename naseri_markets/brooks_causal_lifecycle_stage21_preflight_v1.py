@@ -12,14 +12,17 @@ import json
 import os
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from decimal import Decimal, InvalidOperation, ROUND_CEILING, ROUND_FLOOR
+from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal, InvalidOperation
 from pathlib import Path
 
 from .brooks_replay import (
-    LEGACY_MANIFEST_SHA256, parse_candle_replay, verify_legacy_source,
+    LEGACY_MANIFEST_SHA256,
+    parse_candle_replay,
+    verify_legacy_source,
 )
 from .futures_economic_scenario_stage16_v1 import (
-    FundingMarkScenario, model_linear_usdm_research_scenario,
+    FundingMarkScenario,
+    model_linear_usdm_research_scenario,
 )
 from .real_brooks_historical_stage15_v1 import _review, _worker
 

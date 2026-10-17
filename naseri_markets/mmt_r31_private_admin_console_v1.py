@@ -13,7 +13,8 @@ from collections import Counter
 from .offline_runtime_supervisor_v1 import OfflineRuntimeSupervisor
 from .offline_signal_lifecycle_v1 import OfflineSignalLifecycle
 from .trading_control_center_v1 import (
-    ControlRefused, OfflineTradingControlCenter,
+    ControlRefused,
+    OfflineTradingControlCenter,
 )
 
 

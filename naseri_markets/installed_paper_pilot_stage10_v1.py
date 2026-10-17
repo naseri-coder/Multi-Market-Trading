@@ -19,12 +19,12 @@ from .job_effect_reconciliation_v1 import (
     EffectEvidencePaths,
     evaluate_recovery_decisions,
 )
+from .platform_version_policy_v1 import require_offline_platform_version
 from .reliability_acceptance_v1 import (
     LedgerPaths,
     evaluate_offline_reliability,
 )
 from .unified_paper_pilot_stage20_v1 import run_paper_pilot
-from .platform_version_policy_v1 import require_offline_platform_version
 
 _SQLITE_FILES = (
     "control.sqlite", "paper.sqlite", "signals.sqlite",

@@ -27,12 +27,12 @@ from .brooks_forward_source_custody_stage21g_v1 import (
     _sha,
     _write_exclusive,
 )
+from .brooks_future_kline_admission_stage21f_v1 import _CANONICAL_PLAN_SHA
 from .brooks_prospective_forward_custody_stage21c_v1 import (
     _gate,
     _load_plan,
     _no_duplicates,
 )
-from .brooks_future_kline_admission_stage21f_v1 import _CANONICAL_PLAN_SHA
 
 _STUDY_BAR = timedelta(minutes=15)
 _MAX_REPLAY_FOLDERS = 128

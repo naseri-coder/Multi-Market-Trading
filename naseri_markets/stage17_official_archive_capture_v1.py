@@ -32,7 +32,10 @@ _ZIP_LIMIT = 8 * 1024 * 1024
 _CHECKSUM_LIMIT = 256
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 _HOST = "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/"
-_URL_RE = re.compile(re.escape(_HOST) + r"BTCUSDT-15m-(?:202[0-9]|2030)-(?:0[1-9]|1[0-2])\.zip(?:\.CHECKSUM)?\Z")
+_URL_RE = re.compile(
+    re.escape(_HOST) + r"BTCUSDT-15m-(?:202[0-9]|2030)-"
+    r"(?:0[1-9]|1[0-2])\.zip(?:\.CHECKSUM)?\Z"
+)
 _USER_AGENT = "NASERI-MARKETS-Research-Archive-Capture/1"
 
 
@@ -69,7 +72,8 @@ def _assert_nonproduction() -> None:
 
 
 def _url_and_month(year: int, month: int) -> tuple[str, str]:
-    if type(year) is not int or not 2020 <= year <= 2030 or type(month) is not int or not 1 <= month <= 12:
+    if (type(year) is not int or not 2020 <= year <= 2030
+            or type(month) is not int or not 1 <= month <= 12):
         raise Stage17Refused("ST17_MONTH_OUT_OF_SCOPE")
     end = (datetime(year + 1, 1, 1, tzinfo=UTC)
            if month == 12 else datetime(year, month + 1, 1, tzinfo=UTC))
@@ -86,7 +90,9 @@ def _get_exact(url: str, limit: int) -> bytes:
     if type(url) is not str or not _URL_RE.fullmatch(url):
         raise Stage17Refused("ST17_ONLY_PINNED_OFFICIAL_ENDPOINT")
     opener = urllib.request.build_opener(_NoRedirect())
-    req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT, "Accept-Encoding": "identity"})
+    req = urllib.request.Request(
+        url, headers={"User-Agent": _USER_AGENT, "Accept-Encoding": "identity"}
+    )
     try:
         with opener.open(req, timeout=20) as reply:
             if (reply.status != 200 or reply.geturl() != url
@@ -256,8 +262,10 @@ def persist_research_capture(capture: Stage17Capture, *, destination: Path) -> d
             or capture.archive.official_url_claim != capture.zip_url):
         raise Stage17Refused("ST17_OFFICIAL_CAPTURE_IDENTITY_REQUIRED")
     if (hashlib.sha256(capture.original_zip).hexdigest() != capture.archive.zip_sha256
-            or hashlib.sha256(capture.original_checksum).hexdigest() != capture.archive.checksum_sha256
-            or hashlib.sha256(capture.archive.canonical_csv_bytes).hexdigest() != capture.archive.csv_sha256):
+            or hashlib.sha256(capture.original_checksum).hexdigest()
+            != capture.archive.checksum_sha256
+            or hashlib.sha256(capture.archive.canonical_csv_bytes).hexdigest()
+            != capture.archive.csv_sha256):
         raise Stage17Refused("ST17_CAPTURE_CHANGED_AFTER_VALIDATION")
     destination.mkdir(mode=0o700)
     def write_private(name: str, data: bytes) -> None:
@@ -307,7 +315,9 @@ def persist_research_capture(capture: Stage17Capture, *, destination: Path) -> d
         "profitability_proven": False,
         "production_authorized": False,
     }
-    write_private("quality-report.json", (json.dumps(report, indent=2, sort_keys=True) + "\n").encode())
+    write_private(
+        "quality-report.json", (json.dumps(report, indent=2, sort_keys=True) + "\n").encode()
+    )
     return report
 
 

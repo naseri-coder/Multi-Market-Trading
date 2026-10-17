@@ -14,11 +14,13 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from .binance_vision_archive_stage16_v1 import (
-    VisionBrooksWindow, select_reviewed_brooks_window,
+    VisionBrooksWindow,
+    select_reviewed_brooks_window,
 )
 from .real_brooks_historical_stage15_v1 import review_real_brooks_history
 from .stage17_official_archive_capture_v1 import (
-    Stage17Capture, _make_stage12_spec,
+    Stage17Capture,
+    _make_stage12_spec,
 )
 
 _SHA = re.compile(r"[a-f0-9]{64}\Z")
@@ -90,7 +92,8 @@ def _validate_stage18(raw: bytes, capture: Stage17Capture) -> str:
     ):
         if type(report.get(name)) is not str or not _SHA.fullmatch(report[name]):
             raise Stage19Refused("ST19_INCOMPLETE_STAGE18_EVIDENCE_INVENTORY")
-    if type(report.get("declared_funding_events")) is not int or report["declared_funding_events"] < 1:
+    if (type(report.get("declared_funding_events")) is not int
+            or report["declared_funding_events"] < 1):
         raise Stage19Refused("ST19_MISSING_FUNDING_EVIDENCE")
     # An unsigned report whose author controls its hashes cannot establish
     # independent exchange custody, regardless of successful local matching.
@@ -133,9 +136,12 @@ def review_stage19_brooks_causal_preflight(
             or tuple(sorted(set(evaluation_cutoffs_utc))) != evaluation_cutoffs_utc):
         raise Stage19Refused("ST19_PREDECLARED_CAUSAL_CUTS_REQUIRED")
     if (hashlib.sha256(capture.original_zip).hexdigest() != capture.archive.zip_sha256
-            or hashlib.sha256(capture.original_checksum).hexdigest() != capture.archive.checksum_sha256
-            or hashlib.sha256(capture.archive.canonical_csv_bytes).hexdigest() != capture.archive.csv_sha256
-            or hashlib.sha256(capture.archive.stage12_receipt_bytes).hexdigest() != capture.archive.receipt_sha256):
+            or hashlib.sha256(capture.original_checksum).hexdigest()
+            != capture.archive.checksum_sha256
+            or hashlib.sha256(capture.archive.canonical_csv_bytes).hexdigest()
+            != capture.archive.csv_sha256
+            or hashlib.sha256(capture.archive.stage12_receipt_bytes).hexdigest()
+            != capture.archive.receipt_sha256):
         raise Stage19Refused("ST19_STAGE17_CAPTURE_BYTES_CHANGED")
     stage18_hash = _validate_stage18(stage18_report_bytes, capture)
     if (window.parent_official_zip_sha256 != capture.archive.zip_sha256

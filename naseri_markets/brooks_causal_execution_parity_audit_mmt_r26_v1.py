@@ -11,7 +11,6 @@ import hashlib
 import json
 import os
 from decimal import Decimal, InvalidOperation
-from pathlib import Path
 
 from .brooks_causal_lifecycle_stage21_preflight_v1 import (
     Stage21StudyRefused,
@@ -64,7 +63,8 @@ def audit_original_stage21a_receipt(
     if (operator_ack is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
             or "MMT_PRODUCTION" in os.environ):
         raise R26ParityRefused("R26_EXPLICIT_NONPRODUCTION_RESEARCH_REQUIRED")
-    if type(original_report_bytes) is not bytes or not 2 <= len(original_report_bytes) <= _MAX_REPORT:
+    if (type(original_report_bytes) is not bytes
+            or not 2 <= len(original_report_bytes) <= _MAX_REPORT):
         raise R26ParityRefused("R26_BOUNDED_ORIGINAL_RECEIPT_REQUIRED")
     try:
         report = json.loads(
@@ -108,10 +108,14 @@ def audit_original_stage21a_receipt(
     for k in ("historical_snapshot_sha256","decision_evidence_sha256",
               "decision_input_sha256","future_input_sha256"):
         value=report.get(k)
-        if type(value) is not str or len(value) != 64 or any(c not in "0123456789abcdef" for c in value):
+        if (type(value) is not str or len(value) != 64
+                or any(c not in "0123456789abcdef" for c in value)):
             raise R26ParityRefused("R26_ORIGINAL_EVIDENCE_HASH_MISSING")
     if (trade.get("broker_fill_verified") is not False
-            or trade.get("hypothetical_order") is not (decision != "NO_SIGNAL" and trade.get("state") == "HYPOTHETICAL_CLOSED_POSITION")):
+            or trade.get("hypothetical_order") is not (
+                decision != "NO_SIGNAL"
+                and trade.get("state") == "HYPOTHETICAL_CLOSED_POSITION"
+            )):
         raise R26ParityRefused("R26_BROKER_FILL_OR_ORDER_FLAG_DRIFT")
     state=trade.get("state")
     if decision == "NO_SIGNAL":

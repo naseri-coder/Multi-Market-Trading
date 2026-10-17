@@ -9,7 +9,6 @@ No HTTP client, broker, signals, trading, cron or background worker exists here.
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 import stat
 from datetime import UTC, datetime, timedelta
@@ -21,8 +20,8 @@ from .brooks_forward_source_custody_stage21g_v1 import (
     _write_exclusive,
 )
 from .brooks_future_kline_admission_stage21f_v1 import (
-    Stage21AdmissionRefused,
     _CANONICAL_PLAN_SHA,
+    Stage21AdmissionRefused,
     _rows,
 )
 from .brooks_prospective_forward_custody_stage21c_v1 import (

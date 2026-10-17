@@ -19,10 +19,13 @@ from pathlib import Path
 
 from .brooks_forward_source_custody_stage21g_v1 import _read_original_evidence
 from .brooks_replay import (
-    canonical_snapshot_identity, parse_candle_replay, verify_legacy_source,
+    canonical_snapshot_identity,
+    parse_candle_replay,
+    verify_legacy_source,
 )
 from .brooks_sequential_forward_custody_mmt_r24_v1 import (
-    _strict_read, stage24_replay_all_previous_batches,
+    _strict_read,
+    stage24_replay_all_previous_batches,
 )
 from .real_brooks_historical_stage15_v1 import _review, _wire, _worker
 
@@ -273,7 +276,7 @@ def save_r29_receipt_exclusive(
             raise ValueError("invalid receipt")
     except (KeyError, ValueError, TypeError, UnicodeError) as exc:
         raise R29ShadowRefused("R29_CHECKPOINT_RECEIPT_INVALID") from exc
-    dest = directory / ("r29-shadow-bar-%04d.json" % obj["decision_bar_index"])
+    dest = directory / f"r29-shadow-bar-{obj['decision_bar_index']:04d}.json"
     try:
         fd = os.open(dest, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
     except OSError as exc:

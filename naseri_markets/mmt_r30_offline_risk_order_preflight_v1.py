@@ -10,10 +10,10 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal, InvalidOperation
-from typing import Mapping
 
 from .contracts import Direction, EvidenceMode, Instrument
 from .execution_contract_v1 import OrderSpec, OrderStatus, identity

@@ -8,13 +8,13 @@ No real feeds, public strategy execution, services, Telegram or broker orders.
 from __future__ import annotations
 
 import argparse
-from contextlib import closing
 import hashlib
 import json
 import os
 import sqlite3
 import stat
 import sys
+from contextlib import closing
 from pathlib import Path
 from urllib.parse import quote
 
@@ -114,6 +114,7 @@ def _read_state(path: Path) -> dict:
     return dict(zip(
         ("fixture_id", "request_sha256", "status", "report_json", "report_sha256"),
         rows[0],
+        strict=True,
     ))
 
 

@@ -18,7 +18,8 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from .brooks_prospective_forward_custody_stage21c_v1 import (
-    _gate, _load_plan,
+    _gate,
+    _load_plan,
 )
 
 _SHA = re.compile(r"[0-9a-f]{64}\Z")

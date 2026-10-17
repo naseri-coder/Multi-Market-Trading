@@ -13,12 +13,19 @@ from collections import Counter
 from pathlib import Path
 
 from .brooks_forward_source_custody_stage21g_v1 import _read_original_evidence
+from .brooks_future_shadow_paper_mmt_r29_v1 import (
+    MAX_TOTAL_BARS,
+    PLAN_SHA,
+    PROTOCOL,
+    R29ShadowRefused,
+    _canonical,
+    _gate,
+    _hash,
+    _unique,
+    _validated_tape,
+)
 from .brooks_sequential_forward_custody_mmt_r24_v1 import (
     stage24_replay_all_previous_batches,
-)
-from .brooks_future_shadow_paper_mmt_r29_v1 import (
-    MAX_TOTAL_BARS, PLAN_SHA, PROTOCOL, R29ShadowRefused,
-    _canonical, _gate, _hash, _unique, _validated_tape,
 )
 
 _REQUIRED = frozenset({

@@ -16,7 +16,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from .binance_vision_archive_stage16_v1 import (
-    VisionBrooksWindow, select_reviewed_brooks_window,
+    VisionBrooksWindow,
+    select_reviewed_brooks_window,
 )
 from .brooks_causal_backtest_preflight_stage19_v1 import (
     review_stage19_brooks_causal_preflight,
@@ -86,7 +87,7 @@ def freeze_stage20_plan(plan: Stage20FrozenPlan) -> tuple[bytes, str]:
     start, length, train, valid, holdout, embargo = values
     if (not 0 <= start <= 3000 or not 60 <= length <= 512
             or not 1 <= embargo <= 48
-            or not 60 <= train
+            or not train >= 60
             or not train + embargo + 1 <= valid
             or not valid + embargo + 1 <= holdout
             or holdout != length):
