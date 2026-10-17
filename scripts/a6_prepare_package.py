@@ -10,6 +10,7 @@ import ast
 import hashlib
 import json
 import sys
+import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -55,6 +56,17 @@ def prepare(destination: Path) -> dict:
     ]
     if any(not path.is_file() or path.is_symlink() for path in static):
         raise ValueError("PACKAGE_METADATA_UNSAFE")
+    try:
+        source_metadata = tomllib.loads(static[0].read_text(encoding="utf-8"))
+        distribution = source_metadata["project"]
+        release = distribution["version"]
+    except (OSError, UnicodeError, tomllib.TOMLDecodeError, KeyError, TypeError) as exc:
+        raise ValueError("PACKAGE_METADATA_INVALID") from exc
+    if (distribution.get("name") != "multi-market-trading"
+            or type(release) is not str
+            or release not in ("0.4.0rc1", "0.4.0")
+            or distribution.get("dependencies") != []):
+        raise ValueError("PACKAGE_METADATA_INVALID")
     destination.mkdir(mode=0o700)
     pkg = destination / "naseri_markets"
     pkg.mkdir()
@@ -65,7 +77,7 @@ def prepare(destination: Path) -> dict:
         (destination / rel).write_bytes(data)
         digests[str(rel)] = hashlib.sha256(data).hexdigest()
     return {
-        "version": "0.4.0rc1",
+        "version": release,
         "module_count": len(modules),
         "sha256": digests,
         "source_was_mutated": False,
