@@ -76,7 +76,7 @@ class AdapterFreePaperRuntime:
     @staticmethod
     def _offline() -> None:
         if (os.environ.get("MMT_NONPRODUCTION") != "1"
-                or os.environ.get("MMT_PRODUCTION") == "1"):
+                or "MMT_PRODUCTION" in os.environ):
             raise PipelineRefused("NONPRODUCTION_ENV_REQUIRED")
 
     def status(self, instance_id: str) -> PipelineReadiness:
