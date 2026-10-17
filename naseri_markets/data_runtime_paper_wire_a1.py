@@ -82,7 +82,7 @@ def review_file_to_runtime_wire(
     If the file drifts or a later row fails, no success report is returned.
     """
     if (os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"
+            or "MMT_PRODUCTION" in os.environ
             or operator_ack is not True):
         raise PaperWireRefused("BRIDGE_EXPLICIT_NONPRODUCTION_OPERATOR_ACK_REQUIRED")
     if (not isinstance(path, Path) or not path.is_absolute()
