@@ -32,6 +32,145 @@ PINS = {
         "dffef2f52bb52794e04d73eedc27cc38f2b7b041531b6ebeb991f589d7e9e5e6",
     ),
 }
+# Historic R42V source custody is immutable. The only additional accepted
+# source is the reviewed Stage 2V Ruff-only transformation, itself requiring
+# exact reverse reconstruction of the original pinned Git blob and SHA256.
+_REVIEWED_R42_SOURCE = (
+    "f5fff95ac23fec32fe0809f93420ab303d0d49c9",
+    "fc1990a53b51a78c9286d74b9ae820f2e1a51d458268126df449ddeb15503f83",
+)
+_REVIEWED_R42_REVERSE = (
+    (
+        (
+            b'from datetime import UTC, datetime, timedelta\n'
+        ),
+        (
+            b'from datetime import datetime, timedelta, timezone\n'
+        ),
+    ),
+    (
+        (
+            b'_BAR_FIELDS = frozenset({\n    "sequence", "open_at", "c'
+            b'lose_at", "open", "high",\n    "low", "close", "volume",'
+            b'\n})\n'
+        ),
+        (
+            b'_BAR_FIELDS = frozenset({"sequence", "open_at", "close_'
+            b'at", "open", "high", "low", "close", "volume"})\n'
+        ),
+    ),
+    (
+        (
+            b'    if (not isinstance(path, Path) or not path.is_absol'
+            b'ute()\n            or any(p.is_symlink() for p in (path,'
+            b' *path.parents))):\n'
+        ),
+        (
+            b'    if not isinstance(path, Path) or not path.is_absolu'
+            b'te() or any(p.is_symlink() for p in (path, *path.parent'
+            b's)):\n'
+        ),
+    ),
+    (
+        (
+            b'        if (not stat.S_ISREG(before.st_mode) or before.'
+            b'st_nlink != 1\n                or not 2 <= before.st_siz'
+            b'e <= _MAX_FILE):\n'
+        ),
+        (
+            b'        if not stat.S_ISREG(before.st_mode) or before.s'
+            b't_nlink != 1 or not 2 <= before.st_size <= _MAX_FILE:\n'
+        ),
+    ),
+    (
+        (
+            b'        return datetime.strptime(v, "%Y-%m-%dT%H:%M:%SZ'
+            b'").replace(tzinfo=UTC)\n'
+        ),
+        (
+            b'        return datetime.strptime(v, "%Y-%m-%dT%H:%M:%SZ'
+            b'").replace(tzinfo=timezone.utc)\n'
+        ),
+    ),
+    (
+        (
+            b'    if (obj.get("provider_id", provider) != provider\n  '
+            b'          or obj["account_alias"] != policy["account_al'
+            b'ias"]\n'
+        ),
+        (
+            b'    if (obj.get("provider_id", provider) != provider or'
+            b' obj["account_alias"] != policy["account_alias"]\n'
+        ),
+    ),
+    (
+        (
+            b'    return {\n        "balances": amounts, "positions": '
+            b'positions,\n        "open_orders": orders, "observed_at"'
+            b': stamp,\n    }\n'
+        ),
+        (
+            b'    return {"balances": amounts, "positions": positions'
+            b', "open_orders": orders, "observed_at": stamp}\n'
+        ),
+    ),
+    (
+        (
+            b'        if (type(seq) is not int or seq <= 0\n          '
+            b'      or (prev_sequence is not None and seq != prev_seq'
+            b'uence + 1)):\n'
+        ),
+        (
+            b'        if type(seq) is not int or seq <= 0 or (prev_se'
+            b'quence is not None and seq != prev_sequence + 1):\n'
+        ),
+    ),
+    (
+        (
+            b'    if (operator_ack is not True\n            or os.envi'
+            b'ron.get("MMT_NONPRODUCTION") != "1"\n            or "MMT'
+            b'_PRODUCTION" in os.environ):\n'
+        ),
+        (
+            b'    if operator_ack is not True or os.environ.get("MMT_'
+            b'NONPRODUCTION") != "1" or "MMT_PRODUCTION" in os.enviro'
+            b'n:\n'
+        ),
+    ),
+    (
+        (
+            b'    for name in (\n        "provider_id", "market", "sym'
+            b'bol", "contract_id",\n        "region", "account_alias",'
+            b' "currency",\n    ):\n'
+        ),
+        (
+            b'    for name in ("provider_id", "market", "symbol", "co'
+            b'ntract_id", "region", "account_alias", "currency"):\n'
+        ),
+    ),
+    (
+        (
+            b'    if (type(region) is not str or region != policy["re'
+            b'gion"]\n            or region not in policy["eligible_re'
+            b'gions"]):\n'
+        ),
+        (
+            b'    if type(region) is not str or region != policy["reg'
+            b'ion"] or region not in policy["eligible_regions"]:\n'
+        ),
+    ),
+)
+
+
+def _reviewed_r42_matches_historic(raw: bytes, original_blob: str, original_sha256: str) -> bool:
+    for updated, historical in _REVIEWED_R42_REVERSE:
+        if raw.count(updated) != 1:
+            return False
+        raw = raw.replace(updated, historical, 1)
+    digest = hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest()
+    return digest == original_blob and hashlib.sha256(raw).hexdigest() == original_sha256
+
+
 EXPECTED_TESTS = 59
 
 
@@ -53,9 +192,19 @@ def _checked_source(root: Path) -> dict:
         except OSError as exc:
             raise AcceptanceBlocked("R42V_SOURCE_UNAVAILABLE") from exc
         observed = hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest()
-        if observed != git_sha or hashlib.sha256(raw).hexdigest() != sha256:
+        digest = hashlib.sha256(raw).hexdigest()
+        is_historical = (observed, digest) == (git_sha, sha256)
+        is_reviewed = (
+            name == "scripts/mmt_r42_offline_market_account_evidence_v1.py"
+            and (observed, digest) == _REVIEWED_R42_SOURCE
+            and _reviewed_r42_matches_historic(raw, git_sha, sha256)
+        )
+        if not (is_historical or is_reviewed):
             raise AcceptanceBlocked("R42V_PIN_MISMATCH")
-        result[name] = {"git_blob_sha1": observed, "sha256": sha256, "bytes": len(raw)}
+        result[name] = {
+            "git_blob_sha1": observed, "sha256": digest, "bytes": len(raw),
+            "historical_git_blob_sha1": git_sha,
+        }
     return result
 
 
