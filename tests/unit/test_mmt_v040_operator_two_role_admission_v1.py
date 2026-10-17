@@ -98,6 +98,13 @@ def test_valid_two_role_signature_always_release_denied(bundle):
     assert result["merge_authorized"] is False
 
 
+def test_review_source_epoch_is_authenticated_for_full_custody(bundle):
+    args, receipt, _, _ = bundle
+    evidence = gate.verify_operator_review(**args)
+    assert evidence["review_source_date_epoch"] == receipt["source_date_epoch"]
+    assert evidence["public_release_authorized"] is False
+
+
 def test_same_key_for_publisher_and_operator_refused(bundle):
     args, _, _, _ = bundle
     args["expected_publisher_key_spki_sha256"] = args["expected_operator_key_spki_sha256"]

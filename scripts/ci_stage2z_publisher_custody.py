@@ -13,6 +13,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 import zipfile
 from pathlib import Path
 
@@ -22,6 +23,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from scripts import mmt_v040_offline_stable_staging_v1 as stage
 from scripts import mmt_v040_public_source_snapshot_audit_v1 as snapshot
 from scripts import mmt_v040_rc_overlay_signed_custody_v1 as overlay
+from scripts import mmt_v040_operator_two_role_admission_v1 as two_role
 from scripts import mmt_v040_signed_artifact_preflight_v1 as stable
 
 PUBLIC_TREE_SHA1 = "511e9346d88280f3be7c80367f8822a8eaa24dd7"
@@ -158,6 +160,125 @@ def rehearsal(repository: Path, expected_source_commit: str) -> dict:
         assert custody["wheel_readme_matches_reviewed_source"] is True
         assert custody["wheel_summary_matches_reviewed_source"] is True
 
+        # Stage 3C: exercise the ACTUAL full two-role gate against the real
+        # GitHub-source Wheel above. Both signers are independent TEST keys.
+        reviewer = Ed25519PrivateKey.generate()
+        reviewer_pub = reviewer.public_key()
+        reviewer_pem = reviewer_pub.public_bytes(
+            serialization.Encoding.PEM,
+            serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        reviewer_spki = reviewer_pub.public_bytes(
+            serialization.Encoding.DER,
+            serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        reviewer_fp = hashlib.sha256(reviewer_spki).hexdigest()
+        assert reviewer_fp != fingerprint
+        operator_policy = {
+            "schema": 1, "revision": 1,
+            "active_signers": [reviewer_fp],
+            "revoked_signers": [], "min_source_date_epoch": epoch,
+        }
+        operator_policy_bytes = canonical(operator_policy)
+        receipt = {
+            "schema": 1,
+            "scope": two_role.SCOPE,
+            "source_commit": expected_source_commit,
+            "source_date_epoch": epoch,
+            "expires_epoch": int(time.time()) + 3600,
+            "public_tree_sha1": PUBLIC_TREE_SHA1,
+            "source_snapshot_sha256": SOURCE_SNAPSHOT_SHA256,
+            "stable_overlay_sha256": APPROVED_OVERLAY_SHA256,
+            "wheel_sha256": manifest["wheel_sha256"],
+            "manifest_sha256": hashlib.sha256(signed).hexdigest(),
+            "publisher_key_spki_sha256": fingerprint,
+            "publisher_policy_sha256": hashlib.sha256(policy_bytes).hexdigest(),
+        }
+        receipt_raw = canonical(receipt)
+        receipt_path = private / "operator-review.test-only.json"
+        receipt_signature_path = private / "operator-review.test-only.sig"
+        reviewer_key_path = private / "operator-public.test-only.pem"
+        operator_policy_path = private / "operator-policy.test-only.json"
+        receipt_path.write_bytes(receipt_raw)
+        receipt_signature_path.write_bytes(reviewer.sign(two_role.DOMAIN + receipt_raw))
+        reviewer_key_path.write_bytes(reviewer_pem)
+        operator_policy_path.write_bytes(operator_policy_bytes)
+        dual_args = {
+            "repository": repository,
+            "receipt": receipt_path,
+            "signature": receipt_signature_path,
+            "operator_public_key": reviewer_key_path,
+            "operator_policy": operator_policy_path,
+            "expected_receipt_sha256": hashlib.sha256(receipt_raw).hexdigest(),
+            "expected_operator_key_spki_sha256": reviewer_fp,
+            "expected_operator_policy_sha256": hashlib.sha256(
+                operator_policy_bytes
+            ).hexdigest(),
+            "manifest": manifest_path,
+            "publisher_signature": signature_path,
+            "wheel": build_paths[0],
+            "publisher_public_key": key_path,
+            "publisher_policy": policy_path,
+            "expected_manifest_sha256": hashlib.sha256(signed).hexdigest(),
+            "expected_publisher_key_spki_sha256": fingerprint,
+            "expected_publisher_policy_sha256": hashlib.sha256(policy_bytes).hexdigest(),
+            "expected_wheel_sha256": manifest["wheel_sha256"],
+            "expected_source_commit": expected_source_commit,
+            "expected_public_tree_sha1": PUBLIC_TREE_SHA1,
+            "expected_snapshot_sha256": SOURCE_SNAPSHOT_SHA256,
+            "expected_overlay_sha256": APPROVED_OVERLAY_SHA256,
+        }
+        full = two_role.verify_full_custody(**dual_args)
+        assert full["public_modules_verified"] == 226
+        assert full["source_to_wheel_verified"] is True
+        assert full["public_release_authorized"] is False
+        assert full["human_identity_independently_established"] is False
+        print("STAGE3C_REAL_SOURCE_TWO_INDEPENDENT_TEST_SIGNERS_PASS_RELEASE_BLOCKED")
+
+        # A forged operator signature fails before source/wheel admission.
+        receipt_signature_path.write_bytes(b"\x00" * 64)
+        try:
+            two_role.verify_full_custody(**dual_args)
+        except two_role.OperatorReviewRefused as exc:
+            if str(exc) != "V040_OPERATOR_SIGNATURE_INVALID":
+                raise
+        else:
+            raise ValueError("STAGE3C_FORGED_OPERATOR_SIGNATURE_WAS_ACCEPTED")
+        receipt_signature_path.write_bytes(reviewer.sign(two_role.DOMAIN + receipt_raw))
+
+        # Subtle cross-signature attack: legitimate reviewer signs a source
+        # epoch different from the publisher's signed manifest. Reject even
+        # when both independent Ed25519 signatures and Wheel hashes are valid.
+        shifted = canonical({**receipt, "source_date_epoch": epoch + 1})
+        receipt_path.write_bytes(shifted)
+        receipt_signature_path.write_bytes(reviewer.sign(two_role.DOMAIN + shifted))
+        shifted_args = {
+            **dual_args, "expected_receipt_sha256": hashlib.sha256(shifted).hexdigest()
+        }
+        try:
+            two_role.verify_full_custody(**shifted_args)
+        except two_role.OperatorReviewRefused as exc:
+            if str(exc) != "V040_OPERATOR_PUBLISHER_EPOCH_MISMATCH":
+                raise
+        else:
+            raise ValueError("STAGE3C_EPOCH_SPLIT_WAS_ACCEPTED")
+        receipt_path.write_bytes(receipt_raw)
+        receipt_signature_path.write_bytes(reviewer.sign(two_role.DOMAIN + receipt_raw))
+
+        # An operator approval cannot share the publisher's key even if the
+        # external SHA256 pin was replaced by a malicious actor.
+        role_collision = {
+            **dual_args, "expected_operator_key_spki_sha256": fingerprint
+        }
+        try:
+            two_role.verify_full_custody(**role_collision)
+        except two_role.OperatorReviewRefused as exc:
+            if str(exc) != "V040_OPERATOR_PUBLISHER_ROLE_COLLISION":
+                raise
+        else:
+            raise ValueError("STAGE3C_ROLE_COLLISION_WAS_ACCEPTED")
+        print("STAGE3C_FORGERY_EPOCH_SPLIT_AND_ROLE_COLLISION_REFUSED_PASS")
+
         # Explicit negative: signed bytes altered after creation.
         signature_path.write_bytes(b"\x00" * 64)
         try:
@@ -197,6 +318,10 @@ def rehearsal(repository: Path, expected_source_commit: str) -> dict:
         "forged_signature_rejected": True,
         "revoked_signer_rejected": True,
         "test_key_only": True,
+        "two_distinct_test_keys_full_git_to_wheel_custody_verified": True,
+        "forged_operator_signature_refused": True,
+        "signed_publisher_operator_epoch_mismatch_refused": True,
+        "same_key_role_collision_refused": True,
         "independent_approved_publisher_verified": False,
         "publication_authorized": False,
         "main_merge_authorized": False,

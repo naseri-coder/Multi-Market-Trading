@@ -157,6 +157,7 @@ def verify_operator_review(
     return {
         "verdict": "V040_OPERATOR_REVIEW_CRYPTOGRAPHIC_CHECK_PASS_RELEASE_BLOCKED",
         "source_commit": expected_source_commit,
+        "review_source_date_epoch": review["source_date_epoch"],
         "reviewer_key_spki_sha256": expected_operator_key_spki_sha256,
         "publisher_key_spki_sha256": expected_publisher_key_spki_sha256,
         "role_separation_verified": True,
@@ -211,6 +212,18 @@ def verify_full_custody(
     )
     if result["signed_stable_wheel_sha256"] != expected_wheel_sha256:
         raise OperatorReviewRefused("V040_OPERATOR_WHEEL_MISMATCH_AFTER_CUSTODY")
+    # A reviewer must approve the *same* source epoch as the signed Wheel,
+    # not merely the same hash/commit. Re-read and re-pin the manifest after
+    # the custody verifier to reject stale/raced bytes or a timestamp swap.
+    manifest_raw = _read(manifest, 4096)
+    if hashlib.sha256(manifest_raw).hexdigest() != expected_manifest_sha256:
+        raise OperatorReviewRefused("V040_OPERATOR_MANIFEST_CHANGED_AFTER_CUSTODY")
+    try:
+        signed_epoch = stable._manifest(manifest_raw)["source_date_epoch"]
+    except stable.StableArtifactRefused as exc:
+        raise OperatorReviewRefused("V040_OPERATOR_MANIFEST_REFUSED") from exc
+    if signed_epoch != review["review_source_date_epoch"]:
+        raise OperatorReviewRefused("V040_OPERATOR_PUBLISHER_EPOCH_MISMATCH")
     return {
         **review,
         "verdict": "V040_DUAL_ROLE_SIGNED_CUSTODY_PASS_RELEASE_STILL_REQUIRES_HUMAN_APPROVAL",
