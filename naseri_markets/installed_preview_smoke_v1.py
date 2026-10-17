@@ -86,7 +86,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--ack-isolated-preview", action="store_true")
     args = parser.parse_args(argv)
     if (not args.ack_isolated_preview or os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"):
+            or "MMT_PRODUCTION" in os.environ):
         print("STAGE15_PREVIEW_REFUSED:NONPRODUCTION_ACK_REQUIRED", file=sys.stderr)
         return 2
     try:
