@@ -6,7 +6,7 @@ import pytest
 from scripts import mmt_v040_offline_stable_staging_v1 as stage
 from scripts import mmt_v040_public_source_snapshot_audit_v1 as snap
 
-BASE=Path('/mnt/data/mmt-v040-stage3-wheel-fixture/checkout')
+BASE=Path(__file__).resolve().parents[2] / "platform_release"
 
 def git(r,*a):
  p=subprocess.run(['git','-C',str(r),*a],capture_output=True,text=True,check=True)
@@ -18,7 +18,8 @@ def commit(r,message):git(r,'-c','user.email=staging@example.invalid','-c','user
 def fixture(tmp_path,monkeypatch):
  monkeypatch.setenv('MMT_NONPRODUCTION','1');monkeypatch.delenv('MMT_PRODUCTION',raising=False)
  repo=tmp_path/'source';(repo/'naseri_markets').mkdir(parents=True);(repo/'platform_release').mkdir()
- t=BASE.joinpath('pyproject.toml').read_text().replace('version = "0.4.0"','version = "0.4.0rc1"')
+ t=BASE.joinpath('pyproject.toml').read_text()
+ assert t.count('version = "0.4.0rc1"') == 1
  (repo/'platform_release/pyproject.toml').write_text(t)
  (repo/'platform_release/README.md').write_text('Test non-release metadata\n')
  for name in ('__init__.py','platform_cli.py','platform_version_policy_v1.py'):(repo/'naseri_markets'/name).write_text('"""Inert synthetic test file."""\n')
