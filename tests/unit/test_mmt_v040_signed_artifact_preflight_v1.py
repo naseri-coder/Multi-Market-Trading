@@ -373,3 +373,40 @@ def test_private_engine_filename_denied_even_when_signed(setup):
     values=rewrite()
     with pytest.raises(audit.StableArtifactRefused,match="V040_WHEEL_MEMBER_UNSAFE"):
         audit.verify(**values)
+
+
+@pytest.mark.parametrize("requires_python", (
+    ">=3.12,<3.13", "<3.13,>=3.12",
+))
+def test_exact_python_range_in_both_equivalent_metadata_orders(requires_python):
+    base_metadata = (
+        "Metadata-Version: 2.4\nName: multi-market-trading\n"
+        "Version: 0.4.0\n"
+        f"Requires-Python: {requires_python}\n"
+        + "".join(
+            "Requires-Dist: " + dep + '; extra == "' + extra + '"\n'
+            for extra, deps in audit._ALLOWED_REQUIREMENTS.items()
+            for dep in sorted(deps)
+        )
+    )
+    wheel, record = built_wheel(metadata=base_metadata)
+    assert audit._wheel(wheel, hashlib.sha256(record).hexdigest())["record_verified"] is True
+
+
+@pytest.mark.parametrize("requires_python", (
+    ">=3.11,<3.13", ">=3.12", "<3.14,>=3.12", ">=3.12,<3.13,>=3.11",
+))
+def test_changed_or_extra_python_range_remains_refused(requires_python):
+    bad = (
+        "Metadata-Version: 2.4\nName: multi-market-trading\n"
+        "Version: 0.4.0\n"
+        f"Requires-Python: {requires_python}\n"
+        + "".join(
+            "Requires-Dist: " + dep + '; extra == "' + extra + '"\n'
+            for extra, deps in audit._ALLOWED_REQUIREMENTS.items()
+            for dep in sorted(deps)
+        )
+    )
+    wheel, record = built_wheel(metadata=bad)
+    with pytest.raises(audit.StableArtifactRefused, match="V040_WHEEL_IDENTITY_INVALID"):
+        audit._wheel(wheel, hashlib.sha256(record).hexdigest())
