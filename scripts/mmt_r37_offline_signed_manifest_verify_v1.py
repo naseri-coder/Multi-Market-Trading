@@ -77,7 +77,13 @@ def _manifest(raw: bytes) -> dict:
         raise R37Refused("R37_INVALID_MANIFEST_JSON") from exc
     if type(value) is not dict or set(value) != FIELDS:
         raise R37Refused("R37_MANIFEST_SCHEMA_FIELDS_INVALID")
-    if json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode() + b"\n" != raw:
+    try:
+        canonical = json.dumps(
+            value, sort_keys=True, separators=(",", ":"), ensure_ascii=True,
+        ).encode() + b"\n"
+    except (RecursionError, ValueError, TypeError) as exc:
+        raise R37Refused("R37_INVALID_MANIFEST_JSON") from exc
+    if canonical != raw:
         raise R37Refused("R37_NONCANONICAL_MANIFEST")
     if (type(value["schema"]) is not int or value["schema"] != 1
             or value["distribution"] != "multi-market-trading"
