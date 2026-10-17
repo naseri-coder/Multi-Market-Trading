@@ -142,9 +142,22 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -Eeuo pipefail
+          BUNDLE="${{ steps.attest.outputs.bundle-path }}"
+          test -s "$BUNDLE"
+          # GitHub API indexing may lag the freshly signed/uploaded attestation;
+          # independently verify the actual local Sigstore signature/certificate.
           gh attestation verify "$RUNNER_TEMP/v040-offline-installer-review-only/multi_market_trading-0.4.0-py3-none-any.whl" \
-            --repo "$GITHUB_REPOSITORY" > "$RUNNER_TEMP/v040-attestation-verified.json"
-          test -s "$RUNNER_TEMP/v040-attestation-verified.json"
+            --repo "$GITHUB_REPOSITORY" --bundle "$BUNDLE" \
+            --source-digest "$GITHUB_SHA" --source-ref refs/heads/main \
+            --format json > "$RUNNER_TEMP/v040-attestation-verified.json"
+          python - <<'PY'
+          import json, os, pathlib
+          p = pathlib.Path(os.environ["RUNNER_TEMP"]) / "v040-attestation-verified.json"
+          verified = json.loads(p.read_text())
+          assert isinstance(verified, list) and len(verified) >= 1
+          assert all("verificationResult" in entry for entry in verified)
+          print("V040_LOCAL_BUNDLE_SIGSTORE_VERIFICATION_PASS")
+          PY
           echo V040_GITHUB_SIGNED_BUILD_PROVENANCE_VERIFIED_PASS
 
       - name: Tag protected main and publish official v0.4.0 assets only after every gate passes

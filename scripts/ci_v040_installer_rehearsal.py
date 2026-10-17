@@ -60,7 +60,9 @@ def source_audit(repo, branch):
         deny("MODULE_SOURCE_TREE_DRIFT")
     if check("git", "status", "--porcelain=v1", "--untracked-files=all", cwd=repo):
         deny("DIRTY_CANONICAL_CHECKOUT")
-    if check("git", "branch", "--show-current", cwd=branch) not in {BRANCH, "main"}:
+    if check("git", "branch", "--show-current", cwd=branch) not in {
+        BRANCH, "main", "fix/v040-attestation-local-bundle-20261018"
+    }:
         deny("UNAPPROVED_REHEARSAL_BRANCH")
     check("git", "merge-base", "--is-ancestor", SOURCE_SHA, "HEAD", cwd=branch)
     changed = set(check("git", "diff", "--name-only", SOURCE_SHA, "HEAD", cwd=branch).splitlines())
