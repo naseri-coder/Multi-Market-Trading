@@ -85,7 +85,7 @@ class OfflineRuntimeSupervisor:
     def __init__(self, db_path: str | Path, *, panel: OfflineTradingControlCenter,
                  actor_id: int, enabled: bool = False):
         if (enabled is not True or os.environ.get("MMT_NONPRODUCTION") != "1"
-                or os.environ.get("MMT_PRODUCTION") == "1"
+                or "MMT_PRODUCTION" in os.environ
                 or not isinstance(panel, OfflineTradingControlCenter)
                 or type(actor_id) is not int or actor_id <= 0):
             raise SupervisorRefused("NONPRODUCTION_OPERATOR_REQUIRED")
