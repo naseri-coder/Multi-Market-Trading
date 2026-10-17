@@ -185,7 +185,7 @@ def audit(*, repository: Path, wheel: Path, expected_wheel_sha256: str,
           expected_source_commit: str, compare_wheel: Path | None = None
           ) -> dict:
     if (os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"
+            or "MMT_PRODUCTION" in os.environ
             or sys.version_info[:2] != (3, 12)):
         raise R36Refused("R36_OFFLINE_PY312_ONLY")
     pinned_commit = _git(repository, expected_source_commit)
