@@ -47,7 +47,7 @@ class R31OfflineAdminConsole:
     @staticmethod
     def _offline() -> None:
         if (os.environ.get("MMT_NONPRODUCTION") != "1"
-                or os.environ.get("MMT_PRODUCTION") == "1"):
+                or "MMT_PRODUCTION" in os.environ):
             raise R31AdminRefused("R31_NONPRODUCTION_ONLY")
 
     def _actor(self, actor_id: int) -> None:
