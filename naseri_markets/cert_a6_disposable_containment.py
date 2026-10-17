@@ -91,7 +91,7 @@ class ContainmentObservation:
 
 def _scope() -> None:
     if (os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"
+            or "MMT_PRODUCTION" in os.environ
             or os.environ.get("MMT_CERT_A6_DISPOSABLE_HOST_APPROVED") != "1"):
         raise CertA6Refused("CERT_A6_EXPLICIT_DISPOSABLE_ONLY")
 
