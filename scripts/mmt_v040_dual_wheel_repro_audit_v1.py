@@ -16,7 +16,7 @@ from pathlib import Path
 from scripts import mmt_v040_rc_overlay_signed_custody_v1 as overlay
 from scripts import mmt_v040_signed_artifact_preflight_v1 as stable
 
-SHA256 = re.compile(r"[0-9a-f]{64}\\Z")
+SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 
 
 class DualWheelRefused(ValueError):
