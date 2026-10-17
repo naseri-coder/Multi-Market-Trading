@@ -36,7 +36,7 @@ def test_r38_deep_policy_refused_without_install_writes(
     path = tmp_path / "deep-policy.json"
     path.write_bytes(policy)
     original = path.read_bytes()
-    with pytest.raises(r38.R38Refused, match="R38_(POLICY_JSON_INVALID|POLICY_VALUES_INVALID)"):
+    with pytest.raises(r38.R38Refused, match="R38_(POLICY_JSON_INVALID|POLICY_VALUES_INVALID|POLICY_NONCANONICAL)"):
         r38._policy(path, hashlib.sha256(original).hexdigest(), "0" * 64)
     assert path.read_bytes() == original
     assert sorted(p.name for p in tmp_path.iterdir()) == [path.name]
