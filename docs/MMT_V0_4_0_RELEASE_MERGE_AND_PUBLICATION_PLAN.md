@@ -35,13 +35,15 @@
 - A Draft PR from this candidate to `main` is a review vehicle only.
 - **Exit:** Git refs, previous stable tag, candidate blob pins and branch list documented; no tag.
 
-### 1 — Target and compatibility freeze (pending)
+### 1 — Target and compatibility freeze (source-scope review completed; runtime validation pending)
 
 - Fix public platform scope: offline/PAPER product only; document supported APIs/CLIs and behaviors.
 - Identify all user-facing contracts: `naseri-markets`, `naseri-custom`, `naseri-paper-demo`, `naseri-paper-pilot`, Brooks replay/admin entrypoints, provider abstraction, source/release verification and required Python 3.12.
 - Diff startup, worker and database/ledger schema contracts between `v0.3.2`, current `main`, and merged candidate. Establish explicit migration-versus-side-by-side operation and rollback. Never migrate production DB in this release preparation.
 - Define which 19 independent heads contain mandatory release fixes; handle each adopted change by separate scoped review with complete tests.
 - **Exit:** API/breakage matrix, accepted/deferred branches, private-core exclusion proof, initial version ownership, release-feature freeze.
+
+**Stage 1 evidence (2026-10-17):** See [`MMT_V0_4_0_STAGE1_COMPATIBILITY_AND_BRANCH_DISPOSITION.md`](MMT_V0_4_0_STAGE1_COMPATIBILITY_AND_BRANCH_DISPOSITION.md). This is a reviewed *source-scope freeze*: all 19 independent branch heads are classified; none was blindly merged. Critical findings are the 78 preview-version references across default-branch search results, 348-entry published-v0.3.2 versus 359-entry current legacy manifest, and the lack of operational rootless host accreditation. All runtime acceptance remains open; no release tag is authorized.
 
 ### 2 — Correctness, safety and test closure (pending; blocking)
 
