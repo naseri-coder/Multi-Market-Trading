@@ -39,7 +39,7 @@ class R35Refused(ValueError):
 
 def _gate(*, install: bool, ack: bool) -> None:
     if (os.environ.get("MMT_NONPRODUCTION") != "1"
-            or os.environ.get("MMT_PRODUCTION") == "1"
+            or "MMT_PRODUCTION" in os.environ
             or sys.version_info[:2] != (3, 12)):
         raise R35Refused("R35_NONPRODUCTION_PY312_REQUIRED")
     if install and not ack:
