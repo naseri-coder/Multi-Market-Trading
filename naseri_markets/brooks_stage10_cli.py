@@ -96,7 +96,7 @@ def run_once(args: argparse.Namespace, *, environment: dict[str, str]) -> dict:
     if (
         not args.ack_nonproduction_stage10_paper
         or environment.get("MMT_NONPRODUCTION") != "1"
-        or environment.get("MMT_PRODUCTION") == "1"
+        or "MMT_PRODUCTION" in environment
     ):
         raise BrooksStage10Refused("STAGE10_OPERATOR_NONPRODUCTION_OPTIN_REQUIRED")
     if getattr(args, "replay_and_link", False):
